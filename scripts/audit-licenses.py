@@ -169,7 +169,7 @@ This software is based in part on the work of the Independent JPEG Group.
     for digest, group in sorted(texts.items(), key=lambda item: item[1]['packages'][0]):
         sections.append('\n'.join(group['packages']) + f'\nText SHA-256: {digest}\n\n' + group['text'].rstrip() + '\n')
     bundle = header + ('\n' + '=' * 72 + '\n\n').join(sections)
-    for directory in (ROOT, ROOT / 'bindings/node', ROOT / 'bindings/python'):
+    for directory in (ROOT, ROOT / 'bindings/node', ROOT / 'bindings/python', ROOT / 'bindings/python/legal'):
         destination = directory / 'THIRD_PARTY_LICENSES.txt'
         if args.check:
             if destination.read_text(encoding='utf-8') != bundle:

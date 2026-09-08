@@ -113,11 +113,8 @@ jobs:
         run: rustup toolchain install 1.93.0 --profile minimal --target ${{ matrix.target }}
       - name: Install native build dependencies
         run: |
+          mkdir -p dist/wheels dist/artifacts
           npm ci --prefix bindings/node
-          if [[ "${{ matrix.libc }}" == "musl" ]]; then
-            sudo apt-get update
-            sudo apt-get install -y musl-tools
-          fi
       - name: Build Node binding
         working-directory: bindings/node
         env:
@@ -126,10 +123,9 @@ jobs:
           if [[ "${{ matrix.libc }}" == "glibc" ]]; then
             npm exec -- napi build --platform --release --strip --target ${{ matrix.target }} --use-napi-cross
           elif [[ "${{ matrix.libc }}" == "musl" ]]; then
-            export RUSTFLAGS="-C target-feature=-crt-static"
-            linker="CARGO_TARGET_$(echo '${{ matrix.target }}' | tr '[:lower:]-' '[:upper:]_')_LINKER"
-            export "$linker=musl-gcc"
-            npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}
+            docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work/bindings/node \
+              -e RUSTFLAGS="-C target-feature=-crt-static" rust:1.93-alpine \
+              sh -ec 'apk add --no-cache musl-dev nodejs npm; npm ci; npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}'
           else
             npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}
           fi
@@ -147,10 +143,11 @@ jobs:
           RUSTUP_TOOLCHAIN: '1.93.0'
         run: |
           if [[ "${{ matrix.libc }}" == "musl" ]]; then
-            linker="CARGO_TARGET_$(echo '${{ matrix.target }}' | tr '[:lower:]-' '[:upper:]_')_LINKER"
-            export "$linker=musl-gcc"
+            docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work rust:1.93-alpine \
+              sh -ec 'apk add --no-cache musl-dev; cargo build --release --locked --bin docsvg --target ${{ matrix.target }}'
+          else
+            cargo build --release --locked --bin docsvg --target ${{ matrix.target }}
           fi
-          cargo build --release --locked --bin docsvg --target ${{ matrix.target }}
       - name: Build Python wheel
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
         with:
