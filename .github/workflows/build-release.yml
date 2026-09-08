@@ -121,14 +121,16 @@ jobs:
           RUSTUP_TOOLCHAIN: '1.93.0'
         run: |
           if [[ "${{ matrix.libc }}" == "glibc" ]]; then
-            npm exec -- napi build --platform --release --strip --target ${{ matrix.target }} --use-napi-cross
+            npm exec -- napi build --platform --release --target ${{ matrix.target }} --use-napi-cross
           elif [[ "${{ matrix.libc }}" == "musl" ]]; then
             docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work/bindings/node \
               -e CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=cc \
               -e RUSTFLAGS="-C target-feature=-crt-static" rust:1.93-alpine \
-              sh -ec 'apk add --no-cache musl-dev nodejs npm; npm ci; npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}'
+              sh -ec 'apk add --no-cache musl-dev nodejs npm; npm ci; npm exec -- napi build --platform --release --target ${{ matrix.target }}'
           else
-            npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}
+            # Cargo's release profile already strips symbols. Avoid an extra
+            # linker flag so CLI/Python builds can reuse matching Rust objects.
+            npm exec -- napi build --platform --release --target ${{ matrix.target }}
           fi
       - name: Test Node binding
         working-directory: bindings/node
