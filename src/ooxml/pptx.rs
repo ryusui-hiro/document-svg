@@ -3538,7 +3538,7 @@ fn paint_target(stack: &[String]) -> PaintTarget {
         PaintTarget::ShapeStroke
     } else if stack
         .iter()
-        .any(|item| matches!(item.as_str(), "rPr" | "defRPr"))
+        .any(|item| matches!(item.as_str(), "rPr" | "defRPr" | "endParaRPr" | "buClr"))
     {
         PaintTarget::Text
     } else {

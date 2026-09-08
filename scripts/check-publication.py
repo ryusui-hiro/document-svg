@@ -1,5 +1,7 @@
 """Check Git publication candidates without printing potentially secret content."""
 import pathlib
+import hashlib
+import json
 import os
 import re
 import subprocess
@@ -20,6 +22,9 @@ rules = [
 if names:
     rules.append(("internal organization name", re.compile("|".join(map(re.escape, names)), re.I)))
 errors = []
+sample_manifest = ROOT / 'samples/provenance.json'
+sample_hashes = json.loads(sample_manifest.read_text()).get('sha256', {}) if sample_manifest.is_file() else {}
+sample_paths = {f'samples/source/sample.{suffix}' for suffix in ('pdf', 'pptx', 'xlsx', 'docx')}
 for relative in sorted(set(filter(None, paths))):
     path = ROOT / relative
     parts = pathlib.PurePosixPath(relative).parts
@@ -33,8 +38,11 @@ for relative in sorted(set(filter(None, paths))):
         continue
     if path.name.startswith(".env") and path.name != ".env.example":
         errors.append((relative, "environment file"))
-    if path.suffix.lower() in {".pem", ".key", ".p12", ".pfx", ".node", ".whl", ".crate", ".pdf", ".pptx", ".docx", ".xlsx"}:
-        errors.append((relative, "credential or binary artifact"))
+    if path.suffix.lower() in {".pem", ".key", ".p12", ".pfx", ".node", ".so", ".pyd", ".dylib", ".whl", ".crate", ".pdf", ".pptx", ".docx", ".xlsx"}:
+        approved_sample = (relative in sample_paths and path.stat().st_size <= 2 * 1024 * 1024
+                           and hashlib.sha256(path.read_bytes()).hexdigest() == sample_hashes.get(relative.removeprefix('samples/')))
+        if not approved_sample:
+            errors.append((relative, "credential or unverified binary artifact"))
     if path.stat().st_size > 2 * 1024 * 1024:
         errors.append((relative, "file larger than 2 MiB"))
         continue

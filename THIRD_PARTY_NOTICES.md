@@ -1,5 +1,22 @@
 # Third-party notices
 
+## Current dependency audit and notice bundle
+
+The current audit is in [docs/LICENSE_AUDIT.md](docs/LICENSE_AUDIT.md), with the
+complete machine-readable inventory in [docs/DEPENDENCY_LICENSES.json](docs/DEPENDENCY_LICENSES.json).
+[THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt) retains the original dependency
+license/copyright texts and is included with the Rust, Node.js and Python distributions.
+
+This software is based in part on the work of the Independent JPEG Group.
+
+## Standard PDF font metrics
+
+`src/pdf_base14.rs` rearranges numeric glyph advances from eight Adobe Core 14 AFM
+files into Rust tables. Source revision, hashes and checked glyph counts are in the
+dependency inventory. Original copyright/trademark notices and permission are in
+[licenses/Adobe-Core14-AFM.txt](licenses/Adobe-Core14-AFM.txt) and the notice bundle.
+The source is [tc-font-core14-afms](https://github.com/tecnickcom/tc-font-core14-afms/tree/0675784d24b28a55c607cad6b74596ce19ce333c).
+
 ## Optional cloud architecture assets
 
 `authoring/cloud_icons.py` は、Azure・AWS・Google Cloudの公式アイコンを利用者のローカル
@@ -34,7 +51,7 @@
 | serde | 1.0.229 | MIT OR Apache-2.0 |
 | serde_json | 1.0.151 | MIT OR Apache-2.0 |
 | stet-fonts | 0.4.1 | Apache-2.0 OR MIT |
-| ttf-parser | 0.25.1 | MIT OR Apache-2.0 |
+| skrifa | 0.44.0 | MIT OR Apache-2.0 |
 | zip | 8.6.0 | MIT |
 
 言語バインディング専用の直接依存:

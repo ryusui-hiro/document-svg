@@ -1,7 +1,11 @@
 name: Publication check
 on:
   push:
+    branches: [main]
   pull_request:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -9,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
       - run: python3 scripts/check-publication.py
@@ -19,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           persist-credentials: false
       - name: Rust toolchain
@@ -42,3 +46,7 @@ jobs:
           .tmp/ci-python/bin/python -m pytest -q tests bindings/python/tests
         env:
           RUSTUP_TOOLCHAIN: '1.93.0'
+      - name: Check dependency licenses and bundled notices
+        run: |
+          cargo +1.93.0 install cargo-deny --version 0.20.2 --locked
+          .tmp/ci-python/bin/python scripts/audit-licenses.py --check

@@ -4,6 +4,7 @@
 //! [`write_page`] directly only when an application already has an
 //! [`crate::ir::Page`] that it wants to serialize.
 
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::io::Write;
 
@@ -1045,34 +1046,59 @@ fn number(value: f64, precision: usize) -> String {
         .to_owned()
 }
 
-fn escape_text(value: &str) -> String {
-    value
-        .chars()
-        .filter(|character| matches!(character, '\t' | '\n' | '\r') || *character >= ' ')
-        .fold(
-            String::with_capacity(value.len()),
-            |mut escaped, character| {
-                match character {
-                    '&' => escaped.push_str("&amp;"),
-                    '<' => escaped.push_str("&lt;"),
-                    '>' => escaped.push_str("&gt;"),
-                    _ => escaped.push(character),
-                }
-                escaped
-            },
-        )
+fn escape_text(value: &str) -> Cow<'_, str> {
+    escape_xml(value, false)
 }
 
-fn escape_attr(value: &str) -> String {
-    escape_text(value)
-        .replace('"', "&quot;")
-        .replace('\'', "&apos;")
+fn escape_attr(value: &str) -> Cow<'_, str> {
+    escape_xml(value, true)
+}
+
+fn escape_xml(value: &str, attribute: bool) -> Cow<'_, str> {
+    // In particular, embedded image data and path strings usually need no
+    // escaping. Borrow them instead of copying multi-megabyte values once
+    // for each href/xlink:href attribute.
+    let needs_escaping = value.bytes().any(|byte| {
+        matches!(byte, b'&' | b'<' | b'>' | 0..=8 | 11 | 12 | 14..=31)
+            || (attribute && matches!(byte, b'"' | b'\''))
+    });
+    if !needs_escaping {
+        return Cow::Borrowed(value);
+    }
+    let mut escaped = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '&' => escaped.push_str("&amp;"),
+            '<' => escaped.push_str("&lt;"),
+            '>' => escaped.push_str("&gt;"),
+            '"' if attribute => escaped.push_str("&quot;"),
+            '\'' if attribute => escaped.push_str("&apos;"),
+            '\t' | '\n' | '\r' => escaped.push(character),
+            value if value >= ' ' => escaped.push(value),
+            _ => {}
+        }
+    }
+    Cow::Owned(escaped)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::ir::{IDENTITY, Node, Page, SourceMeta, TextRun};
+
+    #[test]
+    fn escaping_preserves_xml_rules_and_borrows_plain_values() {
+        assert_eq!(escape_text("日本語<&>\"'\0\t"), "日本語&lt;&amp;&gt;\"'\t");
+        assert_eq!(
+            escape_attr("中文<&>\"'\u{b}\n"),
+            "中文&lt;&amp;&gt;&quot;&apos;\n"
+        );
+        assert!(matches!(
+            escape_attr("data:image/png;base64,AAAA"),
+            Cow::Borrowed(_)
+        ));
+        assert!(matches!(escape_text("plain 日本語"), Cow::Borrowed(_)));
+    }
 
     #[test]
     fn integer_precision_preserves_page_dimensions_and_coordinates() {

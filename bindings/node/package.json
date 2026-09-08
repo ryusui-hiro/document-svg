@@ -36,6 +36,7 @@
     "preview-ui.d.ts",
     "LICENSE",
     "THIRD_PARTY_NOTICES.md",
+    "THIRD_PARTY_LICENSES.txt",
     "docs",
     "examples",
     "document-svg.*.node",

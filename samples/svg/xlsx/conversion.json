@@ -1,0 +1,54 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.0",
+  "source": "samples/source/sample.xlsx",
+  "source_format": "xlsx",
+  "output_directory": "samples/svg/xlsx",
+  "elapsed_ms": 9,
+  "input_bytes": 9672,
+  "page_count": 4,
+  "largest_page_ir_bytes": 350261,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 595.28,
+      "height_points": 841.89,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 250758
+    },
+    {
+      "number": 2,
+      "svg": "page-0002.svg",
+      "width_points": 595.28,
+      "height_points": 841.89,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 348031
+    },
+    {
+      "number": 3,
+      "svg": "page-0003.svg",
+      "width_points": 595.28,
+      "height_points": 841.89,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 350261
+    },
+    {
+      "number": 4,
+      "svg": "page-0004.svg",
+      "width_points": 595.28,
+      "height_points": 841.89,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 277632
+    }
+  ],
+  "warnings": []
+}

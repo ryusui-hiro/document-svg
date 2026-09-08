@@ -19,6 +19,7 @@ mod error;
 pub mod ir;
 mod ooxml;
 mod pdf;
+mod pdf_base14;
 mod reverse;
 pub mod svg;
 

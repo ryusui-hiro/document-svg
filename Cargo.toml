@@ -7,7 +7,7 @@ description = "Bounded PDF/OOXML to SVG conversion and SVG to OOXML packaging in
 license = "MIT OR Apache-2.0"
 publish = false
 repository = "https://github.com/ryusui-hiro/document-svg"
-include = ["/src/**", "/tests/*.rs", "/examples/custom_ir.rs", "/Cargo.toml", "/Cargo.lock", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE", "/README.md", "/THIRD_PARTY_NOTICES.md", "/docs/SUPPORT.md", "/docs/ARCHITECTURE.md", "/docs/AI_USAGE_GUIDE.md"]
+include = ["/src/**", "/tests/*.rs", "/examples/custom_ir.rs", "/Cargo.toml", "/Cargo.lock", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE", "/README.md", "/THIRD_PARTY_NOTICES.md", "/THIRD_PARTY_LICENSES.txt", "/licenses/**", "/docs/DEPENDENCY_LICENSES.json", "/docs/LICENSE_AUDIT.md", "/docs/SUPPORT.md", "/docs/ARCHITECTURE.md", "/docs/AI_USAGE_GUIDE.md"]
 
 [workspace]
 members = ["bindings/node", "bindings/python"]
@@ -37,7 +37,7 @@ resvg = "0.48.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 stet-fonts = "0.4.1"
-ttf-parser = { version = "0.25.1", default-features = false, features = ["std", "glyph-names"] }
+skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 tempfile = "3.27.0"
 zip = { version = "8.1.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 

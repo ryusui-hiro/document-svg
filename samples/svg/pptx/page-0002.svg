@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="720pt" height="405pt" viewBox="0 0 720 405" data-source-format="pptx" data-source-page="2">
+  <title>One page in, one SVG out</title>
+  <metadata id="docsvg-metadata">{"page":2,"nodes":10,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="720" height="405" fill="#FFFFFF" data-role="page-background"/>
+  <path id="pptx-slide-2-1" d="M 0 0 H 720 V 70.86614 H 0 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="vector" data-source-id="Header"/>
+  <text id="pptx-slide-2-2-text-1-1" x="46.57008" y="52.43307" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-source-id="Header text">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="28" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">One page in, one SVG out</tspan>
+  </text>
+  <text id="pptx-slide-2-3-text-1-1" x="46.57008" y="227.87244" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-source-id="Body">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="16" font-weight="400" font-style="normal" baseline-shift="0" fill="#263238" fill-opacity="1">•  Every page becomes page-NNNN.svg</tspan>
+  </text>
+  <text id="pptx-slide-2-3-text-2-2" x="46.57008" y="243.87244" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-source-id="Body">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="16" font-weight="400" font-style="normal" baseline-shift="0" fill="#263238" fill-opacity="1">•  Fonts, shapes and images stay in the file</tspan>
+  </text>
+  <text id="pptx-slide-2-3-text-3-3" x="46.57008" y="259.87244" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-source-id="Body">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="16" font-weight="400" font-style="normal" baseline-shift="0" fill="#263238" fill-opacity="1">•  A conversion.json records warnings and timing</tspan>
+  </text>
+  <text id="pptx-slide-2-3-text-4-4" x="46.57008" y="275.87244" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-source-id="Body">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="16" font-weight="400" font-style="normal" baseline-shift="0" fill="#263238" fill-opacity="1">•  Nothing is fetched at render time</tspan>
+  </text>
+  <path id="pptx-slide-2-4" d="M 464.56693 110.23622 H 543.30709 V 188.97638 H 464.56693 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#00BFA5" fill-opacity="1" stroke="none" data-content-kind="vector" data-source-id="Accent A"/>
+  <path id="pptx-slide-2-5" d="M 559.05512 110.23622 H 637.79528 V 188.97638 H 559.05512 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FF6D00" fill-opacity="1" stroke="none" data-content-kind="vector" data-source-id="Accent B"/>
+  <path id="pptx-slide-2-6" d="M 464.56693 204.72441 H 543.30709 V 283.46457 H 464.56693 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#AA00FF" fill-opacity="1" stroke="none" data-content-kind="vector" data-source-id="Accent C"/>
+  <path id="pptx-slide-2-7" d="M 559.05512 204.72441 H 637.79528 V 283.46457 H 559.05512 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFD600" fill-opacity="1" stroke="none" data-content-kind="vector" data-source-id="Accent D"/>
+</svg>

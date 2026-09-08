@@ -114,6 +114,7 @@ pub fn svg_to_openxml(
     let paths = collect_svg_paths(input, options.max_pages)?;
     let mut pages = Vec::with_capacity(paths.len());
     let mut input_bytes = 0u64;
+    let mut render_options = None;
     for path in paths {
         let metadata = fs::metadata(&path)?;
         input_bytes = input_bytes.saturating_add(metadata.len());
@@ -126,7 +127,13 @@ pub fn svg_to_openxml(
         let bytes = fs::read(&path)?;
         validate_svg_document(&bytes, 0)?;
         let (width_points, height_points) = svg_dimensions(&bytes)?;
-        let fallback_png = render_svg_fallback(&bytes, width_points, height_points)?;
+        let render_options = render_options.get_or_insert_with(|| {
+            let mut options = resvg::usvg::Options::default();
+            options.fontdb_mut().load_system_fonts();
+            options
+        });
+        let fallback_png =
+            render_svg_fallback(&bytes, width_points, height_points, render_options)?;
         pages.push(SvgPage {
             bytes,
             fallback_png,
@@ -547,10 +554,13 @@ fn validate_css_references(value: &str) -> Result<()> {
     Ok(())
 }
 
-fn render_svg_fallback(bytes: &[u8], width_points: f64, height_points: f64) -> Result<Vec<u8>> {
-    let mut options = resvg::usvg::Options::default();
-    options.fontdb_mut().load_system_fonts();
-    let tree = resvg::usvg::Tree::from_data(bytes, &options)
+fn render_svg_fallback(
+    bytes: &[u8],
+    width_points: f64,
+    height_points: f64,
+    options: &resvg::usvg::Options<'_>,
+) -> Result<Vec<u8>> {
+    let tree = resvg::usvg::Tree::from_data(bytes, options)
         .map_err(|error| Error::InvalidInput(format!("SVG fallback parse failed: {error}")))?;
     let (pixel_width, pixel_height) = fallback_pixel_size(width_points, height_points);
     let mut pixmap = resvg::tiny_skia::Pixmap::new(pixel_width, pixel_height).ok_or_else(|| {
