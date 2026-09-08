@@ -1,5 +1,9 @@
 # Third-party notices
 
+Complete Rust dependency and font-metric copyright/license texts are included in
+`THIRD_PARTY_LICENSES.txt`. Retain that file when redistributing this native package.
+This software is based in part on the work of the Independent JPEG Group.
+
 The Node.js package embeds the `document-svg` Rust core and its permissively
 licensed dependencies. Direct binding dependencies:
 

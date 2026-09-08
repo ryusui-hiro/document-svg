@@ -23,3 +23,5 @@ cargo package -p document-svg --list --allow-dirty
 ```
 
 検査は候補ファイルの名前とテキストを対象にし、秘密情報の検出を保証するものではありません。生成物、キャッシュ、検証用文書はGitと配布物に入れない運用とします。
+
+公開サンプルは例外として、`samples/source/`の指定4ファイルのみ、`samples/provenance.json`のSHA-256と一致するときに許可します。テストでは生成スクリプトからの再現も確認します。ライセンス監査は`docs/LICENSE_AUDIT.md`を参照してください。

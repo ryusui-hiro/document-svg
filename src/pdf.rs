@@ -20,6 +20,7 @@ use crate::ir::{
     RadialGradient, SourceMeta, Stroke, TextAnchor, TextRun, TilingPatternDefinition, compose,
     transform_point,
 };
+use crate::pdf_base14::standard_metrics;
 
 const MAX_GRAPHICS_STACK: usize = 256;
 const MAX_FORM_DEPTH: usize = 32;
@@ -30,7 +31,7 @@ pub(crate) fn convert(
     options: &ConvertOptions,
     sink: &mut dyn PageConsumer,
 ) -> Result<Vec<String>> {
-    let document = Document::load(path)?;
+    let (document, recovery_warning) = load_document(path, options.max_zip_entry_bytes)?;
     if document.is_encrypted() {
         return Err(Error::Unsupported(
             "encrypted PDFs are rejected; access controls are not bypassed".into(),
@@ -48,6 +49,7 @@ pub(crate) fn convert(
         .unwrap_or(usize::MAX)
         .min(usize::MAX / 2);
     let mut warnings = Vec::new();
+    warnings.extend(recovery_warning);
     if options.jobs > 1 && pages.len() > 1 {
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(options.jobs)
@@ -4634,6 +4636,11 @@ fn build_font_decoder(
     content_limit: usize,
     page: &mut Page,
 ) -> FontDecoder {
+    let base_font = dictionary
+        .get(b"BaseFont")
+        .and_then(Object::as_name)
+        .map(|name| String::from_utf8_lossy(name).into_owned())
+        .unwrap_or_default();
     let family = dictionary
         .get(b"BaseFont")
         .and_then(Object::as_name)
@@ -4697,7 +4704,8 @@ fn build_font_decoder(
     let mut code_lengths = unicode_map.keys().map(Vec::len).collect::<Vec<_>>();
     code_lengths.sort_unstable_by(|left, right| right.cmp(left));
     code_lengths.dedup();
-    let (widths, default_width) = font_widths(document, dictionary, subtype);
+    let (widths, default_width) =
+        font_widths(document, dictionary, subtype, &glyph_names, &base_font);
     let type3 = (subtype == b"Type3")
         .then(|| build_type3_font(document, dictionary, &glyph_names))
         .flatten()
@@ -4767,6 +4775,8 @@ fn font_widths(
     document: &Document,
     dictionary: &Dictionary,
     subtype: &[u8],
+    glyph_names: &HashMap<u8, String>,
+    base_font: &str,
 ) -> (HashMap<u32, f64>, f64) {
     if subtype == b"Type0" {
         let descendant = dictionary
@@ -4859,7 +4869,34 @@ fn font_widths(
         .ok()
         .and_then(|value| number(Some(value)))
         .unwrap_or(500.0);
+    if !widths.is_empty() {
+        return (widths, default_width);
+    }
+    // A standard font may omit /Widths, because every reader is expected to
+    // know its metrics already. Supply them rather than advancing every glyph
+    // by the same amount.
+    let Some(metrics) = standard_metrics(base_font) else {
+        return (widths, default_width);
+    };
+    let widths = standard_encoding_glyph_names(glyph_names)
+        .filter_map(|(code, glyph)| metrics.width(glyph).map(|width| (u32::from(code), width)))
+        .collect::<HashMap<_, _>>();
     (widths, default_width)
+}
+
+/// The glyph name each code maps to, falling back to StandardEncoding for a
+/// font that names no encoding of its own.
+fn standard_encoding_glyph_names(
+    glyph_names: &HashMap<u8, String>,
+) -> impl Iterator<Item = (u8, &str)> {
+    let standard = pdf_named_encoding(b"StandardEncoding");
+    (0u8..=u8::MAX).filter_map(move |code| {
+        let glyph = match glyph_names.get(&code) {
+            Some(name) => name.as_str(),
+            None => standard.get(usize::from(code)).copied()?,
+        };
+        (glyph != ".notdef").then_some((code, glyph))
+    })
 }
 
 fn pdf_font_descriptor<'a>(
@@ -7727,12 +7764,245 @@ fn deduplicate(values: Vec<String>) -> Vec<String> {
     result
 }
 
+/// Largest number of indirect objects considered while rebuilding a damaged
+/// cross-reference table.
+const MAX_RECOVERED_OBJECTS: usize = 500_000;
+
+/// Load a PDF, rebuilding its cross-reference table if the file as written
+/// cannot be parsed.
+///
+/// Producers that emit 19-byte cross-reference entries, or that leave a stale
+/// `startxref` behind, write files every mainstream viewer still opens. Rather
+/// than reject them, scan the byte stream for the indirect objects that are
+/// actually there and append a conforming cross-reference section describing
+/// them. The original bytes are never rewritten in place, so object offsets
+/// recorded elsewhere in the file stay valid.
+fn load_document(path: &Path, max_stream_bytes: u64) -> Result<(Document, Option<String>)> {
+    let options = lopdf::LoadOptions {
+        max_decompressed_size: usize::try_from(max_stream_bytes).ok(),
+        ..Default::default()
+    };
+    let error = match Document::load_with_options(path, options.clone()) {
+        Ok(document) => return Ok((document, None)),
+        Err(error) => error,
+    };
+    let bytes = std::fs::read(path)?;
+    // A damaged file that also claims to be encrypted must not be silently
+    // rebuilt without its /Encrypt dictionary.
+    if contains_pdf_name(&bytes, b"Encrypt") {
+        return Err(error.into());
+    }
+    let Some(rebuilt) = rebuild_cross_references(&bytes) else {
+        return Err(error.into());
+    };
+    let warning = format!(
+        "PDF cross-reference table could not be parsed ({error}); it was rebuilt by scanning the file for indirect objects"
+    );
+    let document = Document::load_mem_with_options(&rebuilt, options).map_err(|_| error)?;
+    Ok((document, Some(warning)))
+}
+
+/// Append a conforming cross-reference section describing every indirect
+/// object found in `bytes`. Returns `None` when the scan finds no objects or
+/// no document catalog to point the trailer at.
+fn rebuild_cross_references(bytes: &[u8]) -> Option<Vec<u8>> {
+    let mut offsets: HashMap<u32, (u16, usize)> = HashMap::new();
+    let mut index = 0usize;
+    while let Some(found) = find(&bytes[index..], b"obj") {
+        let position = index + found;
+        index = position + 3;
+        // `obj` must be a standalone keyword, not the tail of another name.
+        if bytes
+            .get(position + 3)
+            .is_some_and(|byte| !is_pdf_delimiter(*byte))
+        {
+            continue;
+        }
+        let Some((number, generation, start)) = parse_object_header(bytes, position) else {
+            continue;
+        };
+        // A later definition of the same object wins, matching how an
+        // incremental update overrides an earlier revision.
+        if number == 0 || number as usize > MAX_RECOVERED_OBJECTS {
+            return None;
+        }
+        offsets.insert(number, (generation, start));
+        if offsets.len() > MAX_RECOVERED_OBJECTS {
+            return None;
+        }
+    }
+    let highest = *offsets.keys().max()?;
+    let root = find_catalog(bytes, &offsets)?;
+    let root_generation = offsets.get(&root)?.0;
+    let size = highest.checked_add(1)?;
+
+    let mut output = bytes.to_vec();
+    if !output.ends_with(b"\n") {
+        output.push(b'\n');
+    }
+    let xref_start = output.len();
+    output.extend_from_slice(b"xref\n");
+    output.extend_from_slice(format!("0 {size}\n").as_bytes());
+    output.extend_from_slice(b"0000000000 65535 f \n");
+    for number in 1..=highest {
+        match offsets.get(&number) {
+            Some((generation, offset)) => {
+                output.extend_from_slice(format!("{offset:010} {generation:05} n \n").as_bytes())
+            }
+            None => output.extend_from_slice(b"0000000000 65535 f \n"),
+        }
+    }
+    output.extend_from_slice(
+        format!("trailer\n<< /Size {size} /Root {root} {root_generation} R >>\nstartxref\n{xref_start}\n%%EOF\n")
+            .as_bytes(),
+    );
+    Some(output)
+}
+
+/// Read the `<number> <generation> obj` header that ends at `keyword`,
+/// returning the object number and the offset the header starts at.
+fn parse_object_header(bytes: &[u8], keyword: usize) -> Option<(u32, u16, usize)> {
+    let mut cursor = skip_whitespace_back(bytes, keyword)?;
+    // generation
+    let generation_end = cursor;
+    while cursor > 0 && bytes[cursor - 1].is_ascii_digit() {
+        cursor -= 1;
+    }
+    if cursor == generation_end {
+        return None;
+    }
+    let generation = std::str::from_utf8(&bytes[cursor..generation_end])
+        .ok()?
+        .parse::<u16>()
+        .ok()?;
+    let mut cursor = skip_whitespace_back(bytes, cursor)?;
+    // object number
+    let number_end = cursor;
+    while cursor > 0 && bytes[cursor - 1].is_ascii_digit() {
+        cursor -= 1;
+    }
+    if cursor == number_end {
+        return None;
+    }
+    // The header must start a token, not continue one.
+    if cursor > 0 && !is_pdf_delimiter(bytes[cursor - 1]) {
+        return None;
+    }
+    let number = std::str::from_utf8(&bytes[cursor..number_end])
+        .ok()?
+        .parse::<u32>()
+        .ok()?;
+    Some((number, generation, cursor))
+}
+
+/// Step back over the whitespace that precedes `position`, returning the
+/// position of the first non-whitespace byte, or `None` if there was none.
+fn skip_whitespace_back(bytes: &[u8], position: usize) -> Option<usize> {
+    let mut cursor = position;
+    let start = cursor;
+    while cursor > 0 && bytes[cursor - 1].is_ascii_whitespace() {
+        cursor -= 1;
+    }
+    (cursor != start).then_some(cursor)
+}
+
+/// Find the object number of the document catalog.
+fn find_catalog(bytes: &[u8], offsets: &HashMap<u32, (u16, usize)>) -> Option<u32> {
+    let marker = find(bytes, b"/Catalog")?;
+    // The catalog belongs to the object with the greatest offset at or before
+    // the `/Catalog` name.
+    offsets
+        .iter()
+        .filter(|(_, (_, offset))| *offset <= marker)
+        .max_by_key(|(_, (_, offset))| *offset)
+        .map(|(number, _)| *number)
+}
+
+fn find(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    haystack
+        .windows(needle.len())
+        .position(|window| window == needle)
+}
+
+fn contains_pdf_name(bytes: &[u8], name: &[u8]) -> bool {
+    // PDF names can use #xx escapes. A recovery guard must not lose an
+    // encryption dictionary merely because its name uses that spelling.
+    bytes.split(|byte| *byte == b'/').skip(1).any(|part| {
+        let end = part
+            .iter()
+            .position(|byte| is_pdf_delimiter(*byte))
+            .unwrap_or(part.len());
+        let token = &part[..end];
+        let mut index = 0;
+        let mut matched = 0;
+        while index < token.len() {
+            let value = if token[index] == b'#' {
+                let Some(pair) = token.get(index + 1..index + 3) else {
+                    return false;
+                };
+                let Some(high) = char::from(pair[0]).to_digit(16) else {
+                    return false;
+                };
+                let Some(low) = char::from(pair[1]).to_digit(16) else {
+                    return false;
+                };
+                index += 3;
+                (high * 16 + low) as u8
+            } else {
+                let byte = token[index];
+                index += 1;
+                byte
+            };
+            if name.get(matched) != Some(&value) {
+                return false;
+            }
+            matched += 1;
+        }
+        matched == name.len()
+    })
+}
+
 #[cfg(test)]
 mod font_test_data;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn recovery_rejects_huge_object_numbers_before_expanding_xref() {
+        let input = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n4294967294 0 obj <<>> endobj";
+        assert!(rebuild_cross_references(input).is_none());
+    }
+
+    #[test]
+    fn recovery_preserves_object_generations() {
+        let input = b"%PDF-1.4\n1 7 obj << /Type /Catalog /Pages 2 0 R >> endobj\n2 0 obj << /Type /Pages /Kids [] /Count 0 >> endobj\n";
+        let recovered = rebuild_cross_references(input).unwrap();
+        let document = Document::load_mem(&recovered).unwrap();
+        assert_eq!(
+            document
+                .trailer
+                .get(b"Root")
+                .unwrap()
+                .as_reference()
+                .unwrap(),
+            (1, 7)
+        );
+        assert!(document.get_object((1, 7)).is_ok());
+    }
+
+    #[test]
+    fn recovery_detects_escaped_encryption_names() {
+        for input in [
+            b"/Encrypt 9 0 R".as_slice(),
+            b"/E#6ecrypt 9 0 R",
+            b"/#45ncrypt 9 0 R",
+        ] {
+            assert!(contains_pdf_name(input, b"Encrypt"));
+        }
+        assert!(!contains_pdf_name(b"/EncryptionInfo", b"Encrypt"));
+    }
 
     fn test_font_decoder(data: Vec<u8>) -> FontDecoder {
         FontDecoder {

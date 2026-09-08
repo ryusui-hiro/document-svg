@@ -1,0 +1,10 @@
+{
+  "generator": "scripts/make_samples.py",
+  "license": "MIT OR Apache-2.0",
+  "sha256": {
+    "source/sample.pdf": "e863fd5d285f916b01f07f12a8b2ca8a4781f624e95c3ac97044eaf41f81850f",
+    "source/sample.docx": "1d5f152220ba72e9adf56ad3f4716299d40be8759f676a5c706e08d0f847fa28",
+    "source/sample.pptx": "8857bad1a0d01986e610d43f189db8d3885b610335a4b84fef42217a6781ad34",
+    "source/sample.xlsx": "dde613089bb9b3e7a666bb34d515809710ef4275d473782bdbf907d94eec442b"
+  }
+}

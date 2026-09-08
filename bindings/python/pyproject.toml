@@ -9,7 +9,7 @@ description = "Fast PDF/OOXML to SVG conversion and SVG to OOXML packaging power
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT OR Apache-2.0"
-license-files = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "THIRD_PARTY_NOTICES.md"]
+license-files = ["LICENSE", "LICENSE-MIT", "LICENSE-APACHE", "THIRD_PARTY_NOTICES.md", "THIRD_PARTY_LICENSES.txt"]
 authors = []
 classifiers = [
   "Development Status :: 3 - Alpha",

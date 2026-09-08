@@ -1,0 +1,1716 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="595.28pt" height="841.89pt" viewBox="0 0 595.28 841.89" data-source-format="xlsx" data-source-page="1">
+  <title>Sales (1/4)</title>
+  <desc>Worksheet Sales region A1:F48 rendered as an SVG grid</desc>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":1,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="595.28" height="841.89" fill="#FFFFFF" data-role="page-background"/>
+  <defs>
+    <clipPath id="cell-clip-1-1" clipPathUnits="userSpaceOnUse"><path d="M 0 0 H 409.5 V 26 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-2-1" clipPathUnits="userSpaceOnUse"><path d="M 0 26 H 73.5 V 41 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-2-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 26 H 147 V 41 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-2-3" clipPathUnits="userSpaceOnUse"><path d="M 147 26 H 210 V 41 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-2-4" clipPathUnits="userSpaceOnUse"><path d="M 210 26 H 262.5 V 41 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-2-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 26 H 336 V 41 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-2-6" clipPathUnits="userSpaceOnUse"><path d="M 336 26 H 409.5 V 41 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-3-1" clipPathUnits="userSpaceOnUse"><path d="M 0 41 H 73.5 V 56 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-3-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 41 H 147 V 56 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-3-3" clipPathUnits="userSpaceOnUse"><path d="M 147 41 H 210 V 56 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-3-4" clipPathUnits="userSpaceOnUse"><path d="M 210 41 H 262.5 V 56 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-3-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 41 H 336 V 56 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-3-6" clipPathUnits="userSpaceOnUse"><path d="M 336 41 H 409.5 V 56 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-4-1" clipPathUnits="userSpaceOnUse"><path d="M 0 56 H 73.5 V 71 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-4-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 56 H 147 V 71 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-4-3" clipPathUnits="userSpaceOnUse"><path d="M 147 56 H 210 V 71 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-4-4" clipPathUnits="userSpaceOnUse"><path d="M 210 56 H 262.5 V 71 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-4-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 56 H 336 V 71 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-4-6" clipPathUnits="userSpaceOnUse"><path d="M 336 56 H 409.5 V 71 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-5-1" clipPathUnits="userSpaceOnUse"><path d="M 0 71 H 73.5 V 86 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-5-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 71 H 147 V 86 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-5-3" clipPathUnits="userSpaceOnUse"><path d="M 147 71 H 210 V 86 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-5-4" clipPathUnits="userSpaceOnUse"><path d="M 210 71 H 262.5 V 86 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-5-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 71 H 336 V 86 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-5-6" clipPathUnits="userSpaceOnUse"><path d="M 336 71 H 409.5 V 86 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-6-1" clipPathUnits="userSpaceOnUse"><path d="M 0 86 H 73.5 V 101 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-6-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 86 H 147 V 101 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-6-3" clipPathUnits="userSpaceOnUse"><path d="M 147 86 H 210 V 101 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-6-4" clipPathUnits="userSpaceOnUse"><path d="M 210 86 H 262.5 V 101 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-6-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 86 H 336 V 101 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-6-6" clipPathUnits="userSpaceOnUse"><path d="M 336 86 H 409.5 V 101 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-7-1" clipPathUnits="userSpaceOnUse"><path d="M 0 101 H 73.5 V 116 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-7-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 101 H 147 V 116 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-7-3" clipPathUnits="userSpaceOnUse"><path d="M 147 101 H 210 V 116 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-7-4" clipPathUnits="userSpaceOnUse"><path d="M 210 101 H 262.5 V 116 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-7-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 101 H 336 V 116 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-7-6" clipPathUnits="userSpaceOnUse"><path d="M 336 101 H 409.5 V 116 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-8-1" clipPathUnits="userSpaceOnUse"><path d="M 0 116 H 73.5 V 131 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-8-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 116 H 147 V 131 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-8-3" clipPathUnits="userSpaceOnUse"><path d="M 147 116 H 210 V 131 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-8-4" clipPathUnits="userSpaceOnUse"><path d="M 210 116 H 262.5 V 131 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-8-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 116 H 336 V 131 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-8-6" clipPathUnits="userSpaceOnUse"><path d="M 336 116 H 409.5 V 131 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-9-1" clipPathUnits="userSpaceOnUse"><path d="M 0 131 H 73.5 V 146 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-9-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 131 H 147 V 146 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-9-3" clipPathUnits="userSpaceOnUse"><path d="M 147 131 H 210 V 146 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-9-4" clipPathUnits="userSpaceOnUse"><path d="M 210 131 H 262.5 V 146 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-9-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 131 H 336 V 146 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-9-6" clipPathUnits="userSpaceOnUse"><path d="M 336 131 H 409.5 V 146 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-10-1" clipPathUnits="userSpaceOnUse"><path d="M 0 146 H 73.5 V 161 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-10-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 146 H 147 V 161 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-10-3" clipPathUnits="userSpaceOnUse"><path d="M 147 146 H 210 V 161 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-10-4" clipPathUnits="userSpaceOnUse"><path d="M 210 146 H 262.5 V 161 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-10-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 146 H 336 V 161 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-10-6" clipPathUnits="userSpaceOnUse"><path d="M 336 146 H 409.5 V 161 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-11-1" clipPathUnits="userSpaceOnUse"><path d="M 0 161 H 73.5 V 176 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-11-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 161 H 147 V 176 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-11-3" clipPathUnits="userSpaceOnUse"><path d="M 147 161 H 210 V 176 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-11-4" clipPathUnits="userSpaceOnUse"><path d="M 210 161 H 262.5 V 176 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-11-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 161 H 336 V 176 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-11-6" clipPathUnits="userSpaceOnUse"><path d="M 336 161 H 409.5 V 176 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-12-1" clipPathUnits="userSpaceOnUse"><path d="M 0 176 H 73.5 V 191 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-12-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 176 H 147 V 191 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-12-3" clipPathUnits="userSpaceOnUse"><path d="M 147 176 H 210 V 191 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-12-4" clipPathUnits="userSpaceOnUse"><path d="M 210 176 H 262.5 V 191 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-12-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 176 H 336 V 191 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-12-6" clipPathUnits="userSpaceOnUse"><path d="M 336 176 H 409.5 V 191 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-13-1" clipPathUnits="userSpaceOnUse"><path d="M 0 191 H 73.5 V 206 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-13-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 191 H 147 V 206 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-13-3" clipPathUnits="userSpaceOnUse"><path d="M 147 191 H 210 V 206 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-13-4" clipPathUnits="userSpaceOnUse"><path d="M 210 191 H 262.5 V 206 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-13-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 191 H 336 V 206 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-13-6" clipPathUnits="userSpaceOnUse"><path d="M 336 191 H 409.5 V 206 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-14-1" clipPathUnits="userSpaceOnUse"><path d="M 0 206 H 73.5 V 221 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-14-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 206 H 147 V 221 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-14-3" clipPathUnits="userSpaceOnUse"><path d="M 147 206 H 210 V 221 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-14-4" clipPathUnits="userSpaceOnUse"><path d="M 210 206 H 262.5 V 221 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-14-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 206 H 336 V 221 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-14-6" clipPathUnits="userSpaceOnUse"><path d="M 336 206 H 409.5 V 221 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-15-1" clipPathUnits="userSpaceOnUse"><path d="M 0 221 H 73.5 V 236 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-15-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 221 H 147 V 236 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-15-3" clipPathUnits="userSpaceOnUse"><path d="M 147 221 H 210 V 236 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-15-4" clipPathUnits="userSpaceOnUse"><path d="M 210 221 H 262.5 V 236 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-15-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 221 H 336 V 236 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-15-6" clipPathUnits="userSpaceOnUse"><path d="M 336 221 H 409.5 V 236 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-16-1" clipPathUnits="userSpaceOnUse"><path d="M 0 236 H 73.5 V 251 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-16-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 236 H 147 V 251 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-16-3" clipPathUnits="userSpaceOnUse"><path d="M 147 236 H 210 V 251 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-16-4" clipPathUnits="userSpaceOnUse"><path d="M 210 236 H 262.5 V 251 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-16-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 236 H 336 V 251 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-16-6" clipPathUnits="userSpaceOnUse"><path d="M 336 236 H 409.5 V 251 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-17-1" clipPathUnits="userSpaceOnUse"><path d="M 0 251 H 73.5 V 266 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-17-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 251 H 147 V 266 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-17-3" clipPathUnits="userSpaceOnUse"><path d="M 147 251 H 210 V 266 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-17-4" clipPathUnits="userSpaceOnUse"><path d="M 210 251 H 262.5 V 266 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-17-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 251 H 336 V 266 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-17-6" clipPathUnits="userSpaceOnUse"><path d="M 336 251 H 409.5 V 266 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-18-1" clipPathUnits="userSpaceOnUse"><path d="M 0 266 H 73.5 V 281 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-18-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 266 H 147 V 281 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-18-3" clipPathUnits="userSpaceOnUse"><path d="M 147 266 H 210 V 281 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-18-4" clipPathUnits="userSpaceOnUse"><path d="M 210 266 H 262.5 V 281 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-18-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 266 H 336 V 281 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-18-6" clipPathUnits="userSpaceOnUse"><path d="M 336 266 H 409.5 V 281 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-19-1" clipPathUnits="userSpaceOnUse"><path d="M 0 281 H 73.5 V 296 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-19-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 281 H 147 V 296 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-19-3" clipPathUnits="userSpaceOnUse"><path d="M 147 281 H 210 V 296 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-19-4" clipPathUnits="userSpaceOnUse"><path d="M 210 281 H 262.5 V 296 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-19-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 281 H 336 V 296 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-19-6" clipPathUnits="userSpaceOnUse"><path d="M 336 281 H 409.5 V 296 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-20-1" clipPathUnits="userSpaceOnUse"><path d="M 0 296 H 73.5 V 311 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-20-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 296 H 147 V 311 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-20-3" clipPathUnits="userSpaceOnUse"><path d="M 147 296 H 210 V 311 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-20-4" clipPathUnits="userSpaceOnUse"><path d="M 210 296 H 262.5 V 311 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-20-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 296 H 336 V 311 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-20-6" clipPathUnits="userSpaceOnUse"><path d="M 336 296 H 409.5 V 311 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-21-1" clipPathUnits="userSpaceOnUse"><path d="M 0 311 H 73.5 V 326 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-21-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 311 H 147 V 326 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-21-3" clipPathUnits="userSpaceOnUse"><path d="M 147 311 H 210 V 326 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-21-4" clipPathUnits="userSpaceOnUse"><path d="M 210 311 H 262.5 V 326 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-21-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 311 H 336 V 326 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-21-6" clipPathUnits="userSpaceOnUse"><path d="M 336 311 H 409.5 V 326 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-22-1" clipPathUnits="userSpaceOnUse"><path d="M 0 326 H 73.5 V 341 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-22-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 326 H 147 V 341 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-22-3" clipPathUnits="userSpaceOnUse"><path d="M 147 326 H 210 V 341 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-22-4" clipPathUnits="userSpaceOnUse"><path d="M 210 326 H 262.5 V 341 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-22-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 326 H 336 V 341 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-22-6" clipPathUnits="userSpaceOnUse"><path d="M 336 326 H 409.5 V 341 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-23-1" clipPathUnits="userSpaceOnUse"><path d="M 0 341 H 73.5 V 356 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-23-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 341 H 147 V 356 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-23-3" clipPathUnits="userSpaceOnUse"><path d="M 147 341 H 210 V 356 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-23-4" clipPathUnits="userSpaceOnUse"><path d="M 210 341 H 262.5 V 356 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-23-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 341 H 336 V 356 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-23-6" clipPathUnits="userSpaceOnUse"><path d="M 336 341 H 409.5 V 356 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-24-1" clipPathUnits="userSpaceOnUse"><path d="M 0 356 H 73.5 V 371 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-24-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 356 H 147 V 371 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-24-3" clipPathUnits="userSpaceOnUse"><path d="M 147 356 H 210 V 371 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-24-4" clipPathUnits="userSpaceOnUse"><path d="M 210 356 H 262.5 V 371 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-24-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 356 H 336 V 371 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-24-6" clipPathUnits="userSpaceOnUse"><path d="M 336 356 H 409.5 V 371 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-25-1" clipPathUnits="userSpaceOnUse"><path d="M 0 371 H 73.5 V 386 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-25-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 371 H 147 V 386 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-25-3" clipPathUnits="userSpaceOnUse"><path d="M 147 371 H 210 V 386 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-25-4" clipPathUnits="userSpaceOnUse"><path d="M 210 371 H 262.5 V 386 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-25-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 371 H 336 V 386 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-25-6" clipPathUnits="userSpaceOnUse"><path d="M 336 371 H 409.5 V 386 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-26-1" clipPathUnits="userSpaceOnUse"><path d="M 0 386 H 73.5 V 401 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-26-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 386 H 147 V 401 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-26-3" clipPathUnits="userSpaceOnUse"><path d="M 147 386 H 210 V 401 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-26-4" clipPathUnits="userSpaceOnUse"><path d="M 210 386 H 262.5 V 401 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-26-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 386 H 336 V 401 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-26-6" clipPathUnits="userSpaceOnUse"><path d="M 336 386 H 409.5 V 401 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-27-1" clipPathUnits="userSpaceOnUse"><path d="M 0 401 H 73.5 V 416 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-27-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 401 H 147 V 416 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-27-3" clipPathUnits="userSpaceOnUse"><path d="M 147 401 H 210 V 416 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-27-4" clipPathUnits="userSpaceOnUse"><path d="M 210 401 H 262.5 V 416 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-27-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 401 H 336 V 416 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-27-6" clipPathUnits="userSpaceOnUse"><path d="M 336 401 H 409.5 V 416 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-28-1" clipPathUnits="userSpaceOnUse"><path d="M 0 416 H 73.5 V 431 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-28-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 416 H 147 V 431 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-28-3" clipPathUnits="userSpaceOnUse"><path d="M 147 416 H 210 V 431 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-28-4" clipPathUnits="userSpaceOnUse"><path d="M 210 416 H 262.5 V 431 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-28-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 416 H 336 V 431 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-28-6" clipPathUnits="userSpaceOnUse"><path d="M 336 416 H 409.5 V 431 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-29-1" clipPathUnits="userSpaceOnUse"><path d="M 0 431 H 73.5 V 446 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-29-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 431 H 147 V 446 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-29-3" clipPathUnits="userSpaceOnUse"><path d="M 147 431 H 210 V 446 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-29-4" clipPathUnits="userSpaceOnUse"><path d="M 210 431 H 262.5 V 446 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-29-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 431 H 336 V 446 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-29-6" clipPathUnits="userSpaceOnUse"><path d="M 336 431 H 409.5 V 446 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-30-1" clipPathUnits="userSpaceOnUse"><path d="M 0 446 H 73.5 V 461 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-30-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 446 H 147 V 461 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-30-3" clipPathUnits="userSpaceOnUse"><path d="M 147 446 H 210 V 461 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-30-4" clipPathUnits="userSpaceOnUse"><path d="M 210 446 H 262.5 V 461 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-30-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 446 H 336 V 461 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-30-6" clipPathUnits="userSpaceOnUse"><path d="M 336 446 H 409.5 V 461 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-31-1" clipPathUnits="userSpaceOnUse"><path d="M 0 461 H 73.5 V 476 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-31-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 461 H 147 V 476 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-31-3" clipPathUnits="userSpaceOnUse"><path d="M 147 461 H 210 V 476 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-31-4" clipPathUnits="userSpaceOnUse"><path d="M 210 461 H 262.5 V 476 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-31-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 461 H 336 V 476 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-31-6" clipPathUnits="userSpaceOnUse"><path d="M 336 461 H 409.5 V 476 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-32-1" clipPathUnits="userSpaceOnUse"><path d="M 0 476 H 73.5 V 491 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-32-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 476 H 147 V 491 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-32-3" clipPathUnits="userSpaceOnUse"><path d="M 147 476 H 210 V 491 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-32-4" clipPathUnits="userSpaceOnUse"><path d="M 210 476 H 262.5 V 491 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-32-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 476 H 336 V 491 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-32-6" clipPathUnits="userSpaceOnUse"><path d="M 336 476 H 409.5 V 491 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-33-1" clipPathUnits="userSpaceOnUse"><path d="M 0 491 H 73.5 V 506 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-33-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 491 H 147 V 506 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-33-3" clipPathUnits="userSpaceOnUse"><path d="M 147 491 H 210 V 506 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-33-4" clipPathUnits="userSpaceOnUse"><path d="M 210 491 H 262.5 V 506 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-33-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 491 H 336 V 506 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-33-6" clipPathUnits="userSpaceOnUse"><path d="M 336 491 H 409.5 V 506 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-34-1" clipPathUnits="userSpaceOnUse"><path d="M 0 506 H 73.5 V 521 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-34-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 506 H 147 V 521 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-34-3" clipPathUnits="userSpaceOnUse"><path d="M 147 506 H 210 V 521 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-34-4" clipPathUnits="userSpaceOnUse"><path d="M 210 506 H 262.5 V 521 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-34-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 506 H 336 V 521 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-34-6" clipPathUnits="userSpaceOnUse"><path d="M 336 506 H 409.5 V 521 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-35-1" clipPathUnits="userSpaceOnUse"><path d="M 0 521 H 73.5 V 536 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-35-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 521 H 147 V 536 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-35-3" clipPathUnits="userSpaceOnUse"><path d="M 147 521 H 210 V 536 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-35-4" clipPathUnits="userSpaceOnUse"><path d="M 210 521 H 262.5 V 536 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-35-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 521 H 336 V 536 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-35-6" clipPathUnits="userSpaceOnUse"><path d="M 336 521 H 409.5 V 536 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-36-1" clipPathUnits="userSpaceOnUse"><path d="M 0 536 H 73.5 V 551 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-36-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 536 H 147 V 551 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-36-3" clipPathUnits="userSpaceOnUse"><path d="M 147 536 H 210 V 551 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-36-4" clipPathUnits="userSpaceOnUse"><path d="M 210 536 H 262.5 V 551 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-36-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 536 H 336 V 551 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-36-6" clipPathUnits="userSpaceOnUse"><path d="M 336 536 H 409.5 V 551 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-37-1" clipPathUnits="userSpaceOnUse"><path d="M 0 551 H 73.5 V 566 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-37-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 551 H 147 V 566 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-37-3" clipPathUnits="userSpaceOnUse"><path d="M 147 551 H 210 V 566 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-37-4" clipPathUnits="userSpaceOnUse"><path d="M 210 551 H 262.5 V 566 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-37-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 551 H 336 V 566 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-37-6" clipPathUnits="userSpaceOnUse"><path d="M 336 551 H 409.5 V 566 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-38-1" clipPathUnits="userSpaceOnUse"><path d="M 0 566 H 73.5 V 581 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-38-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 566 H 147 V 581 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-38-3" clipPathUnits="userSpaceOnUse"><path d="M 147 566 H 210 V 581 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-38-4" clipPathUnits="userSpaceOnUse"><path d="M 210 566 H 262.5 V 581 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-38-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 566 H 336 V 581 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-38-6" clipPathUnits="userSpaceOnUse"><path d="M 336 566 H 409.5 V 581 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-39-1" clipPathUnits="userSpaceOnUse"><path d="M 0 581 H 73.5 V 596 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-39-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 581 H 147 V 596 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-39-3" clipPathUnits="userSpaceOnUse"><path d="M 147 581 H 210 V 596 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-39-4" clipPathUnits="userSpaceOnUse"><path d="M 210 581 H 262.5 V 596 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-39-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 581 H 336 V 596 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-39-6" clipPathUnits="userSpaceOnUse"><path d="M 336 581 H 409.5 V 596 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-40-1" clipPathUnits="userSpaceOnUse"><path d="M 0 596 H 73.5 V 611 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-40-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 596 H 147 V 611 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-40-3" clipPathUnits="userSpaceOnUse"><path d="M 147 596 H 210 V 611 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-40-4" clipPathUnits="userSpaceOnUse"><path d="M 210 596 H 262.5 V 611 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-40-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 596 H 336 V 611 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-40-6" clipPathUnits="userSpaceOnUse"><path d="M 336 596 H 409.5 V 611 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-41-1" clipPathUnits="userSpaceOnUse"><path d="M 0 611 H 73.5 V 626 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-41-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 611 H 147 V 626 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-41-3" clipPathUnits="userSpaceOnUse"><path d="M 147 611 H 210 V 626 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-41-4" clipPathUnits="userSpaceOnUse"><path d="M 210 611 H 262.5 V 626 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-41-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 611 H 336 V 626 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-41-6" clipPathUnits="userSpaceOnUse"><path d="M 336 611 H 409.5 V 626 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-42-1" clipPathUnits="userSpaceOnUse"><path d="M 0 626 H 73.5 V 641 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-42-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 626 H 147 V 641 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-42-3" clipPathUnits="userSpaceOnUse"><path d="M 147 626 H 210 V 641 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-42-4" clipPathUnits="userSpaceOnUse"><path d="M 210 626 H 262.5 V 641 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-42-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 626 H 336 V 641 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-42-6" clipPathUnits="userSpaceOnUse"><path d="M 336 626 H 409.5 V 641 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-43-1" clipPathUnits="userSpaceOnUse"><path d="M 0 641 H 73.5 V 656 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-43-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 641 H 147 V 656 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-43-3" clipPathUnits="userSpaceOnUse"><path d="M 147 641 H 210 V 656 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-43-4" clipPathUnits="userSpaceOnUse"><path d="M 210 641 H 262.5 V 656 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-43-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 641 H 336 V 656 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-43-6" clipPathUnits="userSpaceOnUse"><path d="M 336 641 H 409.5 V 656 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-44-1" clipPathUnits="userSpaceOnUse"><path d="M 0 656 H 73.5 V 671 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-44-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 656 H 147 V 671 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-44-3" clipPathUnits="userSpaceOnUse"><path d="M 147 656 H 210 V 671 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-44-4" clipPathUnits="userSpaceOnUse"><path d="M 210 656 H 262.5 V 671 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-44-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 656 H 336 V 671 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-44-6" clipPathUnits="userSpaceOnUse"><path d="M 336 656 H 409.5 V 671 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-45-1" clipPathUnits="userSpaceOnUse"><path d="M 0 671 H 73.5 V 686 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-45-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 671 H 147 V 686 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-45-3" clipPathUnits="userSpaceOnUse"><path d="M 147 671 H 210 V 686 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-45-4" clipPathUnits="userSpaceOnUse"><path d="M 210 671 H 262.5 V 686 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-45-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 671 H 336 V 686 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-45-6" clipPathUnits="userSpaceOnUse"><path d="M 336 671 H 409.5 V 686 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-46-1" clipPathUnits="userSpaceOnUse"><path d="M 0 686 H 73.5 V 701 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-46-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 686 H 147 V 701 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-46-3" clipPathUnits="userSpaceOnUse"><path d="M 147 686 H 210 V 701 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-46-4" clipPathUnits="userSpaceOnUse"><path d="M 210 686 H 262.5 V 701 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-46-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 686 H 336 V 701 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-46-6" clipPathUnits="userSpaceOnUse"><path d="M 336 686 H 409.5 V 701 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-47-1" clipPathUnits="userSpaceOnUse"><path d="M 0 701 H 73.5 V 716 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-47-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 701 H 147 V 716 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-47-3" clipPathUnits="userSpaceOnUse"><path d="M 147 701 H 210 V 716 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-47-4" clipPathUnits="userSpaceOnUse"><path d="M 210 701 H 262.5 V 716 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-47-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 701 H 336 V 716 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-47-6" clipPathUnits="userSpaceOnUse"><path d="M 336 701 H 409.5 V 716 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-48-1" clipPathUnits="userSpaceOnUse"><path d="M 0 716 H 73.5 V 731 H 0 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-48-2" clipPathUnits="userSpaceOnUse"><path d="M 73.5 716 H 147 V 731 H 73.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-48-3" clipPathUnits="userSpaceOnUse"><path d="M 147 716 H 210 V 731 H 147 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-48-4" clipPathUnits="userSpaceOnUse"><path d="M 210 716 H 262.5 V 731 H 210 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-48-5" clipPathUnits="userSpaceOnUse"><path d="M 262.5 716 H 336 V 731 H 262.5 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+    <clipPath id="cell-clip-48-6" clipPathUnits="userSpaceOnUse"><path d="M 336 716 H 409.5 V 731 H 336 Z" transform="matrix(1 0 0 1 0 0)" clip-rule="nonzero"/></clipPath>
+  </defs>
+  <g id="sheet-region-1" transform="matrix(1 0 0 1 50.4 54)" opacity="1" data-content-kind="worksheet-region" data-source-id="Sales!A1:F48">
+    <path id="sheet-grid-1" d="M 0 0 V 731 M 73.5 0 V 731 M 147 0 V 731 M 210 0 V 731 M 262.5 0 V 731 M 336 0 V 731 M 409.5 0 V 731 M 0 0 H 409.5 M 0 26 H 409.5 M 0 41 H 409.5 M 0 56 H 409.5 M 0 71 H 409.5 M 0 86 H 409.5 M 0 101 H 409.5 M 0 116 H 409.5 M 0 131 H 409.5 M 0 146 H 409.5 M 0 161 H 409.5 M 0 176 H 409.5 M 0 191 H 409.5 M 0 206 H 409.5 M 0 221 H 409.5 M 0 236 H 409.5 M 0 251 H 409.5 M 0 266 H 409.5 M 0 281 H 409.5 M 0 296 H 409.5 M 0 311 H 409.5 M 0 326 H 409.5 M 0 341 H 409.5 M 0 356 H 409.5 M 0 371 H 409.5 M 0 386 H 409.5 M 0 401 H 409.5 M 0 416 H 409.5 M 0 431 H 409.5 M 0 446 H 409.5 M 0 461 H 409.5 M 0 476 H 409.5 M 0 491 H 409.5 M 0 506 H 409.5 M 0 521 H 409.5 M 0 536 H 409.5 M 0 551 H 409.5 M 0 566 H 409.5 M 0 581 H 409.5 M 0 596 H 409.5 M 0 611 H 409.5 M 0 626 H 409.5 M 0 641 H 409.5 M 0 656 H 409.5 M 0 671 H 409.5 M 0 686 H 409.5 M 0 701 H 409.5 M 0 716 H 409.5 M 0 731 H 409.5 " fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#D9D9D9" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="grid" data-source-id="Sales"/>
+    <g clip-path="url(#cell-clip-1-1)">
+      <text id="cell-text-1-1" x="3" y="19.48" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A1" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="18" font-weight="700" font-style="normal" baseline-shift="0" fill="#304FFE" fill-opacity="1">Quarterly sales by region</tspan>
+      </text>
+    </g>
+    <path id="cell-fill-2-1" d="M 0 26 H 73.5 V 41 H 0 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="cell"/>
+    <g clip-path="url(#cell-clip-2-1)">
+      <text id="cell-text-2-1" x="3" y="37.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A2" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">Region</tspan>
+      </text>
+    </g>
+    <path id="cell-fill-2-2" d="M 73.5 26 H 147 V 41 H 73.5 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="cell"/>
+    <g clip-path="url(#cell-clip-2-2)">
+      <text id="cell-text-2-2" x="76.5" y="37.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B2" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">Product</tspan>
+      </text>
+    </g>
+    <path id="cell-fill-2-3" d="M 147 26 H 210 V 41 H 147 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="cell"/>
+    <g clip-path="url(#cell-clip-2-3)">
+      <text id="cell-text-2-3" x="150" y="37.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C2" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">Month</tspan>
+      </text>
+    </g>
+    <path id="cell-fill-2-4" d="M 210 26 H 262.5 V 41 H 210 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="cell"/>
+    <g clip-path="url(#cell-clip-2-4)">
+      <text id="cell-text-2-4" x="213" y="37.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D2" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">Units</tspan>
+      </text>
+    </g>
+    <path id="cell-fill-2-5" d="M 262.5 26 H 336 V 41 H 262.5 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="cell"/>
+    <g clip-path="url(#cell-clip-2-5)">
+      <text id="cell-text-2-5" x="265.5" y="37.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E2" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">Unit price</tspan>
+      </text>
+    </g>
+    <path id="cell-fill-2-6" d="M 336 26 H 409.5 V 41 H 336 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="cell"/>
+    <g clip-path="url(#cell-clip-2-6)">
+      <text id="cell-text-2-6" x="339" y="37.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F2" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">Revenue</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-3-1)">
+      <text id="cell-text-3-1" x="3" y="52.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A3" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-3-2)">
+      <text id="cell-text-3-2" x="76.5" y="52.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B3" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-3-3)">
+      <text id="cell-text-3-3" x="150" y="52.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C3" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-01-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-3-4)">
+      <text id="cell-text-3-4" x="259.5" y="52.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D3" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">120</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-3-5)">
+      <text id="cell-text-3-5" x="333" y="52.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E3" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">12.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-3-6)">
+      <text id="cell-text-3-6" x="406.5" y="52.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F3" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">1,500.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-4-1)">
+      <text id="cell-text-4-1" x="3" y="67.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A4" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-4-2)">
+      <text id="cell-text-4-2" x="76.5" y="67.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B4" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-4-3)">
+      <text id="cell-text-4-3" x="150" y="67.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C4" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-02-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-4-4)">
+      <text id="cell-text-4-4" x="259.5" y="67.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D4" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">157</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-4-5)">
+      <text id="cell-text-4-5" x="333" y="67.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E4" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">15.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-4-6)">
+      <text id="cell-text-4-6" x="406.5" y="67.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F4" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2,472.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-5-1)">
+      <text id="cell-text-5-1" x="3" y="82.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A5" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-5-2)">
+      <text id="cell-text-5-2" x="76.5" y="82.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B5" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-5-3)">
+      <text id="cell-text-5-3" x="150" y="82.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C5" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-03-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-5-4)">
+      <text id="cell-text-5-4" x="259.5" y="82.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D5" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">194</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-5-5)">
+      <text id="cell-text-5-5" x="333" y="82.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E5" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">19.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-5-6)">
+      <text id="cell-text-5-6" x="406.5" y="82.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F5" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">3,686.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-6-1)">
+      <text id="cell-text-6-1" x="3" y="97.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A6" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-6-2)">
+      <text id="cell-text-6-2" x="76.5" y="97.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B6" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-6-3)">
+      <text id="cell-text-6-3" x="150" y="97.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C6" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-04-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-6-4)">
+      <text id="cell-text-6-4" x="259.5" y="97.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D6" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">231</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-6-5)">
+      <text id="cell-text-6-5" x="333" y="97.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E6" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">22.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-6-6)">
+      <text id="cell-text-6-6" x="406.5" y="97.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F6" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">5,139.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-7-1)">
+      <text id="cell-text-7-1" x="3" y="112.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A7" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-7-2)">
+      <text id="cell-text-7-2" x="76.5" y="112.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B7" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-7-3)">
+      <text id="cell-text-7-3" x="150" y="112.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C7" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-05-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-7-4)">
+      <text id="cell-text-7-4" x="259.5" y="112.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D7" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">268</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-7-5)">
+      <text id="cell-text-7-5" x="333" y="112.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E7" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">25.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-7-6)">
+      <text id="cell-text-7-6" x="406.5" y="112.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F7" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">6,834.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-8-1)">
+      <text id="cell-text-8-1" x="3" y="127.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A8" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-8-2)">
+      <text id="cell-text-8-2" x="76.5" y="127.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B8" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-8-3)">
+      <text id="cell-text-8-3" x="150" y="127.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C8" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-06-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-8-4)">
+      <text id="cell-text-8-4" x="259.5" y="127.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D8" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">305</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-8-5)">
+      <text id="cell-text-8-5" x="333" y="127.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E8" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">28.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-8-6)">
+      <text id="cell-text-8-6" x="406.5" y="127.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F8" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">8,768.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-9-1)">
+      <text id="cell-text-9-1" x="3" y="142.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A9" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-9-2)">
+      <text id="cell-text-9-2" x="76.5" y="142.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B9" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-9-3)">
+      <text id="cell-text-9-3" x="150" y="142.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C9" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-07-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-9-4)">
+      <text id="cell-text-9-4" x="259.5" y="142.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D9" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">342</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-9-5)">
+      <text id="cell-text-9-5" x="333" y="142.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E9" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">32.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-9-6)">
+      <text id="cell-text-9-6" x="406.5" y="142.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F9" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">10,944.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-10-1)">
+      <text id="cell-text-10-1" x="3" y="157.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A10" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-10-2)">
+      <text id="cell-text-10-2" x="76.5" y="157.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B10" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-10-3)">
+      <text id="cell-text-10-3" x="150" y="157.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C10" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-08-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-10-4)">
+      <text id="cell-text-10-4" x="259.5" y="157.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D10" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">379</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-10-5)">
+      <text id="cell-text-10-5" x="333" y="157.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E10" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">35.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-10-6)">
+      <text id="cell-text-10-6" x="406.5" y="157.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F10" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">13,359.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-11-1)">
+      <text id="cell-text-11-1" x="3" y="172.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A11" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-11-2)">
+      <text id="cell-text-11-2" x="76.5" y="172.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B11" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-11-3)">
+      <text id="cell-text-11-3" x="150" y="172.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C11" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-09-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-11-4)">
+      <text id="cell-text-11-4" x="259.5" y="172.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D11" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">416</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-11-5)">
+      <text id="cell-text-11-5" x="333" y="172.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E11" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">38.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-11-6)">
+      <text id="cell-text-11-6" x="406.5" y="172.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F11" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">16,016.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-12-1)">
+      <text id="cell-text-12-1" x="3" y="187.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A12" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-12-2)">
+      <text id="cell-text-12-2" x="76.5" y="187.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B12" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-12-3)">
+      <text id="cell-text-12-3" x="150" y="187.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C12" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-10-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-12-4)">
+      <text id="cell-text-12-4" x="259.5" y="187.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D12" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">453</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-12-5)">
+      <text id="cell-text-12-5" x="333" y="187.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E12" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">41.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-12-6)">
+      <text id="cell-text-12-6" x="406.5" y="187.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F12" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">18,912.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-13-1)">
+      <text id="cell-text-13-1" x="3" y="202.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A13" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-13-2)">
+      <text id="cell-text-13-2" x="76.5" y="202.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B13" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-13-3)">
+      <text id="cell-text-13-3" x="150" y="202.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C13" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-11-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-13-4)">
+      <text id="cell-text-13-4" x="259.5" y="202.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D13" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">490</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-13-5)">
+      <text id="cell-text-13-5" x="333" y="202.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E13" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">45.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-13-6)">
+      <text id="cell-text-13-6" x="406.5" y="202.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F13" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">22,050.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-14-1)">
+      <text id="cell-text-14-1" x="3" y="217.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A14" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-14-2)">
+      <text id="cell-text-14-2" x="76.5" y="217.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B14" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-14-3)">
+      <text id="cell-text-14-3" x="150" y="217.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C14" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-12-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-14-4)">
+      <text id="cell-text-14-4" x="259.5" y="217.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D14" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">527</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-14-5)">
+      <text id="cell-text-14-5" x="333" y="217.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E14" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">48.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-14-6)">
+      <text id="cell-text-14-6" x="406.5" y="217.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F14" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">25,427.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-15-1)">
+      <text id="cell-text-15-1" x="3" y="232.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A15" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-15-2)">
+      <text id="cell-text-15-2" x="76.5" y="232.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B15" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-15-3)">
+      <text id="cell-text-15-3" x="150" y="232.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C15" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-01-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-15-4)">
+      <text id="cell-text-15-4" x="259.5" y="232.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D15" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">564</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-15-5)">
+      <text id="cell-text-15-5" x="333" y="232.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E15" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">51.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-15-6)">
+      <text id="cell-text-15-6" x="406.5" y="232.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F15" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">29,046.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-16-1)">
+      <text id="cell-text-16-1" x="3" y="247.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A16" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-16-2)">
+      <text id="cell-text-16-2" x="76.5" y="247.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B16" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-16-3)">
+      <text id="cell-text-16-3" x="150" y="247.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C16" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-02-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-16-4)">
+      <text id="cell-text-16-4" x="259.5" y="247.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D16" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">601</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-16-5)">
+      <text id="cell-text-16-5" x="333" y="247.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E16" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">54.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-16-6)">
+      <text id="cell-text-16-6" x="406.5" y="247.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F16" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">32,904.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-17-1)">
+      <text id="cell-text-17-1" x="3" y="262.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A17" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-17-2)">
+      <text id="cell-text-17-2" x="76.5" y="262.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B17" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-17-3)">
+      <text id="cell-text-17-3" x="150" y="262.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C17" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-03-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-17-4)">
+      <text id="cell-text-17-4" x="259.5" y="262.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D17" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">638</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-17-5)">
+      <text id="cell-text-17-5" x="333" y="262.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E17" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">58.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-17-6)">
+      <text id="cell-text-17-6" x="406.5" y="262.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F17" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">37,004.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-18-1)">
+      <text id="cell-text-18-1" x="3" y="277.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A18" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-18-2)">
+      <text id="cell-text-18-2" x="76.5" y="277.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B18" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-18-3)">
+      <text id="cell-text-18-3" x="150" y="277.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C18" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-04-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-18-4)">
+      <text id="cell-text-18-4" x="259.5" y="277.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D18" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">675</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-18-5)">
+      <text id="cell-text-18-5" x="333" y="277.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E18" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">61.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-18-6)">
+      <text id="cell-text-18-6" x="406.5" y="277.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F18" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">41,343.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-19-1)">
+      <text id="cell-text-19-1" x="3" y="292.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A19" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-19-2)">
+      <text id="cell-text-19-2" x="76.5" y="292.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B19" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-19-3)">
+      <text id="cell-text-19-3" x="150" y="292.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C19" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-05-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-19-4)">
+      <text id="cell-text-19-4" x="259.5" y="292.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D19" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">712</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-19-5)">
+      <text id="cell-text-19-5" x="333" y="292.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E19" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">64.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-19-6)">
+      <text id="cell-text-19-6" x="406.5" y="292.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F19" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">45,924.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-20-1)">
+      <text id="cell-text-20-1" x="3" y="307.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A20" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-20-2)">
+      <text id="cell-text-20-2" x="76.5" y="307.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B20" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-20-3)">
+      <text id="cell-text-20-3" x="150" y="307.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C20" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-06-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-20-4)">
+      <text id="cell-text-20-4" x="259.5" y="307.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D20" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">749</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-20-5)">
+      <text id="cell-text-20-5" x="333" y="307.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E20" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">12.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-20-6)">
+      <text id="cell-text-20-6" x="406.5" y="307.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F20" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">9,362.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-21-1)">
+      <text id="cell-text-21-1" x="3" y="322.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A21" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-21-2)">
+      <text id="cell-text-21-2" x="76.5" y="322.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B21" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-21-3)">
+      <text id="cell-text-21-3" x="150" y="322.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C21" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-07-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-21-4)">
+      <text id="cell-text-21-4" x="259.5" y="322.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D21" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">786</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-21-5)">
+      <text id="cell-text-21-5" x="333" y="322.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E21" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">15.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-21-6)">
+      <text id="cell-text-21-6" x="406.5" y="322.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F21" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">12,379.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-22-1)">
+      <text id="cell-text-22-1" x="3" y="337.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A22" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-22-2)">
+      <text id="cell-text-22-2" x="76.5" y="337.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B22" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-22-3)">
+      <text id="cell-text-22-3" x="150" y="337.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C22" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-08-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-22-4)">
+      <text id="cell-text-22-4" x="259.5" y="337.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D22" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">823</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-22-5)">
+      <text id="cell-text-22-5" x="333" y="337.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E22" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">19.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-22-6)">
+      <text id="cell-text-22-6" x="406.5" y="337.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F22" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">15,637.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-23-1)">
+      <text id="cell-text-23-1" x="3" y="352.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A23" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-23-2)">
+      <text id="cell-text-23-2" x="76.5" y="352.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B23" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Amarilla</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-23-3)">
+      <text id="cell-text-23-3" x="150" y="352.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C23" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-09-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-23-4)">
+      <text id="cell-text-23-4" x="259.5" y="352.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D23" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">860</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-23-5)">
+      <text id="cell-text-23-5" x="333" y="352.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E23" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">22.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-23-6)">
+      <text id="cell-text-23-6" x="406.5" y="352.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F23" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">19,135.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-24-1)">
+      <text id="cell-text-24-1" x="3" y="367.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A24" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-24-2)">
+      <text id="cell-text-24-2" x="76.5" y="367.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B24" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Amarilla</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-24-3)">
+      <text id="cell-text-24-3" x="150" y="367.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C24" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-10-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-24-4)">
+      <text id="cell-text-24-4" x="259.5" y="367.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D24" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">897</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-24-5)">
+      <text id="cell-text-24-5" x="333" y="367.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E24" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">25.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-24-6)">
+      <text id="cell-text-24-6" x="406.5" y="367.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F24" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">22,873.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-25-1)">
+      <text id="cell-text-25-1" x="3" y="382.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A25" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-25-2)">
+      <text id="cell-text-25-2" x="76.5" y="382.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B25" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Amarilla</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-25-3)">
+      <text id="cell-text-25-3" x="150" y="382.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C25" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-11-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-25-4)">
+      <text id="cell-text-25-4" x="259.5" y="382.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D25" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">934</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-25-5)">
+      <text id="cell-text-25-5" x="333" y="382.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E25" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">28.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-25-6)">
+      <text id="cell-text-25-6" x="406.5" y="382.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F25" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">26,852.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-26-1)">
+      <text id="cell-text-26-1" x="3" y="397.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A26" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-26-2)">
+      <text id="cell-text-26-2" x="76.5" y="397.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B26" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Amarilla</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-26-3)">
+      <text id="cell-text-26-3" x="150" y="397.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C26" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-12-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-26-4)">
+      <text id="cell-text-26-4" x="259.5" y="397.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D26" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">971</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-26-5)">
+      <text id="cell-text-26-5" x="333" y="397.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E26" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">32.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-26-6)">
+      <text id="cell-text-26-6" x="406.5" y="397.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F26" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">31,072.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-27-1)">
+      <text id="cell-text-27-1" x="3" y="412.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A27" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-27-2)">
+      <text id="cell-text-27-2" x="76.5" y="412.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B27" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-27-3)">
+      <text id="cell-text-27-3" x="150" y="412.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C27" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-01-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-27-4)">
+      <text id="cell-text-27-4" x="259.5" y="412.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D27" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">1008</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-27-5)">
+      <text id="cell-text-27-5" x="333" y="412.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E27" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">35.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-27-6)">
+      <text id="cell-text-27-6" x="406.5" y="412.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F27" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">35,532.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-28-1)">
+      <text id="cell-text-28-1" x="3" y="427.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A28" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-28-2)">
+      <text id="cell-text-28-2" x="76.5" y="427.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B28" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-28-3)">
+      <text id="cell-text-28-3" x="150" y="427.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C28" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-02-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-28-4)">
+      <text id="cell-text-28-4" x="259.5" y="427.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D28" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">145</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-28-5)">
+      <text id="cell-text-28-5" x="333" y="427.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E28" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">38.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-28-6)">
+      <text id="cell-text-28-6" x="406.5" y="427.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F28" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">5,582.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-29-1)">
+      <text id="cell-text-29-1" x="3" y="442.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A29" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-29-2)">
+      <text id="cell-text-29-2" x="76.5" y="442.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B29" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-29-3)">
+      <text id="cell-text-29-3" x="150" y="442.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C29" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-03-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-29-4)">
+      <text id="cell-text-29-4" x="259.5" y="442.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D29" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">182</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-29-5)">
+      <text id="cell-text-29-5" x="333" y="442.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E29" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">41.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-29-6)">
+      <text id="cell-text-29-6" x="406.5" y="442.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F29" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">7,598.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-30-1)">
+      <text id="cell-text-30-1" x="3" y="457.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A30" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-30-2)">
+      <text id="cell-text-30-2" x="76.5" y="457.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B30" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carretera</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-30-3)">
+      <text id="cell-text-30-3" x="150" y="457.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C30" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-04-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-30-4)">
+      <text id="cell-text-30-4" x="259.5" y="457.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D30" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">219</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-30-5)">
+      <text id="cell-text-30-5" x="333" y="457.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E30" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">45.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-30-6)">
+      <text id="cell-text-30-6" x="406.5" y="457.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F30" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">9,855.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-31-1)">
+      <text id="cell-text-31-1" x="3" y="472.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A31" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-31-2)">
+      <text id="cell-text-31-2" x="76.5" y="472.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B31" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-31-3)">
+      <text id="cell-text-31-3" x="150" y="472.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C31" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-05-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-31-4)">
+      <text id="cell-text-31-4" x="259.5" y="472.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D31" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">256</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-31-5)">
+      <text id="cell-text-31-5" x="333" y="472.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E31" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">48.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-31-6)">
+      <text id="cell-text-31-6" x="406.5" y="472.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F31" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">12,352.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-32-1)">
+      <text id="cell-text-32-1" x="3" y="487.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A32" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-32-2)">
+      <text id="cell-text-32-2" x="76.5" y="487.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B32" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-32-3)">
+      <text id="cell-text-32-3" x="150" y="487.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C32" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-06-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-32-4)">
+      <text id="cell-text-32-4" x="259.5" y="487.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D32" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">293</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-32-5)">
+      <text id="cell-text-32-5" x="333" y="487.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E32" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">51.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-32-6)">
+      <text id="cell-text-32-6" x="406.5" y="487.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F32" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">15,089.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-33-1)">
+      <text id="cell-text-33-1" x="3" y="502.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A33" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-33-2)">
+      <text id="cell-text-33-2" x="76.5" y="502.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B33" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-33-3)">
+      <text id="cell-text-33-3" x="150" y="502.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C33" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-07-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-33-4)">
+      <text id="cell-text-33-4" x="259.5" y="502.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D33" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">330</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-33-5)">
+      <text id="cell-text-33-5" x="333" y="502.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E33" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">54.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-33-6)">
+      <text id="cell-text-33-6" x="406.5" y="502.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F33" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">18,067.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-34-1)">
+      <text id="cell-text-34-1" x="3" y="517.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A34" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-34-2)">
+      <text id="cell-text-34-2" x="76.5" y="517.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B34" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Montana</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-34-3)">
+      <text id="cell-text-34-3" x="150" y="517.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C34" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-08-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-34-4)">
+      <text id="cell-text-34-4" x="259.5" y="517.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D34" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">367</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-34-5)">
+      <text id="cell-text-34-5" x="333" y="517.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E34" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">58.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-34-6)">
+      <text id="cell-text-34-6" x="406.5" y="517.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F34" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">21,286.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-35-1)">
+      <text id="cell-text-35-1" x="3" y="532.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A35" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-35-2)">
+      <text id="cell-text-35-2" x="76.5" y="532.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B35" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-35-3)">
+      <text id="cell-text-35-3" x="150" y="532.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C35" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-09-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-35-4)">
+      <text id="cell-text-35-4" x="259.5" y="532.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D35" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">404</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-35-5)">
+      <text id="cell-text-35-5" x="333" y="532.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E35" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">61.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-35-6)">
+      <text id="cell-text-35-6" x="406.5" y="532.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F35" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">24,745.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-36-1)">
+      <text id="cell-text-36-1" x="3" y="547.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A36" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-36-2)">
+      <text id="cell-text-36-2" x="76.5" y="547.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B36" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-36-3)">
+      <text id="cell-text-36-3" x="150" y="547.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C36" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-10-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-36-4)">
+      <text id="cell-text-36-4" x="259.5" y="547.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D36" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">441</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-36-5)">
+      <text id="cell-text-36-5" x="333" y="547.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E36" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">64.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-36-6)">
+      <text id="cell-text-36-6" x="406.5" y="547.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F36" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">28,444.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-37-1)">
+      <text id="cell-text-37-1" x="3" y="562.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A37" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-37-2)">
+      <text id="cell-text-37-2" x="76.5" y="562.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B37" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-37-3)">
+      <text id="cell-text-37-3" x="150" y="562.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C37" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-11-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-37-4)">
+      <text id="cell-text-37-4" x="259.5" y="562.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D37" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">478</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-37-5)">
+      <text id="cell-text-37-5" x="333" y="562.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E37" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">12.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-37-6)">
+      <text id="cell-text-37-6" x="406.5" y="562.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F37" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">5,975.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-38-1)">
+      <text id="cell-text-38-1" x="3" y="577.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A38" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-38-2)">
+      <text id="cell-text-38-2" x="76.5" y="577.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B38" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paseo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-38-3)">
+      <text id="cell-text-38-3" x="150" y="577.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C38" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-12-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-38-4)">
+      <text id="cell-text-38-4" x="259.5" y="577.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D38" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">515</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-38-5)">
+      <text id="cell-text-38-5" x="333" y="577.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E38" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">15.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-38-6)">
+      <text id="cell-text-38-6" x="406.5" y="577.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F38" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">8,111.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-39-1)">
+      <text id="cell-text-39-1" x="3" y="592.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A39" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-39-2)">
+      <text id="cell-text-39-2" x="76.5" y="592.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B39" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-39-3)">
+      <text id="cell-text-39-3" x="150" y="592.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C39" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-01-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-39-4)">
+      <text id="cell-text-39-4" x="259.5" y="592.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D39" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">552</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-39-5)">
+      <text id="cell-text-39-5" x="333" y="592.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E39" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">19.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-39-6)">
+      <text id="cell-text-39-6" x="406.5" y="592.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F39" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">10,488.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-40-1)">
+      <text id="cell-text-40-1" x="3" y="607.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A40" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-40-2)">
+      <text id="cell-text-40-2" x="76.5" y="607.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B40" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-40-3)">
+      <text id="cell-text-40-3" x="150" y="607.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C40" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-02-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-40-4)">
+      <text id="cell-text-40-4" x="259.5" y="607.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D40" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">589</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-40-5)">
+      <text id="cell-text-40-5" x="333" y="607.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E40" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">22.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-40-6)">
+      <text id="cell-text-40-6" x="406.5" y="607.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F40" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">13,105.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-41-1)">
+      <text id="cell-text-41-1" x="3" y="622.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A41" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-41-2)">
+      <text id="cell-text-41-2" x="76.5" y="622.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B41" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-41-3)">
+      <text id="cell-text-41-3" x="150" y="622.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C41" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-03-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-41-4)">
+      <text id="cell-text-41-4" x="259.5" y="622.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D41" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">626</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-41-5)">
+      <text id="cell-text-41-5" x="333" y="622.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E41" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">25.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-41-6)">
+      <text id="cell-text-41-6" x="406.5" y="622.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F41" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">15,963.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-42-1)">
+      <text id="cell-text-42-1" x="3" y="637.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A42" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-42-2)">
+      <text id="cell-text-42-2" x="76.5" y="637.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B42" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Velo</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-42-3)">
+      <text id="cell-text-42-3" x="150" y="637.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C42" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-04-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-42-4)">
+      <text id="cell-text-42-4" x="259.5" y="637.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D42" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">663</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-42-5)">
+      <text id="cell-text-42-5" x="333" y="637.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E42" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">28.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-42-6)">
+      <text id="cell-text-42-6" x="406.5" y="637.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F42" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">19,061.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-43-1)">
+      <text id="cell-text-43-1" x="3" y="652.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A43" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-43-2)">
+      <text id="cell-text-43-2" x="76.5" y="652.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B43" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-43-3)">
+      <text id="cell-text-43-3" x="150" y="652.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C43" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-05-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-43-4)">
+      <text id="cell-text-43-4" x="259.5" y="652.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D43" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">700</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-43-5)">
+      <text id="cell-text-43-5" x="333" y="652.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E43" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">32.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-43-6)">
+      <text id="cell-text-43-6" x="406.5" y="652.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F43" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">22,400.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-44-1)">
+      <text id="cell-text-44-1" x="3" y="667.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A44" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-44-2)">
+      <text id="cell-text-44-2" x="76.5" y="667.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B44" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-44-3)">
+      <text id="cell-text-44-3" x="150" y="667.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C44" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-06-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-44-4)">
+      <text id="cell-text-44-4" x="259.5" y="667.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D44" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">737</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-44-5)">
+      <text id="cell-text-44-5" x="333" y="667.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E44" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">35.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-44-6)">
+      <text id="cell-text-44-6" x="406.5" y="667.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F44" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">25,979.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-45-1)">
+      <text id="cell-text-45-1" x="3" y="682.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A45" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">East</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-45-2)">
+      <text id="cell-text-45-2" x="76.5" y="682.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B45" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-45-3)">
+      <text id="cell-text-45-3" x="150" y="682.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C45" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-07-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-45-4)">
+      <text id="cell-text-45-4" x="259.5" y="682.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D45" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">774</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-45-5)">
+      <text id="cell-text-45-5" x="333" y="682.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E45" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">38.50</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-45-6)">
+      <text id="cell-text-45-6" x="406.5" y="682.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F45" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">29,799.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-46-1)">
+      <text id="cell-text-46-1" x="3" y="697.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A46" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">West</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-46-2)">
+      <text id="cell-text-46-2" x="76.5" y="697.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B46" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">VTT</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-46-3)">
+      <text id="cell-text-46-3" x="150" y="697.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C46" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-08-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-46-4)">
+      <text id="cell-text-46-4" x="259.5" y="697.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D46" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">811</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-46-5)">
+      <text id="cell-text-46-5" x="333" y="697.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E46" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">41.75</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-46-6)">
+      <text id="cell-text-46-6" x="406.5" y="697.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F46" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">33,859.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-47-1)">
+      <text id="cell-text-47-1" x="3" y="712.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A47" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">North</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-47-2)">
+      <text id="cell-text-47-2" x="76.5" y="712.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B47" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Amarilla</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-47-3)">
+      <text id="cell-text-47-3" x="150" y="712.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C47" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-09-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-47-4)">
+      <text id="cell-text-47-4" x="259.5" y="712.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D47" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">848</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-47-5)">
+      <text id="cell-text-47-5" x="333" y="712.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E47" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">45.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-47-6)">
+      <text id="cell-text-47-6" x="406.5" y="712.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F47" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">38,160.00</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-48-1)">
+      <text id="cell-text-48-1" x="3" y="727.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!A48" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">South</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-48-2)">
+      <text id="cell-text-48-2" x="76.5" y="727.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!B48" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Amarilla</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-48-3)">
+      <text id="cell-text-48-3" x="150" y="727.46" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!C48" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">2026-10-01</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-48-4)">
+      <text id="cell-text-48-4" x="259.5" y="727.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!D48" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">885</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-48-5)">
+      <text id="cell-text-48-5" x="333" y="727.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!E48" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">48.25</tspan>
+      </text>
+    </g>
+    <g clip-path="url(#cell-clip-48-6)">
+      <text id="cell-text-48-6" x="406.5" y="727.46" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="cell-text" data-source-id="Sales!F48" data-semantic-role="cell">
+        <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">42,701.25</tspan>
+      </text>
+    </g>
+  </g>
+</svg>

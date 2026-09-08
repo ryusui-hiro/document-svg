@@ -1,0 +1,21 @@
+[graph]
+all-features = true
+
+[licenses]
+confidence-threshold = 0.9
+# OR expressions may select a permitted alternative. AND obligations remain
+# cumulative; notably encoding_rs, unicode-ident and jpeg-encoder need notices.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "IJG",
+]
+
+[licenses.private]
+ignore = false

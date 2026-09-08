@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Integrate standard PDF font advances, bounded damaged-xref recovery, paper-aware XLSX pagination, PPTX fill handling and clearer encrypted/legacy Office errors.
+- Add reproducible PDF/PPTX/XLSX/DOCX samples with checked source hashes.
+- Bundle full third-party license notices, audit the locked dependencies and AFM provenance, and check notice freshness in CI.
+- Upgrade the pinned checkout action and avoid duplicate branch/PR workflow runs.
+
 - Replace the unmaintained font parser with `skrifa`, preserving TrueType/OpenType outlines and raw Type1/CFF fallbacks.
 - Count serialized page size without retaining a second page-sized JSON buffer.
 - Borrow SVG attribute/text strings when no escaping is needed, avoiding large image-data copies.

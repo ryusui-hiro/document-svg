@@ -1,0 +1,34 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.0",
+  "source": "samples/source/sample.pptx",
+  "source_format": "pptx",
+  "output_directory": "samples/svg/pptx",
+  "elapsed_ms": 0,
+  "input_bytes": 5753,
+  "page_count": 2,
+  "largest_page_ir_bytes": 6724,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 720.0,
+      "height_points": 405.0,
+      "node_count": 3,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 2177
+    },
+    {
+      "number": 2,
+      "svg": "page-0002.svg",
+      "width_points": 720.0,
+      "height_points": 405.0,
+      "node_count": 10,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 6724
+    }
+  ],
+  "warnings": []
+}

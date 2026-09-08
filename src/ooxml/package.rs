@@ -15,9 +15,23 @@ pub(crate) struct ZipPackage<R: Read + Seek> {
     max_entry_bytes: u64,
 }
 
+/// Compound File Binary signature. Office wraps a password-protected document
+/// in one of these instead of leaving it a ZIP, so the archive reader would
+/// otherwise report it as a corrupt ZIP.
+const COMPOUND_FILE_SIGNATURE: [u8; 8] = [0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+
 impl ZipPackage<File> {
     pub fn open(path: &Path, max_entry_bytes: u64) -> Result<Self> {
-        let file = File::open(path)?;
+        let mut file = File::open(path)?;
+        let mut signature = [0u8; 8];
+        if let Ok(()) = file.read_exact(&mut signature)
+            && signature == COMPOUND_FILE_SIGNATURE
+        {
+            return Err(Error::Unsupported(
+                "encrypted or legacy binary Office documents are unsupported; access controls are not bypassed".into(),
+            ));
+        }
+        file.rewind()?;
         Ok(Self {
             archive: ZipArchive::new(file)?,
             max_entry_bytes,

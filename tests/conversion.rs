@@ -2909,6 +2909,238 @@ fn renders_docx_grid_span_as_one_merged_cell() {
     assert!(svg.contains("Merged heading"));
 }
 
+#[test]
+fn tiles_xlsx_sheets_that_outgrow_the_configured_paper() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("long.xlsx");
+    let output = temporary.path().join("out");
+    // 200 default-height rows are far taller than one sheet of letter paper.
+    let rows = (1..=200)
+        .map(|row| {
+            format!(
+                r#"<row r="{row}"><c r="A{row}" t="inlineStr"><is><t>row {row}</t></is></c></row>"#
+            )
+        })
+        .collect::<String>();
+    let sheet = format!(
+        r#"<worksheet><sheetData>{rows}</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75"/><pageSetup orientation="portrait"/></worksheet>"#
+    );
+    make_zip(
+        &input,
+        &[
+            (
+                "xl/workbook.xml",
+                r#"<workbook xmlns:r="r"><sheets><sheet name="Data" sheetId="1" r:id="rId1"/></sheets></workbook>"#,
+            ),
+            (
+                "xl/_rels/workbook.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#,
+            ),
+            ("xl/worksheets/sheet1.xml", sheet.as_str()),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    // A sheet with a print setup must be split across pages rather than drawn
+    // past the edge of the first one.
+    assert!(
+        report.page_count > 1,
+        "expected the sheet to be paginated, got {} page(s)",
+        report.page_count
+    );
+    let last_row = ">row 200</tspan>";
+    let last_page = output.join(format!("page-{:04}.svg", report.page_count));
+    assert!(fs::read_to_string(last_page).unwrap().contains(last_row));
+    for page in 1..=report.page_count {
+        let svg = fs::read_to_string(output.join(format!("page-{page:04}.svg"))).unwrap();
+        assert!(svg.contains(r#"viewBox="0 0 612 792""#));
+    }
+}
+
+#[test]
+fn keeps_fit_to_page_worksheets_on_a_single_page() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("fitted.xlsx");
+    let output = temporary.path().join("out");
+    let rows = (1..=200)
+        .map(|row| {
+            format!(
+                r#"<row r="{row}"><c r="A{row}" t="inlineStr"><is><t>row {row}</t></is></c></row>"#
+            )
+        })
+        .collect::<String>();
+    let sheet = format!(
+        r#"<worksheet><sheetData>{rows}</sheetData><pageSetup orientation="portrait" fitToWidth="1" fitToHeight="1"/></worksheet>"#
+    );
+    make_zip(
+        &input,
+        &[
+            (
+                "xl/workbook.xml",
+                r#"<workbook xmlns:r="r"><sheets><sheet name="Data" sheetId="1" r:id="rId1"/></sheets></workbook>"#,
+            ),
+            (
+                "xl/_rels/workbook.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#,
+            ),
+            ("xl/worksheets/sheet1.xml", sheet.as_str()),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    // Fit-to-page asks for one sheet of paper, so scaling replaces tiling.
+    assert_eq!(report.page_count, 1);
+}
+
+#[test]
+fn keeps_bullet_and_paragraph_end_colors_out_of_the_shape_fill() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("bullet-color.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<presentation xmlns:r="r"><sldSz cx="9144000" cy="6858000"/><sldIdLst><sldId id="256" r:id="rId1"/></sldIdLst></presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="2" name="Box"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="4000000" cy="1000000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="304FFE"/></a:solidFill></p:spPr><p:txBody><a:bodyPr/><a:p><a:pPr><a:buClr><a:srgbClr val="000000"/></a:buClr><a:buNone/></a:pPr><a:r><a:rPr lang="en"/><a:t>Legible</a:t></a:r><a:endParaRPr><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a:endParaRPr></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"#,
+            ),
+        ],
+    );
+
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The bullet color and the end-of-paragraph run color describe text, so
+    // the shape keeps the fill its own spPr asked for.
+    assert!(svg.contains("#304FFE"), "shape fill was overwritten: {svg}");
+    assert!(svg.contains("Legible"));
+}
+
+#[test]
+fn rejects_encrypted_office_documents_as_unsupported() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("locked.xlsx");
+    let output = temporary.path().join("out");
+    // Office stores a password-protected document in a compound file, not a ZIP.
+    let mut bytes = vec![0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1];
+    bytes.extend_from_slice(&[0u8; 512]);
+    fs::write(&input, bytes).unwrap();
+
+    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+
+    assert!(
+        error.to_string().contains("encrypted"),
+        "unhelpful error: {error}"
+    );
+}
+
+#[test]
+fn rebuilds_a_cross_reference_table_with_short_entries() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("short-xref.pdf");
+    let output = temporary.path().join("out");
+    make_pdf(&input);
+    // Some producers end each cross-reference entry after 19 bytes instead of
+    // the 20 the specification requires; mainstream viewers still open those.
+    let bytes = fs::read(&input).unwrap();
+    let damaged = String::from_utf8_lossy(&bytes)
+        .replace(" n \r\n", " n\n")
+        .replace(" f \r\n", " f\n")
+        .replace(" n \n", " n\n")
+        .replace(" f \n", " f\n");
+    fs::write(&input, damaged.as_bytes()).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("cross-reference")),
+        "recovery was not reported: {:?}",
+        report.warnings
+    );
+    assert!(
+        fs::read_to_string(output.join("page-0001.svg"))
+            .unwrap()
+            .contains("Hello PDF")
+    );
+}
+
+#[test]
+fn advances_standard_font_text_without_a_widths_array() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("standard-font.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    // Helvetica without /Widths: every reader is expected to know its metrics.
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type1",
+        "BaseFont" => "Helvetica",
+        "Encoding" => "WinAnsiEncoding",
+    });
+    let resources_id = document.add_object(dictionary! {
+        "Font" => dictionary! { "F1" => font_id },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("BT", vec![]),
+            Operation::new("Tf", vec!["F1".into(), 12.into()]),
+            Operation::new("Td", vec![20.into(), 100.into()]),
+            Operation::new("Tj", vec![Object::string_literal("iiii")]),
+            Operation::new("ET", vec![]),
+            Operation::new("BT", vec![]),
+            Operation::new("Tf", vec!["F1".into(), 12.into()]),
+            Operation::new("Td", vec![20.into(), 60.into()]),
+            Operation::new("Tj", vec![Object::string_literal("WWWW")]),
+            Operation::new("ET", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A narrow letter must not advance as far as a wide one.
+    let xs = |needle: &str| -> Vec<f64> {
+        let start = svg.find(needle).expect("run not rendered");
+        let tail = &svg[start..];
+        let end = tail.find("</text>").unwrap_or(tail.len());
+        tail[..end]
+            .match_indices("x=\"")
+            .filter_map(|(index, _)| {
+                let rest = &tail[index + 3..];
+                let stop = rest.find('"')?;
+                rest[..stop].parse::<f64>().ok()
+            })
+            .collect()
+    };
+    let narrow = xs("iiii");
+    let wide = xs("WWWW");
+    assert!(
+        narrow.len() > 1 && wide.len() > 1,
+        "expected per-glyph positions, got {narrow:?} and {wide:?}"
+    );
+    let narrow_step = narrow[1] - narrow[0];
+    let wide_step = wide[1] - wide[0];
+    assert!(
+        wide_step > narrow_step * 2.0,
+        "standard font metrics were not applied: 'i' advanced {narrow_step}, 'W' advanced {wide_step}"
+    );
+}
+
 fn make_zip(path: &Path, entries: &[(&str, &str)]) {
     let file = File::create(path).unwrap();
     let mut zip = ZipWriter::new(file);
