@@ -1,6 +1,6 @@
 {
   "name": "document-svg",
-  "version": "0.1.0+codex.20260825020012",
+  "version": "0.1.1",
   "description": "Convert PDF and Microsoft Office documents to SVG pages and package SVG pages back into OOXML files.",
   "author": {
     "name": "document-svg contributors"

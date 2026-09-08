@@ -1,0 +1,35 @@
+name: Publish GitHub Packages
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Verified GitHub release tag
+        required: true
+        default: v0.1.1
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    environment: github-packages
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          registry-url: 'https://npm.pkg.github.com'
+          package-manager-cache: false
+      - name: Publish verified packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          PUBLIC_REGISTRY: github
+          NODE_AUTH_TOKEN: ${{ github.token }}
+        run: python3 scripts/publish-npm-release.py

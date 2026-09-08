@@ -4,33 +4,58 @@ Preview guides: [日本語](docs/preview.ja.md) · [English](docs/preview.en.md)
 
 Node-API bindings for the Rust `document-svg` converter.
 
+## Install
+
+Requires Node.js 18+. Run this in your application directory:
+
+```sh
+npm install document-svg
+```
+
+TypeScript declarations are included. Keep optional dependencies enabled: npm
+selects a native package for your OS and CPU. This is a Node.js library, not an
+installation of the `docsvg` CLI. Conversion runs server-side or in Electron's
+main process; only the `/preview-ui` helper is browser-compatible.
+
+## Convert a document
+
 ```js
 const { convert } = require("document-svg")
 
-const report = await convert("slides.pptx", "output", { jobs: 4 })
-console.log(report.pageCount)
+async function main() {
+  const report = await convert("slides.pptx", "output", { jobs: 4 })
+  console.log(report.pageCount)
 
-const fidelity = await convert("input.pdf", "output-fidelity", {
-  outlineEmbeddedPdfText: true,
-})
+  const fidelity = await convert("input.pdf", "output-fidelity", {
+    outlineEmbeddedPdfText: true,
+  })
+  console.log(fidelity.warnings)
+}
+
+main().catch(console.error)
 ```
 
-SVGをPPTX、DOCX、XLSXへベクター画像として格納する逆変換:
+Package SVG pages as vector images in PPTX, DOCX or XLSX:
 
 ```js
 const { reverse } = require("document-svg")
 
-const report = await reverse("svg-pages", "slides.pptx")
-console.log(report.pageCount)
+async function main() {
+  const report = await reverse("svg-pages", "slides.pptx")
+  console.log(report.pageCount)
+}
+
+main().catch(console.error)
 ```
 
-入力は単一SVGまたはSVGディレクトリです。元文書の段落、セル、数式などの意味構造は
-復元されません。
+The input is a single SVG or a directory of SVG pages. This does not reconstruct
+the original paragraphs, cells, formulas or other Office semantics.
 
-## TypeScript／画面プレビュー
+## TypeScript and application previews
 
-`preview()`はPDF、PPTX、XLSX、DOCXを一時領域で変換し、ページごとの完全なSVG文字列を
-返します。出力ディレクトリは不要で、一時ファイルはPromiseが解決する前に削除されます。
+`preview()` converts PDF, PPTX, XLSX or DOCX in temporary storage and returns
+complete SVG strings for every page. No output directory is required; temporary
+files are removed before its Promise resolves.
 
 ```ts
 import { preview } from "document-svg"
@@ -45,9 +70,9 @@ const firstPageSvg = report.pages[0].svg
 console.log("review required:", report.needsReview)
 ```
 
-ブラウザ画面へ渡した後は、ブラウザ専用の`document-svg/preview-ui`を使ってBlob URLを
-作成し、`img`へ設定できます。このsubpathはネイティブbindingを読み込まないため、
-renderer側で利用できます。
+After sending the SVG to your frontend, use `document-svg/preview-ui` to create
+a Blob URL for an `img`. This subpath does not load the native binding and can
+be used in a browser renderer.
 
 ```ts
 import {
@@ -61,24 +86,24 @@ const previewUrl = createSvgPreviewUrl(firstPageSvg)
 const portablePreviewUrl = createSvgPreviewDataUrl(firstPageSvg)
 
 // <img src={previewUrl} alt="Office document preview" />
-// 画面を破棄するときに revokeSvgPreviewUrl(previewUrl) を呼ぶ。
-// portablePreviewUrl はBlob URLを共有できないrenderer/Markdown境界向け。
+// Call revokeSvgPreviewUrl(previewUrl) when disposing of the view.
+// Use portablePreviewUrl across boundaries that cannot share Blob URLs.
 
-// 必ずbuttonのclick handlerなど、ユーザー操作の中から呼ぶ。
+// Call from a user action, such as a button click handler.
 const copiedFormat = await copySvgToClipboard(firstPageSvg)
 console.log(`copied as ${copiedFormat}`)
 ```
 
-`copySvgToClipboard()`はブラウザが許可する場合は`image/svg+xml`としてコピーし、対応して
-いない場合は完全なSVGソースを`text/plain`としてコピーします。常にソーステキストとして
-コピーしたい場合は`copySvgSourceToClipboard()`を使います。Clipboard APIはHTTPSまたは
-localhostなどのsecure contextと、クリック等のユーザー操作を要求する場合があります。
+`copySvgToClipboard()` copies `image/svg+xml` when supported, otherwise the full
+SVG source as `text/plain`. Use `copySvgSourceToClipboard()` to always copy source
+text. The Clipboard API may require a secure context (HTTPS or localhost) and
+a user action such as a click.
 
-Blob URLの解放、コピーボタン、成功・失敗表示まで含むReact例は
-[`examples/SvgPreview.tsx`](examples/SvgPreview.tsx)にあります。
+See [`examples/SvgPreview.tsx`](examples/SvgPreview.tsx) for a React example with
+Blob URL cleanup, a copy button, and success/failure feedback.
 
-これはNode.js、Electronのmain process、サーバー側TypeScript用のネイティブAPIです。
-純粋なブラウザ内で直接実行するWASM APIではありません。
+Conversion is a native API for Node.js, Electron's main process and server-side
+TypeScript. It is not a browser-only WASM API.
 
 The conversion runs on a libuv worker and does not block the JavaScript event
 loop. Build the native package for the current platform with:
@@ -88,5 +113,6 @@ npm install
 npm run build
 ```
 
-Use `napi create-npm-dirs` and the napi-rs release workflow to publish the root
-package together with its platform-specific optional packages.
+Maintainers should follow the repository's
+[release procedure](https://github.com/ryusui-hiro/document-svg/blob/main/docs/PUBLISHING.md)
+to publish the root package together with its platform-specific dependencies.

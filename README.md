@@ -1,338 +1,270 @@
 # document-svg
 
-PDF・PowerPoint・Excel・Wordを、**1ページ＝1枚のSVG**に変換するRustのライブラリとCLIです。
-逆に、SVGをPPTX・DOCX・XLSXへ包み直すこともできます。
+**Preview PDF and Office documents as SVG pages in your application.**
 
-出来上がったSVGは、対応するブラウザで開けます。画像はファイル内に埋め込みます。
-通常の文字表示は環境のフォントに依存するため、別のPCでは字形や配置が変わる場合があります。
-PDFの埋め込みフォントをアウトライン化するオプションもあります。
+A Rust library and CLI with Node.js and Python bindings. Convert PDF, PowerPoint,
+Excel and Word files into one SVG per page, display them in a browser, and inspect
+conversion warnings before sharing the result.
 
-プレビューガイド: [日本語](bindings/node/docs/preview.ja.md) · [English](bindings/node/docs/preview.en.md) · [简体中文](bindings/node/docs/preview.zh-CN.md)
+[日本語](README.ja.md) · [简体中文预览指南](bindings/node/docs/preview.zh-CN.md) ·
+[Examples](samples/) · [Releases](https://github.com/ryusui-hiro/document-svg/releases)
 
-まず[サンプル](samples/)を見てください。4形式の入力ファイルと、そこから生成されたSVGが置いてあります。
+## What you can do
 
----
+| Task | API or command |
+|---|---|
+| Get SVG strings for an application preview | Node.js `preview()` |
+| Save a document as SVG pages | `docsvg`, Rust `convert_path()`, Node/Python `convert()` |
+| Display an SVG in your frontend | `document-svg/preview-ui` |
+| Copy an SVG image or its source | `copySvgToClipboard()` |
+| Put SVG pages into an Office file | `docsvg reverse`, Node/Python `reverse()` |
 
-## なぜSVGなのか
+Supported inputs: **PDF, PPTX, XLSX and DOCX**. SVG-to-Office export supports
+**PPTX, DOCX and XLSX**.
 
-SVGに変換すると、文書プレビューをブラウザ標準の画像表示で組み込めます。
-ページ単位で保存でき、図形や文字などのベクター部分を拡大して表示できます。
+Document conversion runs locally in Rust. In a web application, run it on the
+server or in an Electron main process and send the SVG to your frontend. The
+browser helper does not load the native binding. This is not a browser-only
+document converter.
 
-SVGはブラウザが最初から読める画像形式です。だから、こうなります。
+## Install
 
-- **`<img>`タグで表示できる。** ビューアーも実行時のライブラリも要りません
-- **文字情報を保持できる。** 通常はSVGの`text`として残します。`<img>`表示では文字選択・検索はできず、アウトライン化した文字もテキストではありません
-- **ベクター部分を拡大できる。** 図形や文字は滑らかに表示できます。埋め込んだ写真などの解像度は元画像に依存します
-- **画像を埋め込める。** 画像は`data:`URIとして保存します。表示環境のフォント差については元文書と比較してください
-- **テキストなので差分が取れる。** 生成物をGitに入れて、レイアウト変更をレビューできます
+| Environment | Command |
+|---|---|
+| Node.js 18+ | `npm install document-svg` |
+| Python 3.10+ | `python -m pip install document-svg` |
+| CLI, with Rust installed | `cargo install document-svg --locked` |
 
-`page-0001.svg`から`page-0117.svg`までが並ぶので、ページ送りは配列の添字を変えるだけです。
+Choose **one** installation method for your use case; you do not need all three.
+Use **npm** to call the converter from a Node.js/TypeScript application, **pip**
+to call it from Python, or **Cargo** to install the standalone `docsvg` command.
+The npm and pip packages are language bindings, not installations of the CLI.
 
-### こんなときに使えます
+### Python: install with pip
 
-- Webアプリに文書プレビューと、SVG画像・SVGソースのコピー機能を付けたい
-- ElectronやNode.jsのアプリで、Officeを入れずにスライドを表示したい
-- 生成AIのパイプラインに文書を流し込みたい。SVGはテキストなので、そのまま渡せます
-- CIで文書の見た目が壊れていないか確認したい。SVGを比較すれば差分が出ます
+Create and activate a virtual environment, then install the Python package:
 
-## ソースから試す
+```sh
+python -m venv .venv
+# macOS / Linux:
+source .venv/bin/activate
+# Windows PowerShell instead: .venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install document-svg
+python -c "from document_svg import convert; print('Ready')"
+```
 
-```bash
+The package name is `document-svg` (hyphen); the Python import is
+`document_svg` (underscore). If your system uses `python3`, substitute it for
+`python`. See the [Python example](#python) below.
+
+### JavaScript / TypeScript: install with npm
+
+Run this in your application's directory:
+
+```sh
+npm install document-svg
+node -e "require('document-svg'); console.log('Ready')"
+```
+
+TypeScript declarations are included; no separate `@types` package is needed.
+Keep npm optional dependencies enabled: they supply the native binary for your
+platform. Run conversion in Node.js, not directly in a browser. See the
+[Node.js example](#nodejs--typescript) below.
+
+### Standalone command: install with Cargo
+
+```sh
+cargo install document-svg --locked
+docsvg --version
+docsvg report.pdf --output output/report
+```
+
+For use as a Rust library instead, run `cargo add document-svg` in your Rust
+project. For a compiler-free CLI installation, download the archive matching
+your operating system and CPU from GitHub Releases, extract it, and put `docsvg`
+(or `docsvg.exe`) on your `PATH`.
+
+### Platform support and troubleshooting
+
+| Platform (x64 and ARM64) | npm native binding | Python prebuilt wheel | CLI archive |
+|---|---|---|---|
+| Windows | Yes | Yes | Yes |
+| macOS | Yes | Yes | Yes |
+| Linux (glibc, e.g. Ubuntu/Debian) | Yes | Yes | Yes, static musl binary |
+| Linux (musl, e.g. Alpine) | Yes | Source build only | Yes |
+
+Python wheels use the stable CPython ABI for GIL-enabled Python. Matching
+prebuilt packages do not require a Rust compiler. Alpine Python users need a
+Rust toolchain and native build tools to install the source distribution.
+Prebuilt musllinux Python wheels are not included in this release because their
+additional bundled compiler runtime has not passed the release license review.
+
+If pip attempts a source build, a matching wheel may not be available for your
+Python/platform combination; update pip and check the release assets first.
+Source builds require Rust and a native linker. If npm cannot load the native
+binding, check that optional dependencies were installed and that your Node.js
+architecture matches the machine. Do not copy `node_modules` between platforms.
+
+For a prebuilt CLI or source archives, see [GitHub Releases](https://github.com/ryusui-hiro/document-svg/releases).
+For authenticated GitHub Packages distribution, see [Publishing and releases](docs/PUBLISHING.md).
+The public npm registry is the simplest choice for most JavaScript users.
+
+### Build from source
+
+```sh
 git clone https://github.com/ryusui-hiro/document-svg.git
 cd document-svg
-cargo build --release
-
-./target/release/docsvg samples/source/sample.pptx --output /tmp/slides
-# macOSの場合。その他の環境では生成したSVGを対応ブラウザで開きます。
-open /tmp/slides/page-0001.svg
+cargo install --path . --locked
 ```
 
-自分のファイルでも同じです。拡張子が`.pdf` `.pptx` `.xlsx` `.docx`なら、そのまま渡せます。
+The Rust crate requires Rust 1.88 or newer. Release builds are tested with Rust 1.93.
 
-```bash
-./target/release/docsvg 決算資料.pdf --output out/
+## Quick start
+
+### CLI
+
+```sh
+docsvg samples/source/sample.pptx --output output/slides
+docsvg report.pdf --output output/report --max-pages 100
 ```
 
-常用するなら`cargo install --path . --locked`で`docsvg`コマンドとして入ります。
-
-## 何が入って、何が出るか
+The output directory must be new or empty:
 
 ```text
-out/
+output/slides/
 ├── page-0001.svg
 ├── page-0002.svg
 └── conversion.json
 ```
 
-「1ページ」の意味は形式ごとに違います。
+Open the SVGs in a compatible browser, or use them as image sources in your app.
+Excel worksheets may span several SVG pages according to paper size and print
+settings. [The sample workbook](samples/source/sample.xlsx) produces four pages.
 
-| 入力 | 1ページになるもの |
-|---|---|
-| PDF | PDFのページ |
-| PPTX | スライド1枚 |
-| DOCX | ページサイズ・余白・改ページなどを反映して組版したページ |
-| XLSX | 印刷したときの1ページ |
+### Node.js / TypeScript
 
-XLSXは注意が必要です。180行のシートは1枚のSVGにはなりません。用紙設定に従って分割され、
-[サンプル](samples/svg/xlsx/)では4ページになります。Excelと完全同一の組版を保証するものではありません。
+```js
+const { preview } = require('document-svg')
 
-### conversion.jsonは飾りではない
-
-変換のたびに書かれるレポートです。ページ数と所要時間のほかに、**warnings**が入ります。
-
-```json
-{
-  "page_count": 2,
-  "elapsed_ms": 6,
-  "warnings": []
+async function main() {
+  const report = await preview('slides.pptx', { maxPages: 100 })
+  console.log(report.pageCount, report.needsReview)
+  console.log(report.pages[0].svg)
 }
+
+main().catch(console.error)
 ```
 
-ここには未対応要素や近似処理、利用時の確認事項が入ります。見た目が同じでも通知が出る場合があります。
-たとえば、埋め込みフォントを代替した、対応していない網掛けを飛ばした、といった内容です。
+`preview()` returns complete SVG strings and removes its temporary files.
+Conversion runs on a worker without blocking the JavaScript event loop.
 
-`warnings`が空でない変換を「完全再現」として扱わないでください。人に見せる前にレビューへ回すのか、
-そこで失敗させるのか、許容するのか。判断は呼び出し側で決められます。
+In your frontend bundle:
 
-## 使う
+```js
+import {
+  createSvgPreviewUrl,
+  revokeSvgPreviewUrl,
+} from 'document-svg/preview-ui'
 
-### コマンドライン
+const url = createSvgPreviewUrl(svgMarkup)
+imageElement.src = url
 
-```bash
-docsvg input.pdf --output out/            # 変換
-docsvg input.pdf --output out/ --jobs 4   # PDFを4ページ並列で処理
-docsvg input.pdf --output out/ --outline-embedded-pdf-text
+// Call this when replacing the image or disposing of the view.
+const disposePreview = () => revokeSvgPreviewUrl(url)
 ```
 
-`--jobs`はPDFだけに効きます。手元のMacで5.1MB・117ページのPDFを測ると、
-1ワーカーで9.9秒、4ワーカーで3.9秒でした。Office形式は常に1ページずつ流すので、
-`--jobs`を上げてもメモリだけ増えて速くはなりません。
+Use an `<img>` for display rather than injecting arbitrary SVG into your DOM.
+Text inside an `<img>` cannot be selected or searched. The clipboard helper
+copies the SVG image when supported, otherwise its XML source.
 
-`--outline-embedded-pdf-text`は見た目を優先する指定です。埋め込みフォントの字形を
-SVGのパスに変換するため代替フォントとの差が消えますが、その文字はSVGのテキストとして
-編集も検索もできなくなります。フォントの埋め込み権利を確認する警告も残ります。
-
-安全のための上限は引数で変えられます。
-
-```bash
---max-input-mib 512   # 入力ファイルの大きさ
---max-entry-mib 128   # ZIPの1エントリ、PDFの1ストリームを展開したときの大きさ
---max-pages 10000     # 出力ページ数
-```
-
-### Rust
-
-```rust
-use document_svg::{convert_path, ConvertOptions};
-
-let report = convert_path("input.pptx", "out", &ConvertOptions::default())?;
-println!("{} pages", report.page_count);
-# Ok::<(), document_svg::Error>(())
-```
-
-通常の変換は`convert_path`だけで足ります。自前のデータから直接SVGを組み立てたい場合は
-`document_svg::ir`と`document_svg::svg::write_page`を使います。例が
-[`examples/custom_ir.rs`](examples/custom_ir.rs)にあります。
+[English preview guide](bindings/node/docs/preview.en.md) ·
+[React example](bindings/node/examples/SvgPreview.tsx) ·
+[HTML export example](bindings/node/examples/preview-to-html.cjs)
 
 ### Python
 
 ```python
 from document_svg import convert
 
-report = convert("input.pptx", "out", jobs=4)
+report = convert("report.docx", "output/report", max_pages=100)
 print(report["page_count"])
+print(report["warnings"])
 ```
 
-変換中はGILを解放するので、他のスレッドは止まりません。ビルドにはmaturinが要ります。
+Python conversion writes SVG files and returns a dictionary. See the
+[Python binding guide](bindings/python/README.md) for options and source builds.
 
-```bash
-python3 -m pip wheel --no-deps --wheel-dir dist ./bindings/python
+### Rust
+
+```rust
+use document_svg::{convert_path, ConvertOptions};
+
+let report = convert_path("report.pdf", "output/report", &ConvertOptions::default())?;
+println!("{} pages", report.page_count);
+# Ok::<(), document_svg::Error>(())
 ```
 
-詳細は[`bindings/python/README.md`](bindings/python/README.md)へ。
+### Export SVG pages to Office
 
-### Node.js
-
-```javascript
-const { convert } = require("document-svg")
-
-const report = await convert("input.pptx", "out", { jobs: 4 })
-console.log(report.pageCount)
+```sh
+docsvg reverse output/slides --output slides.pptx
 ```
 
-`convert()`はlibuvのワーカースレッドで動くので、イベントループを止めません。
+Each SVG becomes a slide, document page or worksheet. Export embeds vector
+images with PNG fallbacks; it does not reconstruct the original paragraphs,
+cells, formulas or charts.
 
-画面に出すだけならファイルを書かずに済みます。`preview()`はSVGの文字列を直接返します。
+## Accuracy and safety
 
-```typescript
-import { preview } from "document-svg"
+- Check document and page warnings. They identify unsupported features,
+  approximations and review requirements; zero warnings is not a guarantee of
+  pixel-identical Office rendering.
+- Normal SVG text uses fonts available in the viewing environment. PDF embedded
+  text can be outlined with `--outline-embedded-pdf-text` when appearance is the
+  priority, at the cost of text editing and selection.
+- Input size, ZIP entries, XML events and page count have configurable limits.
+  Public upload services should also impose process-level memory and time limits.
+- Existing output files are protected against overwriting. Encrypted documents
+  are rejected; access controls are not bypassed.
+- Preview helpers perform conservative checks, not universal SVG sanitization.
 
-const report = await preview("input.pptx", { maxPages: 100 })
-const svg = report.pages[0].svg
-console.log(report.needsReview)
+See [supported features and limitations](docs/SUPPORT.md), the
+[security policy](SECURITY.md), and [performance measurements](docs/FONT_AND_PERFORMANCE_REVIEW.md).
+
+## Codex and Claude Code
+
+Both plugins are included in this repository. From a trusted source checkout:
+
+```sh
+./scripts/install-codex-plugin.sh
+# Start a new Codex task.
+
+./scripts/install-claude-plugin.sh
+# Restart Claude Code.
 ```
 
-ブラウザ側には、表示とコピー用のヘルパーが別入口で入っています。
+Example request: “Use document-svg to convert this presentation into SVG previews
+and report any warnings.”
 
-```typescript
-import { copySvgToClipboard, createSvgPreviewUrl } from "document-svg/preview-ui"
+[Plugin installation guide](docs/PLUGIN_INSTALLATION.md)
 
-const url = createSvgPreviewUrl(svg)
-await copySvgToClipboard(svg)   // クリック時に呼ぶ
-```
+## Development
 
-`preview()`は一時ファイルを自動で消し、既定では1ページ64MiB・全体256MiBまでをメモリに載せます。
-Electronやサーバーでの安全な出し方は、プレビューガイドを読んでください。
-[日本語](bindings/node/docs/preview.ja.md) / [English](bindings/node/docs/preview.en.md) /
-[简体中文](bindings/node/docs/preview.zh-CN.md)
-
-自分の環境向けにビルドする場合:
-
-```bash
-cd bindings/node && npm install && npm run build && npm test
-```
-
-PythonとNode.jsのAPIは、Rustの`ConvertOptions`と同じ上限を公開しています。
-レポートのキーだけ違います。Pythonは`snake_case`、Node.jsは`camelCase`。
-ブラウザ向けのWASMは、ファイルシステムAPIを作り直す必要があるため含めていません。
-
-## SVGからOffice文書へ戻す
-
-1枚のSVGでも、`page-NNNN.svg`が入ったディレクトリでも渡せます。出力の拡張子で形式が決まります。
-
-```bash
-docsvg reverse page.svg --output page.pptx
-docsvg reverse out/ --output pages.docx
-```
-
-SVGはベクター画像のまま格納され、SVGを読めないソフト向けにPNGも同梱されます
-（PowerPointが自分で書き出すのと同じ形です）。1枚のSVGがPPTXでは1スライド、
-DOCXでは1ページ、XLSXでは1シートになります。
-
-**元の文書構造は戻りません。** 段落も表もセルも数式も、画像の中の線と文字になります。
-「Wordで編集し直せるファイルに変換する機能」ではない、と理解して使ってください。
-スクリプトや外部参照を含むSVGは受け付けません。既存の出力ファイルも上書きしません。
-
-## 対応している範囲
-
-現物で確かめるのが早いので、まず[サンプル](samples/)と[対応表](docs/SUPPORT.md)を見てください。
-形式ごとの詳細は長いので畳んであります。
-
-<details>
-<summary>形式別の対応内容</summary>
-
-**PDF** — MediaBox/CropBox/Rotate/UserUnit、パス、字形単位で配置されたテキスト、画像、Form
-XObject、ExtGStateの線・文字状態、入れ子のクリップ、透明グループ・ソフトマスク・ノックアウト、
-特殊な色空間、JPEGのSMaskと外部CCITT、関数タイプ0/2/3/4、共有Decodeとページ単位の上限を持つ
-シェーディング（タイプ1〜7）、シェーディング／タイリングパターン、埋め込みTrueType・CFF・Type1の
-字形、文字体系を見た代替フォント。埋め込みのない標準14フォント（Helvetica、Times、Courier、
-Symbol、ZapfDingbats）は、`/Widths`がなくても正しい字幅で配置します。
-
-**PPTX** — マスターとレイアウトの継承、種別ごとのフォールバック、フッターとスライド番号の
-既定位置、マスターごとのテーマとeffectRef、入れ子のグループ、調整可能なプリセット図形と
-カスタム図形（brace/arc/コネクタ/フローチャート/吹き出し/円柱/立方体/月/ドーナツ/括弧/矢印ほか）、
-グラデーションと不透明度、プリセットの網掛け、範囲を限った外側の影とグロー、srcRectによる画像の
-切り抜き、デュオトーン・グレースケール・輝度・色変換、SmartArtのキャッシュ描画、行が空のときの
-復旧を含むネイティブの表、回転、単語単位で折り返す段落、埋め込みラスターとSVG、上限つきの
-EMF/WMF→SVG、キャッシュされたグラフ、動画・音声のポスター、OLEのプレビューと代替表示
-
-**XLSX** — セル、スタイル、結合、非表示の行と列、Excelの数値・日付書式、シート間参照や
-定義名を含むキャッシュ欠落数式の上限つき評価（数値・文字列・空白）、式による条件付き書式、
-図形と画像とテキスト、キャッシュされたグラフ、印刷範囲・改ページ・印刷タイトル・用紙設定、
-巨大なシートの自動分割
-
-**DOCX** — 用紙と余白、basedOnによるスタイル継承、文字体系を見たフォント選択、単語単位の
-折り返し、上付き・下付き、OMMLの分数・根号・添字、多階層のリスト、脚注・文末脚注・コメント、
-変更履歴の最終版表示、DrawingMLとVMLのテキストボックス、段落途中の改ページ、表、画像、
-セクションごとの先頭・偶数・既定のヘッダーとフッター、PAGEフィールド
-
-</details>
-
-### やらないこと
-
-- **暗号化された文書は開きません。** パスワード付きのPDFとOffice文書は、その旨を返して止まります。アクセス制限を迂回する処理は入っていません
-- **Officeの意味構造は復元しません。** 逆変換はSVGを画像として包み直すだけ
-- **変換コアはローカルで動きます。** 入力文書を外部サービスへ送信しません。公式アイコン取得やライセンス監査は、必要な公開情報を取得する別ツールです
-
-## 安全のための境界
-
-信頼できない文書を受け取る前提で書かれています。
-
-- 入力サイズ、ZIP展開後のサイズ、XMLイベント数、ページ数、PDFの展開ストリームに上限があります
-- ZIPのパス、埋め込みリソースの参照先を検査します
-- 逆変換は、スクリプト・`file://`・外部URL・`javascript:`・イベントハンドラ属性・`foreignObject`・
-  外部実体参照を含むSVGを拒否します
-- 各ページは一時ファイルに書いてから名前を変えます。途中で失敗したページが、完成したファイルとして残りません
-- 同じ入力からは常に同じバイト列が出ます。並列度を変えても変わりません
-
-## 構成図を描く（変換とは別の機能）
-
-Azure・AWS・Google Cloudの公式アイコンを使って、構成図をSVGで組み立てるツールも入っています。
-変換コアとは独立していて、Rustの依存も生成AIのAPIキーも要りません。
-
-```bash
-python3 authoring/cloud_icons.py fetch                    # 公式アイコンを取得
-python3 authoring/cloud_icons.py search "app service"     # IDを調べる
-python3 authoring/cloud_icons.py build-examples --output out/arch
-```
-
-使い方は[クラウド構成図ガイド](docs/CLOUD_ARCHITECTURE.md)、業務資料向けのテンプレートと
-直角配線は[3社の構成図テンプレート](docs/BUSINESS_ARCHITECTURE.md)にまとめています。
-PNGを書き出すには`rsvg-convert`が要ります。
-
-## エディタとAIエージェントから使う
-
-Codex、Claude Code、GitHub CLIから呼べます。導入条件と依頼例は
-[導入ガイド](docs/PLUGIN_INSTALLATION.md)にまとめました。
-
-```bash
-./scripts/install-codex-plugin.sh    # Codex
-./scripts/install-claude-plugin.sh   # Claude Code（再起動が要ります）
-./scripts/install-gh-extension.sh    # gh docsvg
-```
-
-導入後は、たとえばこう頼めます。
-
-```text
-$document-svg を使って report.docx をページ別SVGへ変換し、警告も確認して
-$document-svg を使って page-*.svg を slides.pptx に戻して
-```
-
-プラグインはSVGへのリンクに加えて、librsvgで描いたPNGも出します。エディタやOSでSVGの
-扱いが違うため、画像なら確実に見えます。
-
-```bash
-plugins/document-svg/skills/document-svg/scripts/render-preview.sh \
-  out/slides out/slides-preview 1400
-```
-
-リポジトリを開いただけでは何もインストールしません。利用者が頼んだときだけ上のスクリプトが走ります。
-
-## 開発
-
-```bash
+```sh
 cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --all-targets
-cargo build --release
-
-(cd bindings/node && npm run build && npm test)
-python3 -m pip wheel --no-deps --wheel-dir dist ./bindings/python
+cargo test --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+python3 scripts/check-publication.py
 ```
 
-テストは4形式の最小ファイルと機能別ファイルをテスト内で生成し、公開APIからSVGまで通します。
-サンプルを作り直すときは`python3 scripts/make_samples.py`を実行してください。
+[Contributing](CONTRIBUTING.md) · [Release operations](docs/PUBLISHING.md) ·
+[Changelog](CHANGELOG.md) · [License audit](docs/LICENSE_AUDIT.md)
 
-設計は[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、対応範囲は[docs/SUPPORT.md](docs/SUPPORT.md)、
-実測値は[docs/BENCHMARKS.md](docs/BENCHMARKS.md)にあります。
+## License
 
-## ライセンス
+**MIT OR Apache-2.0**, at your option. When redistributing the software, **retain
+the copyright and license notices required by the license you choose**.
 
-`MIT OR Apache-2.0`。どちらかを選んで使えます。再配布するときは、選んだライセンスの
-著作権表示とライセンス文を残してください（[LICENSE](LICENSE)）。
-依存パッケージは直接・推移とも許容的なライセンスだけを選び、監査手順を
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に記録しています。
-現在の確認結果は[依存ライセンス監査](docs/LICENSE_AUDIT.md)、同梱する通知全文は
-[THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt)を参照してください。
-
-`samples/`のファイルは`scripts/make_samples.py`が生成したもので、このリポジトリと同じライセンスです。
+See [LICENSE](LICENSE), [LICENSE-MIT](LICENSE-MIT), [LICENSE-APACHE](LICENSE-APACHE)
+and the bundled [third-party notices](THIRD_PARTY_LICENSES.txt).

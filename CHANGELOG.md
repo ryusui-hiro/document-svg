@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 0.1.1
+
+- Add multi-platform release builds for Node.js bindings, Python ABI3 wheels and standalone CLI archives.
+- Add checksum-verified publishing workflows for npm, PyPI and GitHub Packages, with separate build and publish permissions.
+- Make the main and package READMEs English-first, with pip/npm/Cargo installation examples and an operational release guide.
 
 - Integrate standard PDF font advances, bounded damaged-xref recovery, paper-aware XLSX pagination, PPTX fill handling and clearer encrypted/legacy Office errors.
 - Add reproducible PDF/PPTX/XLSX/DOCX samples with checked source hashes.

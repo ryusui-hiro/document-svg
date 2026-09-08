@@ -2,6 +2,22 @@
 
 Python bindings for the Rust `document-svg` converter.
 
+## Install
+
+Requires Python 3.10+ (GIL-enabled CPython). In your virtual environment:
+
+```sh
+python -m pip install document-svg
+```
+
+Install `document-svg`, but import `document_svg`. Matching prebuilt wheels do
+not require Rust. Prebuilt wheels cover Windows, macOS and glibc-based Linux on
+x64 and ARM64. Alpine/musl installations build from source and need Rust plus
+native build tools; this release does not ship musllinux wheels.
+This package provides a Python API, not the `docsvg` CLI.
+
+## Convert a document
+
 ```python
 from document_svg import convert
 
@@ -15,7 +31,7 @@ fidelity = convert(
 )
 ```
 
-SVGをベクター画像のままPPTX、DOCX、XLSXへ格納する逆変換:
+Package SVG pages as vector images in PPTX, DOCX or XLSX:
 
 ```python
 from document_svg import reverse
@@ -24,8 +40,13 @@ report = reverse("svg-pages", "slides.pptx")
 print(report["page_count"])
 ```
 
-入力には単一SVGまたはSVGディレクトリを指定します。元文書の段落、セル、数式などの
-意味構造は復元されません。
+The input is a single SVG or a directory of SVG pages. This does not reconstruct
+the original paragraphs, cells, formulas or other Office semantics.
+
+Inspect the returned warnings before relying on conversion fidelity. Output
+directories for conversion must be new or empty.
+
+## Build from source
 
 Build a local wheel from this directory:
 
