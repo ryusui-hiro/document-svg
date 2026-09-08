@@ -1,0 +1,203 @@
+name: Build release artifacts
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/build-release.yml'
+      - 'scripts/release-*.py'
+      - 'scripts/release-targets.json'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'bindings/**'
+permissions:
+  contents: read
+concurrency:
+  group: release-build-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  native:
+    name: Build ${{ matrix.tag }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: 'ubuntu-22.04'
+            target: 'x86_64-unknown-linux-gnu'
+            tag: 'linux-x64-gnu'
+            os: 'linux'
+            cpu: 'x64'
+            libc: 'glibc'
+            interpreter: '/opt/python/cp310-cp310/bin/python'
+            manylinux: '2_28'
+            container: 'quay.io/pypa/manylinux_2_28_x86_64:latest'
+          - runner: 'ubuntu-24.04-arm'
+            target: 'aarch64-unknown-linux-gnu'
+            tag: 'linux-arm64-gnu'
+            os: 'linux'
+            cpu: 'arm64'
+            libc: 'glibc'
+            interpreter: '/opt/python/cp310-cp310/bin/python'
+            manylinux: '2_28'
+            container: 'quay.io/pypa/manylinux_2_28_aarch64:latest'
+          - runner: 'ubuntu-22.04'
+            target: 'x86_64-unknown-linux-musl'
+            tag: 'linux-x64-musl'
+            os: 'linux'
+            cpu: 'x64'
+            libc: 'musl'
+            interpreter: '/opt/python/cp310-cp310/bin/python'
+            manylinux: 'musllinux_1_2'
+            container: 'quay.io/pypa/musllinux_1_2_x86_64:latest'
+          - runner: 'ubuntu-24.04-arm'
+            target: 'aarch64-unknown-linux-musl'
+            tag: 'linux-arm64-musl'
+            os: 'linux'
+            cpu: 'arm64'
+            libc: 'musl'
+            interpreter: '/opt/python/cp310-cp310/bin/python'
+            manylinux: 'musllinux_1_2'
+            container: 'quay.io/pypa/musllinux_1_2_aarch64:latest'
+          - runner: 'macos-15-intel'
+            target: 'x86_64-apple-darwin'
+            tag: 'darwin-x64'
+            os: 'darwin'
+            cpu: 'x64'
+            interpreter: 'python'
+            manylinux: 'off'
+            container: 'off'
+          - runner: 'macos-15'
+            target: 'aarch64-apple-darwin'
+            tag: 'darwin-arm64'
+            os: 'darwin'
+            cpu: 'arm64'
+            interpreter: 'python'
+            manylinux: 'off'
+            container: 'off'
+          - runner: 'windows-2022'
+            target: 'x86_64-pc-windows-msvc'
+            tag: 'win32-x64-msvc'
+            os: 'win32'
+            cpu: 'x64'
+            interpreter: 'python'
+            manylinux: 'off'
+            container: 'off'
+          - runner: 'windows-11-arm'
+            target: 'aarch64-pc-windows-msvc'
+            tag: 'win32-arm64-msvc'
+            os: 'win32'
+            cpu: 'arm64'
+            interpreter: 'python'
+            manylinux: 'off'
+            container: 'off'
+    defaults:
+      run:
+        shell: bash
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24'
+          architecture: ${{ matrix.cpu }}
+          package-manager-cache: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+          architecture: ${{ matrix.cpu }}
+      - name: Rust toolchain
+        run: rustup toolchain install 1.93.0 --profile minimal --target ${{ matrix.target }}
+      - name: Install native build dependencies
+        run: |
+          npm ci --prefix bindings/node
+          if [[ "${{ matrix.libc }}" == "musl" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y musl-tools
+          fi
+      - name: Build Node binding
+        working-directory: bindings/node
+        env:
+          RUSTUP_TOOLCHAIN: '1.93.0'
+        run: |
+          if [[ "${{ matrix.libc }}" == "glibc" ]]; then
+            npm exec -- napi build --platform --release --strip --target ${{ matrix.target }} --use-napi-cross
+          elif [[ "${{ matrix.libc }}" == "musl" ]]; then
+            export RUSTFLAGS="-C target-feature=-crt-static"
+            linker="CARGO_TARGET_$(echo '${{ matrix.target }}' | tr '[:lower:]-' '[:upper:]_')_LINKER"
+            export "$linker=musl-gcc"
+            npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}
+          else
+            npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}
+          fi
+      - name: Test Node binding
+        working-directory: bindings/node
+        run: |
+          if [[ "${{ matrix.libc }}" == "musl" ]]; then
+            docker run --rm -v "$PWD:/work" -w /work node:24-alpine node --test tests/*.test.js
+          else
+            npm test
+          fi
+      - name: Build CLI
+        if: matrix.libc != 'glibc'
+        env:
+          RUSTUP_TOOLCHAIN: '1.93.0'
+        run: |
+          if [[ "${{ matrix.libc }}" == "musl" ]]; then
+            linker="CARGO_TARGET_$(echo '${{ matrix.target }}' | tr '[:lower:]-' '[:upper:]_')_LINKER"
+            export "$linker=musl-gcc"
+          fi
+          cargo build --release --locked --bin docsvg --target ${{ matrix.target }}
+      - name: Build Python wheel
+        uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
+        with:
+          maturin-version: v1.15.0
+          rust-toolchain: '1.93.0'
+          target: ${{ matrix.target }}
+          manylinux: ${{ matrix.manylinux }}
+          container: ${{ matrix.container }}
+          working-directory: bindings/python
+          args: --release --locked --strip --compatibility pypi --out ../../dist/wheels -i ${{ matrix.interpreter }}
+      - name: Test Python wheel
+        if: matrix.libc != 'musl'
+        run: |
+          python -m pip install pytest dist/wheels/*.whl
+          python -m pytest -q bindings/python/tests
+      - name: Test musllinux wheel
+        if: matrix.libc == 'musl'
+        run: docker run --rm -v "$PWD:/work" -w /work python:3.13-alpine sh -c 'pip install pytest dist/wheels/*.whl && python -m pytest -q bindings/python/tests'
+      - name: Stage tested artifacts
+        run: python scripts/release-artifacts.py stage-target --tag ${{ matrix.tag }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: native-${{ matrix.tag }}
+          path: dist/artifacts/${{ matrix.tag }}
+          if-no-files-found: error
+          retention-days: 14
+  source:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.13'
+      - name: Build source distributions
+        run: |
+          rustup toolchain install 1.93.0 --profile minimal
+          cargo +1.93.0 package -p document-svg --locked
+          python -m pip install maturin==1.15.0 twine
+          python -m maturin sdist --manifest-path bindings/python/Cargo.toml --out dist/artifacts/source
+          cp target/package/document-svg-*.crate dist/artifacts/source/
+          python -m twine check --strict dist/artifacts/source/*.tar.gz
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: source
+          path: dist/artifacts/source
+          if-no-files-found: error
+          retention-days: 14

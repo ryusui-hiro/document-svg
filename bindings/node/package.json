@@ -1,6 +1,6 @@
 {
   "name": "document-svg",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Preview PDF and Office documents as page-by-page SVG from Node.js",
   "keywords": [
     "svg",
@@ -48,8 +48,7 @@
     "build:debug": "napi build --platform",
     "create:npm-dirs": "napi create-npm-dirs",
     "test": "node --test tests/*.test.js",
-    "example:preview": "node examples/preview-to-html.cjs",
-    "prepublishOnly": "napi pre-publish -t npm"
+    "example:preview": "node examples/preview-to-html.cjs"
   },
   "napi": {
     "binaryName": "document-svg",

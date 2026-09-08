@@ -1,11 +1,14 @@
 [package]
 name = "document-svg"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
 description = "Bounded PDF/OOXML to SVG conversion and SVG to OOXML packaging in Rust"
 license = "MIT OR Apache-2.0"
-publish = false
+publish = ["crates-io"]
+documentation = "https://docs.rs/document-svg"
+keywords = ["svg", "pdf", "docx", "pptx", "preview"]
+categories = ["command-line-utilities", "multimedia::images"]
 repository = "https://github.com/ryusui-hiro/document-svg"
 include = ["/src/**", "/tests/*.rs", "/examples/custom_ir.rs", "/Cargo.toml", "/Cargo.lock", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE", "/README.md", "/THIRD_PARTY_NOTICES.md", "/THIRD_PARTY_LICENSES.txt", "/licenses/**", "/docs/DEPENDENCY_LICENSES.json", "/docs/LICENSE_AUDIT.md", "/docs/SUPPORT.md", "/docs/ARCHITECTURE.md", "/docs/AI_USAGE_GUIDE.md"]
 
