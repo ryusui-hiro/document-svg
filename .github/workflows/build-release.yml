@@ -124,6 +124,7 @@ jobs:
             npm exec -- napi build --platform --release --strip --target ${{ matrix.target }} --use-napi-cross
           elif [[ "${{ matrix.libc }}" == "musl" ]]; then
             docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work/bindings/node \
+              -e CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER=cc \
               -e RUSTFLAGS="-C target-feature=-crt-static" rust:1.93-alpine \
               sh -ec 'apk add --no-cache musl-dev nodejs npm; npm ci; npm exec -- napi build --platform --release --strip --target ${{ matrix.target }}'
           else
