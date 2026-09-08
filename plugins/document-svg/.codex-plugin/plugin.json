@@ -1,0 +1,25 @@
+{
+  "name": "document-svg",
+  "version": "0.1.0+codex.20260825020012",
+  "description": "Convert PDF and Microsoft Office documents to SVG pages and package SVG pages back into OOXML files.",
+  "author": {
+    "name": "document-svg contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Document SVG",
+    "shortDescription": "Convert between documents and SVG pages.",
+    "longDescription": "Converts PDF, PPTX, XLSX, and DOCX files into deterministic per-page SVG files, and packages SVG pages back into PPTX, DOCX, or XLSX while preserving vector appearance.",
+    "developerName": "document-svg contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Document conversion",
+      "Local files"
+    ],
+    "defaultPrompt": [
+      "Convert this PDF or Office document into SVG pages and check the warnings.",
+      "Create SVG previews for this presentation.",
+      "Package these SVG pages back into a PowerPoint file."
+    ]
+  }
+}

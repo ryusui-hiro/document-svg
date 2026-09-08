@@ -1,0 +1,44 @@
+name: Publication check
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  publication-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 scripts/check-publication.py
+        env:
+          PUBLICATION_DENY_TERMS: ${{ vars.PUBLICATION_DENY_TERMS }}
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Rust toolchain
+        run: rustup toolchain install 1.93.0 --profile minimal --component rustfmt --component clippy
+      - run: cargo +1.93.0 fmt --all -- --check
+      - run: cargo +1.93.0 test --workspace --locked
+      - run: cargo +1.93.0 clippy --workspace --all-targets --locked -- -D warnings
+      - name: Node native build and tests
+        working-directory: bindings/node
+        run: |
+          npm ci
+          npm run build
+          npm test
+        env:
+          RUSTUP_TOOLCHAIN: '1.93.0'
+      - name: Python wheel and tests
+        run: |
+          python3 -m venv .tmp/ci-python
+          .tmp/ci-python/bin/pip install 'pytest>=8,<10' ./bindings/python
+          .tmp/ci-python/bin/python -m pytest -q tests bindings/python/tests
+        env:
+          RUSTUP_TOOLCHAIN: '1.93.0'

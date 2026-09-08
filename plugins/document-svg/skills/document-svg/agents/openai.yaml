@@ -1,0 +1,4 @@
+interface:
+  display_name: "Document SVG"
+  short_description: "Convert between Office documents and SVG pages"
+  default_prompt: "Use $document-svg to convert between this document and SVG pages, and explain any fidelity limits."

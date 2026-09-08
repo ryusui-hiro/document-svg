@@ -1,0 +1,29 @@
+[package]
+name = "document-svg-node"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Node.js bindings for document-svg"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+test = false
+doctest = false
+
+[dependencies]
+document-svg = { path = "../.." }
+napi = { version = "3.12.2", default-features = false, features = ["napi8"] }
+napi-derive = "3.6.3"
+tempfile = "3.27.0"
+
+[build-dependencies]
+napi-build = "2.4.1"
+
+[lints.rust]
+unsafe_code = "deny"
+
+[lints.clippy]
+all = "warn"

@@ -1,0 +1,265 @@
+{
+  "schema_version": 2,
+  "provider": "azure",
+  "title": "Azure｜プライベート接続で構成する業務Webアプリ",
+  "subtitle": "Application Gateway + WAF / App Service / Azure SQL Database — 単一リージョンの設計例",
+  "revision": "REFERENCE / 2026-09-06 / v1.0",
+  "canvas": {
+    "width": 1760,
+    "height": 1120
+  },
+  "groups": [
+    {
+      "id": "region",
+      "label": "Azure region / Japan East",
+      "kind": "region",
+      "x": 248,
+      "y": 160,
+      "width": 1132,
+      "height": 810
+    },
+    {
+      "id": "vnet",
+      "label": "Virtual network / 10.0.0.0/16",
+      "kind": "vpc",
+      "x": 270,
+      "y": 215,
+      "width": 1088,
+      "height": 480,
+      "parent": "region"
+    },
+    {
+      "id": "ingress",
+      "label": "Gateway subnet",
+      "kind": "subnet",
+      "x": 290,
+      "y": 265,
+      "width": 248,
+      "height": 405,
+      "parent": "vnet"
+    },
+    {
+      "id": "integration",
+      "label": "App Service integration subnet",
+      "kind": "subnet",
+      "x": 570,
+      "y": 265,
+      "width": 768,
+      "height": 170,
+      "parent": "vnet"
+    },
+    {
+      "id": "endpoints",
+      "label": "Private endpoint subnet",
+      "kind": "subnet",
+      "x": 570,
+      "y": 450,
+      "width": 768,
+      "height": 220,
+      "parent": "vnet"
+    },
+    {
+      "id": "paas",
+      "label": "PaaS services",
+      "kind": "service",
+      "x": 570,
+      "y": 740,
+      "width": 768,
+      "height": 210,
+      "parent": "region"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "users",
+      "label": "利用者",
+      "x": 40,
+      "y": 505,
+      "width": 180,
+      "height": 112,
+      "detail": "Browser / HTTPS",
+      "symbol": "user"
+    },
+    {
+      "id": "gateway",
+      "label": "Application\nGateway",
+      "x": 310,
+      "y": 505,
+      "width": 208,
+      "height": 112,
+      "detail": "WAF v2 / TLS termination",
+      "icon": "azure/service/application-gateways-10076",
+      "group": "ingress",
+      "badge": "01 / INGRESS"
+    },
+    {
+      "id": "app_pe",
+      "label": "App Service\nPrivate Endpoint",
+      "x": 592,
+      "y": 505,
+      "width": 208,
+      "height": 112,
+      "detail": "Inbound / Private Link",
+      "icon": "azure/service/private-endpoints-02579",
+      "group": "endpoints"
+    },
+    {
+      "id": "sql_pe",
+      "label": "SQL Private\nEndpoint",
+      "x": 852,
+      "y": 505,
+      "width": 208,
+      "height": 112,
+      "detail": "Data / Private Link",
+      "icon": "azure/service/private-endpoints-02579",
+      "group": "endpoints"
+    },
+    {
+      "id": "kv_pe",
+      "label": "Key Vault\nPrivate Endpoint",
+      "x": 1112,
+      "y": 505,
+      "width": 208,
+      "height": 112,
+      "detail": "Secrets / Private Link",
+      "icon": "azure/service/private-endpoints-02579",
+      "group": "endpoints"
+    },
+    {
+      "id": "interface",
+      "label": "VNet\nintegration",
+      "x": 852,
+      "y": 310,
+      "width": 208,
+      "height": 112,
+      "detail": "Outbound virtual interface",
+      "icon": "azure/service/network-interfaces-10080",
+      "group": "integration"
+    },
+    {
+      "id": "app",
+      "label": "App Service",
+      "x": 592,
+      "y": 805,
+      "width": 208,
+      "height": 112,
+      "detail": "Zone redundant / managed ID",
+      "icon": "azure/service/app-services-10035",
+      "group": "paas",
+      "badge": "02 / APPLICATION"
+    },
+    {
+      "id": "sql",
+      "label": "Azure SQL\nDatabase",
+      "x": 852,
+      "y": 805,
+      "width": 208,
+      "height": 112,
+      "detail": "Zone redundant / TLS",
+      "icon": "azure/service/sql-database-10130",
+      "group": "paas",
+      "badge": "03 / DATA"
+    },
+    {
+      "id": "vault",
+      "label": "Azure\nKey Vault",
+      "x": 1112,
+      "y": 805,
+      "width": 208,
+      "height": 112,
+      "detail": "Secrets / certificates",
+      "icon": "azure/service/key-vaults-10245",
+      "group": "paas"
+    }
+  ],
+  "edges": [
+    {
+      "from": "users",
+      "to": "gateway",
+      "kind": "request",
+      "label": "HTTPS"
+    },
+    {
+      "from": "gateway",
+      "to": "app_pe",
+      "kind": "private",
+      "label": ""
+    },
+    {
+      "from": "app_pe",
+      "to": "app",
+      "kind": "private",
+      "label": "Private Link",
+      "from_port": "s",
+      "to_port": "n"
+    },
+    {
+      "from": "app",
+      "to": "interface",
+      "kind": "private",
+      "label": "Egress",
+      "from_port": "e",
+      "to_port": "w"
+    },
+    {
+      "from": "interface",
+      "to": "sql_pe",
+      "kind": "private",
+      "label": "Private IP",
+      "from_port": "s",
+      "to_port": "n"
+    },
+    {
+      "from": "interface",
+      "to": "kv_pe",
+      "kind": "private",
+      "label": "",
+      "from_port": "e",
+      "to_port": "n"
+    },
+    {
+      "from": "sql_pe",
+      "to": "sql",
+      "kind": "private",
+      "label": "",
+      "from_port": "s",
+      "to_port": "n"
+    },
+    {
+      "from": "kv_pe",
+      "to": "vault",
+      "kind": "private",
+      "label": "",
+      "from_port": "s",
+      "to_port": "n"
+    }
+  ],
+  "notes": [
+    {
+      "title": "公開入口を集約",
+      "body": "Application GatewayでTLSを終端し、WAFで検査。アプリへの転送はPrivate Linkを使います。"
+    },
+    {
+      "title": "受信と送信を分離",
+      "body": "App Serviceの受信はPrivate Endpoint、送信はVNet統合です。App Service自体はVNet外のPaaSとして配置しています。"
+    },
+    {
+      "title": "データの公開経路を閉じる",
+      "body": "SQLとKey Vaultの公開アクセスを無効化。Private DNSのVNetリンク、名前解決、NSGを別途設定します。"
+    },
+    {
+      "title": "本番化する際の確認",
+      "body": "ゾーン冗長対応のプラン・SKU、最小インスタンス数、バックアップ、監視、認証を要件に合わせて決定します。"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Microsoft / App Service baseline architecture",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/web-apps/app-service/architectures/baseline-zone-redundant"
+    },
+    {
+      "title": "Microsoft / Official architecture icons",
+      "url": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    }
+  ]
+}

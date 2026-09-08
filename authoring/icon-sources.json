@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "verified_on": "2026-09-05",
+  "sources": [
+    {
+      "key": "azure",
+      "provider": "azure",
+      "kind": "service",
+      "source_page": "https://learn.microsoft.com/en-us/azure/architecture/icons/",
+      "url": "https://arch-center.azureedge.net/icons/Azure_Public_Service_Icons_V24.zip",
+      "release": "V24",
+      "sha256": "921594ccd1bf3d9c0a1bd7b6d924e050551a59342f2b353bb74bdcf761c35141"
+    },
+    {
+      "key": "aws",
+      "provider": "aws",
+      "kind": "mixed",
+      "source_page": "https://aws.amazon.com/architecture/icons/",
+      "url": "https://d1.awsstatic.com/onedam/marketing-channels/website/public/shared/architecture-icon-release/Icon-package_07312026.5846e92413caa21490223536cc97f1269e44fa92.zip",
+      "release": "07312026",
+      "sha256": "d2d166c453526471749d520e0db022c459abef759d2946cf2dd1d1c992dc6526"
+    },
+    {
+      "key": "gcp-core",
+      "provider": "gcp",
+      "kind": "service",
+      "source_page": "https://cloud.google.com/icons",
+      "url": "https://services.google.com/fh/files/misc/core-products-icons.zip",
+      "release": "core, retrieved 2026-09-05",
+      "sha256": "6531a10f58bc599c24d9a455d81dd757c1a03c3c43da9cddf639b859c1c1eece"
+    },
+    {
+      "key": "gcp-category",
+      "provider": "gcp",
+      "kind": "category",
+      "source_page": "https://cloud.google.com/icons",
+      "url": "https://services.google.com/fh/files/misc/category-icons.zip",
+      "release": "category, retrieved 2026-09-05",
+      "sha256": "e5bc3abd3527dc2500e9bff7f15870783e2c764129c49b7cd4c1b4e105345002"
+    }
+  ]
+}

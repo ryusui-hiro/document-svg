@@ -1,0 +1,20 @@
+{
+  "name": "document-svg",
+  "interface": {
+    "displayName": "Document SVG"
+  },
+  "plugins": [
+    {
+      "name": "document-svg",
+      "source": {
+        "source": "local",
+        "path": "./plugins/document-svg"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

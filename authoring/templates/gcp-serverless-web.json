@@ -1,0 +1,292 @@
+{
+  "schema_version": 2,
+  "provider": "gcp",
+  "title": "Google Cloud｜サーバーレス業務アプリと高可用DB",
+  "subtitle": "Global external Application Load Balancer / Cloud Run / Direct VPC egress / Cloud SQL HA / Tokyo (asia-northeast1)",
+  "revision": "REFERENCE / 2026-09-06 / v1.0",
+  "canvas": {
+    "width": 1760,
+    "height": 1120
+  },
+  "groups": [
+    {
+      "id": "project",
+      "label": "Google Cloud project / business-web",
+      "kind": "cloud",
+      "x": 260,
+      "y": 160,
+      "width": 1110,
+      "height": 810
+    },
+    {
+      "id": "global",
+      "label": "Global services / edge + operations",
+      "kind": "logical",
+      "x": 290,
+      "y": 220,
+      "width": 1048,
+      "height": 200,
+      "parent": "project"
+    },
+    {
+      "id": "region",
+      "label": "Tokyo region",
+      "kind": "region",
+      "x": 290,
+      "y": 455,
+      "width": 1048,
+      "height": 490,
+      "parent": "project"
+    },
+    {
+      "id": "runtime",
+      "label": "Cloud Run",
+      "kind": "service",
+      "x": 310,
+      "y": 510,
+      "width": 490,
+      "height": 195,
+      "parent": "region"
+    },
+    {
+      "id": "vpc",
+      "label": "Regional subnet / global VPC",
+      "kind": "subnet",
+      "x": 310,
+      "y": 740,
+      "width": 490,
+      "height": 185,
+      "parent": "region"
+    },
+    {
+      "id": "sql",
+      "label": "Cloud SQL / service producer network",
+      "kind": "service",
+      "x": 840,
+      "y": 510,
+      "width": 478,
+      "height": 405,
+      "parent": "region"
+    },
+    {
+      "id": "primary_zone",
+      "label": "Primary zone",
+      "kind": "zone",
+      "x": 856,
+      "y": 560,
+      "width": 214,
+      "height": 335,
+      "parent": "sql"
+    },
+    {
+      "id": "standby_zone",
+      "label": "Secondary zone",
+      "kind": "zone",
+      "x": 1088,
+      "y": 560,
+      "width": 214,
+      "height": 335,
+      "parent": "sql"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "users",
+      "label": "利用者",
+      "x": 40,
+      "y": 280,
+      "width": 180,
+      "height": 112,
+      "detail": "Browser / HTTPS",
+      "symbol": "user"
+    },
+    {
+      "id": "lb",
+      "label": "External\nHTTPS LB",
+      "x": 330,
+      "y": 280,
+      "width": 200,
+      "height": 112,
+      "detail": "Global / serverless backend",
+      "icon": "gcp/category/networking",
+      "group": "global",
+      "badge": "01 / INGRESS"
+    },
+    {
+      "id": "armor",
+      "label": "Cloud Armor",
+      "x": 650,
+      "y": 280,
+      "width": 230,
+      "height": 112,
+      "detail": "WAF policy / backend service",
+      "icon": "gcp/category/security-identity",
+      "group": "global"
+    },
+    {
+      "id": "monitor",
+      "label": "Cloud\nObservability",
+      "x": 1040,
+      "y": 280,
+      "width": 230,
+      "height": 112,
+      "detail": "Logging / Monitoring",
+      "icon": "gcp/category/observability",
+      "group": "global"
+    },
+    {
+      "id": "neg",
+      "label": "Serverless\nNEG",
+      "x": 330,
+      "y": 565,
+      "width": 200,
+      "height": 112,
+      "detail": "Regional backend reference",
+      "icon": "gcp/category/networking",
+      "group": "runtime"
+    },
+    {
+      "id": "run",
+      "label": "Cloud Run",
+      "x": 566,
+      "y": 565,
+      "width": 208,
+      "height": 112,
+      "detail": "Managed runtime / service ID",
+      "icon": "gcp/service/cloud-run",
+      "group": "runtime",
+      "badge": "02 / APPLICATION"
+    },
+    {
+      "id": "egress",
+      "label": "Direct VPC\negress",
+      "x": 566,
+      "y": 790,
+      "width": 208,
+      "height": 112,
+      "detail": "Subnet / private-ranges-only",
+      "symbol": "interface",
+      "group": "vpc"
+    },
+    {
+      "id": "primary",
+      "label": "Cloud SQL",
+      "x": 873,
+      "y": 650,
+      "width": 180,
+      "height": 112,
+      "detail": "PostgreSQL / private IP",
+      "icon": "gcp/service/cloud-sql",
+      "group": "primary_zone",
+      "badge": "PRIMARY"
+    },
+    {
+      "id": "standby",
+      "label": "Cloud SQL",
+      "x": 1105,
+      "y": 650,
+      "width": 180,
+      "height": 112,
+      "detail": "Failover only",
+      "icon": "gcp/service/cloud-sql",
+      "group": "standby_zone",
+      "badge": "STANDBY"
+    }
+  ],
+  "edges": [
+    {
+      "from": "users",
+      "to": "lb",
+      "kind": "request",
+      "label": "HTTPS"
+    },
+    {
+      "from": "armor",
+      "to": "lb",
+      "kind": "control",
+      "label": "",
+      "from_port": "w",
+      "to_port": "e"
+    },
+    {
+      "from": "lb",
+      "to": "neg",
+      "kind": "request",
+      "label": "",
+      "from_port": "s",
+      "to_port": "n"
+    },
+    {
+      "from": "neg",
+      "to": "run",
+      "kind": "request",
+      "label": ""
+    },
+    {
+      "from": "run",
+      "to": "egress",
+      "kind": "private",
+      "label": "VPC egress",
+      "from_port": "s",
+      "to_port": "n"
+    },
+    {
+      "from": "egress",
+      "to": "primary",
+      "kind": "private",
+      "label": "Private IP",
+      "from_port": "e",
+      "to_port": "w"
+    },
+    {
+      "from": "primary",
+      "to": "standby",
+      "kind": "replication",
+      "label": ""
+    },
+    {
+      "from": "run",
+      "to": "monitor",
+      "kind": "telemetry",
+      "label": "Logs",
+      "from_port": "n",
+      "to_port": "s"
+    }
+  ],
+  "notes": [
+    {
+      "title": "LB経由の受信に限定",
+      "body": "Cloud Runのingressをinternal-and-cloud-load-balancingに設定。外部利用者がrun.app URLからWAFを迂回しない構成です。"
+    },
+    {
+      "title": "サーバーレスとVPCを区別",
+      "body": "VPCはグローバル、図の境界はリージョン内の送信用サブネットです。Cloud Runの実行環境とVPC送信の接続を分けて表現しています。"
+    },
+    {
+      "title": "DBはサービス側ネットワーク",
+      "body": "Private services accessでCloud SQLのprivate IPに接続。HA構成のstandbyはフェイルオーバー用で、読取先ではありません。"
+    },
+    {
+      "title": "共通カテゴリの公式アイコン",
+      "body": "LB・NEGはNetworking、Cloud ArmorはSecurityの公式カテゴリ図柄です。製品名を併記し、個別製品アイコンと区別しています。"
+    }
+  ],
+  "sources": [
+    {
+      "title": "Google Cloud / Global LB with serverless NEG",
+      "url": "https://docs.cloud.google.com/load-balancing/docs/https/setup-global-ext-https-serverless"
+    },
+    {
+      "title": "Google Cloud / Cloud Run to Cloud SQL",
+      "url": "https://docs.cloud.google.com/sql/docs/postgres/connect-run"
+    },
+    {
+      "title": "Google Cloud / Cloud SQL high availability",
+      "url": "https://docs.cloud.google.com/sql/docs/postgres/high-availability"
+    },
+    {
+      "title": "Google Cloud / Cloud Run ingress settings",
+      "url": "https://docs.cloud.google.com/run/docs/securing/ingress"
+    }
+  ]
+}

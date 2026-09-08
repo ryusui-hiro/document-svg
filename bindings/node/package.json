@@ -1,0 +1,74 @@
+{
+  "name": "document-svg",
+  "version": "0.1.0",
+  "description": "Preview PDF and Office documents as page-by-page SVG from Node.js",
+  "keywords": [
+    "svg",
+    "preview",
+    "pdf",
+    "pptx",
+    "xlsx",
+    "docx",
+    "electron"
+  ],
+  "license": "MIT OR Apache-2.0",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.js",
+      "default": "./index.js"
+    },
+    "./preview-ui": {
+      "types": "./preview-ui.d.ts",
+      "require": "./preview-ui.js",
+      "default": "./preview-ui.js"
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "preview-ui.js",
+    "preview-ui.d.ts",
+    "LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "docs",
+    "examples",
+    "document-svg.*.node",
+    "LICENSE-MIT",
+    "LICENSE-APACHE"
+  ],
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "create:npm-dirs": "napi create-npm-dirs",
+    "test": "node --test tests/*.test.js",
+    "example:preview": "node examples/preview-to-html.cjs",
+    "prepublishOnly": "napi pre-publish -t npm"
+  },
+  "napi": {
+    "binaryName": "document-svg",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "aarch64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-musl"
+    ]
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.8.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryusui-hiro/document-svg.git",
+    "directory": "bindings/node"
+  }
+}

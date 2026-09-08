@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "title": "Cloud architecture · official icons",
+  "nodes": [
+    {
+      "id": "azure0",
+      "icon": "azure/service/api-management-services-10042",
+      "label": "Azure API Management",
+      "row": 0,
+      "column": 0
+    },
+    {
+      "id": "azure1",
+      "icon": "azure/service/function-apps-10029",
+      "label": "Azure Functions",
+      "row": 0,
+      "column": 1
+    },
+    {
+      "id": "azure2",
+      "icon": "azure/service/storage-accounts-10086",
+      "label": "Azure Storage Accounts",
+      "row": 0,
+      "column": 2
+    },
+    {
+      "id": "aws0",
+      "icon": "aws/service/amazon-api-gateway",
+      "label": "Amazon API Gateway",
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "aws1",
+      "icon": "aws/service/aws-lambda",
+      "label": "AWS Lambda",
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "aws2",
+      "icon": "aws/service/amazon-simple-storage-service",
+      "label": "Amazon S3",
+      "row": 1,
+      "column": 2
+    },
+    {
+      "id": "gcp0",
+      "icon": "gcp/service/apigee",
+      "label": "Apigee",
+      "row": 2,
+      "column": 0
+    },
+    {
+      "id": "gcp1",
+      "icon": "gcp/service/cloud-run",
+      "label": "Cloud Run",
+      "row": 2,
+      "column": 1
+    },
+    {
+      "id": "gcp2",
+      "icon": "gcp/service/cloud-storage",
+      "label": "Cloud Storage",
+      "row": 2,
+      "column": 2
+    }
+  ],
+  "edges": [
+    {
+      "from": "azure0",
+      "to": "azure1",
+      "label": "HTTPS"
+    },
+    {
+      "from": "azure1",
+      "to": "azure2",
+      "label": "Objects"
+    },
+    {
+      "from": "aws0",
+      "to": "aws1",
+      "label": "HTTPS"
+    },
+    {
+      "from": "aws1",
+      "to": "aws2",
+      "label": "Objects"
+    },
+    {
+      "from": "gcp0",
+      "to": "gcp1",
+      "label": "HTTPS"
+    },
+    {
+      "from": "gcp1",
+      "to": "gcp2",
+      "label": "Objects"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "document-svg",
+  "displayName": "Document SVG",
+  "version": "0.1.0",
+  "description": "Convert PDF and Office documents to SVG pages and package SVG pages back into OOXML files.",
+  "author": {
+    "name": "document-svg contributors"
+  },
+  "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "svg",
+    "pdf",
+    "pptx",
+    "docx",
+    "xlsx",
+    "conversion"
+  ]
+}

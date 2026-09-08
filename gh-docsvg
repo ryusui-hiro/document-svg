@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+GitHub CLI extension for document-svg
+
+Usage:
+  gh docsvg convert INPUT --output DIRECTORY [docsvg options]
+  gh docsvg reverse INPUT.svg-or-directory --output FILE.pptx|docx|xlsx [options]
+  gh docsvg version
+
+The convert subcommand accepts PDF, PPTX, XLSX, or DOCX input. Reverse conversion
+embeds SVG pages as vector images and does not reconstruct Office semantics.
+EOF
+}
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+
+resolve_docsvg() {
+  if [[ -n "${DOCSVG_BIN:-}" ]]; then
+    printf '%s\n' "$DOCSVG_BIN"
+  elif command -v docsvg >/dev/null 2>&1; then
+    command -v docsvg
+  elif [[ -x "$HOME/.cargo/bin/docsvg" ]]; then
+    printf '%s\n' "$HOME/.cargo/bin/docsvg"
+  fi
+}
+
+run_docsvg() {
+  local binary
+  binary=$(resolve_docsvg)
+  if [[ -n "$binary" ]]; then
+    exec "$binary" "$@"
+  fi
+  if [[ -f "$script_dir/Cargo.toml" ]] && command -v cargo >/dev/null 2>&1; then
+    exec cargo run --quiet --release --manifest-path "$script_dir/Cargo.toml" --bin docsvg -- "$@"
+  fi
+  echo "docsvg is unavailable; install it with 'cargo install --path <document-svg-repo> --locked'" >&2
+  exit 69
+}
+
+case "${1:-help}" in
+  help|-h|--help)
+    usage
+    ;;
+  version|-V|--version)
+    run_docsvg --version
+    ;;
+  convert)
+    shift
+    [[ "$#" -gt 0 ]] || {
+      usage >&2
+      exit 64
+    }
+    run_docsvg "$@"
+    ;;
+  reverse)
+    shift
+    [[ "$#" -gt 0 ]] || {
+      usage >&2
+      exit 64
+    }
+    run_docsvg reverse "$@"
+    ;;
+  *)
+    # Keep the common forward form concise: gh docsvg INPUT --output DIRECTORY
+    run_docsvg "$@"
+    ;;
+esac

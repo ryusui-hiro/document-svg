@@ -1,0 +1,16 @@
+{
+  "name": "document-svg",
+  "description": "Document and SVG conversion tools powered by the local docsvg CLI.",
+  "owner": {
+    "name": "document-svg contributors"
+  },
+  "plugins": [
+    {
+      "name": "document-svg",
+      "source": "./plugins/document-svg",
+      "description": "Convert PDF and Office documents to SVG pages and package SVG pages back into OOXML files.",
+      "category": "development",
+      "tags": ["svg", "pdf", "pptx", "docx", "xlsx", "conversion"]
+    }
+  ]
+}

@@ -1,0 +1,340 @@
+{
+  "schema_version": 2,
+  "provider": "aws",
+  "title": "AWS｜2つのAZで冗長化する業務Webアプリ",
+  "subtitle": "CloudFront + WAF / Application Load Balancer / EC2 Auto Scaling / RDS Multi-AZ",
+  "revision": "REFERENCE / 2026-09-06 / v1.0",
+  "canvas": {
+    "width": 1760,
+    "height": 1120
+  },
+  "groups": [
+    {
+      "id": "region",
+      "label": "AWS Region / ap-northeast-1",
+      "kind": "region",
+      "x": 560,
+      "y": 160,
+      "width": 820,
+      "height": 810
+    },
+    {
+      "id": "vpc",
+      "label": "VPC / 10.20.0.0/16",
+      "kind": "vpc",
+      "x": 580,
+      "y": 220,
+      "width": 780,
+      "height": 730,
+      "parent": "region"
+    },
+    {
+      "id": "az_a",
+      "label": "Availability Zone A",
+      "kind": "zone",
+      "x": 600,
+      "y": 270,
+      "width": 350,
+      "height": 660,
+      "parent": "vpc"
+    },
+    {
+      "id": "public_a",
+      "label": "Public subnet",
+      "kind": "subnet",
+      "x": 616,
+      "y": 315,
+      "width": 318,
+      "height": 180,
+      "parent": "az_a"
+    },
+    {
+      "id": "app_a",
+      "label": "App subnet / private",
+      "kind": "subnet",
+      "x": 616,
+      "y": 515,
+      "width": 318,
+      "height": 180,
+      "parent": "az_a"
+    },
+    {
+      "id": "db_a",
+      "label": "DB subnet / private",
+      "kind": "subnet",
+      "x": 616,
+      "y": 715,
+      "width": 318,
+      "height": 180,
+      "parent": "az_a"
+    },
+    {
+      "id": "az_b",
+      "label": "Availability Zone B",
+      "kind": "zone",
+      "x": 990,
+      "y": 270,
+      "width": 350,
+      "height": 660,
+      "parent": "vpc"
+    },
+    {
+      "id": "public_b",
+      "label": "Public subnet",
+      "kind": "subnet",
+      "x": 1006,
+      "y": 315,
+      "width": 318,
+      "height": 180,
+      "parent": "az_b"
+    },
+    {
+      "id": "app_b",
+      "label": "App subnet / private",
+      "kind": "subnet",
+      "x": 1006,
+      "y": 515,
+      "width": 318,
+      "height": 180,
+      "parent": "az_b"
+    },
+    {
+      "id": "db_b",
+      "label": "DB subnet / private",
+      "kind": "subnet",
+      "x": 1006,
+      "y": 715,
+      "width": 318,
+      "height": 180,
+      "parent": "az_b"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "users",
+      "label": "利用者",
+      "x": 40,
+      "y": 365,
+      "width": 180,
+      "height": 112,
+      "detail": "Browser / HTTPS",
+      "symbol": "user"
+    },
+    {
+      "id": "cdn",
+      "label": "Amazon\nCloudFront",
+      "x": 300,
+      "y": 365,
+      "width": 208,
+      "height": 112,
+      "detail": "AWS WAF policy attached",
+      "icon": "aws/service/amazon-cloudfront",
+      "badge": "01 / EDGE"
+    },
+    {
+      "id": "dns",
+      "label": "Amazon\nRoute 53",
+      "x": 40,
+      "y": 650,
+      "width": 180,
+      "height": 112,
+      "detail": "DNS resolution",
+      "icon": "aws/service/amazon-route-53"
+    },
+    {
+      "id": "monitor",
+      "label": "Amazon\nCloudWatch",
+      "x": 300,
+      "y": 765,
+      "width": 208,
+      "height": 112,
+      "detail": "Application logs / alarms",
+      "icon": "aws/service/amazon-cloudwatch"
+    },
+    {
+      "id": "alb_a",
+      "label": "ALB endpoint",
+      "x": 666,
+      "y": 365,
+      "width": 208,
+      "height": 112,
+      "detail": "Same ALB / AZ A",
+      "icon": "aws/resource/elastic-load-balancing-application-load-balancer",
+      "group": "public_a"
+    },
+    {
+      "id": "node_app_a",
+      "label": "Amazon EC2",
+      "x": 666,
+      "y": 565,
+      "width": 208,
+      "height": 112,
+      "detail": "Auto Scaling / no public IP",
+      "icon": "aws/service/amazon-ec2",
+      "group": "app_a",
+      "badge": "02 / COMPUTE"
+    },
+    {
+      "id": "node_db_a",
+      "label": "Amazon RDS",
+      "x": 666,
+      "y": 765,
+      "width": 208,
+      "height": 112,
+      "detail": "PostgreSQL / read + write",
+      "icon": "aws/service/amazon-rds",
+      "group": "db_a",
+      "badge": "PRIMARY"
+    },
+    {
+      "id": "alb_b",
+      "label": "ALB endpoint",
+      "x": 1056,
+      "y": 365,
+      "width": 208,
+      "height": 112,
+      "detail": "Same ALB / AZ B",
+      "icon": "aws/resource/elastic-load-balancing-application-load-balancer",
+      "group": "public_b"
+    },
+    {
+      "id": "node_app_b",
+      "label": "Amazon EC2",
+      "x": 1056,
+      "y": 565,
+      "width": 208,
+      "height": 112,
+      "detail": "Auto Scaling / no public IP",
+      "icon": "aws/service/amazon-ec2",
+      "group": "app_b",
+      "badge": "02 / COMPUTE"
+    },
+    {
+      "id": "node_db_b",
+      "label": "Amazon RDS",
+      "x": 1056,
+      "y": 765,
+      "width": 208,
+      "height": 112,
+      "detail": "PostgreSQL / no read traffic",
+      "icon": "aws/service/amazon-rds",
+      "group": "db_b",
+      "badge": "STANDBY"
+    }
+  ],
+  "edges": [
+    {
+      "from": "users",
+      "to": "cdn",
+      "kind": "request",
+      "label": "HTTPS"
+    },
+    {
+      "from": "users",
+      "to": "dns",
+      "kind": "control",
+      "label": "DNS",
+      "from_port": "s",
+      "to_port": "n"
+    },
+    {
+      "from": "cdn",
+      "to": "alb_a",
+      "kind": "request",
+      "label": "HTTPS"
+    },
+    {
+      "from": "cdn",
+      "to": "alb_b",
+      "kind": "request",
+      "label": "",
+      "from_port": "n",
+      "to_port": "n",
+      "via": [
+        [
+          1160,
+          258
+        ]
+      ]
+    },
+    {
+      "from": "alb_a",
+      "to": "node_app_a",
+      "kind": "request",
+      "label": "HTTPS",
+      "from_offset": 0.2,
+      "to_offset": 0.2
+    },
+    {
+      "from": "alb_b",
+      "to": "node_app_b",
+      "kind": "request",
+      "label": "HTTPS",
+      "from_offset": 0.2,
+      "to_offset": 0.2
+    },
+    {
+      "from": "node_app_a",
+      "to": "node_db_a",
+      "kind": "private",
+      "label": "SQL / TLS",
+      "from_offset": 0.2,
+      "to_offset": 0.2
+    },
+    {
+      "from": "node_app_b",
+      "to": "node_db_a",
+      "kind": "private",
+      "label": "",
+      "from_port": "w",
+      "to_port": "e",
+      "to_offset": -0.25
+    },
+    {
+      "from": "node_db_a",
+      "to": "node_db_b",
+      "kind": "replication",
+      "label": "Sync"
+    },
+    {
+      "from": "node_app_a",
+      "to": "monitor",
+      "kind": "telemetry",
+      "label": "Logs",
+      "from_port": "w",
+      "to_port": "n"
+    }
+  ],
+  "notes": [
+    {
+      "title": "エッジとオリジンを保護",
+      "body": "CloudFrontにWAFを関連付けます。ALBへの直接到達はSecurity Groupやオリジン制限で制御します。"
+    },
+    {
+      "title": "単一ALBを2サブネットに配置",
+      "body": "図中のALB endpointは別々のロードバランサーではありません。同じALBのAZ別配置を表現しています。"
+    },
+    {
+      "title": "待機DBへ読取を送らない",
+      "body": "Multi-AZ DB instanceのstandbyは同期複製とフェイルオーバー用です。通常の読取・書込はprimaryに送ります。"
+    },
+    {
+      "title": "描画範囲と運用設計",
+      "body": "NATによる送信経路、静的S3配信、証明書、詳細なSGルールは省略。監視線はアプリからの代表経路です。"
+    }
+  ],
+  "sources": [
+    {
+      "title": "AWS / Web application reference architecture",
+      "url": "https://d1.awsstatic.com/architecture-diagrams/ArchitectureDiagrams/web-application-architecture-on-aws-ra.pdf"
+    },
+    {
+      "title": "AWS / VPC with private subnets",
+      "url": "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-example-private-subnets-nat.html"
+    },
+    {
+      "title": "AWS / RDS Multi-AZ DB instance deployments",
+      "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.MultiAZSingleStandby.html"
+    }
+  ]
+}
