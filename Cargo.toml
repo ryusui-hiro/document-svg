@@ -37,7 +37,7 @@ resvg = "0.48.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 stet-fonts = "0.4.1"
-ttf-parser = { version = "0.25.1", default-features = false, features = ["std", "glyph-names"] }
+skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 tempfile = "3.27.0"
 zip = { version = "8.1.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 

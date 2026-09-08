@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Replace the unmaintained font parser with `skrifa`, preserving TrueType/OpenType outlines and raw Type1/CFF fallbacks.
+- Count serialized page size without retaining a second page-sized JSON buffer.
+- Borrow SVG attribute/text strings when no escaping is needed, avoiding large image-data copies.
+- Reuse the system font database across all pages of one reverse conversion.
+- Ignore Python/native shared-library build artifacts in publication candidates.
+
 ## 0.1.0 — initial source release
 
 - PDF, PPTX, XLSX and DOCX conversion to per-page SVG.

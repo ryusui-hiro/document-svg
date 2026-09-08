@@ -8,6 +8,10 @@ use base64::Engine;
 use lopdf::content::{Content, Operation};
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
 use rayon::prelude::*;
+use skrifa::instance::{LocationRef, Size};
+use skrifa::outline::DrawSettings;
+use skrifa::raw::TableProvider;
+use skrifa::{FontRef, MetadataProvider};
 
 use crate::convert::{ConvertOptions, PageConsumer};
 use crate::error::{Error, Result};
@@ -1087,13 +1091,21 @@ impl FontDecoder {
             .font_data
             .as_ref()
             .ok_or("embedded font program is unavailable")?;
-        let face = match ttf_parser::Face::parse(data, 0) {
+        let face = match FontRef::from_index(data, 0) {
             Ok(face) => face,
             Err(_) => {
                 return self.outline_type1(data, bytes, character_spacing_em, word_spacing_em);
             }
         };
-        let units_per_em = f64::from(face.units_per_em()).max(1.0);
+        let units_per_em = f64::from(
+            face.head()
+                .map_err(|_| "embedded font has no valid head table")?
+                .units_per_em(),
+        )
+        .max(1.0);
+        let charmap = face.charmap();
+        let cmap = face.cmap().ok();
+        let outlines = face.outline_glyphs();
         let code_length = if matches!(self.fallback_kind, FontFallback::Utf16Be) {
             self.code_lengths.first().copied().unwrap_or(2).max(1)
         } else {
@@ -1110,17 +1122,26 @@ impl FontDecoder {
             builder.x_offset = x_offset;
             for character in decoded.chars() {
                 has_visible_character |= !character.is_whitespace();
-                let glyph_id = face
-                    .glyph_index(character)
+                let glyph_id = charmap
+                    .map(character)
                     .or_else(|| {
-                        face.tables().cmap.and_then(|cmap| {
-                            cmap.subtables
-                                .into_iter()
-                                .find_map(|subtable| subtable.glyph_index(bytes_to_u32(code)))
-                        })
+                        cmap.as_ref()
+                            .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+                    })
+                    .or_else(|| {
+                        cmap.as_ref()
+                            .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
                     })
                     .ok_or("Unicode character has no glyph in the embedded font")?;
-                let _ = face.outline_glyph(glyph_id, &mut builder);
+                let glyph = outlines
+                    .get(glyph_id)
+                    .ok_or("embedded font glyph outline is unavailable")?;
+                glyph
+                    .draw(
+                        DrawSettings::unhinted(Size::unscaled(), LocationRef::default()),
+                        &mut builder,
+                    )
+                    .map_err(|_| "embedded font glyph outline could not be decoded")?;
             }
             let word_spacing = if decoded == " " { word_spacing_em } else { 0.0 };
             x_offset += self
@@ -1310,6 +1331,19 @@ impl FontDecoder {
     }
 }
 
+fn map_embedded_cmap(
+    cmap: &skrifa::raw::tables::cmap::Cmap<'_>,
+    codepoint: u32,
+) -> Option<skrifa::GlyphId> {
+    // Raw cmap lookups may return .notdef; keep searching before falling
+    // back to the PDF character code, matching the previous parser contract.
+    cmap.encoding_records()
+        .iter()
+        .filter_map(|record| record.subtable(cmap.offset_data()).ok())
+        .filter_map(|subtable| subtable.map_codepoint(codepoint))
+        .find(|glyph| *glyph != skrifa::GlyphId::NOTDEF)
+}
+
 struct SvgGlyphOutline {
     path: String,
     units_per_em: f64,
@@ -1343,7 +1377,7 @@ impl SvgGlyphOutline {
     }
 }
 
-impl ttf_parser::OutlineBuilder for SvgGlyphOutline {
+impl skrifa::outline::OutlinePen for SvgGlyphOutline {
     fn move_to(&mut self, x: f32, y: f32) {
         let point = self.point(x, y);
         self.command("M", &[point]);
@@ -7694,8 +7728,97 @@ fn deduplicate(values: Vec<String>) -> Vec<String> {
 }
 
 #[cfg(test)]
+mod font_test_data;
+
+#[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_font_decoder(data: Vec<u8>) -> FontDecoder {
+        FontDecoder {
+            family: "Synthetic Font".into(),
+            bold: false,
+            italic: false,
+            requires_outline: true,
+            font_data: Some(data.into()),
+            glyph_names: HashMap::new(),
+            unicode_map: HashMap::new(),
+            code_lengths: vec![1],
+            fallback_kind: FontFallback::OneByte,
+            widths: HashMap::from([(65, 500.0), (32, 250.0)]),
+            default_width: 500.0,
+            type3: None,
+        }
+    }
+
+    #[test]
+    fn outlines_true_type_in_font_units_with_pdf_advances_and_spaces() {
+        let decoder = test_font_decoder(font_test_data::font(None, false, false));
+        let path = decoder.outline_path(b"A A", 0.1, 0.2).unwrap();
+        assert!(path.contains("M 0 0"), "{path}");
+        assert!(path.contains("L 0.5 0"), "{path}");
+        assert!(path.contains("M 1.15 0"), "{path}");
+        assert_eq!(path.matches('M').count(), 2);
+        assert_eq!(decoder.outline_path(b" ", 0.0, 0.0).unwrap(), "");
+    }
+
+    #[test]
+    fn outlines_true_type_curves_and_composites() {
+        let decoder = test_font_decoder(font_test_data::font(None, false, true));
+        assert!(decoder.outline_path(b"A", 0.0, 0.0).unwrap().contains('Q'));
+        let path = decoder.outline_path(b"B", 0.0, 0.0).unwrap();
+        assert!(path.contains("M 0.1 0.2"), "{path}");
+    }
+
+    #[test]
+    fn retains_pdf_character_code_cmap_fallback() {
+        let mut decoder = test_font_decoder(font_test_data::font(None, false, false));
+        decoder.unicode_map.insert(vec![65], "Z".into());
+        assert!(
+            decoder
+                .outline_path(b"A", 0.0, 0.0)
+                .unwrap()
+                .contains("L 0.5 0")
+        );
+        // The synthetic cmap's sentinel explicitly maps U+FFFF to .notdef.
+        decoder.unicode_map.insert(vec![65], "\u{ffff}".into());
+        assert!(
+            decoder
+                .outline_path(b"A", 0.0, 0.0)
+                .unwrap()
+                .contains("L 0.5 0")
+        );
+    }
+
+    #[test]
+    fn malformed_font_and_missing_glyph_return_errors() {
+        let decoder = test_font_decoder(font_test_data::font(None, true, false));
+        assert!(decoder.outline_path(b"A", 0.0, 0.0).is_err());
+        let decoder = test_font_decoder(font_test_data::font(None, false, false));
+        assert!(decoder.outline_path(b"Z", 0.0, 0.0).is_err());
+        let decoder = test_font_decoder(vec![0, 1, 2]);
+        assert!(decoder.outline_path(b"A", 0.0, 0.0).is_err());
+    }
+
+    #[test]
+    fn outlines_opentype_cff_and_retains_raw_cff_fallback() {
+        let decoder =
+            test_font_decoder(font_test_data::font(Some(minimal_test_cff()), false, false));
+        let path = decoder.outline_path(b"A", 0.0, 0.0).unwrap();
+        assert!(path.contains("M 0 0"), "{path}");
+        assert!(
+            path.contains("L 0.1 0") && path.contains("L 0.05 0.1") && path.ends_with('Z'),
+            "{path}"
+        );
+        let mut decoder = test_font_decoder(minimal_test_cff());
+        decoder.glyph_names.insert(65, "A".into());
+        assert!(
+            decoder
+                .outline_path(b"A", 0.0, 0.0)
+                .unwrap()
+                .contains("M 0 0")
+        );
+    }
 
     #[test]
     fn normalizes_known_wingdings_bullet_without_emoji_metrics() {

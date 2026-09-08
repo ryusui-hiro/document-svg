@@ -244,6 +244,42 @@ impl PageConsumer for PageSink<'_> {
 }
 
 fn estimate_page_bytes(page: &Page) -> usize {
-    let serialized = serde_json::to_vec(page);
-    serialized.map_or(0, |bytes| bytes.len())
+    // Keep the existing serialized-size metric without allocating a second
+    // copy of image data and paths for every page.
+    let mut counter = ByteCounter::default();
+    serde_json::to_writer(&mut counter, page).map_or(0, |()| counter.0)
+}
+
+#[derive(Default)]
+struct ByteCounter(usize);
+
+impl Write for ByteCounter {
+    fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+        self.0 = self
+            .0
+            .checked_add(bytes.len())
+            .ok_or_else(|| std::io::Error::other("serialized page size overflow"))?;
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn page_size_counter_matches_serialized_bytes_without_retaining_json() {
+        let mut page = Page::new(1, 612.0, 792.0, "test");
+        page.title = "日本語 / 中文 / quotes: \" \\ \n".into();
+        page.description = "large path or image data".repeat(100_000);
+        page.warnings.push("control: \t\r".into());
+        assert_eq!(
+            estimate_page_bytes(&page),
+            serde_json::to_vec(&page).unwrap().len()
+        );
+    }
 }

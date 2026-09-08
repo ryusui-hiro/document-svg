@@ -33,7 +33,7 @@ for relative in sorted(set(filter(None, paths))):
         continue
     if path.name.startswith(".env") and path.name != ".env.example":
         errors.append((relative, "environment file"))
-    if path.suffix.lower() in {".pem", ".key", ".p12", ".pfx", ".node", ".whl", ".crate", ".pdf", ".pptx", ".docx", ".xlsx"}:
+    if path.suffix.lower() in {".pem", ".key", ".p12", ".pfx", ".node", ".so", ".pyd", ".dylib", ".whl", ".crate", ".pdf", ".pptx", ".docx", ".xlsx"}:
         errors.append((relative, "credential or binary artifact"))
     if path.stat().st_size > 2 * 1024 * 1024:
         errors.append((relative, "file larger than 2 MiB"))

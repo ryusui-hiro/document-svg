@@ -10,6 +10,69 @@ use tempfile::TempDir;
 use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
 
+#[path = "../src/pdf/font_test_data.rs"]
+mod font_test_data;
+
+#[test]
+fn converts_embedded_true_type_to_outlines_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("embedded-font.pdf");
+    let mut document = Document::with_version("1.7");
+    let bytes = font_test_data::font(None, false, false);
+    let font_file = document.add_object(Stream::new(
+        dictionary! { "Length1" => bytes.len() as i64 },
+        bytes,
+    ));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "Arial", "Flags" => 32,
+        "FontBBox" => vec![0.into(), 0.into(), 600.into(), 900.into()],
+        "Ascent" => 800, "Descent" => -200, "CapHeight" => 700, "StemV" => 80,
+        "FontFile2" => font_file,
+    });
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "TrueType", "BaseFont" => "Arial",
+        "FirstChar" => 32, "LastChar" => 66,
+        "Widths" => (32..=66).map(|code| Object::Integer(if code == 32 { 250 } else { 500 })).collect::<Vec<_>>(),
+        "FontDescriptor" => descriptor, "Encoding" => "WinAnsiEncoding",
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 20 Tf 20 80 Td (A B) Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let options = ConvertOptions {
+        outline_embedded_pdf_text: true,
+        ..Default::default()
+    };
+    let first = temporary.path().join("first");
+    let second = temporary.path().join("second");
+    let report = convert_path(&input, &first, &options).unwrap();
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(first.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
+    assert!(svg.contains("L 0.5 0"), "{svg}");
+    convert_path(&input, &second, &options).unwrap();
+    assert_eq!(
+        svg,
+        fs::read_to_string(second.join("page-0001.svg")).unwrap()
+    );
+}
+
 #[test]
 fn refuses_nonempty_output_without_modifying_existing_files() {
     let temporary = TempDir::new().unwrap();

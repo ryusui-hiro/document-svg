@@ -34,7 +34,7 @@
 | serde | 1.0.229 | MIT OR Apache-2.0 |
 | serde_json | 1.0.151 | MIT OR Apache-2.0 |
 | stet-fonts | 0.4.1 | Apache-2.0 OR MIT |
-| ttf-parser | 0.25.1 | MIT OR Apache-2.0 |
+| skrifa | 0.44.0 | MIT OR Apache-2.0 |
 | zip | 8.6.0 | MIT |
 
 言語バインディング専用の直接依存:
