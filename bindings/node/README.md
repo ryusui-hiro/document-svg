@@ -22,12 +22,17 @@ main process; only the `/preview-ui` helper is browser-compatible.
 ```js
 const { convert } = require("document-svg")
 
-const report = await convert("slides.pptx", "output", { jobs: 4 })
-console.log(report.pageCount)
+async function main() {
+  const report = await convert("slides.pptx", "output", { jobs: 4 })
+  console.log(report.pageCount)
 
-const fidelity = await convert("input.pdf", "output-fidelity", {
-  outlineEmbeddedPdfText: true,
-})
+  const fidelity = await convert("input.pdf", "output-fidelity", {
+    outlineEmbeddedPdfText: true,
+  })
+  console.log(fidelity.warnings)
+}
+
+main().catch(console.error)
 ```
 
 Package SVG pages as vector images in PPTX, DOCX or XLSX:
@@ -35,8 +40,12 @@ Package SVG pages as vector images in PPTX, DOCX or XLSX:
 ```js
 const { reverse } = require("document-svg")
 
-const report = await reverse("svg-pages", "slides.pptx")
-console.log(report.pageCount)
+async function main() {
+  const report = await reverse("svg-pages", "slides.pptx")
+  console.log(report.pageCount)
+}
+
+main().catch(console.error)
 ```
 
 The input is a single SVG or a directory of SVG pages. This does not reconstruct
