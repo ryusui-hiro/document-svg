@@ -43,7 +43,7 @@ def license_files(package):
     for path in sorted(files):
         if path.stat().st_size > 512 * 1024:
             raise ValueError(f'{package["name"]}: license file requires manual size review')
-        notices.append((str(path.relative_to(directory)), path.read_text(encoding='utf-8')))
+        notices.append((path.relative_to(directory).as_posix(), path.read_text(encoding='utf-8')))
     if package['name'] == 'jpeg-encoder':
         # The mandatory IJG notice is in the implementation header, not in
         # the crate's root MIT/Apache files.
