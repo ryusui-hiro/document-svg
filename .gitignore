@@ -17,6 +17,8 @@
 *.tgz
 /.DS_Store
 *.node
+*.so
+*.pyd
 node_modules/
 __pycache__/
 *.py[cod]

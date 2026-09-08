@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="720pt" height="405pt" viewBox="0 0 720 405" data-source-format="pptx" data-source-page="1">
+  <title>document-svg</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":3,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="720" height="405" fill="#FFFFFF" data-role="page-background"/>
+  <path id="pptx-slide-1-1" d="M 0 0 H 720 V 405 H 0 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#304FFE" fill-opacity="1" stroke="none" data-content-kind="vector" data-source-id="Banner"/>
+  <text id="pptx-slide-1-2-text-1-1" x="54.44409" y="211.02835" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-source-id="Title">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="54" font-weight="700" font-style="normal" baseline-shift="0" fill="#FFFFFF" fill-opacity="1">document-svg</tspan>
+  </text>
+  <text id="pptx-slide-1-2-text-2-2" x="54.44409" y="229.02835" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-source-id="Title">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="18" font-weight="400" font-style="normal" baseline-shift="0" fill="#E8EAF6" fill-opacity="1">PDF and Office documents as self-contained SVG pages</tspan>
+  </text>
+</svg>

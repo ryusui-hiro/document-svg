@@ -22,6 +22,18 @@ const MAX_POPULATED_CELLS: usize = 1_000_000;
 const AUTO_TILE_POINTS: f64 = 16_384.0;
 const AUTO_TILE_CELLS: usize = 2_000;
 
+/// How one worksheet is split across output pages.
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Tiling {
+    /// Emit the print area as a single page.
+    None,
+    /// Split until neither axis exceeds the given budget.
+    Bounded {
+        width_points: f64,
+        height_points: f64,
+    },
+}
+
 pub(crate) fn convert(
     path: &Path,
     options: &ConvertOptions,
@@ -3961,6 +3973,67 @@ impl Sheet {
         }
     }
 
+    /// Decide how a sheet is split into pages.
+    ///
+    /// A sheet with an explicit print area and an explicit print setup is laid
+    /// out the way the author asked for. Everything else is tiled so that no
+    /// content is pushed outside the page it is drawn on: sheets with a print
+    /// setup follow the printable area of the chosen paper, and sheets without
+    /// one fall back to a generic bound.
+    fn tiling(&self) -> Tiling {
+        if !self.print_setup.enabled {
+            return Tiling::Bounded {
+                width_points: AUTO_TILE_POINTS,
+                height_points: AUTO_TILE_POINTS,
+            };
+        }
+        // Fit-to-page scales one print area onto one sheet of paper, so the
+        // caller must not slice it up first.
+        if self.print_setup.fit_to_page
+            || self.print_setup.fit_to_width > 0
+            || self.print_setup.fit_to_height > 0
+        {
+            return Tiling::None;
+        }
+        let scale = if self.print_setup.scale > 0.0 {
+            self.print_setup.scale
+        } else {
+            1.0
+        };
+        let (title_width, title_height) = self.print_title_extent();
+        let width_points = ((self.print_setup.paper_width
+            - self.print_setup.margin_left
+            - self.print_setup.margin_right)
+            / scale
+            - title_width)
+            .max(DEFAULT_COLUMN_POINTS);
+        let height_points = ((self.print_setup.paper_height
+            - self.print_setup.margin_top
+            - self.print_setup.margin_bottom)
+            / scale
+            - title_height)
+            .max(DEFAULT_ROW_POINTS);
+        Tiling::Bounded {
+            width_points,
+            height_points,
+        }
+    }
+
+    /// Points consumed on every page by repeated print titles.
+    fn print_title_extent(&self) -> (f64, f64) {
+        let width = self
+            .print_titles
+            .columns
+            .map(|(start, end)| (start..=end).map(|index| self.column_width(index)).sum())
+            .unwrap_or(0.0);
+        let height = self
+            .print_titles
+            .rows
+            .map(|(start, end)| (start..=end).map(|index| self.row_height(index)).sum())
+            .unwrap_or(0.0);
+        (width, height)
+    }
+
     fn render_regions(&self, drawing_objects: &[DrawingObject]) -> Vec<MergeRange> {
         let drawing_max_column = drawing_objects
             .iter()
@@ -3989,43 +4062,43 @@ impl Sheet {
         } else {
             self.print_areas.clone()
         };
-        let auto_tile = self.print_areas.is_empty() && !self.print_setup.enabled;
+        let tiling = self.tiling();
         let mut regions = Vec::new();
         for area in areas {
             let base_row_segments =
                 split_print_axis(area.start_row, area.end_row, &self.row_breaks);
             let base_column_segments =
                 split_print_axis(area.start_column, area.end_column, &self.column_breaks);
-            let column_segments = if auto_tile {
-                base_column_segments
+            let column_segments = match tiling {
+                Tiling::None => base_column_segments,
+                Tiling::Bounded {
+                    width_points,
+                    height_points: _,
+                } => base_column_segments
                     .into_iter()
                     .flat_map(|(start, end)| {
-                        split_axis_by_limits(
-                            start,
-                            end,
-                            AUTO_TILE_POINTS,
-                            AUTO_TILE_CELLS,
-                            |index| self.column_width(index),
-                        )
+                        split_axis_by_limits(start, end, width_points, AUTO_TILE_CELLS, |index| {
+                            self.column_width(index)
+                        })
                     })
-                    .collect::<Vec<_>>()
-            } else {
-                base_column_segments
+                    .collect::<Vec<_>>(),
             };
             for (start_column, end_column) in column_segments {
                 let column_count = end_column - start_column + 1;
                 let maximum_rows = (AUTO_TILE_CELLS / column_count).max(1);
                 for (base_start_row, base_end_row) in &base_row_segments {
-                    let row_segments = if auto_tile {
-                        split_axis_by_limits(
+                    let row_segments = match tiling {
+                        Tiling::None => vec![(*base_start_row, *base_end_row)],
+                        Tiling::Bounded {
+                            width_points: _,
+                            height_points,
+                        } => split_axis_by_limits(
                             *base_start_row,
                             *base_end_row,
-                            AUTO_TILE_POINTS,
+                            height_points,
                             maximum_rows,
                             |index| self.row_height(index),
-                        )
-                    } else {
-                        vec![(*base_start_row, *base_end_row)]
+                        ),
                     };
                     for (start_row, end_row) in row_segments {
                         regions.push(MergeRange {

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="595.3pt" height="841.9pt" viewBox="0 0 595.3 841.9" data-source-format="docx" data-source-page="1">
+  <desc>DOCX page approximated with deterministic Rust layout</desc>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":40,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="595.3" height="841.9" fill="#FFFFFF" data-role="page-background"/>
+  <text id="docx-header-1-1" x="56.7" y="21" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="header" data-semantic-role="repeating-story">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">document-svg / sample document</tspan>
+  </text>
+  <text id="docx-footer-1-2" x="56.7" y="806.2" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="footer" data-semantic-role="repeating-story">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Page 1</tspan>
+  </text>
+  <text id="docx-text-3" x="56.7" y="84.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="28" font-weight="700" font-style="normal" baseline-shift="0" fill="#304FFE" fill-opacity="1">document-svg sample</tspan>
+  </text>
+  <text id="docx-text-4" x="56.7" y="109.3" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">This document is written by scripts/make_samples.py so that the repository can ship a sample</tspan>
+  </text>
+  <text id="docx-text-5" x="56.7" y="122.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">without borrowing someone else's file.</tspan>
+  </text>
+  <text id="docx-text-6" x="56.7" y="148.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="16" font-weight="700" font-style="normal" baseline-shift="0" fill="#1A237E" fill-opacity="1">What the converter reads here</tspan>
+  </text>
+  <text id="docx-text-7" x="56.7" y="170.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Paper size and margins, style inheritance, word-aware paragraph wrapping, tables with borders,</tspan>
+  </text>
+  <text id="docx-text-8" x="56.7" y="184.1" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">and the header and footer below.</tspan>
+  </text>
+  <text id="docx-text-9" x="56.7" y="210.3" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="16" font-weight="700" font-style="normal" baseline-shift="0" fill="#1A237E" fill-opacity="1">Supported inputs</tspan>
+  </text>
+  <path id="docx-table-cell-10" d="M 56.7 221.5 H 217.3333 V 241.5 H 56.7 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R1C1" data-semantic-role="cell"/>
+  <text id="docx-table-text-11" x="59.7" y="235.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Format</tspan>
+  </text>
+  <path id="docx-table-cell-12" d="M 217.3333 221.5 H 377.9667 V 241.5 H 217.3333 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R1C2" data-semantic-role="cell"/>
+  <text id="docx-table-text-13" x="220.33333" y="235.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Entry point</tspan>
+  </text>
+  <path id="docx-table-cell-14" d="M 377.9667 221.5 H 538.6 V 241.5 H 377.9667 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R1C3" data-semantic-role="cell"/>
+  <text id="docx-table-text-15" x="380.96667" y="235.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="700" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Output</tspan>
+  </text>
+  <path id="docx-table-cell-16" d="M 56.7 241.5 H 217.3333 V 261.5 H 56.7 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R2C1" data-semantic-role="cell"/>
+  <text id="docx-table-text-17" x="59.7" y="255.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">PDF</tspan>
+  </text>
+  <path id="docx-table-cell-18" d="M 217.3333 241.5 H 377.9667 V 261.5 H 217.3333 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R2C2" data-semantic-role="cell"/>
+  <text id="docx-table-text-19" x="220.33333" y="255.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">convert_path</tspan>
+  </text>
+  <path id="docx-table-cell-20" d="M 377.9667 241.5 H 538.6 V 261.5 H 377.9667 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R2C3" data-semantic-role="cell"/>
+  <text id="docx-table-text-21" x="380.96667" y="255.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">page-NNNN.svg</tspan>
+  </text>
+  <path id="docx-table-cell-22" d="M 56.7 261.5 H 217.3333 V 281.5 H 56.7 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R3C1" data-semantic-role="cell"/>
+  <text id="docx-table-text-23" x="59.7" y="275.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">PPTX</tspan>
+  </text>
+  <path id="docx-table-cell-24" d="M 217.3333 261.5 H 377.9667 V 281.5 H 217.3333 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R3C2" data-semantic-role="cell"/>
+  <text id="docx-table-text-25" x="220.33333" y="275.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">convert_path</tspan>
+  </text>
+  <path id="docx-table-cell-26" d="M 377.9667 261.5 H 538.6 V 281.5 H 377.9667 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R3C3" data-semantic-role="cell"/>
+  <text id="docx-table-text-27" x="380.96667" y="275.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">one page per slide</tspan>
+  </text>
+  <path id="docx-table-cell-28" d="M 56.7 281.5 H 217.3333 V 301.5 H 56.7 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R4C1" data-semantic-role="cell"/>
+  <text id="docx-table-text-29" x="59.7" y="295.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">XLSX</tspan>
+  </text>
+  <path id="docx-table-cell-30" d="M 217.3333 281.5 H 377.9667 V 301.5 H 217.3333 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R4C2" data-semantic-role="cell"/>
+  <text id="docx-table-text-31" x="220.33333" y="295.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">convert_path</tspan>
+  </text>
+  <path id="docx-table-cell-32" d="M 377.9667 281.5 H 538.6 V 301.5 H 377.9667 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R4C3" data-semantic-role="cell"/>
+  <text id="docx-table-text-33" x="380.96667" y="295.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">one page per print page</tspan>
+  </text>
+  <path id="docx-table-cell-34" d="M 56.7 301.5 H 217.3333 V 321.5 H 56.7 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R5C1" data-semantic-role="cell"/>
+  <text id="docx-table-text-35" x="59.7" y="315.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">DOCX</tspan>
+  </text>
+  <path id="docx-table-cell-36" d="M 217.3333 301.5 H 377.9667 V 321.5 H 217.3333 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R5C2" data-semantic-role="cell"/>
+  <text id="docx-table-text-37" x="220.33333" y="315.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">convert_path</tspan>
+  </text>
+  <path id="docx-table-cell-38" d="M 377.9667 301.5 H 538.6 V 321.5 H 377.9667 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#808080" stroke-opacity="1" stroke-width="0.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" data-content-kind="table-cell" data-source-id="R5C3" data-semantic-role="cell"/>
+  <text id="docx-table-text-39" x="380.96667" y="315.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="table-text" data-semantic-role="cell">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">one page per laid-out page</tspan>
+  </text>
+  <text id="docx-text-40" x="56.7" y="348.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="text" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="Calibri" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">A page break follows, so the sample spans two pages.</tspan>
+  </text>
+</svg>
