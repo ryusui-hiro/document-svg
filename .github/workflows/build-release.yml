@@ -152,6 +152,7 @@ jobs:
             cargo build --release --locked --bin docsvg --target ${{ matrix.target }}
           fi
       - name: Build Python wheel
+        if: matrix.libc != 'musl'
         uses: PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
         with:
           maturin-version: v1.15.0
@@ -166,9 +167,6 @@ jobs:
         run: |
           python -m pip install pytest dist/wheels/*.whl
           python -m pytest -q bindings/python/tests
-      - name: Test musllinux wheel
-        if: matrix.libc == 'musl'
-        run: docker run --rm -v "$PWD:/work" -w /work python:3.13-alpine sh -c 'pip install pytest dist/wheels/*.whl && python -m pytest -q bindings/python/tests'
       - name: Stage tested artifacts
         run: python scripts/release-artifacts.py stage-target --tag ${{ matrix.tag }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

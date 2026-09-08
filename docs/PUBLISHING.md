@@ -14,6 +14,12 @@ The workflows are prepared independently of registry availability. A configured
 publisher does not mean a version is already published. Confirm the version on
 each registry before announcing it.
 
+Python wheel targets exclude musllinux for this release. The musllinux build
+adds a standalone `libgcc_s` shared library; the existing dependency notice
+inventory does not cover its separate distribution requirements. Keep the
+unexpected-native-library rejection in place. npm musl packages and static CLI
+archives remain supported, and Python users on Alpine can build the sdist.
+
 ## Authentication setup
 
 References: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)

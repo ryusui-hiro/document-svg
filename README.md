@@ -87,9 +87,18 @@ your operating system and CPU from GitHub Releases, extract it, and put `docsvg`
 
 ### Platform support and troubleshooting
 
-Native packages target Windows, macOS and Linux on x64 and arm64, with separate
-glibc and musl Linux builds. Python wheels use the stable CPython ABI for
-GIL-enabled Python. Matching prebuilt packages do not require a Rust compiler.
+| Platform (x64 and ARM64) | npm native binding | Python prebuilt wheel | CLI archive |
+|---|---|---|---|
+| Windows | Yes | Yes | Yes |
+| macOS | Yes | Yes | Yes |
+| Linux (glibc, e.g. Ubuntu/Debian) | Yes | Yes | Yes, static musl binary |
+| Linux (musl, e.g. Alpine) | Yes | Source build only | Yes |
+
+Python wheels use the stable CPython ABI for GIL-enabled Python. Matching
+prebuilt packages do not require a Rust compiler. Alpine Python users need a
+Rust toolchain and native build tools to install the source distribution.
+Prebuilt musllinux Python wheels are not included in this release because their
+additional bundled compiler runtime has not passed the release license review.
 
 If pip attempts a source build, a matching wheel may not be available for your
 Python/platform combination; update pip and check the release assets first.

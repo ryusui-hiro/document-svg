@@ -11,7 +11,10 @@ python -m pip install document-svg
 ```
 
 Install `document-svg`, but import `document_svg`. Matching prebuilt wheels do
-not require Rust. This package provides a Python API, not the `docsvg` CLI.
+not require Rust. Prebuilt wheels cover Windows, macOS and glibc-based Linux on
+x64 and ARM64. Alpine/musl installations build from source and need Rust plus
+native build tools; this release does not ship musllinux wheels.
+This package provides a Python API, not the `docsvg` CLI.
 
 ## Convert a document
 

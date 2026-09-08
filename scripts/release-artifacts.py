@@ -61,10 +61,12 @@ def stage_target(tag):
         raise ValueError(f'missing native binding for {tag}')
     shutil.copy2(binding, destination / binding.name)
     wheels = list((ROOT / 'dist/wheels').glob('*.whl'))
-    if len(wheels) != 1:
-        raise ValueError(f'expected one ABI3 wheel, got {len(wheels)}')
-    check_wheel(wheels[0], release_version)
-    shutil.copy2(wheels[0], destination / wheels[0].name)
+    expected_wheels = 1 if target.get('python_wheel', True) else 0
+    if len(wheels) != expected_wheels:
+        raise ValueError(f'expected {expected_wheels} ABI3 wheels for {tag}, got {len(wheels)}')
+    for wheel in wheels:
+        check_wheel(wheel, release_version)
+        shutil.copy2(wheel, destination / wheel.name)
     if target.get('libc') != 'glibc':
         executable = 'docsvg.exe' if target['os'] == 'win32' else 'docsvg'
         binary = ROOT / 'target' / target['target'] / 'release' / executable
