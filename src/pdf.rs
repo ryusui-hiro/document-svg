@@ -3301,7 +3301,7 @@ impl Interpreter<'_, '_> {
                         ))
                     })?
             } else {
-                stream.decompressed_content_with_limit(self.content_limit)?
+                decode_predicted_content(self.document, stream, self.content_limit)?
             };
             let bits = if ccitt || has_dct {
                 8
@@ -3699,7 +3699,13 @@ impl Interpreter<'_, '_> {
                 .and_then(Object::as_i64)
                 .unwrap_or(8);
             let alpha =
-                decode_soft_mask_content(mask, mask_width, mask_height, self.content_limit)?;
+                decode_soft_mask_content(
+                    self.document,
+                    mask,
+                    mask_width,
+                    mask_height,
+                    self.content_limit,
+                )?;
             let alpha = if matches!(mask_bits, 1 | 2 | 4 | 8 | 16) {
                 normalize_image_samples(
                     mask,
@@ -4666,6 +4672,7 @@ fn decode_pdf_jpeg_content(
 }
 
 fn decode_soft_mask_content(
+    document: &Document,
     mask: &Stream,
     expected_width: usize,
     expected_height: usize,
@@ -4673,7 +4680,7 @@ fn decode_soft_mask_content(
 ) -> Result<Vec<u8>> {
     let filters = mask.filters().unwrap_or_default();
     if !filters.iter().any(|filter| *filter == b"DCTDecode") {
-        return Ok(mask.decompressed_content_with_limit(content_limit)?);
+        return decode_predicted_content(document, mask, content_limit);
     }
     if mask.content.len() > content_limit {
         return Err(Error::LimitExceeded(format!(
@@ -6821,6 +6828,163 @@ impl<'a> MeshBitReader<'a> {
         }
         Some(value)
     }
+}
+
+/// The PNG predictor `stream` was written with, if any.
+///
+/// `/DecodeParms` may be a direct dictionary, an indirect reference, or an
+/// array running parallel to `/Filter`. lopdf only reads the first form, so the
+/// other two silently lose the predictor; `/DP` is the inline-image spelling.
+fn png_predictor_of(document: &Document, stream: &Stream) -> Option<PngPredictor> {
+    let raw = [b"DecodeParms".as_slice(), b"DP".as_slice()]
+        .into_iter()
+        .find_map(|key| stream.dict.get(key).ok())?;
+    let resolved = document
+        .dereference(raw)
+        .ok()
+        .map(|(_, value)| value)
+        .unwrap_or(raw);
+    let parameters = match resolved {
+        Object::Dictionary(dictionary) => dictionary.clone(),
+        Object::Array(entries) => entries
+            .iter()
+            .filter_map(|entry| {
+                document
+                    .dereference(entry)
+                    .ok()
+                    .map(|(_, value)| value)
+                    .unwrap_or(entry)
+                    .as_dict()
+                    .ok()
+                    .cloned()
+            })
+            // Predictors only apply to Flate and LZW, so the parallel entry
+            // that carries one is the entry that matters.
+            .find(|dictionary| dictionary.get(b"Predictor").is_ok())?,
+        _ => return None,
+    };
+    let predictor = parameters.get(b"Predictor").and_then(Object::as_i64).ok()?;
+    if !(10..=15).contains(&predictor) {
+        return None;
+    }
+    let colors = parameters
+        .get(b"Colors")
+        .and_then(Object::as_i64)
+        .unwrap_or(1)
+        .max(1) as usize;
+    let bits = parameters
+        .get(b"BitsPerComponent")
+        .and_then(Object::as_i64)
+        .unwrap_or(8)
+        .max(1) as usize;
+    let columns = parameters
+        .get(b"Columns")
+        .and_then(Object::as_i64)
+        .unwrap_or(1)
+        .max(1) as usize;
+    Some(PngPredictor {
+        bytes_per_pixel: (colors * bits).div_ceil(8).max(1),
+        row_bytes: (columns * colors * bits).div_ceil(8).max(1),
+    })
+}
+
+#[derive(Clone, Copy, Debug)]
+struct PngPredictor {
+    bytes_per_pixel: usize,
+    row_bytes: usize,
+}
+
+impl PngPredictor {
+    /// Undo the per-row PNG filters described in RFC 2083 section 6.
+    ///
+    /// This is done here rather than by the PDF library because lopdf 0.44's
+    /// Average filter reconstructs `left + above / 2` instead of
+    /// `(left + above) / 2`. Every Average row and everything after it until the
+    /// next unfiltered row decodes to noise, and nothing reports an error.
+    fn unfilter(&self, data: &[u8]) -> Vec<u8> {
+        let stride = self.row_bytes;
+        let bpp = self.bytes_per_pixel.min(stride);
+        let rows = data.len() / (stride + 1);
+        let mut output = Vec::with_capacity(rows * stride);
+        let mut previous = vec![0u8; stride];
+        let mut current = vec![0u8; stride];
+        for row in 0..rows {
+            let start = row * (stride + 1);
+            let filter = data[start];
+            current.copy_from_slice(&data[start + 1..start + 1 + stride]);
+            match filter {
+                1 => {
+                    for index in bpp..stride {
+                        current[index] = current[index].wrapping_add(current[index - bpp]);
+                    }
+                }
+                2 => {
+                    for index in 0..stride {
+                        current[index] = current[index].wrapping_add(previous[index]);
+                    }
+                }
+                3 => {
+                    for index in 0..stride {
+                        let left = if index >= bpp {
+                            u16::from(current[index - bpp])
+                        } else {
+                            0
+                        };
+                        let above = u16::from(previous[index]);
+                        current[index] = current[index].wrapping_add(((left + above) / 2) as u8);
+                    }
+                }
+                4 => {
+                    for index in 0..stride {
+                        let (left, upper_left) = if index >= bpp {
+                            (current[index - bpp], previous[index - bpp])
+                        } else {
+                            (0, 0)
+                        };
+                        current[index] =
+                            current[index].wrapping_add(paeth(left, previous[index], upper_left));
+                    }
+                }
+                // 0 is an unfiltered row; anything else is malformed and is
+                // best left as written rather than guessed at.
+                _ => {}
+            }
+            output.extend_from_slice(&current);
+            previous.copy_from_slice(&current);
+        }
+        output
+    }
+}
+
+fn paeth(left: u8, above: u8, upper_left: u8) -> u8 {
+    let estimate = i16::from(left) + i16::from(above) - i16::from(upper_left);
+    let distance_left = (estimate - i16::from(left)).abs();
+    let distance_above = (estimate - i16::from(above)).abs();
+    let distance_upper_left = (estimate - i16::from(upper_left)).abs();
+    if distance_left <= distance_above && distance_left <= distance_upper_left {
+        left
+    } else if distance_above <= distance_upper_left {
+        above
+    } else {
+        upper_left
+    }
+}
+
+/// Decompress an image or soft-mask stream, undoing any PNG predictor here.
+fn decode_predicted_content(
+    document: &Document,
+    stream: &Stream,
+    content_limit: usize,
+) -> Result<Vec<u8>> {
+    let Some(predictor) = png_predictor_of(document, stream) else {
+        return Ok(stream.decompressed_content_with_limit(content_limit)?);
+    };
+    // Hide the parameters so the library returns the still-filtered rows.
+    let mut raw = stream.clone();
+    raw.dict.remove(b"DecodeParms");
+    raw.dict.remove(b"DP");
+    let filtered = raw.decompressed_content_with_limit(content_limit)?;
+    Ok(predictor.unfilter(&filtered))
 }
 
 fn pdf_color_component_count(document: &Document, color_space: Option<&Object>) -> usize {

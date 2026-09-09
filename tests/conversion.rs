@@ -4333,3 +4333,107 @@ fn keeps_docx_text_box_paragraphs_that_overflow_the_frame() {
         assert!(svg.contains(line), "missing {line:?} in {svg}");
     }
 }
+
+/// A Flate image written with a PNG predictor decoded to noise: `/DecodeParms`
+/// given as an indirect reference was not read at all, and the Average row
+/// filter reconstructs `(left + above) / 2`, not `left + above / 2`. Both are
+/// silent — the page simply comes out as static.
+#[test]
+fn undoes_png_predictors_including_the_average_row_filter() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("predicted-image.pdf");
+    let output = temporary.path().join("out");
+    let width = 4usize;
+    let height = 4usize;
+    let bpp = 3usize;
+    let stride = width * bpp;
+
+    // A gradient whose Average rows differ under the two reconstructions.
+    let mut expected = vec![0u8; stride * height];
+    for y in 0..height {
+        for x in 0..width {
+            for c in 0..bpp {
+                expected[y * stride + x * bpp + c] = ((x * 40 + y * 30 + c * 20) % 256) as u8;
+            }
+        }
+    }
+    // Filter each row: None, Sub, Up, then Average.
+    let mut filtered = Vec::new();
+    for y in 0..height {
+        let row = &expected[y * stride..(y + 1) * stride];
+        let previous: &[u8] = if y == 0 {
+            &[0u8; 12]
+        } else {
+            &expected[(y - 1) * stride..y * stride]
+        };
+        let filter = y as u8; // 0 None, 1 Sub, 2 Up, 3 Average
+        filtered.push(filter);
+        for i in 0..stride {
+            let left = if i >= bpp { row[i - bpp] } else { 0 };
+            let above = previous[i];
+            let predicted = match filter {
+                1 => left,
+                2 => above,
+                3 => ((u16::from(left) + u16::from(above)) / 2) as u8,
+                _ => 0,
+            };
+            filtered.push(row[i].wrapping_sub(predicted));
+        }
+    }
+
+    let mut document = Document::with_version("1.7");
+    let parameters = document.add_object(dictionary! {
+        "Predictor" => 15,
+        "Colors" => 3,
+        "BitsPerComponent" => 8,
+        "Columns" => width as i64,
+    });
+    let mut image = Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => width as i64,
+            "Height" => height as i64,
+            "ColorSpace" => "DeviceRGB",
+            "BitsPerComponent" => 8,
+            // Referenced, not inline: the form that was being ignored.
+            "DecodeParms" => Object::Reference(parameters),
+        },
+        filtered,
+    );
+    image.compress().unwrap();
+    let image_id = document.add_object(image);
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "Predicted" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("q", vec![]),
+            Operation::new(
+                "cm",
+                vec![100.into(), 0.into(), 0.into(), 100.into(), 0.into(), 0.into()],
+            ),
+            Operation::new("Do", vec![Object::Name(b"Predicted".to_vec())]),
+            Operation::new("Q", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.pages[0].node_count, 1, "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split("base64,")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .expect("image data URI");
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let decoder = png::Decoder::new(std::io::Cursor::new(png));
+    let mut reader = decoder.read_info().unwrap();
+    let mut samples = vec![0u8; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut samples).unwrap();
+    assert_eq!(&samples[..info.buffer_size()], &expected[..]);
+}
