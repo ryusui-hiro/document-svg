@@ -4850,3 +4850,63 @@ fn labels_line_chart_categories_under_their_points() {
         "the middle label should sit midway between the outer two: {label_xs:?}"
     );
 }
+
+/// `<a:buChar>` was only read from a master's text styles, so a paragraph that
+/// names its own bullet — the usual way a deck writes a bulleted list — lost
+/// it. `marL` and `indent` were not read from the paragraph either, so the
+/// bullet sat hard against the shape inset instead of hanging beside its text.
+#[test]
+fn draws_a_pptx_paragraphs_own_bullet_at_its_hanging_indent() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("bulleted.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="1" name="Body"/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="5000000" cy="2000000"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:bodyPr lIns="0"/><a:p><a:pPr marL="228600" indent="-228600"><a:buChar char="&#8226;"/></a:pPr><a:r><a:rPr sz="1400"/><a:t>First item</a:t></a:r></a:p><a:p><a:pPr marL="228600" indent="-228600"><a:buNone/></a:pPr><a:r><a:rPr sz="1400"/><a:t>Unbulleted item</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Exactly one bullet: the second paragraph asked for none.
+    assert_eq!(
+        svg.matches(r#"data-content-kind="bullet""#).count(),
+        1,
+        "{svg}"
+    );
+    // marL is 228600 EMU (18pt) and indent cancels it, so the bullet sits at 0
+    // and the text at 18pt.
+    let bullet_x: f64 = svg
+        .split("<text")
+        .find(|chunk| chunk.contains(r#"data-content-kind="bullet""#))
+        .and_then(|chunk| chunk.split("x=\"").nth(1))
+        .and_then(|rest| rest.split('"').next())
+        .and_then(|value| value.parse().ok())
+        .expect("bullet x");
+    let text_x: f64 = svg
+        .split("<text")
+        .find(|chunk| chunk.contains("First item"))
+        .and_then(|chunk| chunk.split("x=\"").nth(1))
+        .and_then(|rest| rest.split('"').next())
+        .and_then(|value| value.parse().ok())
+        .expect("text x");
+    assert!(bullet_x < 0.01, "bullet should hang at the margin: {bullet_x}");
+    assert!(
+        (text_x - 18.0).abs() < 0.5,
+        "text should start at marL: {text_x}"
+    );
+}

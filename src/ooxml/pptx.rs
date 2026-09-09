@@ -2270,6 +2270,14 @@ struct Paragraph {
     runs: Vec<TextRun>,
     alignment: Option<TextAnchor>,
     level: usize,
+    /// `<a:buChar>` or `<a:buNone>` written on the paragraph itself, which
+    /// overrides whatever the master's text style for this level says.
+    bullet: Option<String>,
+    /// `marL`: where the paragraph's text starts, in points.
+    margin_left: Option<f64>,
+    /// `indent`: the first line's offset from `marL`. Negative for the hanging
+    /// indent that puts a bullet to the left of its text.
+    indent: Option<f64>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -3562,6 +3570,24 @@ fn apply_start(
                         "r" => TextAnchor::End,
                         _ => TextAnchor::Start,
                     });
+                paragraph.margin_left = attribute(start, b"marL")
+                    .and_then(|value| value.parse::<f64>().ok())
+                    .map(|value| value / EMU_PER_POINT);
+                paragraph.indent = attribute(start, b"indent")
+                    .and_then(|value| value.parse::<f64>().ok())
+                    .map(|value| value / EMU_PER_POINT);
+            }
+        }
+        // Self-closing children of `<a:pPr>`; `current_paragraph` is set only
+        // inside `<a:p>`, so a master's `<a:lvl1pPr>` cannot reach here.
+        "buChar" if stack.iter().any(|item| item == "pPr") => {
+            if let Some(paragraph) = current_paragraph {
+                paragraph.bullet = attribute(start, b"char");
+            }
+        }
+        "buNone" if stack.iter().any(|item| item == "pPr") => {
+            if let Some(paragraph) = current_paragraph {
+                paragraph.bullet = Some(String::new());
             }
         }
         "hlinkClick" => {
@@ -4900,8 +4926,9 @@ fn append_shape(
             .alignment
             .or(style.alignment)
             .unwrap_or(TextAnchor::Start);
+        let margin_left = paragraph.margin_left.unwrap_or(style.margin_left);
         let mut available_width =
-            (text_width - left_inset - right_inset - style.margin_left).max(6.0);
+            (text_width - left_inset - right_inset - margin_left).max(6.0);
         if shape.text_width.is_some() {
             let natural_width = paragraph
                 .runs
@@ -4928,14 +4955,15 @@ fn append_shape(
                 max_font
             };
             let (x, anchor) = match anchor {
-                TextAnchor::Start => (text_x + left_inset + style.margin_left, TextAnchor::Start),
+                TextAnchor::Start => (text_x + left_inset + margin_left, TextAnchor::Start),
                 TextAnchor::Middle => (text_x + text_width / 2.0, TextAnchor::Middle),
                 TextAnchor::End => (
-                    text_x + text_width - right_inset - style.margin_left,
+                    text_x + text_width - right_inset - margin_left,
                     TextAnchor::End,
                 ),
             };
-            if line_index == 0 && !style.bullet.is_empty() && anchor == TextAnchor::Start {
+            let bullet = paragraph.bullet.as_deref().unwrap_or(&style.bullet);
+            if line_index == 0 && !bullet.is_empty() && anchor == TextAnchor::Start {
                 text_node_index += 1;
                 page.nodes.push(Node::Text {
                     id: format!(
@@ -4944,10 +4972,12 @@ fn append_shape(
                         paragraph_index + 1,
                         text_node_index
                     ),
-                    x: text_x + left_inset,
+                    x: text_x
+                        + left_inset
+                        + (margin_left + paragraph.indent.unwrap_or(0.0)).max(0.0),
                     y,
                     runs: vec![TextRun {
-                        text: style.bullet.clone(),
+                        text: bullet.to_owned(),
                         font_family: style.font_family.clone(),
                         font_size: max_font,
                         bold: style.bold,
