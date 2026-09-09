@@ -323,7 +323,8 @@ fn converts_pdf_packed_samples_and_stencil_images() {
 
     assert!(report.warnings.is_empty());
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
-    assert_eq!(svg.matches("data:image/png;base64,").count(), 4);
+    // One data URI per image: `href` only, no duplicate `xlink:href`.
+    assert_eq!(svg.matches("data:image/png;base64,").count(), 2);
     assert_eq!(svg.matches("data-content-kind=\"image\"").count(), 2);
     assert_eq!(svg.matches("image-rendering=\"pixelated\"").count(), 2);
 }
@@ -1100,7 +1101,7 @@ fn selects_svg_choice_without_rendering_alternate_content_fallback() {
     assert!(report.warnings.is_empty(), "{:?}", report.warnings);
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert_eq!(svg.matches("data-content-kind=\"image\"").count(), 1);
-    assert_eq!(svg.matches("data:image/svg+xml;base64,").count(), 2);
+    assert_eq!(svg.matches("data:image/svg+xml;base64,").count(), 1);
     assert!(!svg.contains("data:image/png;base64,"));
 }
 

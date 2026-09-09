@@ -42,7 +42,7 @@ pub fn write_page<W: Write>(page: &Page, mut output: W, options: SvgOptions) -> 
     writeln!(output, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")?;
     writeln!(
         output,
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"{}pt\" height=\"{}pt\" viewBox=\"0 0 {} {}\" data-source-format=\"{}\" data-source-page=\"{}\">",
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}pt\" height=\"{}pt\" viewBox=\"0 0 {} {}\" data-source-format=\"{}\" data-source-page=\"{}\">",
         number(page.width, options.precision),
         number(page.height, options.precision),
         number(page.width, options.precision),
@@ -786,11 +786,13 @@ fn write_node<W: Write>(
             clip_id: _,
             meta,
         } => {
+            // Only SVG 2's `href`. Repeating the data URI in `xlink:href` for
+            // pre-2019 renderers doubled the largest part of every page: on
+            // image-heavy decks the duplicate was 40-48% of the output.
             write!(
                 output,
-                "{indent}<image id=\"{}\" href=\"{}\" xlink:href=\"{}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" transform=\"{}\" opacity=\"{}\" preserveAspectRatio=\"none\"",
+                "{indent}<image id=\"{}\" href=\"{}\" x=\"{}\" y=\"{}\" width=\"{}\" height=\"{}\" transform=\"{}\" opacity=\"{}\" preserveAspectRatio=\"none\"",
                 escape_attr(id),
-                escape_attr(href),
                 escape_attr(href),
                 number(*x, precision),
                 number(*y, precision),
@@ -1057,7 +1059,7 @@ fn escape_attr(value: &str) -> Cow<'_, str> {
 fn escape_xml(value: &str, attribute: bool) -> Cow<'_, str> {
     // In particular, embedded image data and path strings usually need no
     // escaping. Borrow them instead of copying multi-megabyte values once
-    // for each href/xlink:href attribute.
+    // for each href attribute.
     let needs_escaping = value.bytes().any(|byte| {
         matches!(byte, b'&' | b'<' | b'>' | 0..=8 | 11 | 12 | 14..=31)
             || (attribute && matches!(byte, b'"' | b'\''))

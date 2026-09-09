@@ -139,6 +139,8 @@ output/slides/
 ```
 
 Open the SVGs in a compatible browser, or use them as image sources in your app.
+Embedded images use the SVG 2 `href` attribute, so the renderer must be a current
+browser, resvg, or librsvg 2.46 or newer.
 Excel worksheets may span several SVG pages according to paper size and print
 settings. [The sample workbook](samples/source/sample.xlsx) produces four pages.
 

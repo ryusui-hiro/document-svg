@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Emit each image's data URI once, as SVG 2 `href`, instead of repeating it in `xlink:href` for pre-2019 renderers. Image-heavy output shrinks by 40-48%. Renderers older than librsvg 2.46 will no longer show these images.
 - Resolve XML entity references in PPTX shape text, PPTX table text, DOCX text and chart labels. quick-xml reports these separately from text, so "R&D" reached the SVG as "RD"; 12.7% of the documents in the review corpus were losing characters this way.
 - Ignore `a14:hiddenFill` / `a14:hiddenLine` compatibility paint on DOCX text boxes. Their black line colour was being read as the shape fill, covering the text with a solid black rectangle.
 - Keep DOCX text box paragraphs that overflow the declared frame. Word's default `noAutofit` lets text spill out, so cutting the layout off at the frame height silently dropped every paragraph after the first in a short box.
