@@ -4437,3 +4437,94 @@ fn undoes_png_predictors_including_the_average_row_filter() {
     let info = reader.next_frame(&mut samples).unwrap();
     assert_eq!(&samples[..info.buffer_size()], &expected[..]);
 }
+
+/// `<p:bg>` accepts the same fill grammar as a shape, but the background was
+/// tracked as a single colour, so a gradient collapsed to whichever stop the
+/// parser read last. A title slide meant to fade from bright to dark came out
+/// flat in the dark stop. 6% of the decks in the review corpus use one.
+#[test]
+fn renders_a_pptx_gradient_slide_background_as_a_gradient() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("gradient-background.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:bg><p:bgPr><a:gradFill><a:gsLst><a:gs pos="0"><a:srgbClr val="FFC000"/></a:gs><a:gs pos="100000"><a:srgbClr val="C00000"/></a:gs></a:gsLst><a:lin ang="2700000"/></a:gradFill></p:bgPr></p:bg><p:spTree/></p:cSld></p:sld>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("<linearGradient"), "{svg}");
+    // Both stops must survive, not just the last one read.
+    assert!(svg.contains("#FFC000"), "{svg}");
+    assert!(svg.contains("#C00000"), "{svg}");
+}
+
+/// `showMasterSp="0"` on a layout means the master's own shapes are not drawn.
+/// Ignoring it doubles anything a template repeats on both the master and the
+/// layout — a footer, a logo. 27 of the 259 decks in the review corpus set it.
+#[test]
+fn honours_show_master_sp_when_a_layout_hides_master_shapes() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("hidden-master.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="1" name="Body"/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="4000000" cy="900000"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:p><a:r><a:t>Slide body</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"#,
+            ),
+            (
+                "ppt/slides/_rels/slide1.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout" Target="../slideLayouts/slideLayout1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slideLayouts/slideLayout1.xml",
+                r#"<p:sldLayout xmlns:p="p" xmlns:a="a" showMasterSp="0"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="2" name="LayoutFooter"/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="5000000"/><a:ext cx="4000000" cy="400000"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:p><a:r><a:t>Repeated footer</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sldLayout>"#,
+            ),
+            (
+                "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster" Target="../slideMasters/slideMaster1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slideMasters/slideMaster1.xml",
+                r#"<p:sldMaster xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="3" name="MasterFooter"/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="5000000"/><a:ext cx="4000000" cy="400000"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:p><a:r><a:t>Repeated footer</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sldMaster>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Slide body"), "{svg}");
+    assert_eq!(
+        svg.matches("Repeated footer").count(),
+        1,
+        "the master copy should be suppressed: {svg}"
+    );
+}

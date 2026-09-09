@@ -71,6 +71,7 @@ pub(crate) fn convert(
             )));
         };
         let slide_xml = package.read(&slide_part)?;
+        let mut layout_shows_master = true;
         let relationships = package.relationships(&slide_part, options.max_xml_events)?;
         let empty_placeholders = HashMap::new();
         let mut master_page = None::<Page>;
@@ -82,6 +83,7 @@ pub(crate) fn convert(
             relationship_target_of_type(&relationships, &slide_part, "/slideLayout")
         {
             let layout_xml = package.read(&layout_part)?;
+            layout_shows_master = shows_inherited_shapes(&layout_xml);
             let layout_relationships =
                 package.relationships(&layout_part, options.max_xml_events)?;
             let mut master_placeholders = HashMap::new();
@@ -214,7 +216,15 @@ pub(crate) fn convert(
         for warning in embedded_warnings {
             slide_page.warn(warning);
         }
-        let page = merge_page_layers(master_page, layout_page, slide_page);
+        let page = merge_page_layers(
+            master_page,
+            layout_page,
+            slide_page,
+            InheritedShapes {
+                layout_shows_master,
+                slide_shows_layout: shows_inherited_shapes(&slide_xml),
+            },
+        );
         warnings.extend(page.warnings.iter().cloned());
         sink.consume(page)?;
     }
@@ -1533,6 +1543,27 @@ fn node_meta_mut(node: &mut Node) -> &mut SourceMeta {
     }
 }
 
+/// Whether `xml`'s root element asks for the shapes it inherits to be drawn.
+///
+/// `showMasterSp="0"` on a layout hides the master's own shapes, and on a slide
+/// hides the layout's and the master's. A template that repeats a footer on
+/// both the master and the layout relies on this: honouring it is the
+/// difference between one footer and two.
+fn shows_inherited_shapes(xml: &[u8]) -> bool {
+    let mut reader = Reader::from_reader(xml);
+    reader.config_mut().trim_text(true);
+    let mut buffer = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buffer) {
+            Ok(Event::Start(start)) => {
+                return attribute(&start, b"showMasterSp").as_deref() != Some("0");
+            }
+            Ok(Event::Eof) | Err(_) => return true,
+            _ => buffer.clear(),
+        }
+    }
+}
+
 fn take_background(page: &mut Page) -> Option<Node> {
     page.nodes
         .iter()
@@ -1540,7 +1571,18 @@ fn take_background(page: &mut Page) -> Option<Node> {
         .map(|index| page.nodes.remove(index))
 }
 
-fn merge_page_layers(mut master: Option<Page>, mut layout: Option<Page>, mut slide: Page) -> Page {
+fn merge_page_layers(
+    mut master: Option<Page>,
+    mut layout: Option<Page>,
+    mut slide: Page,
+    inherit: InheritedShapes,
+) -> Page {
+    if !inherit.slide_shows_layout {
+        layout = None;
+    }
+    if !inherit.slide_shows_layout || !inherit.layout_shows_master {
+        master = None;
+    }
     let master_background = master.as_mut().and_then(take_background);
     let layout_background = layout.as_mut().and_then(take_background);
     let slide_background = take_background(&mut slide);
@@ -1569,6 +1611,13 @@ fn merge_page_layers(mut master: Option<Page>, mut layout: Option<Page>, mut sli
     nodes.append(&mut slide.nodes);
     slide.nodes = nodes;
     slide
+}
+
+/// Which inherited layers a slide asks to display.
+#[derive(Clone, Copy, Debug)]
+struct InheritedShapes {
+    layout_shows_master: bool,
+    slide_shows_layout: bool,
 }
 
 fn parse_presentation(xml: &[u8], max_events: usize) -> Result<(f64, f64, Vec<String>)> {
@@ -2295,6 +2344,16 @@ fn parse_slide(
     let mut events = 0usize;
     let mut shape_counter = 0usize;
     let mut background = None::<String>;
+    // `<p:bgPr>` carries the same fill grammar as a shape. Routing it through a
+    // page-sized stand-in shape reuses the gradient stop, angle and kind
+    // handling instead of collapsing a gradient to whichever colour came last.
+    let mut background_shape = Shape {
+        x: 0.0,
+        y: 0.0,
+        width,
+        height,
+        ..Shape::default()
+    };
     let mut group_stack = Vec::<GroupTransform>::new();
     let mut alternate_content = Vec::<AlternateContentState>::new();
     loop {
@@ -2417,7 +2476,12 @@ fn parse_slide(
                         &start,
                         &name,
                         &stack,
-                        shape.as_mut(),
+                        shape.as_mut().or_else(|| {
+                            stack
+                                .iter()
+                                .any(|item| item == "bgPr")
+                                .then_some(&mut background_shape)
+                        }),
                         current_run.as_mut(),
                         current_paragraph.as_mut(),
                         theme,
@@ -2454,7 +2518,12 @@ fn parse_slide(
                         &start,
                         &name,
                         &stack,
-                        shape.as_mut(),
+                        shape.as_mut().or_else(|| {
+                            stack
+                                .iter()
+                                .any(|item| item == "bgPr")
+                                .then_some(&mut background_shape)
+                        }),
                         current_run.as_mut(),
                         current_paragraph.as_mut(),
                         theme,
@@ -2571,14 +2640,21 @@ fn parse_slide(
         }
         buffer.clear();
     }
-    if let Some(color) = background {
+    finalize_shape_gradient(&mut background_shape);
+    let background_paint = match background_shape.fill {
+        // A gradient survived; a lone solid colour is still tracked separately
+        // because `<p:bg>` can also name one through a style reference.
+        fill @ (Paint::LinearGradient(_) | Paint::RadialGradient(_)) => Some(fill),
+        _ => background.map(Paint::solid),
+    };
+    if let Some(fill) = background_paint {
         page.nodes.insert(
             0,
             Node::Path {
                 id: format!("pptx-{id_namespace}-{page_number}-background"),
                 d: format!("M 0 0 H {} V {} H 0 Z", fmt(width), fmt(height)),
                 fill_rule: "nonzero".into(),
-                fill: Paint::solid(color),
+                fill,
                 stroke: Stroke::default(),
                 transform: IDENTITY,
                 clip_id: None,
