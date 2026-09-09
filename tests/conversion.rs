@@ -4910,3 +4910,46 @@ fn draws_a_pptx_paragraphs_own_bullet_at_its_hanging_indent() {
         "text should start at marL: {text_x}"
     );
 }
+
+/// Curved connectors fell through to the bounding-box fallback, drawing a
+/// stroked rectangle where a line should curve between two shapes.
+#[test]
+fn draws_curved_connectors_as_curves_not_boxes() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("curved-connector.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:cxnSp><p:nvCxnSpPr><p:cNvPr id="1" name="Curve"/></p:nvCxnSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="2000000" cy="1000000"/></a:xfrm><a:prstGeom prst="curvedConnector3"><a:avLst/></a:prstGeom><a:ln w="12700"><a:solidFill><a:srgbClr val="FF0000"/></a:solidFill></a:ln></p:spPr></p:cxnSp></p:spTree></p:cSld></p:sld>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains(" C "),
+        "the connector should be a cubic curve: {svg}"
+    );
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("curvedConnector3")),
+        "{:?}",
+        report.warnings
+    );
+}

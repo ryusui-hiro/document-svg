@@ -5622,6 +5622,17 @@ fn preset_path(shape: &Shape) -> (String, bool) {
             fmt(x + width),
             fmt(y + height)
         ),
+        "curvedConnector2" => curved_connector_path(shape, None),
+        "curvedConnector3" | "curvedConnector4" | "curvedConnector5" => curved_connector_path(
+            shape,
+            Some(
+                shape
+                    .preset_adjustments
+                    .get("adj1")
+                    .copied()
+                    .unwrap_or(50_000.0),
+            ),
+        ),
         "bentConnector2" => bent_connector_path(shape, 50_000.0),
         "bentConnector3" => bent_connector_path(
             shape,
@@ -5733,6 +5744,48 @@ fn preset_path(shape: &Shape) -> (String, bool) {
         _ => return (rectangle_path(x, y, width, height), false),
     };
     (result, true)
+}
+
+/// A curved connector between opposite corners of the shape's box.
+///
+/// Without this the preset falls through to the bounding box, which draws a
+/// stroked rectangle where a line should curve from one shape to another.
+/// `adjustment` is `adj1` in sixty-thousandths of a percent, naming where the
+/// S-curve turns; `None` is the single quarter turn of `curvedConnector2`.
+fn curved_connector_path(shape: &Shape, adjustment: Option<f64>) -> String {
+    let start_x = shape.x;
+    let start_y = shape.y;
+    let end_x = shape.x + shape.width;
+    let end_y = shape.y + shape.height;
+    match adjustment {
+        // One bend: leave the start horizontally and arrive vertically.
+        None => format!(
+            "M {} {} C {} {} {} {} {} {}",
+            fmt(start_x),
+            fmt(start_y),
+            fmt(start_x + shape.width / 2.0),
+            fmt(start_y),
+            fmt(end_x),
+            fmt(start_y + shape.height / 2.0),
+            fmt(end_x),
+            fmt(end_y)
+        ),
+        // Two bends: an S through a turning point along the primary axis.
+        Some(adjustment) => {
+            let bend_x = shape.x + shape.width * adjustment.clamp(0.0, 100_000.0) / 100_000.0;
+            format!(
+                "M {} {} C {} {} {} {} {} {}",
+                fmt(start_x),
+                fmt(start_y),
+                fmt(bend_x),
+                fmt(start_y),
+                fmt(bend_x),
+                fmt(end_y),
+                fmt(end_x),
+                fmt(end_y)
+            )
+        }
+    }
 }
 
 fn bent_connector_path(shape: &Shape, adjustment: f64) -> String {

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Draw `curvedConnector2` through `curvedConnector5` as curves. They fell through to the bounding-box fallback, which put a stroked rectangle on the slide where a line should curve between two shapes.
 - Read `<a:buChar>`, `<a:buNone>`, `marL` and `indent` from a PPTX paragraph's own properties. Bullets were only picked up from a master's text styles, so the usual way a deck writes a bulleted list produced no bullets at all, and the text wrapped against the master's margin rather than the paragraph's.
 - Label line, area and scatter chart categories too, under the points rather than at slot centres, and leave the labels off once a chart has more categories than can be read.
 - Read `<c:barDir>` and `<c:grouping>` on a bar chart. A horizontal bar chart was drawn as a column chart, and a stacked chart was drawn clustered, which turns a single column of 146 into two columns of 64 and 82.
