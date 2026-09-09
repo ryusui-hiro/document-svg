@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Resolve XML entities in Office attribute values. The raw, still-escaped bytes were taken verbatim and escaped again, so an alt text of `R&D` reached the reader as `R&amp;D`. 58 of the 364 Office files in the review corpus carry an entity in a `descr`, `name` or `title`.
+- Grow a PPTX table row to fit its wrapped cell text. `<a:tr h="...">` is a minimum height, and treating it as final clipped the second line off every wrapped cell.
 - Render a PPTX gradient slide background as a gradient. `<p:bg>` was tracked as one colour, so a two-stop background collapsed to whichever stop was read last and a title slide meant to fade came out flat. 6% of the decks in the review corpus use one.
 - Honour `showMasterSp="0"`. A layout that hides the master's shapes was ignored, so anything a template repeats on both — a footer, a logo — was drawn twice. 27 of 259 decks in the corpus set it.
 - Undo PNG predictors on Flate images here instead of relying on the PDF library. `/DecodeParms` given as an indirect reference or as an array parallel to `/Filter` was not read at all, and the Average row filter was reconstructed as `left + above / 2` rather than `(left + above) / 2`. Either one turns a predicted image into noise with no warning anywhere; a 15-page deck rendered as static on every page.

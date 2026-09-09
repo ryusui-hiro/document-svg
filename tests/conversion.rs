@@ -4528,3 +4528,88 @@ fn honours_show_master_sp_when_a_layout_hides_master_shapes() {
         "the master copy should be suppressed: {svg}"
     );
 }
+
+/// `<a:tr h="...">` is a minimum row height: PowerPoint grows a row when its
+/// cells wrap to more lines than fit. Treating it as final clipped the second
+/// line off every wrapped cell, cutting the text mid-glyph.
+#[test]
+fn grows_pptx_table_rows_to_fit_wrapped_cell_text() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("wrapped-table.pptx");
+    let output = temporary.path().join("out");
+    // One narrow column, a short declared row height, and text that needs
+    // several lines at that width.
+    let slide = r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="1" name="Grid"/></p:nvGraphicFramePr><p:xfrm><a:off x="0" y="0"/><a:ext cx="2000000" cy="400000"/></p:xfrm><a:graphic><a:graphicData><a:tbl><a:tblGrid><a:gridCol w="2000000"/></a:tblGrid><a:tr h="200000"><a:tc><a:txBody><a:p><a:r><a:rPr sz="1200"/><a:t>alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima</a:t></a:r></a:p></a:txBody></a:tc></a:tr></a:tbl></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>"#;
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            ("ppt/slides/slide1.xml", slide),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Every wrapped word survives, and the last line sits below the declared
+    // 200000 EMU (about 15.7pt) row height rather than being clipped away.
+    for word in ["alpha", "juliet", "kilo", "lima"] {
+        assert!(svg.contains(word), "missing {word:?} in {svg}");
+    }
+    let last_baseline = svg
+        .split("<text")
+        .filter_map(|chunk| chunk.split("y=\"").nth(1))
+        .filter_map(|rest| rest.split('"').next())
+        .filter_map(|value| value.parse::<f64>().ok())
+        .fold(0.0_f64, f64::max);
+    assert!(
+        last_baseline > 15.7,
+        "the row did not grow past its declared height: {last_baseline}"
+    );
+}
+
+/// `Attribute::value` holds raw, still-escaped bytes. Taking them verbatim and
+/// then escaping again on the way out turned an alt text of `R&D` into
+/// `R&amp;D` on screen. 58 of the 364 Office files in the review corpus carry
+/// an entity in a `descr`, `name` or `title` attribute.
+#[test]
+fn resolves_xml_entities_in_pptx_attribute_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("entity-attributes.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="1" name="Chart" descr="Revenue for R&amp;D and Q&amp;A"/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="4000000" cy="1000000"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:p><a:r><a:t>body</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // One level of escaping, so a reader sees "R&D", not "R&amp;D".
+    assert!(
+        svg.contains(r#"aria-label="Revenue for R&amp;D and Q&amp;A""#),
+        "{svg}"
+    );
+}

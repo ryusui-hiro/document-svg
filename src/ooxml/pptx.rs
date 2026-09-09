@@ -919,6 +919,77 @@ fn recover_table_metrics(values: &[f64]) -> Vec<f64> {
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Lay a table cell's paragraphs out into wrapped lines.
+///
+/// Shared by the measuring pass that sizes rows and the pass that emits nodes,
+/// so a row is never sized against different wrapping than it is drawn with.
+fn table_cell_lines(
+    cell: &PptxTableCell,
+    cell_width: f64,
+    theme: &Theme,
+    header: bool,
+) -> Vec<(Vec<TextRun>, TextAnchor, f64)> {
+    let available_width = (cell_width - cell.margin_left - cell.margin_right).max(4.0);
+    let mut lines = Vec::new();
+    for paragraph in &cell.paragraphs {
+        let anchor = paragraph.alignment.unwrap_or(TextAnchor::Start);
+        let mut paragraph_runs = paragraph.runs.clone();
+        for run in &mut paragraph_runs {
+            if run.font_family.is_empty() {
+                run.font_family.clone_from(&theme.minor_font);
+            }
+            if run.font_size <= 0.0 {
+                run.font_size = 12.0;
+            }
+            if matches!(run.fill, Paint::None) {
+                run.fill = Paint::solid(if header { "#FFFFFF" } else { "#000000" });
+            }
+        }
+        for runs in wrap_pptx_runs(&paragraph_runs, available_width) {
+            if runs.is_empty() {
+                continue;
+            }
+            let font_size = runs.iter().map(|run| run.font_size).fold(10.0, f64::max);
+            lines.push((runs, anchor, font_size * 1.15));
+        }
+    }
+    lines
+}
+
+/// The height a row needs for its own text to fit.
+///
+/// `<a:tr h="...">` is a minimum: PowerPoint grows a row when its cells wrap to
+/// more lines than the declared height allows. Treating the declared height as
+/// final clipped the second line off every cell in a wrapped table.
+fn table_row_content_height(
+    row: &PptxTableRow,
+    column_positions: &[f64],
+    theme: &Theme,
+    header: bool,
+) -> f64 {
+    let mut needed: f64 = 0.0;
+    for (column_index, cell) in row.cells.iter().enumerate() {
+        if cell.horizontal_merge || cell.vertical_merge || cell.row_span > 1 {
+            continue;
+        }
+        let end_column = (column_index + cell.grid_span)
+            .min(column_positions.len().saturating_sub(1))
+            .max(column_index + 1);
+        let Some(&start) = column_positions.get(column_index) else {
+            continue;
+        };
+        let Some(&end) = column_positions.get(end_column) else {
+            continue;
+        };
+        let lines = table_cell_lines(cell, end - start, theme, header);
+        let text_height = lines.iter().map(|(_, _, height)| height).sum::<f64>();
+        needed = needed.max(cell.margin_top + text_height + cell.margin_bottom);
+    }
+    // Well past any real slide, so a malformed cell cannot stretch a table
+    // without bound.
+    needed.min(10_000.0)
+}
+
 fn render_pptx_table(
     frame: &PptxTableFrame,
     page_number: usize,
@@ -967,8 +1038,21 @@ fn render_pptx_table(
     }
     let mut row_positions = Vec::with_capacity(frame.rows.len() + 1);
     row_positions.push(frame.y);
-    for row_height in &row_metrics {
-        let next = row_positions.last().copied().unwrap_or(frame.y) + row_height * scale_y;
+    for (row_index, row_height) in row_metrics.iter().enumerate() {
+        let declared = row_height * scale_y;
+        let needed = frame
+            .rows
+            .get(row_index)
+            .map(|row| {
+                table_row_content_height(
+                    row,
+                    &column_positions,
+                    theme,
+                    frame.first_row && row_index == 0,
+                )
+            })
+            .unwrap_or(0.0);
+        let next = row_positions.last().copied().unwrap_or(frame.y) + declared.max(needed);
         row_positions.push(next);
     }
     let transform = rotation_matrix(
@@ -1058,34 +1142,7 @@ fn render_pptx_table(
                 parent_id: None,
                 additional_paths: Vec::new(),
             });
-            let available_width = (cell_width - cell.margin_left - cell.margin_right).max(4.0);
-            let mut lines = Vec::<(Vec<TextRun>, TextAnchor, f64)>::new();
-            for paragraph in &cell.paragraphs {
-                let anchor = paragraph.alignment.unwrap_or(TextAnchor::Start);
-                let mut paragraph_runs = paragraph.runs.clone();
-                for run in &mut paragraph_runs {
-                    if run.font_family.is_empty() {
-                        run.font_family.clone_from(&theme.minor_font);
-                    }
-                    if run.font_size <= 0.0 {
-                        run.font_size = 12.0;
-                    }
-                    if matches!(run.fill, Paint::None) {
-                        run.fill = if frame.first_row && row_index == 0 {
-                            Paint::solid("#FFFFFF")
-                        } else {
-                            Paint::solid("#000000")
-                        };
-                    }
-                }
-                for runs in wrap_pptx_runs(&paragraph_runs, available_width) {
-                    if runs.is_empty() {
-                        continue;
-                    }
-                    let font_size = runs.iter().map(|run| run.font_size).fold(10.0, f64::max);
-                    lines.push((runs, anchor, font_size * 1.15));
-                }
-            }
+            let lines = table_cell_lines(cell, cell_width, theme, frame.first_row && row_index == 0);
             let total_text_height = lines.iter().map(|(_, _, height)| height).sum::<f64>();
             let mut text_y = match cell.vertical_anchor.as_deref() {
                 Some("b") => y + cell_height - cell.margin_bottom - total_text_height,
