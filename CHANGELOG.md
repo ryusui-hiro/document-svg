@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Read `<c:barDir>` and `<c:grouping>` on a bar chart. A horizontal bar chart was drawn as a column chart, and a stacked chart was drawn clustered, which turns a single column of 146 into two columns of 64 and 82.
+- Draw the category names on a bar chart. They were already parsed out of the chart part but never reached the page, leaving bars with nothing to identify them.
 - Ask for `pixelated` image rendering only where an image is actually drawn larger than its own pixel grid. `/Interpolate false` is about enlargement, but CSS `pixelated` also disables the area averaging every PDF viewer applies when reducing, which speckled scans placed at a fraction of their pixel size.
 - Resolve XML entities in Office attribute values. The raw, still-escaped bytes were taken verbatim and escaped again, so an alt text of `R&D` reached the reader as `R&amp;D`. 58 of the 364 Office files in the review corpus carry an entity in a `descr`, `name` or `title`.
 - Grow a PPTX table row to fit its wrapped cell text. `<a:tr h="...">` is a minimum height, and treating it as final clipped the second line off every wrapped cell.

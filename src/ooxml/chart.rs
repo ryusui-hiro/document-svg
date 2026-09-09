@@ -3,7 +3,7 @@ use quick_xml::events::Event;
 
 use crate::error::{Error, Result};
 use crate::ir::{IDENTITY, Node, Paint, SourceMeta, Stroke, TextAnchor, TextRun};
-use crate::ooxml::{decode_xml_reference, local_name};
+use crate::ooxml::{attribute, decode_xml_reference, local_name};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum ChartKind {
@@ -27,6 +27,22 @@ pub(crate) struct ChartData {
     pub kind: ChartKind,
     pub title: String,
     pub series: Vec<ChartSeries>,
+    /// `<c:barDir val="bar"/>`: categories run down the left and the bars grow
+    /// to the right. The default, `col`, is the familiar column chart.
+    pub horizontal_bars: bool,
+    pub grouping: BarGrouping,
+}
+
+/// How a bar chart combines the series within one category.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum BarGrouping {
+    /// Series sit side by side; each is measured from the axis.
+    #[default]
+    Clustered,
+    /// Series sit on top of one another and the category total is what shows.
+    Stacked,
+    /// Stacked, with every category normalised to the same full length.
+    PercentStacked,
 }
 
 pub(crate) fn parse_chart(xml: &[u8], max_events: usize) -> Result<ChartData> {
@@ -63,6 +79,18 @@ pub(crate) fn parse_chart(xml: &[u8], max_events: usize) -> Result<ChartData> {
                     _ => {}
                 }
                 stack.push(name);
+            }
+            // `<c:barDir val="bar"/>` is self-closing, so it never arrives as a
+            // start event.
+            Event::Empty(start) if local_name(start.name().as_ref()) == b"barDir" => {
+                chart.horizontal_bars = attribute(&start, b"val").as_deref() == Some("bar");
+            }
+            Event::Empty(start) if local_name(start.name().as_ref()) == b"grouping" => {
+                chart.grouping = match attribute(&start, b"val").as_deref() {
+                    Some("stacked") => BarGrouping::Stacked,
+                    Some("percentStacked") => BarGrouping::PercentStacked,
+                    _ => BarGrouping::Clustered,
+                };
             }
             Event::Text(value) if capture.is_some() => {
                 text.push_str(&value.decode().map_err(|error| {
@@ -264,31 +292,129 @@ fn render_bars(
     if categories == 0 || chart.series.is_empty() {
         return;
     }
-    let maximum = chart
-        .series
-        .iter()
-        .flat_map(|series| series.values.iter())
-        .copied()
-        .fold(0.0_f64, f64::max)
-        .max(1e-9);
-    let category_width = width / categories as f64;
-    let bar_width = category_width * 0.75 / chart.series.len() as f64;
+    let stacked = matches!(
+        chart.grouping,
+        BarGrouping::Stacked | BarGrouping::PercentStacked
+    );
+    // A stacked chart is measured against the category total, not the largest
+    // single value: rendering 64 and 82 side by side instead of stacked to 146
+    // states something the source did not.
+    let category_total = |index: usize| {
+        chart
+            .series
+            .iter()
+            .filter_map(|series| series.values.get(index))
+            .map(|value| value.max(0.0))
+            .sum::<f64>()
+    };
+    let maximum = if stacked {
+        (0..categories).map(category_total).fold(0.0_f64, f64::max)
+    } else {
+        chart
+            .series
+            .iter()
+            .flat_map(|series| series.values.iter())
+            .copied()
+            .fold(0.0_f64, f64::max)
+    }
+    .max(1e-9);
+    // `barDir="bar"` lays categories down the left edge and grows the bars to
+    // the right; the default `col` is the usual column chart.
+    let span = if chart.horizontal_bars { height } else { width };
+    let plot_length = if chart.horizontal_bars { width } else { height };
+    let category_span = span / categories as f64;
+    let bar_span = if stacked {
+        category_span * 0.75
+    } else {
+        category_span * 0.75 / chart.series.len() as f64
+    };
+    let mut stacked_base = vec![0.0_f64; categories];
     for (series_index, series) in chart.series.iter().enumerate() {
         for (value_index, value) in series.values.iter().enumerate() {
-            let bar_height = value.max(0.0) / maximum * height;
-            let left = x
-                + value_index as f64 * category_width
-                + category_width * 0.125
-                + series_index as f64 * bar_width;
-            let top = y + height - bar_height;
+            let scale = if chart.grouping == BarGrouping::PercentStacked {
+                let total = category_total(value_index);
+                if total <= 0.0 { 0.0 } else { plot_length / total }
+            } else {
+                plot_length / maximum
+            };
+            let length = value.max(0.0) * scale;
+            let base = stacked_base.get(value_index).copied().unwrap_or(0.0);
+            let offset = if stacked {
+                value_index as f64 * category_span + category_span * 0.125
+            } else {
+                value_index as f64 * category_span
+                    + category_span * 0.125
+                    + series_index as f64 * bar_span
+            };
+            let bounds = if chart.horizontal_bars {
+                rectangle(x + base, y + offset, length, bar_span * 0.9)
+            } else {
+                rectangle(
+                    x + offset,
+                    y + height - base - length,
+                    bar_span * 0.9,
+                    length,
+                )
+            };
             nodes.push(path_node(
                 format!("{id_prefix}-bar-{series_index}-{value_index}"),
-                rectangle(left, top, bar_width * 0.9, bar_height),
+                bounds,
                 Paint::solid(CHART_COLORS[series_index % CHART_COLORS.len()]),
                 Stroke::default(),
                 "chart-bar",
             ));
+            if stacked && let Some(slot) = stacked_base.get_mut(value_index) {
+                *slot += length;
+            }
         }
+    }
+    render_category_labels(chart, x, y, width, height, categories, id_prefix, nodes);
+}
+
+/// Name each category next to its slot on the category axis.
+///
+/// The names are read out of the chart part already; without them on the page a
+/// reader sees bars with nothing to identify them.
+#[allow(clippy::too_many_arguments)]
+fn render_category_labels(
+    chart: &ChartData,
+    x: f64,
+    y: f64,
+    width: f64,
+    height: f64,
+    categories: usize,
+    id_prefix: &str,
+    nodes: &mut Vec<Node>,
+) {
+    let Some(names) = chart
+        .series
+        .iter()
+        .map(|series| &series.categories)
+        .find(|names| !names.is_empty())
+    else {
+        return;
+    };
+    let span = if chart.horizontal_bars { height } else { width };
+    let category_span = span / categories as f64;
+    for (index, name) in names.iter().take(categories).enumerate() {
+        if name.trim().is_empty() {
+            continue;
+        }
+        let middle = index as f64 * category_span + category_span / 2.0;
+        let (label_x, label_y, anchor) = if chart.horizontal_bars {
+            (x - 4.0, y + middle + 3.0, TextAnchor::End)
+        } else {
+            (x + middle, y + height + 11.0, TextAnchor::Middle)
+        };
+        nodes.push(text_node(
+            format!("{id_prefix}-category-{index}"),
+            label_x,
+            label_y,
+            name.clone(),
+            8.0,
+            anchor,
+            "chart-category-label",
+        ));
     }
 }
 

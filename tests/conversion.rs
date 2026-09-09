@@ -4668,3 +4668,128 @@ fn asks_for_pixelated_rendering_only_where_the_image_is_magnified() {
         "a 64px image drawn at 400pt is being enlarged: {enlarged}"
     );
 }
+
+/// `<c:barDir val="bar"/>` is a horizontal bar chart. It was never read, so a
+/// bar chart came out as a column chart — the wrong shape for the data — and
+/// the category names, which the parser already collects, were never drawn, so
+/// the bars had nothing identifying them.
+#[test]
+fn draws_a_horizontal_bar_chart_with_its_category_names() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("bar-chart.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a" xmlns:r="r"><p:cSld><p:spTree><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="1" name="Chart"/></p:nvGraphicFramePr><p:xfrm><a:off x="0" y="0"/><a:ext cx="5000000" cy="3000000"/></p:xfrm><a:graphic><a:graphicData><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId2"/></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>"#,
+            ),
+            (
+                "ppt/slides/_rels/slide1.xml.rels",
+                r#"<Relationships><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/charts/chart1.xml",
+                r#"<c:chartSpace xmlns:c="c" xmlns:a="a"><c:chart><c:plotArea><c:barChart><c:barDir val="bar"/><c:ser><c:tx><c:v>Count</c:v></c:tx><c:cat><c:strRef><c:strCache><c:pt idx="0"><c:v>Moulding</c:v></c:pt><c:pt idx="1"><c:v>Assembly</c:v></c:pt></c:strCache></c:strRef></c:cat><c:val><c:numRef><c:numCache><c:pt idx="0"><c:v>47</c:v></c:pt><c:pt idx="1"><c:v>12</c:v></c:pt></c:numCache></c:numRef></c:val></c:ser></c:barChart></c:plotArea></c:chart></c:chartSpace>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Moulding"), "category names are missing: {svg}");
+    assert!(svg.contains("Assembly"), "category names are missing: {svg}");
+    // Horizontal bars share a left edge and differ in length; column bars would
+    // instead share a bottom edge and differ in height.
+    let bars: Vec<&str> = svg
+        .split("data-content-kind=\"chart-bar\"")
+        .take(3)
+        .collect();
+    assert!(bars.len() >= 3, "expected two bars: {svg}");
+    let widths: Vec<f64> = svg
+        .split("<path")
+        .filter(|chunk| chunk.contains("chart-bar"))
+        .filter_map(|chunk| chunk.split(" H ").nth(1))
+        .filter_map(|rest| rest.split(' ').next())
+        .filter_map(|value| value.parse::<f64>().ok())
+        .collect();
+    assert_eq!(widths.len(), 2, "expected two bar rectangles: {svg}");
+    assert!(
+        (widths[0] - widths[1]).abs() > 1.0,
+        "horizontal bars must differ in length: {widths:?}"
+    );
+}
+
+/// `<c:grouping val="stacked"/>` puts the series on top of one another, so the
+/// category total is what the reader sees. Drawing them side by side instead
+/// turns a column of 146 into two columns of 64 and 82 — a different claim
+/// about the data.
+#[test]
+fn stacks_a_stacked_bar_chart_instead_of_clustering_it() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("stacked-chart.xlsx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "xl/workbook.xml",
+                r#"<workbook xmlns="w" xmlns:r="r"><sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets></workbook>"#,
+            ),
+            (
+                "xl/_rels/workbook.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>"#,
+            ),
+            (
+                "xl/worksheets/sheet1.xml",
+                r#"<worksheet xmlns="w" xmlns:r="r"><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Grid</t></is></c></row></sheetData><drawing r:id="rId2"/></worksheet>"#,
+            ),
+            (
+                "xl/worksheets/_rels/sheet1.xml.rels",
+                r#"<Relationships><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>"#,
+            ),
+            (
+                "xl/drawings/drawing1.xml",
+                r#"<xdr:wsDr xmlns:xdr="xdr" xmlns:a="a" xmlns:r="r"><xdr:twoCellAnchor><xdr:from><xdr:col>1</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:to><xdr:col>8</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>18</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to><xdr:graphicFrame><xdr:nvGraphicFramePr><xdr:cNvPr id="1" name="Chart"/></xdr:nvGraphicFramePr><a:graphic><a:graphicData><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId3"/></a:graphicData></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor></xdr:wsDr>"#,
+            ),
+            (
+                "xl/drawings/_rels/drawing1.xml.rels",
+                r#"<Relationships><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>"#,
+            ),
+            (
+                "xl/charts/chart1.xml",
+                r#"<c:chartSpace xmlns:c="c" xmlns:a="a"><c:chart><c:plotArea><c:barChart><c:barDir val="col"/><c:grouping val="stacked"/><c:ser><c:tx><c:v>Inside</c:v></c:tx><c:cat><c:strRef><c:strCache><c:pt idx="0"><c:v>G1</c:v></c:pt></c:strCache></c:strRef></c:cat><c:val><c:numRef><c:numCache><c:pt idx="0"><c:v>64</c:v></c:pt></c:numCache></c:numRef></c:val></c:ser><c:ser><c:tx><c:v>Outside</c:v></c:tx><c:val><c:numRef><c:numCache><c:pt idx="0"><c:v>82</c:v></c:pt></c:numCache></c:numRef></c:val></c:ser></c:barChart></c:plotArea></c:chart></c:chartSpace>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert_eq!(report.page_count, 1);
+    // Two bars sharing one category slot: the same left edge, stacked so that
+    // together they fill the plot height.
+    let lefts: Vec<f64> = svg
+        .split("<path")
+        .filter(|chunk| chunk.contains("chart-bar"))
+        .filter_map(|chunk| chunk.split("M ").nth(1))
+        .filter_map(|rest| rest.split(' ').next())
+        .filter_map(|value| value.parse::<f64>().ok())
+        .collect();
+    assert_eq!(lefts.len(), 2, "expected two stacked segments: {svg}");
+    assert!(
+        (lefts[0] - lefts[1]).abs() < 0.01,
+        "stacked segments must share a left edge, got {lefts:?}"
+    );
+}
