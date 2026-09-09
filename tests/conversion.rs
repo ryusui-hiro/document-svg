@@ -4793,3 +4793,60 @@ fn stacks_a_stacked_bar_chart_instead_of_clustering_it() {
         "stacked segments must share a left edge, got {lefts:?}"
     );
 }
+
+/// A line chart shares the bar chart's category axis, and its points sit on the
+/// plot edges rather than in slots, so its labels belong under the points.
+#[test]
+fn labels_line_chart_categories_under_their_points() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("line-chart.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a" xmlns:r="r"><p:cSld><p:spTree><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="1" name="Chart"/></p:nvGraphicFramePr><p:xfrm><a:off x="0" y="0"/><a:ext cx="5000000" cy="3000000"/></p:xfrm><a:graphic><a:graphicData><c:chart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" r:id="rId2"/></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>"#,
+            ),
+            (
+                "ppt/slides/_rels/slide1.xml.rels",
+                r#"<Relationships><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/chart1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/charts/chart1.xml",
+                r#"<c:chartSpace xmlns:c="c" xmlns:a="a"><c:chart><c:plotArea><c:lineChart><c:ser><c:tx><c:v>Cost</c:v></c:tx><c:cat><c:strRef><c:strCache><c:pt idx="0"><c:v>Jan</c:v></c:pt><c:pt idx="1"><c:v>Feb</c:v></c:pt><c:pt idx="2"><c:v>Mar</c:v></c:pt></c:strCache></c:strRef></c:cat><c:val><c:numRef><c:numCache><c:pt idx="0"><c:v>3</c:v></c:pt><c:pt idx="1"><c:v>6</c:v></c:pt><c:pt idx="2"><c:v>9</c:v></c:pt></c:numCache></c:numRef></c:val></c:ser></c:lineChart></c:plotArea></c:chart></c:chartSpace>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    for month in ["Jan", "Feb", "Mar"] {
+        assert!(svg.contains(month), "missing {month:?} in {svg}");
+    }
+    // The first and last labels sit on the plot edges, where the line starts
+    // and ends, rather than inset by half a slot.
+    let label_xs: Vec<f64> = svg
+        .split("<text")
+        .filter(|chunk| chunk.contains("chart-category-label"))
+        .filter_map(|chunk| chunk.split("x=\"").nth(1))
+        .filter_map(|rest| rest.split('"').next())
+        .filter_map(|value| value.parse::<f64>().ok())
+        .collect();
+    assert_eq!(label_xs.len(), 3, "{svg}");
+    let middle = (label_xs[0] + label_xs[2]) / 2.0;
+    assert!(
+        (label_xs[1] - middle).abs() < 0.5,
+        "the middle label should sit midway between the outer two: {label_xs:?}"
+    );
+}

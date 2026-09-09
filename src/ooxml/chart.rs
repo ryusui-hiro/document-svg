@@ -394,13 +394,30 @@ fn render_category_labels(
     else {
         return;
     };
+    // Past this many slots the names overlap into an unreadable band, and a
+    // chart with that many points is read from its shape, not its labels.
+    const MAX_LABELLED_CATEGORIES: usize = 24;
+    if categories > MAX_LABELLED_CATEGORIES {
+        return;
+    }
     let span = if chart.horizontal_bars { height } else { width };
+    // Bars occupy a slot and are labelled at its centre; a line's points sit on
+    // the plot edges, so its labels belong under the points themselves.
+    let plots_points = matches!(
+        chart.kind,
+        ChartKind::Line | ChartKind::Area | ChartKind::Scatter
+    );
     let category_span = span / categories as f64;
+    let last = categories.saturating_sub(1).max(1) as f64;
     for (index, name) in names.iter().take(categories).enumerate() {
         if name.trim().is_empty() {
             continue;
         }
-        let middle = index as f64 * category_span + category_span / 2.0;
+        let middle = if plots_points {
+            index as f64 / last * span
+        } else {
+            index as f64 * category_span + category_span / 2.0
+        };
         let (label_x, label_y, anchor) = if chart.horizontal_bars {
             (x - 4.0, y + middle + 3.0, TextAnchor::End)
         } else {
@@ -428,6 +445,15 @@ fn render_lines(
     id_prefix: &str,
     nodes: &mut Vec<Node>,
 ) {
+    let categories = chart
+        .series
+        .iter()
+        .map(|series| series.values.len())
+        .max()
+        .unwrap_or(0);
+    if categories > 0 {
+        render_category_labels(chart, x, y, width, height, categories, id_prefix, nodes);
+    }
     let maximum = chart
         .series
         .iter()

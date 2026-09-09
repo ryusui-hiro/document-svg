@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Label line, area and scatter chart categories too, under the points rather than at slot centres, and leave the labels off once a chart has more categories than can be read.
 - Read `<c:barDir>` and `<c:grouping>` on a bar chart. A horizontal bar chart was drawn as a column chart, and a stacked chart was drawn clustered, which turns a single column of 146 into two columns of 64 and 82.
 - Draw the category names on a bar chart. They were already parsed out of the chart part but never reached the page, leaving bars with nothing to identify them.
 - Ask for `pixelated` image rendering only where an image is actually drawn larger than its own pixel grid. `/Interpolate false` is about enlargement, but CSS `pixelated` also disables the area averaging every PDF viewer applies when reducing, which speckled scans placed at a fraction of their pixel size.
