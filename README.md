@@ -225,8 +225,12 @@ cells, formulas or charts.
   priority, at the cost of text editing and selection.
 - Input size, ZIP entries, XML events and page count have configurable limits.
   Public upload services should also impose process-level memory and time limits.
-- Existing output files are protected against overwriting. Encrypted documents
-  are rejected; access controls are not bypassed.
+- Existing output files are protected against overwriting. A PDF that needs a
+  user password is rejected rather than cracked. A PDF encrypted with an empty
+  user password — the "owner password only" form that carries permission flags
+  such as no-printing — is opened the way any viewer opens it; those flags are
+  declarations, not access control, and `docsvg` does not enforce them. Decide
+  for yourself whether that is acceptable before converting such a file.
 - Preview helpers perform conservative checks, not universal SVG sanitization.
 
 See [supported features and limitations](docs/SUPPORT.md), the

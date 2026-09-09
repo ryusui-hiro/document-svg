@@ -47,4 +47,4 @@
 
 ## 明示した境界
 
-暗号化PDFは回避せず拒否します。cached drawingのないSmartArt再layout、Officeと画素単位で完全同一のWord pagination、動画/OLEの実行機能など、SVG静的変換の契約外または近似領域は`SUPPORT.md`へ明示しています。これらは入力を黙って別物へ変換せず、警告または明示拒否する運用契約です。
+ユーザーパスワードを要求するPDFは回避せず拒否します（空パスワード暗号化の扱いは`SUPPORT.md`参照）。cached drawingのないSmartArt再layout、Officeと画素単位で完全同一のWord pagination、動画/OLEの実行機能など、SVG静的変換の契約外または近似領域は`SUPPORT.md`へ明示しています。これらは入力を黙って別物へ変換せず、警告または明示拒否する運用契約です。

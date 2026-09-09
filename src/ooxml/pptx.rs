@@ -16,7 +16,7 @@ use crate::ir::{
 use crate::ooxml::chart::{parse_chart, render_chart};
 use crate::ooxml::{
     Relationships, ZipPackage, attribute, color_from_hex, local_name, parse_i64,
-    qualified_attribute, text_advance_factor,
+    decode_xml_reference, qualified_attribute, sniff_image_mime, text_advance_factor,
 };
 
 const EMU_PER_POINT: f64 = 12_700.0;
@@ -40,6 +40,11 @@ pub(crate) fn convert(
     let presentation_relationships =
         package.relationships(presentation_part, options.max_xml_events)?;
     let (width, height, slide_ids) = parse_presentation(&presentation, options.max_xml_events)?;
+    if slide_ids.is_empty() {
+        return Err(Error::InvalidInput(
+            "PPTX declares no slides; ppt/presentation.xml has an empty p:sldIdLst".into(),
+        ));
+    }
     if slide_ids.len() > options.max_pages {
         return Err(Error::LimitExceeded(format!(
             "PPTX contains {} slides; maximum is {}",
@@ -531,9 +536,7 @@ fn parse_pptx_table_frames(
                 })?);
             }
             Event::GeneralRef(reference) if stack.last().is_some_and(|item| item == "t") => {
-                text_buffer.push_str(&reference.decode().map_err(|error| {
-                    Error::InvalidInput(format!("invalid PPTX table reference: {error}"))
-                })?);
+                text_buffer.push_str(&decode_xml_reference(&reference, "PPTX table text")?);
             }
             Event::End(end) => {
                 let name = String::from_utf8_lossy(local_name(end.name().as_ref())).into_owned();
@@ -2288,6 +2291,7 @@ fn parse_slide(
     let mut current_run: Option<TextRun> = None;
     let mut current_paragraph: Option<Paragraph> = None;
     let mut text_buffer = String::new();
+    let mut slide_number_field = false;
     let mut events = 0usize;
     let mut shape_counter = 0usize;
     let mut background = None::<String>;
@@ -2391,7 +2395,14 @@ fn parse_slide(
                     "p" if shape.is_some() && stack.iter().any(|item| item == "txBody") => {
                         current_paragraph = Some(Paragraph::default());
                     }
-                    "r" if shape.is_some() && stack.iter().any(|item| item == "txBody") => {
+                    "r" | "fld"
+                        if shape.is_some() && stack.iter().any(|item| item == "txBody") =>
+                    {
+                        // A slide-number field carries the placeholder PowerPoint
+                        // last rendered ("<#>") as its cached text, so the cached
+                        // text is never what the reader should see.
+                        slide_number_field = name == "fld"
+                            && attribute(&start, b"type").as_deref() == Some("slidenum");
                         current_run = Some(TextRun {
                             font_family: String::new(),
                             font_size: 0.0,
@@ -2460,6 +2471,13 @@ fn parse_slide(
                     })?);
                 }
             }
+            Event::GeneralRef(reference) => {
+                if alternate_content_is_active(&alternate_content)
+                    && stack.last().is_some_and(|item| item == "t")
+                {
+                    text_buffer.push_str(&decode_xml_reference(&reference, "slide text")?);
+                }
+            }
             Event::End(end) => {
                 let name = String::from_utf8_lossy(local_name(end.name().as_ref())).into_owned();
                 if name == "AlternateContent" {
@@ -2492,11 +2510,16 @@ fn parse_slide(
                             });
                         }
                         if let Some(run) = current_run.as_mut() {
-                            run.text.push_str(&text_buffer);
+                            if slide_number_field {
+                                run.text.push_str(&page_number.to_string());
+                            } else {
+                                run.text.push_str(&text_buffer);
+                            }
                         }
                         text_buffer.clear();
                     }
-                    "r" => {
+                    "r" | "fld" => {
+                        slide_number_field = false;
                         if let (Some(paragraph), Some(run)) =
                             (current_paragraph.as_mut(), current_run.take())
                         {
@@ -2797,8 +2820,14 @@ fn apply_start(
         "ext" if stack.iter().any(|item| item == "xfrm") => {
             if let Some(shape) = shape.as_deref_mut() {
                 shape.has_explicit_transform = true;
-                shape.width = parse_i64(attribute(start, b"cx"), 0) as f64 / EMU_PER_POINT;
-                shape.height = parse_i64(attribute(start, b"cy"), 0) as f64 / EMU_PER_POINT;
+                // `cx`/`cy` are unsigned in the schema, but generators do emit a
+                // negative extent and PowerPoint still shows the shape. Reading
+                // the magnitude keeps the text on the slide; dropping the shape
+                // would lose it outright.
+                shape.width =
+                    (parse_i64(attribute(start, b"cx"), 0) as f64).abs() / EMU_PER_POINT;
+                shape.height =
+                    (parse_i64(attribute(start, b"cy"), 0) as f64).abs() / EMU_PER_POINT;
             }
         }
         "xfrm" => {
@@ -4345,10 +4374,17 @@ fn append_shape(
             && apply_default_placeholder_geometry(&mut shape, page.width, page.height);
         if !recovered {
             if id_namespace == "slide" && visible_text {
-                page.warn(format!(
-                    "shape {} has no explicit transform; placeholder inheritance is pending",
-                    shape.name
-                ));
+                page.warn(if shape.has_explicit_transform {
+                    format!(
+                        "shape {} has a zero-sized transform and no placeholder geometry to fall back on",
+                        shape.name
+                    )
+                } else {
+                    format!(
+                        "shape {} has no explicit transform; placeholder inheritance is pending",
+                        shape.name
+                    )
+                });
             }
             return Ok(());
         }
@@ -4476,7 +4512,7 @@ fn append_shape(
                         append_unsupported_image_placeholder(page, &shape, transform, &meta, label);
                     }
                 } else {
-                    let mime = mime_type(&part);
+                    let mime = sniff_image_mime(&bytes).unwrap_or_else(|| mime_type(&part));
                     let href = format!(
                         "data:{mime};base64,{}",
                         base64::engine::general_purpose::STANDARD.encode(bytes)
@@ -4592,7 +4628,7 @@ fn append_shape(
                     &image_id,
                     format!(
                         "data:{};base64,{}",
-                        mime_type(&part),
+                        sniff_image_mime(&bytes).unwrap_or_else(|| mime_type(&part)),
                         base64::engine::general_purpose::STANDARD.encode(bytes)
                     ),
                     image_geometry,

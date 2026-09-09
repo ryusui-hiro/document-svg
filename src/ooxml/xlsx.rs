@@ -11,7 +11,7 @@ use crate::ir::{IDENTITY, Node, Page, Paint, SourceMeta, Stroke, TextAnchor, Tex
 use crate::ooxml::chart::{ChartData, parse_chart, render_chart};
 use crate::ooxml::{
     Relationships, ZipPackage, attribute, color_from_hex, local_name, parse_f64, parse_i64,
-    text_advance_factor,
+    decode_xml_reference, sniff_image_mime, text_advance_factor,
 };
 
 const DEFAULT_COLUMN_POINTS: f64 = 48.0;
@@ -49,6 +49,11 @@ pub(crate) fn convert(
     let workbook_xml = package.read(workbook_part)?;
     let workbook_relationships = package.relationships(workbook_part, options.max_xml_events)?;
     let workbook = parse_workbook(&workbook_xml, options.max_xml_events)?;
+    if workbook.sheets.is_empty() {
+        return Err(Error::InvalidInput(
+            "XLSX declares no worksheets; xl/workbook.xml has an empty sheets list".into(),
+        ));
+    }
     if workbook.sheets.len() > options.max_pages {
         return Err(Error::LimitExceeded(format!(
             "XLSX contains {} worksheets; maximum is {}",
@@ -1552,7 +1557,8 @@ fn parse_drawing_objects(
                                     height: finished.height,
                                     href: format!(
                                         "data:{};base64,{}",
-                                        drawing_mime_type(&media_part),
+                                        sniff_image_mime(&bytes)
+                                            .unwrap_or_else(|| drawing_mime_type(&media_part)),
                                         base64::engine::general_purpose::STANDARD.encode(bytes)
                                     ),
                                     name: finished.name.clone(),
@@ -5021,14 +5027,7 @@ fn decode_xlsx_reference(
     reference: &quick_xml::events::BytesRef<'_>,
     context: &str,
 ) -> Result<String> {
-    let name = reference.decode().map_err(|error| {
-        Error::InvalidInput(format!("invalid XML reference in {context}: {error}"))
-    })?;
-    quick_xml::escape::unescape(&format!("&{name};"))
-        .map(|value| value.into_owned())
-        .map_err(|error| {
-            Error::InvalidInput(format!("invalid XML reference in {context}: {error}"))
-        })
+    decode_xml_reference(reference, context)
 }
 
 fn fmt(value: f64) -> String {

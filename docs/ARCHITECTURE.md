@@ -57,7 +57,7 @@ PDF効果は、要素自身のtransformと混同しないようidentity座標の
 ## 安全性
 
 - コアとPythonバインディングは`unsafe_code = "forbid"`、Node.jsバインディングはnapi-rsマクロが生成するFFI glueだけを許可する`unsafe_code = "deny"`です。手書きプロジェクトコードに`unsafe`はありません。
-- 暗号化PDFは処理しません。
+- ユーザーパスワードを要求するPDFは処理しません。ユーザーパスワードが空の暗号化PDFは読み込み時に復号され、通常どおり変換します。lopdfはオブジェクト単位の復号失敗を握りつぶすため、内容を消費しながら1 nodeも描かなかったページは警告として報告します。
 - ZIP entry展開量、PDF content展開量、XMLイベント、ページ、描画セルに上限があります。
 - PDF画像は宣言dimensionの`width × height × 4`を展開上限と照合してからbufferを確保し、圧縮されたdimension bombを拒否します。
 - JPEG soft maskはJPEG metadataのdimension/pixel formatを先に検査し、既存entry上限内でgrayscale alphaへdecodeします。external CCITTはinline画像と共通のbounded hayro decoderを使用します。

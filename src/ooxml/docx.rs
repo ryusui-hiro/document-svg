@@ -10,7 +10,7 @@ use crate::error::{Error, Result};
 use crate::ir::{IDENTITY, Node, Page, Paint, SourceMeta, Stroke, TextAnchor, TextRun};
 use crate::ooxml::{
     Relationships, ZipPackage, attribute, color_from_hex, local_name, parse_f64, parse_i64,
-    qualified_attribute, text_advance_factor,
+    decode_xml_reference, qualified_attribute, sniff_image_mime, text_advance_factor,
 };
 
 const TWIPS_PER_POINT: f64 = 20.0;
@@ -183,6 +183,11 @@ fn parse_notes(
                 text.push_str(&value.decode().map_err(|error| {
                     Error::InvalidInput(format!("invalid DOCX note text: {error}"))
                 })?);
+            }
+            Event::GeneralRef(reference)
+                if note_id.is_some() && stack.last().is_some_and(|name| name == "t") =>
+            {
+                text.push_str(&decode_xml_reference(&reference, "DOCX note text")?);
             }
             Event::End(end) => {
                 let qualified_name = end.name();
@@ -1080,7 +1085,11 @@ fn parse_document(
                         ));
                         text_box_has_content = true;
                     }
-                    "srgbClr" if text_box.is_some() && stack.iter().any(|item| item == "spPr") => {
+                    "srgbClr"
+                        if text_box.is_some()
+                            && stack.iter().any(|item| item == "spPr")
+                            && !is_compatibility_extension(&stack) =>
+                    {
                         let color = color_from_hex(
                             &attribute(&start, b"val").unwrap_or_default(),
                             "#000000",
@@ -1093,7 +1102,11 @@ fn parse_document(
                             }
                         }
                     }
-                    "noFill" if text_box.is_some() && stack.iter().any(|item| item == "spPr") => {
+                    "noFill"
+                        if text_box.is_some()
+                            && stack.iter().any(|item| item == "spPr")
+                            && !is_compatibility_extension(&stack) =>
+                    {
                         if let Some(text_box) = text_box.as_mut() {
                             if stack.iter().any(|item| item == "ln") {
                                 text_box.stroke.paint = Paint::None;
@@ -1102,7 +1115,11 @@ fn parse_document(
                             }
                         }
                     }
-                    "ln" if text_box.is_some() && stack.iter().any(|item| item == "spPr") => {
+                    "ln"
+                        if text_box.is_some()
+                            && stack.iter().any(|item| item == "spPr")
+                            && !is_compatibility_extension(&stack) =>
+                    {
                         if let Some(text_box) = text_box.as_mut() {
                             text_box.stroke.width =
                                 parse_f64(attribute(&start, b"w"), 9_525.0) / EMU_PER_POINT;
@@ -1173,7 +1190,9 @@ fn parse_document(
                 }
                 match name.as_str() {
                     "srgbClr" | "noFill" | "ln"
-                        if text_box.is_some() && stack.iter().any(|item| item == "spPr") =>
+                        if text_box.is_some()
+                            && stack.iter().any(|item| item == "spPr")
+                            && !is_compatibility_extension(&stack) =>
                     {
                         apply_text_box_shape_property(&start, &name, &stack, text_box.as_mut());
                     }
@@ -1232,6 +1251,12 @@ fn parse_document(
                     Error::InvalidInput(format!("invalid DOCX field instruction: {error}"))
                 })?);
             }
+            Event::GeneralRef(reference)
+                if stack.last().is_some_and(|name| name == "instrText") =>
+            {
+                field_instruction
+                    .push_str(&decode_xml_reference(&reference, "DOCX field instruction")?);
+            }
             Event::Text(value) if stack.last().is_some_and(|name| name == "posOffset") => {
                 position_text.push_str(&value.decode().map_err(|error| {
                     Error::InvalidInput(format!("invalid DOCX drawing position: {error}"))
@@ -1246,6 +1271,12 @@ fn parse_document(
                         Error::InvalidInput(format!("invalid DOCX text: {error}"))
                     })?,
                 );
+            }
+            Event::GeneralRef(reference)
+                if stack.last().is_some_and(|name| name == "t")
+                    && !(field_active && field_separated) =>
+            {
+                text.push_str(&decode_xml_reference(&reference, "DOCX text")?);
             }
             Event::End(end) => {
                 if alternate_choices.last().copied().unwrap_or(false)
@@ -1306,7 +1337,8 @@ fn parse_document(
                                 if let Some(bytes) = package.read_optional(&part)? {
                                     let href = format!(
                                         "data:{};base64,{}",
-                                        mime_type(&part),
+                                        sniff_image_mime(&bytes)
+                                            .unwrap_or_else(|| mime_type(&part)),
                                         base64::engine::general_purpose::STANDARD.encode(bytes)
                                     );
                                     paragraph
@@ -1791,6 +1823,17 @@ fn apply_field_character(
             *separated = true;
         }
         Some("end") => {
+            // `separate` is optional: a field Word has never calculated runs
+            // begin -> instrText -> end with no cached result. Without this the
+            // page number in such a footer is simply missing.
+            if *active
+                && !*separated
+                && instruction.split_whitespace().any(|item| item == "PAGE")
+            {
+                run.get_or_insert_with(|| default_text_run(styles))
+                    .text
+                    .push_str(PAGE_FIELD_MARKER);
+            }
             *active = false;
             *separated = false;
             instruction.clear();
@@ -1818,6 +1861,16 @@ fn append_note_reference(
     }
 }
 
+/// Whether the element at `stack` sits inside a `<a:extLst>` compatibility
+/// extension such as `a14:hiddenFill` or `a14:hiddenLine`.
+///
+/// Those carry the colours Word would use if the shape's real `noFill` were
+/// ever removed. Reading them as the shape's own paint fills every such text
+/// box with `a14:hiddenLine`'s black, hiding the text behind it.
+fn is_compatibility_extension(stack: &[String]) -> bool {
+    stack.iter().any(|item| item == "extLst")
+}
+
 fn apply_text_box_shape_property(
     start: &quick_xml::events::BytesStart<'_>,
     name: &str,
@@ -1827,6 +1880,9 @@ fn apply_text_box_shape_property(
     let Some(text_box) = text_box else {
         return;
     };
+    if is_compatibility_extension(stack) {
+        return;
+    }
     match name {
         "srgbClr" => {
             let color = color_from_hex(&attribute(start, b"val").unwrap_or_default(), "#000000");
@@ -2368,16 +2424,14 @@ impl Layout<'_> {
         let height = text_box.height.max(1.0);
         self.node_counter += 1;
         let clip_id = format!("docx-text-box-clip-{}", self.node_counter);
+        // The clip is sized once the content is laid out. Word's default for a
+        // text box is `noAutofit`, which lets text spill past the frame rather
+        // than disappear, so a clip fixed to the declared height would hide
+        // paragraphs the author can see.
+        let clip_index = self.page.clips.len();
         self.page.clips.push(crate::ir::ClipPath {
             id: clip_id.clone(),
-            d: format!(
-                "M {} {} H {} V {} H {} Z",
-                fmt(x),
-                fmt(y),
-                fmt(x + width),
-                fmt(y + height),
-                fmt(x)
-            ),
+            d: String::new(),
             transform: IDENTITY,
             fill_rule: "nonzero".into(),
             parent_id: None,
@@ -2409,9 +2463,6 @@ impl Layout<'_> {
             for image in &paragraph.images {
                 let image_width = image.width.min((width - 8.0).max(1.0));
                 let image_height = image.height * (image_width / image.width.max(1.0));
-                if text_y + image_height > y + height - 2.0 {
-                    return;
-                }
                 self.node_counter += 1;
                 self.page.nodes.push(Node::Image {
                     id: format!("docx-text-box-image-{}", self.node_counter),
@@ -2436,9 +2487,6 @@ impl Layout<'_> {
             for runs in wrap_runs(&materialized, (width - 8.0).max(6.0)) {
                 let font_size = runs.iter().map(|run| run.font_size).fold(11.0, f64::max);
                 text_y += font_size;
-                if text_y > y + height - 2.0 {
-                    return;
-                }
                 let anchor = paragraph.style.alignment.unwrap_or(TextAnchor::Start);
                 let text_x = match anchor {
                     TextAnchor::Start => x + 4.0,
@@ -2464,6 +2512,19 @@ impl Layout<'_> {
                 });
                 text_y += font_size * 0.2;
             }
+        }
+        // Clip to the frame or to the overflow, whichever is taller, and never
+        // past the page so a runaway box cannot paint over everything.
+        let clip_bottom = (text_y + 2.0).max(y + height).min(self.page.height);
+        if let Some(clip) = self.page.clips.get_mut(clip_index) {
+            clip.d = format!(
+                "M {} {} H {} V {} H {} Z",
+                fmt(x),
+                fmt(y),
+                fmt(x + width),
+                fmt(clip_bottom),
+                fmt(x)
+            );
         }
     }
 

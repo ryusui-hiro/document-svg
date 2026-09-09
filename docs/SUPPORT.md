@@ -39,7 +39,7 @@
 | compatibility / inline-image syntax | BX/EX内の未知operatorを仕様どおり無視。BI/IDはliteral/hex/commentを除外したsyntax scanで検出 |
 | ExtGStateとgraphics-state stack | `ca`/`CA`/`AIS`/`BM`/`SMask`に加え、`LW`/`LC`/`LJ`/`ML`/`D`を累積更新。`q/Q`でfont、size、spacing、scale、leading、rise、text rendering modeも保存・復元 |
 | symbol font fallback | Wingdings由来の標準Unicode丸・菱形・check・arrowをmonochrome sans glyphへ限定正規化し、元文字列はaria labelへ保持 |
-| 暗号化PDF | 明示拒否 |
+| 暗号化PDF | ユーザーパスワードが必要なものは明示拒否。ユーザーパスワードが空の暗号化（権限フラグのみ）は他のビューア同様に復号して変換する。復号に失敗したページは「drew nothing」警告で報告 |
 
 ## PPTX
 

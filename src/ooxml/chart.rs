@@ -3,7 +3,7 @@ use quick_xml::events::Event;
 
 use crate::error::{Error, Result};
 use crate::ir::{IDENTITY, Node, Paint, SourceMeta, Stroke, TextAnchor, TextRun};
-use crate::ooxml::local_name;
+use crate::ooxml::{decode_xml_reference, local_name};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum ChartKind {
@@ -68,6 +68,9 @@ pub(crate) fn parse_chart(xml: &[u8], max_events: usize) -> Result<ChartData> {
                 text.push_str(&value.decode().map_err(|error| {
                     Error::InvalidInput(format!("invalid chart text: {error}"))
                 })?);
+            }
+            Event::GeneralRef(reference) if capture.is_some() => {
+                text.push_str(&decode_xml_reference(&reference, "chart text")?);
             }
             Event::End(end) => {
                 let qualified_name = end.name();

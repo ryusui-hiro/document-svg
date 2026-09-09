@@ -434,12 +434,20 @@ fn rejects_pdf_image_dimension_bombs_before_allocation() {
     };
     save_single_page_pdf(&mut document, &input, resources_id, content);
 
-    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
 
+    // The guard runs on the declared dimensions, so the 30 GB buffer is never
+    // allocated. The rest of the document still converts: one unusable image
+    // is a warning, not a reason to discard every other page.
+    assert_eq!(report.page_count, 1);
     assert!(
-        error
-            .to_string()
-            .contains("expands to 100000x100000 pixels")
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("expands to 100000x100000 pixels")
+                && warning.contains("was skipped")),
+        "{:?}",
+        report.warnings
     );
 }
 
@@ -471,8 +479,14 @@ fn skips_pdf_images_with_invalid_packed_samples_and_reports_warning() {
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
 
     assert_eq!(report.page_count, 1);
-    assert_eq!(report.warnings.len(), 1, "{:?}", report.warnings);
-    assert!(report.warnings[0].contains("invalid packed samples and was skipped"));
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("invalid packed samples and was skipped")),
+        "{:?}",
+        report.warnings
+    );
     assert!(output.join("page-0001.svg").exists());
 }
 
@@ -3890,4 +3904,431 @@ fn save_single_page_pdf(
     document.trailer.set("Root", Object::Reference(catalog_id));
     document.compress();
     document.save(path).unwrap();
+}
+
+/// A 600 DPI bilevel page scan is one byte per pixel once unpacked, so the
+/// expansion budget must not charge it four. Before this was fixed an ordinary
+/// scanned A4 page failed the whole document with an "RGBA limit" error.
+#[test]
+fn accepts_grayscale_images_that_would_exceed_the_rgba_budget() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("large-gray-scan.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    // 4910 x 6962 is a real 600 DPI A4 scan: 34.2 M pixels, which is 137 MB as
+    // RGBA (over the 128 MiB default) but 34 MB as the grayscale it decodes to.
+    let width = 4910usize;
+    let height = 6962usize;
+    let image_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => width as i64,
+            "Height" => height as i64,
+            "ColorSpace" => "DeviceGray",
+            "BitsPerComponent" => 8,
+        },
+        vec![0x80; width * height],
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "Scan" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("q", vec![]),
+            Operation::new(
+                "cm",
+                vec![612.into(), 0.into(), 0.into(), 792.into(), 0.into(), 0.into()],
+            ),
+            Operation::new("Do", vec![Object::Name(b"Scan".to_vec())]),
+            Operation::new("Q", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    assert_eq!(report.pages[0].node_count, 1, "{:?}", report.warnings);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+}
+
+/// JBIG2 is common in scanned manuals and has no decoder here. Naming the
+/// filter beats relaying the decoder's "missing feature" text, and skipping
+/// one image beats discarding the other 35 pages.
+#[test]
+fn skips_jbig2_images_by_name_without_failing_the_document() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("jbig2.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    let image_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 16,
+            "Height" => 16,
+            "ColorSpace" => "DeviceGray",
+            "BitsPerComponent" => 1,
+            "Filter" => "JBIG2Decode",
+        },
+        vec![0u8; 32],
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "Scan" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("q", vec![]),
+            Operation::new("0 0 1 rg", vec![]),
+            Operation::new("re", vec![0.into(), 0.into(), 10.into(), 10.into()]),
+            Operation::new("f", vec![]),
+            Operation::new("Do", vec![Object::Name(b"Scan".to_vec())]),
+            Operation::new("Q", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning
+                .contains("uses the unsupported JBIG2Decode filter and was skipped")),
+        "{:?}",
+        report.warnings
+    );
+}
+
+/// A page that consumed real content operators but drew nothing looks exactly
+/// like a genuinely empty page in the SVG. Say which one it was.
+#[test]
+fn warns_when_a_page_consumes_content_but_draws_nothing() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("silently-blank.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    let resources_id = document.add_object(dictionary! {});
+    // Referring to an XObject that no resource dictionary defines leaves the
+    // page with operators to run and nothing to show for them.
+    let content = Content {
+        operations: vec![Operation::new("Do", vec![Object::Name(b"Missing".to_vec())])],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.pages[0].node_count, 0);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("drew nothing from")),
+        "{:?}",
+        report.warnings
+    );
+}
+
+/// A page whose content stream is only whitespace is legitimately empty and
+/// must not be reported as a conversion problem.
+#[test]
+fn does_not_warn_about_a_genuinely_empty_page() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("empty-page.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    let resources_id = document.add_object(dictionary! {});
+    save_single_page_pdf(&mut document, &input, resources_id, Content { operations: vec![] });
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.pages[0].node_count, 0);
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("drew nothing from")),
+        "{:?}",
+        report.warnings
+    );
+}
+
+/// Slide-less decks are a real export failure mode. "input contains no
+/// renderable pages" does not tell the user which part of their file is empty.
+#[test]
+fn names_the_empty_slide_list_in_a_slideless_pptx() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("no-slides.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst/><p:sldSz cx="12192000" cy="6858000"/></p:presentation>"#,
+            ),
+            ("ppt/_rels/presentation.xml.rels", r#"<Relationships/>"#),
+        ],
+    );
+
+    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+
+    assert!(
+        error.to_string().contains("PPTX declares no slides"),
+        "{error}"
+    );
+}
+
+/// The XLSX counterpart of [`names_the_empty_slide_list_in_a_slideless_pptx`].
+#[test]
+fn names_the_empty_sheet_list_in_a_sheetless_xlsx() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("no-sheets.xlsx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "xl/workbook.xml",
+                r#"<workbook xmlns="w" xmlns:r="r"><sheets/></workbook>"#,
+            ),
+            ("xl/_rels/workbook.xml.rels", r#"<Relationships/>"#),
+        ],
+    );
+
+    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+
+    assert!(
+        error.to_string().contains("XLSX declares no worksheets"),
+        "{error}"
+    );
+}
+
+/// PowerPoint stores `<#>` as the cached text of a slide-number field and
+/// substitutes the real number when it renders. Emitting the cached text puts a
+/// literal `<#>` on every slide of the roughly one deck in three that numbers
+/// its slides.
+#[test]
+fn resolves_pptx_slide_number_fields_to_the_page_number() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("slide-numbers.pptx");
+    let output = temporary.path().join("out");
+    let slide = r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="1" name="Number"/></p:nvSpPr><p:spPr><a:xfrm><a:off x="6000000" y="6000000"/><a:ext cx="800000" cy="300000"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:p><a:fld id="{X}" type="slidenum"><a:rPr sz="1200"/><a:t>&#8249;#&#8250;</a:t></a:fld></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"#;
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/><p:sldId id="257" r:id="rId2"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide2.xml"/></Relationships>"#,
+            ),
+            ("ppt/slides/slide1.xml", slide),
+            ("ppt/slides/slide2.xml", slide),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 2);
+    let first = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let second = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(first.contains(">1</tspan>"), "{first}");
+    assert!(second.contains(">2</tspan>"), "{second}");
+    assert!(
+        !first.contains('\u{2039}') && !first.contains('\u{203a}'),
+        "cached placeholder text leaked: {first}"
+    );
+}
+
+/// Word keeps whatever name a picture arrived with, so `media/image1.png`
+/// holding JPEG bytes is ordinary. Declaring the wrong type in the data URI
+/// makes strict SVG renderers drop the image and the document silently loses
+/// its figures.
+#[test]
+fn labels_docx_images_from_their_signature_not_their_file_name() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("mislabelled-image.docx");
+    let output = temporary.path().join("out");
+    // A minimal but real JPEG: SOI, APP0/JFIF, EOI.
+    let mut jpeg = vec![0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10];
+    jpeg.extend_from_slice(b"JFIF\0");
+    jpeg.extend_from_slice(&[0x01, 0x01, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00]);
+    jpeg.extend_from_slice(&[0xff, 0xd9]);
+    make_zip_bytes(
+        &input,
+        vec![
+            (
+                "word/document.xml",
+                br#"<w:document xmlns:w="w" xmlns:r="r" xmlns:a="a" xmlns:wp="wp"><w:body><w:p><w:r><w:drawing><wp:inline><wp:extent cx="1270000" cy="1270000"/><a:graphic><a:graphicData><pic:pic xmlns:pic="pic"><pic:blipFill><a:blip r:embed="rId9"/></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p></w:body></w:document>"#.to_vec(),
+            ),
+            (
+                "word/_rels/document.xml.rels",
+                br#"<Relationships><Relationship Id="rId9" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/></Relationships>"#.to_vec(),
+            ),
+            ("word/media/image1.png", jpeg),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data:image/jpeg;base64,"), "{svg}");
+    assert!(!svg.contains("data:image/png;base64,"), "{svg}");
+}
+
+/// `fldCharType="separate"` is optional. A `PAGE` field Word has never
+/// calculated runs begin -> instrText -> end, and skipping it leaves the footer
+/// without its page number.
+#[test]
+fn materializes_a_docx_page_field_that_has_no_separate_marker() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("page-field.docx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "word/document.xml",
+                r#"<w:document xmlns:w="w"><w:body><w:p><w:r><w:t>Body</w:t></w:r></w:p><w:p><w:r><w:br w:type="page"/></w:r></w:p><w:p><w:r><w:t>Second</w:t></w:r></w:p><w:sectPr><w:footerReference w:type="default" r:id="rId5" xmlns:r="r"/></w:sectPr></w:body></w:document>"#,
+            ),
+            (
+                "word/_rels/document.xml.rels",
+                r#"<Relationships><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer1.xml"/></Relationships>"#,
+            ),
+            (
+                "word/footer1.xml",
+                r#"<w:ftr xmlns:w="w"><w:p><w:r><w:t xml:space="preserve">Page </w:t></w:r><w:r><w:fldChar w:fldCharType="begin"/><w:instrText xml:space="preserve"> PAGE </w:instrText><w:fldChar w:fldCharType="end"/></w:r></w:p></w:ftr>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.page_count >= 2, "{}", report.page_count);
+    let first = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let second = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(first.contains("Page 1"), "{first}");
+    assert!(second.contains("Page 2"), "{second}");
+}
+
+/// quick-xml reports `&amp;` as `Event::GeneralRef`, not as text. A parser that
+/// only handles `Event::Text` drops every ampersand, so "R&D" reached the SVG
+/// as "RD". This held for PPTX shape text, PPTX table text, DOCX body text and
+/// chart labels; 12.7% of the documents in the review corpus were affected.
+#[test]
+fn keeps_xml_entities_in_pptx_shape_and_table_text() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("entities.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a"><p:cSld><p:spTree><p:sp><p:nvSpPr><p:cNvPr id="1" name="T"/></p:nvSpPr><p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="5000000" cy="1000000"/></a:xfrm><a:prstGeom prst="rect"/></p:spPr><p:txBody><a:p><a:r><a:rPr sz="2400"/><a:t>R&amp;D &#183; Q&amp;A</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The SVG re-escapes the ampersand, so the round trip is `&amp;`.
+    assert!(svg.contains("R&amp;D \u{b7} Q&amp;A"), "{svg}");
+}
+
+/// The DOCX half of [`keeps_xml_entities_in_pptx_shape_and_table_text`].
+#[test]
+fn keeps_xml_entities_in_docx_text() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("entities.docx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[(
+            "word/document.xml",
+            r#"<w:document xmlns:w="w"><w:body><w:p><w:r><w:t xml:space="preserve">Research &amp; Development &#8212; Q&amp;A</w:t></w:r></w:p></w:body></w:document>"#,
+        )],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains("Research &amp; Development \u{2014} Q&amp;A"),
+        "{svg}"
+    );
+}
+
+/// `a14:hiddenFill` and `a14:hiddenLine` hold the colours Word would restore if
+/// the shape's real `noFill` were removed. Reading them as the shape's own paint
+/// filled every such text box with `hiddenLine`'s black, hiding its text.
+#[test]
+fn ignores_compatibility_paint_on_docx_text_boxes() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("hidden-fill.docx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[(
+            "word/document.xml",
+            r#"<w:document xmlns:w="w" xmlns:a="a" xmlns:wps="wps" xmlns:wp="wp" xmlns:a14="a14"><w:body><w:p><w:r><w:drawing><wp:anchor><wp:positionH relativeFrom="column"><wp:posOffset>0</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV><wp:extent cx="3630295" cy="361950"/><a:graphic><a:graphicData><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="3630295" cy="361950"/></a:xfrm><a:prstGeom prst="rect"/><a:noFill/><a:ln><a:noFill/></a:ln><a:extLst><a:ext uri="{909E8E84}"><a14:hiddenFill><a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill></a14:hiddenFill></a:ext><a:ext uri="{91240B29}"><a14:hiddenLine w="9525"><a:solidFill><a:srgbClr val="000000"/></a:solidFill></a14:hiddenLine></a:ext></a:extLst></wps:spPr><wps:txbx><w:txbxContent><w:p><w:r><w:t>Visible caption</w:t></w:r></w:p></w:txbxContent></wps:txbx></wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r></w:p></w:body></w:document>"#,
+        )],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Visible caption"), "{svg}");
+    let box_path = svg
+        .lines()
+        .find(|line| line.contains("docx-floating-text-box"))
+        .unwrap_or_default();
+    assert!(
+        box_path.contains("fill=\"none\""),
+        "compatibility paint became the shape fill: {box_path}"
+    );
+}
+
+/// Word's default text box is `noAutofit`: text longer than the frame spills
+/// out rather than vanishing. Cutting the layout off at the declared height
+/// dropped every paragraph after the first in a short box.
+#[test]
+fn keeps_docx_text_box_paragraphs_that_overflow_the_frame() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("overflowing-box.docx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[(
+            "word/document.xml",
+            r#"<w:document xmlns:w="w" xmlns:a="a" xmlns:wps="wps" xmlns:wp="wp"><w:body><w:p><w:r><w:drawing><wp:anchor><wp:positionH relativeFrom="column"><wp:posOffset>0</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV><wp:extent cx="3630295" cy="180000"/><a:graphic><a:graphicData><wps:wsp><wps:cNvSpPr txBox="1"/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="3630295" cy="180000"/></a:xfrm><a:prstGeom prst="rect"/><a:noFill/><a:noAutofit/></wps:spPr><wps:txbx><w:txbxContent><w:p><w:r><w:t>First line of the box</w:t></w:r></w:p><w:p><w:r><w:t>Second line of the box</w:t></w:r></w:p><w:p><w:r><w:t>Third line of the box</w:t></w:r></w:p></w:txbxContent></wps:txbx></wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r></w:p></w:body></w:document>"#,
+        )],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    for line in ["First line of the box", "Second line of the box", "Third line of the box"] {
+        assert!(svg.contains(line), "missing {line:?} in {svg}");
+    }
 }

@@ -26,6 +26,10 @@ const MAX_GRAPHICS_STACK: usize = 256;
 const MAX_FORM_DEPTH: usize = 32;
 const MAX_PAGE_MESH_TRIANGLES: usize = 50_000;
 
+/// Image compression filters no decoder in this crate can expand to samples.
+/// `JPXDecode` is absent on purpose: JPEG 2000 streams are embedded verbatim.
+const UNDECODABLE_IMAGE_FILTERS: &[&[u8]] = &[b"JBIG2Decode"];
+
 pub(crate) fn convert(
     path: &Path,
     options: &ConvertOptions,
@@ -37,6 +41,11 @@ pub(crate) fn convert(
             "encrypted PDFs are rejected; access controls are not bypassed".into(),
         ));
     }
+    // A document that declared /Encrypt but no longer carries it was unlocked
+    // with the empty user password while loading. lopdf discards per-object
+    // decryption failures, so streams can survive that pass still encrypted;
+    // `render_page` uses this to explain a page that decodes to nothing.
+    let decrypted_in_place = document.was_encrypted();
     let pages = document.get_pages().into_iter().collect::<Vec<_>>();
     if pages.len() > options.max_pages {
         return Err(Error::LimitExceeded(format!(
@@ -68,6 +77,7 @@ pub(crate) fn convert(
                             *page_id,
                             page_content_limit,
                             options.outline_embedded_pdf_text,
+                            decrypted_in_place,
                         )
                     })
                     .collect::<Vec<_>>()
@@ -86,6 +96,7 @@ pub(crate) fn convert(
                 page_id,
                 page_content_limit,
                 options.outline_embedded_pdf_text,
+                decrypted_in_place,
             )?;
             warnings.extend(page.warnings.iter().cloned());
             sink.consume(page)?;
@@ -100,6 +111,7 @@ fn render_page(
     page_id: ObjectId,
     content_limit: usize,
     outline_embedded_pdf_text: bool,
+    decrypted_in_place: bool,
 ) -> Result<Page> {
     let box_values = inherited_page_array(document, page_id, b"CropBox")
         .or_else(|| inherited_page_array(document, page_id, b"MediaBox"))
@@ -153,6 +165,27 @@ fn render_page(
         interpreter
             .page
             .warn("PDF graphics-state stack was not balanced at end of page");
+    }
+    // A page that consumed a content stream yet drew nothing is indistinguishable
+    // from a genuinely empty page in the SVG, so say which one it was. The most
+    // common cause is a stream that survived loading still encrypted: lopdf
+    // ignores per-object decryption failures, and the resulting bytes decode as
+    // a few meaningless operators rather than as an error.
+    let content_is_blank = content_bytes
+        .iter()
+        .all(|byte| byte.is_ascii_whitespace() || *byte == 0);
+    if page.nodes.is_empty() && !content_is_blank {
+        if decrypted_in_place {
+            page.warn(format!(
+                "PDF page {page_number} drew nothing from {} byte(s) of content; the document was encrypted and this stream was probably not decrypted",
+                content_bytes.len()
+            ));
+        } else {
+            page.warn(format!(
+                "PDF page {page_number} drew nothing from {} byte(s) of content",
+                content_bytes.len()
+            ));
+        }
     }
     Ok(page)
 }
@@ -3109,7 +3142,30 @@ impl Interpreter<'_, '_> {
         Ok(())
     }
 
+    /// Draw one image XObject or inline image.
+    ///
+    /// A single unusable image must not abort a document that is otherwise
+    /// renderable, so decoding problems are recorded as page warnings and the
+    /// image is skipped. See [`Self::draw_image_inner`] for the decode itself.
     fn draw_image(&mut self, stream: &Stream, name: &[u8]) -> Result<()> {
+        match self.draw_image_inner(stream, name) {
+            Ok(()) => Ok(()),
+            // Every failure below is local to this image's bytes: the stream is
+            // already in memory, so nothing here indicates a corrupt document
+            // or an exhausted process. Propagating would discard every other
+            // page, which is worse than a page that is missing one image.
+            Err(error @ (Error::LimitExceeded(_) | Error::InvalidInput(_) | Error::Pdf(_))) => {
+                self.page.warn(format!(
+                    "PDF image {} was skipped: {error}",
+                    String::from_utf8_lossy(name)
+                ));
+                Ok(())
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    fn draw_image_inner(&mut self, stream: &Stream, name: &[u8]) -> Result<()> {
         let width = stream
             .dict
             .get(b"Width")
@@ -3128,15 +3184,26 @@ impl Interpreter<'_, '_> {
                 String::from_utf8_lossy(name)
             ))
         })?;
+        // Budget the samples this image actually expands to rather than
+        // assuming RGBA. A 600 DPI bilevel scan is one byte per pixel once
+        // unpacked, so charging it four would reject ordinary scanned pages.
+        let bytes_per_pixel = self.image_expansion_bytes_per_pixel(stream);
+        let expanded_bytes = pixel_count.checked_mul(bytes_per_pixel).ok_or_else(|| {
+            Error::LimitExceeded(format!(
+                "PDF image {} dimensions overflow",
+                String::from_utf8_lossy(name)
+            ))
+        })?;
         if width > u32::MAX as usize
             || height > u32::MAX as usize
-            || pixel_count > self.content_limit / 4
+            || expanded_bytes > self.content_limit
         {
             return Err(Error::LimitExceeded(format!(
-                "PDF image {} expands to {}x{} pixels; RGBA limit is {} bytes",
+                "PDF image {} expands to {}x{} pixels at {} byte(s) per pixel; limit is {} bytes",
                 String::from_utf8_lossy(name),
                 width,
                 height,
+                bytes_per_pixel,
                 self.content_limit
             )));
         }
@@ -3171,6 +3238,22 @@ impl Interpreter<'_, '_> {
             ("image/jp2", stream.content.clone())
         } else {
             let ccitt = filters.iter().any(|filter| *filter == b"CCITTFaxDecode");
+            // Report the filter by name rather than letting the decoder's
+            // "missing feature" text reach the report. JBIG2 in particular is
+            // common in scanned manuals and needs a decoder this crate does
+            // not carry.
+            if let Some(filter) = filters
+                .iter()
+                .copied()
+                .find(|filter| UNDECODABLE_IMAGE_FILTERS.contains(filter))
+            {
+                self.page.warn(format!(
+                    "PDF image {} uses the unsupported {} filter and was skipped",
+                    String::from_utf8_lossy(name),
+                    String::from_utf8_lossy(filter)
+                ));
+                return Ok(());
+            }
             let pixels = if has_dct {
                 decode_pdf_jpeg_content(stream, width, height, self.content_limit)?
             } else if ccitt {
@@ -3338,6 +3421,45 @@ impl Interpreter<'_, '_> {
             },
         });
         Ok(())
+    }
+
+    /// Bytes of decoded sample data one pixel of `stream` can occupy.
+    ///
+    /// This mirrors what [`Self::draw_image_inner`] actually allocates: the
+    /// normalized input samples (one byte per colour component) and the encoder
+    /// input (grayscale or RGB, plus one alpha byte when a soft mask applies).
+    /// Stencil masks are painted straight to RGBA.
+    fn image_expansion_bytes_per_pixel(&mut self, stream: &Stream) -> usize {
+        if stream
+            .dict
+            .get(b"ImageMask")
+            .and_then(Object::as_bool)
+            .unwrap_or(false)
+        {
+            return 4;
+        }
+        let color_space = stream
+            .dict
+            .get(b"ColorSpace")
+            .ok()
+            .map(|object| self.resolve_color_space_object(object));
+        let input_components = pdf_color_component_count(self.document, color_space.as_ref());
+        // Indexed, Separation and DeviceN all widen to RGB on output even
+        // though they carry fewer input components; only the gray spaces stay
+        // at one byte.
+        let output_components: usize = match color_space.as_ref() {
+            Some(Object::Name(value)) if value == b"DeviceGray" || value == b"G" => 1,
+            Some(Object::Array(array))
+                if array.first().and_then(|value| value.as_name().ok()) == Some(b"CalGray") =>
+            {
+                1
+            }
+            _ => 3,
+        };
+        let alpha = usize::from(stream.dict.get(b"SMask").is_ok());
+        input_components
+            .max(output_components.saturating_add(alpha))
+            .max(1)
     }
 
     fn decode_image_samples(
