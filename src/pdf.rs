@@ -975,6 +975,31 @@ impl PathBuilder {
     }
 }
 
+/// A Type 1 font program parsed once per decoder.
+///
+/// `parse_type1` decrypts the eexec section and scans the whole program, so
+/// running it for every text-showing operator dominated conversion of
+/// Type 1-heavy PDFs. Cloning a decoder starts an empty cache rather than
+/// duplicating the parse: clones are made per pattern or soft mask, not per
+/// glyph.
+#[derive(Default)]
+struct Type1Cache(std::cell::OnceCell<Option<Box<stet_fonts::type1_parser::Type1Font>>>);
+
+impl Clone for Type1Cache {
+    fn clone(&self) -> Self {
+        Self::default()
+    }
+}
+
+impl std::fmt::Debug for Type1Cache {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Type1Cache")
+            .field("parsed", &self.0.get().is_some())
+            .finish()
+    }
+}
+
 #[derive(Clone, Debug)]
 struct FontDecoder {
     family: String,
@@ -989,6 +1014,7 @@ struct FontDecoder {
     widths: HashMap<u32, f64>,
     default_width: f64,
     type3: Option<Arc<Type3Font>>,
+    type1: Type1Cache,
 }
 
 #[derive(Clone, Debug)]
@@ -1206,7 +1232,16 @@ impl FontDecoder {
         character_spacing_em: f64,
         word_spacing_em: f64,
     ) -> std::result::Result<String, &'static str> {
-        let Ok(font) = stet_fonts::type1_parser::parse_type1(data) else {
+        let Some(font) = self
+            .type1
+            .0
+            .get_or_init(|| {
+                stet_fonts::type1_parser::parse_type1(data)
+                    .ok()
+                    .map(Box::new)
+            })
+            .as_deref()
+        else {
             return self.outline_cff(data, bytes, character_spacing_em, word_spacing_em);
         };
         let lookup = |name: &str| font.charstrings.get(name).cloned();
@@ -4851,6 +4886,7 @@ fn build_font_decoder(
         widths,
         default_width,
         type3,
+        type1: Type1Cache::default(),
     }
 }
 
@@ -8140,6 +8176,7 @@ mod tests {
             widths: HashMap::from([(65, 500.0), (32, 250.0)]),
             default_width: 500.0,
             type3: None,
+            type1: Type1Cache::default(),
         }
     }
 
@@ -8380,6 +8417,7 @@ mod tests {
             widths: HashMap::from([(65, 500.0)]),
             default_width: 500.0,
             type3: None,
+            type1: Type1Cache::default(),
         };
         let path = decoder
             .outline_cff(&minimal_test_cff(), b"A", 0.0, 0.0)

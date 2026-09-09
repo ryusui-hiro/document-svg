@@ -104,8 +104,9 @@ docsvg input.pdf --output out/ --jobs 4   # PDFを4ページ並列で処理
 docsvg input.pdf --output out/ --outline-embedded-pdf-text
 ```
 
-`--jobs`はPDFだけに効きます。手元のMacで5.1MB・117ページのPDFを測ると、
-1ワーカーで9.9秒、4ワーカーで3.9秒でした。Office形式は常に1ページずつ流すので、
+`--jobs`はPDFだけに効きます。手元のMac（Apple Silicon）で9.7MB・96ページのPDFは
+1ワーカー1.8秒、4ワーカー1.0秒。12MB・252ページの画像とType 1フォントが多い資料は
+1ワーカー10.8秒、4ワーカー4.3秒でした。Office形式は常に1ページずつ流すので、
 `--jobs`を上げてもメモリだけ増えて速くはなりません。
 
 `--outline-embedded-pdf-text`は見た目を優先する指定です。埋め込みフォントの字形を
