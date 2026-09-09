@@ -3424,6 +3424,7 @@ impl Interpreter<'_, '_> {
         };
         self.node_counter += 1;
         let image_flip = [1.0, 0.0, 0.0, -1.0, 0.0, 1.0];
+        let placement = compose(self.page_matrix, compose(self.state.ctm, image_flip));
         self.page.nodes.push(Node::Image {
             id: format!("pdf-image-{}-{}", self.page.number, self.node_counter),
             href: format!(
@@ -3434,7 +3435,7 @@ impl Interpreter<'_, '_> {
             y: 0.0,
             width: 1.0,
             height: 1.0,
-            transform: compose(self.page_matrix, compose(self.state.ctm, image_flip)),
+            transform: placement,
             opacity: 1.0,
             clip_id: self.state.clip_id.clone(),
             meta: SourceMeta {
@@ -3447,11 +3448,7 @@ impl Interpreter<'_, '_> {
                 blend_mode: self.state.blend_mode.clone(),
                 mask_id: self.state.mask_id.clone().unwrap_or_default(),
                 alpha_is_shape: self.state.alpha_is_shape,
-                image_rendering: if interpolate {
-                    "auto".into()
-                } else {
-                    "pixelated".into()
-                },
+                image_rendering: image_rendering_hint(interpolate, width, height, placement),
                 ..SourceMeta::default()
             },
         });
@@ -6835,6 +6832,23 @@ impl<'a> MeshBitReader<'a> {
 /// `/DecodeParms` may be a direct dictionary, an indirect reference, or an
 /// array running parallel to `/Filter`. lopdf only reads the first form, so the
 /// other two silently lose the predictor; `/DP` is the inline-image spelling.
+/// How an SVG renderer should resample this image.
+///
+/// PDF's `/Interpolate false` asks for no smoothing when an image is *enlarged*.
+/// CSS `pixelated` is broader than that: it also turns off the area averaging
+/// every PDF viewer applies when an image is reduced, which speckles a scan
+/// placed at a fraction of its pixel size. So `pixelated` is used only where it
+/// means what the PDF meant — an image drawn larger than its own pixel grid.
+fn image_rendering_hint(interpolate: bool, width: usize, height: usize, placement: Matrix) -> String {
+    if interpolate {
+        return "auto".into();
+    }
+    let drawn_width = placement[0].hypot(placement[1]);
+    let drawn_height = placement[2].hypot(placement[3]);
+    let magnified = drawn_width > width as f64 || drawn_height > height as f64;
+    if magnified { "pixelated".into() } else { "auto".into() }
+}
+
 fn png_predictor_of(document: &Document, stream: &Stream) -> Option<PngPredictor> {
     let raw = [b"DecodeParms".as_slice(), b"DP".as_slice()]
         .into_iter()

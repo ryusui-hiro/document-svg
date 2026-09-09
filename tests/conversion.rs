@@ -4613,3 +4613,58 @@ fn resolves_xml_entities_in_pptx_attribute_values() {
         "{svg}"
     );
 }
+
+/// `/Interpolate false` asks for no smoothing when an image is enlarged. CSS
+/// `pixelated` also disables the area averaging every PDF viewer applies when
+/// an image is reduced, which speckles a scan placed at a fraction of its pixel
+/// size, so it belongs only on images actually drawn larger than their own grid.
+#[test]
+fn asks_for_pixelated_rendering_only_where_the_image_is_magnified() {
+    fn convert_at(scale: i64, directory: &Path) -> String {
+        let input = directory.join(format!("image-{scale}.pdf"));
+        let output = directory.join(format!("out-{scale}"));
+        let mut document = Document::with_version("1.7");
+        // A 64x64 image, drawn either much smaller or much larger.
+        let image_id = document.add_object(Stream::new(
+            dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => 64,
+                "Height" => 64,
+                "ColorSpace" => "DeviceGray",
+                "BitsPerComponent" => 8,
+            },
+            vec![0x40; 64 * 64],
+        ));
+        let resources_id = document.add_object(dictionary! {
+            "XObject" => dictionary! { "Pic" => Object::Reference(image_id) },
+        });
+        let content = Content {
+            operations: vec![
+                Operation::new("q", vec![]),
+                Operation::new(
+                    "cm",
+                    vec![scale.into(), 0.into(), 0.into(), scale.into(), 0.into(), 0.into()],
+                ),
+                Operation::new("Do", vec![Object::Name(b"Pic".to_vec())]),
+                Operation::new("Q", vec![]),
+            ],
+        };
+        save_single_page_pdf(&mut document, &input, resources_id, content);
+        convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        fs::read_to_string(output.join("page-0001.svg")).unwrap()
+    }
+
+    let temporary = TempDir::new().unwrap();
+    let reduced = convert_at(16, temporary.path());
+    let enlarged = convert_at(400, temporary.path());
+
+    assert!(
+        reduced.contains("image-rendering=\"auto\""),
+        "a 64px image drawn at 16pt is being reduced: {reduced}"
+    );
+    assert!(
+        enlarged.contains("image-rendering=\"pixelated\""),
+        "a 64px image drawn at 400pt is being enlarged: {enlarged}"
+    );
+}

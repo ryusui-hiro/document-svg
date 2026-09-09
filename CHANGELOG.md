@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Ask for `pixelated` image rendering only where an image is actually drawn larger than its own pixel grid. `/Interpolate false` is about enlargement, but CSS `pixelated` also disables the area averaging every PDF viewer applies when reducing, which speckled scans placed at a fraction of their pixel size.
 - Resolve XML entities in Office attribute values. The raw, still-escaped bytes were taken verbatim and escaped again, so an alt text of `R&D` reached the reader as `R&amp;D`. 58 of the 364 Office files in the review corpus carry an entity in a `descr`, `name` or `title`.
 - Grow a PPTX table row to fit its wrapped cell text. `<a:tr h="...">` is a minimum height, and treating it as final clipped the second line off every wrapped cell.
 - Render a PPTX gradient slide background as a gradient. `<p:bg>` was tracked as one colour, so a two-stop background collapsed to whichever stop was read last and a title slide meant to fade came out flat. 6% of the decks in the review corpus use one.
