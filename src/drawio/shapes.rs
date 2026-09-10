@@ -129,6 +129,17 @@ pub(super) fn canonical_shape(name: &str) -> Option<&'static str> {
         "mxgraph.sysml.callbehact" => "sysmlCallBehaviour",
         "umlstate" => "umlState",
         "mxgraph.bpmn.data" => "bpmnData",
+        // A composite shape with no sub-shapes named is the rectangle it
+        // stands on, which is how draw.io's own templates use it.
+        "ext" => "rectangle",
+        "mxgraph.aws4.groupcenter" => "rectangle",
+        "mxgraph.sysml.compstate" => "sysmlCompositeState",
+        "mxgraph.mockup.text.callout" => "mockupTextCallout",
+        "mxgraph.sysml.actparamnode" => "sysmlParameterNode",
+        "mxgraph.sysml.itemflow" => "sysmlItemFlow",
+        "mxgraph.pid2misc.column" => "pidColumn",
+        "mxgraph.pid2valves.valve" => "pidValve",
+        "mxgraph.lean_mapping.timeline" => "leanTimeBar",
         // SysML draws its activity and flow nodes in code rather than as
         // stencils. Each is a rounded body with square ports let into it.
         "mxgraph.sysml.flowfinal" => "sysmlFlowFinal",
@@ -851,6 +862,245 @@ pub(super) fn shape_paths(name: &str, rect: Rect, style: &Style) -> Option<Paths
                 n(inner_at(start).0),
                 n(inner_at(start).1)
             ))
+        }
+        // An activity parameter node: two open frames with the parameter boxes
+        // let into their sides.
+        "sysmlParameterNode" => {
+            let near = (width * 0.35).max(70.0);
+            let far = (width * 0.65).min(width - 10.0);
+            let port = |at: f64, share: f64| {
+                rectangle_path(Rect {
+                    x: at,
+                    y: y + height * share - 10.0,
+                    width: 20.0,
+                    height: 20.0,
+                })
+            };
+            let mut ports = format!(
+                "{} {} {}",
+                port(x, 0.35),
+                port(x, 0.65),
+                port(right - 20.0, 0.5)
+            );
+            // The name band across the top, when there is room for one.
+            let banner = 50.0_f64.min(width);
+            if banner > 20.0 {
+                ports.push(' ');
+                ports.push_str(&polygon_path(&[
+                    (x + 10.0, y + 20.0),
+                    (x + banner - 10.0, y + 20.0),
+                    (x + banner, y + 10.0),
+                    (x + banner, y),
+                    (x + 10.0, y),
+                ]));
+            }
+            Paths::with(
+                ports,
+                vec![
+                    polyline_path(&[
+                        (x + near, bottom),
+                        (x + 10.0, bottom),
+                        (x + 10.0, y),
+                        (x + near, y),
+                    ]),
+                    polyline_path(&[
+                        (x + far, bottom),
+                        (right - 10.0, bottom),
+                        (right - 10.0, y),
+                        (x + far, y),
+                    ]),
+                ],
+            )
+        }
+        // An item flow: a box with a port let into whichever side the flow
+        // enters by.
+        "sysmlItemFlow" => {
+            let direction = style.text("flowdir", "none");
+            let port = |at: f64, top: f64| {
+                rectangle_path(Rect {
+                    x: at,
+                    y: top,
+                    width: 20.0,
+                    height: 20.0,
+                })
+            };
+            let (body, socket) = match direction.as_str() {
+                "n" => (
+                    Rect {
+                        y: y + 10.0,
+                        height: height - 10.0,
+                        ..rect
+                    },
+                    Some(port(cx - 10.0, y)),
+                ),
+                "s" => (
+                    Rect {
+                        height: height - 10.0,
+                        ..rect
+                    },
+                    Some(port(cx - 10.0, bottom - 20.0)),
+                ),
+                "w" => (
+                    Rect {
+                        x: x + 10.0,
+                        width: width - 10.0,
+                        ..rect
+                    },
+                    Some(port(x, cy - 10.0)),
+                ),
+                "e" => (
+                    Rect {
+                        width: width - 10.0,
+                        ..rect
+                    },
+                    Some(port(right - 20.0, cy - 10.0)),
+                ),
+                _ => (rect, None),
+            };
+            Paths::new(match socket {
+                Some(socket) => format!("{} {}", rectangle_path(body), socket),
+                None => rectangle_path(body),
+            })
+        }
+        // A process column: a vessel with a domed end at each side, and the
+        // internals its type asks for stacked up the middle.
+        "pidColumn" => {
+            let height = height.max(30.0);
+            let bottom = y + height;
+            let shell = format!(
+                "M {} {} A {} 15 0 0 1 {} {} L {} {} A {} 15 0 0 1 {} {} Z",
+                n(x),
+                n(y + 15.0),
+                n(width * 0.5),
+                n(right),
+                n(y + 15.0),
+                n(right),
+                n(bottom - 15.0),
+                n(width * 0.5),
+                n(x),
+                n(bottom - 15.0)
+            );
+            let range = height - 50.0;
+            let mut internals = Vec::new();
+            let column_type = style.text("columntype", "common");
+            // The internals repeat up the middle of the vessel, centred in
+            // whatever room is left between its two domed ends.
+            let step = match column_type.as_str() {
+                "fixed" => width * 1.2,
+                "tray" => width * 0.2,
+                _ => 0.0,
+            };
+            if step > 0.0 && range > 0.0 {
+                let offset = (range % step) * 0.5 + 25.0;
+                let mut at = 0.0;
+                while at <= range - step && internals.len() < 512 {
+                    let top = y + at + offset;
+                    if column_type == "tray" {
+                        internals.push(line_path((x, top), (right, top)));
+                    } else {
+                        let (near, far) = (top + step * 0.1, top + step * 0.9);
+                        internals.push(line_path((x, near), (right, near)));
+                        internals.push(line_path((x, far), (right, far)));
+                        internals.push(line_path((x, near), (right, far)));
+                        internals.push(line_path((x, far), (right, near)));
+                    }
+                    at += step;
+                }
+            }
+            Paths::with(shell, internals)
+        }
+        // A valve: two triangles meeting at their points.
+        "pidValve" => Paths::new(format!(
+            "{} {}",
+            polygon_path(&[(x, y), (cx, cy), (x, bottom)]),
+            polygon_path(&[(right, y), (cx, cy), (right, bottom)])
+        )),
+        // A lead time bar: the wave a value stream map draws its times along,
+        // stepping up and down once per time the style lists.
+        "leanTimeBar" => {
+            let spec = style.text("maintext", "20,Time 1,50,Time 2,30,Time 3");
+            let times = spec
+                .split(',')
+                .step_by(2)
+                .filter_map(|part| part.trim().parse::<f64>().ok())
+                .filter(|value| value.is_finite() && *value > 0.0)
+                .take(256)
+                .collect::<Vec<_>>();
+            let total = times.iter().sum::<f64>();
+            if times.is_empty() || total <= 0.0 {
+                return Some(Paths::new(String::new()));
+            }
+            let band = style.number("fontsize", 12.0) * 1.5;
+            let mut points = vec![(x, bottom)];
+            let mut at = x;
+            for (index, time) in times.iter().enumerate() {
+                at += time / total * width;
+                // The times alternate between the low and the high rail.
+                let (from, to) = if index % 2 == 0 {
+                    (bottom, y + band)
+                } else {
+                    (y + band, bottom)
+                };
+                points.push((at, from));
+                points.push((at, to));
+            }
+            Paths::fill_only(String::new(), vec![polyline_path(&points)])
+        }
+        // A composite state: a rounded box with a band across the top for its
+        // name, and the regions inside it divided by a dashed line.
+        "sysmlCompositeState" => {
+            let band = (style.number("fontsize", 12.0) * 1.5).min(height);
+            Paths::with(
+                rounded_rect_path(rect, 10.0),
+                vec![line_path((x, y + band), (right, y + band))],
+            )
+        }
+        // A label on a leader line, pointing back at whatever it names.
+        "mockupTextCallout" => {
+            let font = style.number("textsize", 17.0).max(1.0);
+            let band = font * 1.5;
+            // draw.io sizes the label box to the text it carries; the same
+            // measurement is used here so the leader starts in the same place.
+            let text = style.text("linktext", "Callout");
+            let span = text
+                .chars()
+                .map(|character| font * text_advance_factor(character))
+                .sum::<f64>()
+                * 1.2;
+            let span = if span <= 0.0 { 70.0 } else { span.min(width) };
+            let north = !style.text("calldir", "NW").starts_with('S');
+            let west = style.text("calldir", "NW").ends_with('W');
+            let (near, far) = if west {
+                (x, x + span)
+            } else {
+                (right - span, right)
+            };
+            let (band_top, tail_y) = if north {
+                (y, y + band)
+            } else {
+                (bottom - band, bottom - band)
+            };
+            let point = (if west { right } else { x }, if north { bottom } else { y });
+            let label = Rect {
+                x: near,
+                y: band_top,
+                width: span,
+                height: band,
+            };
+            match style.text("callstyle", "line").as_str() {
+                "rect" | "roundRect" => Paths::with(
+                    if style.text("callstyle", "line") == "rect" {
+                        rectangle_path(label)
+                    } else {
+                        rounded_rect_path(label, band * 0.25)
+                    },
+                    vec![line_path(((near + far) * 0.5, tail_y), point)],
+                ),
+                _ => Paths::fill_only(
+                    String::new(),
+                    vec![polyline_path(&[(near, tail_y), (far, tail_y), point])],
+                ),
+            }
         }
         // An arrow with a head at each end, its shaft `dy` of the height thick.
         "twoWayArrow" => {

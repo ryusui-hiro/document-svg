@@ -12,6 +12,7 @@
 
 // The reader is split by the job each part does: the model and the page come
 // together here, and each of these draws one kind of thing.
+mod artwork;
 mod bpmn;
 mod edge;
 mod geometry;
@@ -19,6 +20,7 @@ mod label;
 mod shapes;
 mod stencil;
 
+use artwork::*;
 use bpmn::*;
 use edge::*;
 use geometry::*;
@@ -854,7 +856,7 @@ fn load_stencils(
     }
     // A tile names the glyph it carries in the style rather than in the shape.
     for cell in &model.cells {
-        for key in ["resicon", "gricon"] {
+        for key in ["resicon", "gricon", "network2icon"] {
             if let Some(name) = cell.style.get(key).filter(|value| !value.is_empty()) {
                 wanted.insert(name.to_ascii_lowercase());
             }
@@ -1248,6 +1250,32 @@ fn draw_vertex(
                 | "mxgraph.rackGeneral.rackCabinet3"
                 | "mxgraph.c4.person"
                 | "mxgraph.mockup.containers.browserWindow"
+                | "mxgraph.mockup.graphics.columnChart"
+                | "mxgraph.mockup.containers.videoPlayer"
+                | "mxgraph.eip.messageChannel"
+                | "mxgraph.eip.deadLetterChannel"
+                | "mxgraph.ios7ui.icon"
+                | "mxgraph.bootstrap.image"
+                | "mxgraph.mockup.containers.window"
+                | "mxgraph.mockup.navigation.scrollBar"
+                | "mxgraph.mockup.forms.spinner"
+                | "mxgraph.mockup.forms.checkboxGroup"
+                | "mxgraph.mockup.misc.pin"
+                | "mxgraph.mockup.misc.rating"
+                | "mxgraph.bootstrap.rating"
+                | "mxgraph.bootstrap.leftButtonStriped"
+                | "mxgraph.networks.bus"
+                | "smileyFace"
+                | "mxgraph.mockup.containers.userMale"
+                | "mxgraph.ios.iBgMap"
+                | "mxgraph.ios.iBgStriped"
+                | "mxgraph.ios.iPin"
+                | "mxgraph.gmdl.player"
+                | "mxgraph.electrical.logic_gates.logic_gate"
+                | "mxgraph.ios.iLocBar"
+                | "mxgraph.android.statusBar"
+                | "mxgraph.infographic.circularCallout2"
+                | "mxgraph.ios7ui.actionDialog"
                 | "mxgraph.mockup.graphics.pieChart"
         )
     ) && draw_shaded_shape(cell, drawing, transform, nodes)
@@ -1280,6 +1308,46 @@ fn draw_vertex(
                 ..SourceMeta::default()
             },
         });
+        draw_label(
+            cell,
+            label_bounds(rect, style),
+            rotation,
+            nodes,
+            bounds,
+            clips,
+            false,
+        );
+        return;
+    }
+    // A network icon stands on a rounded tile and carries its picture as a
+    // separate stencil, which the style names rather than spelling out.
+    if style.get("shape") == Some("mxgraph.networks2.icon") {
+        let drawn_tile = draw_shaded_shape(cell, drawing, transform, nodes);
+        let icon = style.text("network2icon", "").to_ascii_lowercase();
+        // A tile shrinks the picture to five sevenths and centres it, the way
+        // the editor does; without one the picture fills the box.
+        let inside = if drawn_tile {
+            Rect {
+                x: drawing.x + drawing.width / 7.0,
+                y: drawing.y + drawing.height / 7.0,
+                width: drawing.width / 1.4,
+                height: drawing.height / 1.4,
+            }
+        } else {
+            drawing
+        };
+        // draw.io also draws a long shadow behind the picture, from a stencil
+        // of its own filled solid black. A stencil is painted here in the
+        // cell's own colours, so that silhouette would come out over the
+        // picture rather than under it, and it is left out instead.
+        if !icon.is_empty() && !draw_stencil(cell, &icon, inside, transform, nodes, library) {
+            let warning = format!(
+                "drawio shape 'mxgraph.networks2.icon' carries the icon '{icon}'; pass that library's stencil file to draw it"
+            );
+            if !warnings.contains(&warning) {
+                warnings.push(warning);
+            }
+        }
         draw_label(
             cell,
             label_bounds(rect, style),
@@ -2051,41 +2119,15 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
     };
     let width = style.number("strokewidth", 1.0).max(0.0);
     let opacity = (style.number("opacity", 100.0) / 100.0).clamp(0.0, 1.0);
-    let identity = format!("drawio-{}", cell.id);
-    let mut index = 0usize;
-    // `edge` names a colour to stroke with instead of the shape's own, for the
-    // parts draw.io paints in a second colour the style carries separately.
-    let mut paint =
-        |d: String, fill: Option<&str>, alpha: f64, stroked: bool, edge: Option<&str>| {
-            index += 1;
-            nodes.push(Node::Path {
-                id: format!("{identity}-part-{index}"),
-                d,
-                fill_rule: "nonzero".into(),
-                fill: fill.map_or(Paint::None, |color| Paint::Solid {
-                    color: color.to_owned(),
-                    opacity: alpha * opacity,
-                }),
-                stroke: match (stroked || edge.is_some(), edge.or(stroke.as_deref())) {
-                    (true, Some(color)) => Stroke {
-                        paint: Paint::Solid {
-                            color: color.to_owned(),
-                            opacity,
-                        },
-                        width,
-                        ..Stroke::default()
-                    },
-                    _ => Stroke::default(),
-                },
-                transform,
-                clip_id: None,
-                meta: SourceMeta {
-                    kind: "drawio-shaded".into(),
-                    source_id: cell.id.clone(),
-                    ..SourceMeta::default()
-                },
-            });
-        };
+    let mut shade = Shading {
+        identity: format!("drawio-{}", cell.id),
+        index: 0,
+        stroke: stroke.clone(),
+        width,
+        opacity,
+        transform,
+        source: cell.id.clone(),
+    };
     let Rect { x, y, .. } = rect;
     let (w, h) = (rect.width, rect.height);
     let (right, bottom) = (rect.right(), rect.bottom());
@@ -2094,7 +2136,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         // The angle is given in gradians of the isometric projection.
         let angle = style.number("isoangle", 15.0).clamp(0.01, 94.0) * PI / 200.0;
         let iso = (w * angle.tan()).min(h * 0.5);
-        paint(
+        shade.paint(
+            nodes,
             polygon_path(&[
                 (x + w * 0.5, y),
                 (right, y + iso),
@@ -2122,8 +2165,1178 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 (x + w * 0.5, bottom),
             ],
         ] {
-            paint(polygon_path(&points), Some("#000000"), 0.2, false, None);
+            shade.paint(
+                nodes,
+                polygon_path(&points),
+                Some("#000000"),
+                0.2,
+                false,
+                None,
+            );
         }
+        return true;
+    }
+    // An action sheet: the panel, with a button for each choice on it.
+    if style.get("shape") == Some("mxgraph.ios7ui.actionDialog") {
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            false,
+            None,
+        );
+        let button = style.text("buttoncolor", "#E0E0E0");
+        for top in [0.1, 0.55] {
+            shade.paint(
+                nodes,
+                oval_rect_path(
+                    Rect {
+                        x: x + w * 0.05,
+                        y: y + h * top,
+                        width: w * 0.9,
+                        height: h * 0.35,
+                    },
+                    w * 0.025,
+                    h * 0.05,
+                ),
+                Some(&button),
+                1.0,
+                false,
+                None,
+            );
+        }
+        return true;
+    }
+    // A network icon: the rounded tile it stands on, shaded when the style
+    // asks for it. The picture itself is a stencil the caller has to supply,
+    // and is named in a warning when it is not drawn.
+    if style.get("shape") == Some("mxgraph.networks2.icon") {
+        let background = style.text("network2bgfillcolor", "none");
+        if background == "none" {
+            return false;
+        }
+        let tile = oval_rect_path(rect, w * 0.03571, h * 0.03571);
+        match style.get("gradientcolor").filter(|value| *value != "none") {
+            Some(second) => shade.shade(nodes, tile, rect, &background, second, false),
+            None => shade.paint(nodes, tile, Some(&background), 1.0, false, None),
+        }
+        return true;
+    }
+    // A location bar: a shaded plaque with a pointer on one edge, and the
+    // controls drawn along it.
+    if style.get("shape") == Some("mxgraph.ios.iLocBar") {
+        let radius = 2.5;
+        let dead = radius + 7.5;
+        let at = x
+            + dead
+            + (w - 2.0 * dead).max(0.0) * style.number("barpos", 80.0).clamp(0.0, 100.0) / 100.0;
+        let top = style.text("pointerpos", "bottom") == "top";
+        let body = if top {
+            path_of(&[
+                Step::Move(x, y + radius + 7.5),
+                Step::Arc(radius, radius, 0, 1, x + radius, y + 7.5),
+                Step::Line(at - 7.5, y + 7.5),
+                Step::Line(at, y),
+                Step::Line(at + 7.5, y + 7.5),
+                Step::Line(right - radius, y + 7.5),
+                Step::Arc(radius, radius, 0, 1, right, y + radius + 7.5),
+                Step::Line(right, bottom - radius),
+                Step::Arc(radius, radius, 0, 1, right - radius, bottom),
+                Step::Line(x + radius, bottom),
+                Step::Arc(radius, radius, 0, 1, x, bottom - radius),
+                Step::Close,
+            ])
+        } else {
+            path_of(&[
+                Step::Move(x, y + radius),
+                Step::Arc(radius, radius, 0, 1, x + radius, y),
+                Step::Line(right - radius, y),
+                Step::Arc(radius, radius, 0, 1, right, y + radius),
+                Step::Line(right, bottom - radius - 7.5),
+                Step::Arc(radius, radius, 0, 1, right - radius, bottom - 7.5),
+                Step::Line(at + 7.5, bottom - 7.5),
+                Step::Line(at, bottom),
+                Step::Line(at - 7.5, bottom - 7.5),
+                Step::Line(x + radius, bottom - 7.5),
+                Step::Arc(radius, radius, 0, 1, x, bottom - radius - 7.5),
+                Step::Close,
+            ])
+        };
+        shade.shade(
+            nodes,
+            body,
+            rect,
+            &style.text("fillcolor3", "#888888"),
+            &style.text("fillcolor2", "#000000"),
+            false,
+        );
+        shade.line(
+            nodes,
+            ios_location_bar(rect),
+            Some(&style.text("strokecolor2", "#000000")),
+            0.5,
+        );
+        return true;
+    }
+    // An Android status bar: the band, then its marks in the second colour.
+    if style.get("shape") == Some("mxgraph.android.statusBar") {
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            false,
+            None,
+        );
+        let ink = style.text("strokecolor2", "#FFFFFF");
+        shade.paint(
+            nodes,
+            android_status_bar(rect),
+            Some(&ink),
+            1.0,
+            false,
+            Some(&ink),
+        );
+        return true;
+    }
+    // A numbered pin: a ring on a stalk, with the ring and the dot at its foot
+    // punched out so the fill shows through them.
+    if style.get("shape") == Some("mxgraph.infographic.circularCallout2") {
+        let rx = (w * 0.5).min(h * 0.4).min(h * 0.5 - 7.0).max(0.0);
+        let small = (rx * 0.1).max(6.0);
+        let mut pin = vec![
+            Step::Move(cx - 2.0, y + 2.15 * rx),
+            Step::Arc(rx * 0.23, rx * 0.23, 0, 0, cx - rx * 0.2, y + rx * 1.97),
+            Step::Arc(rx, rx, 0, 1, cx - rx, y + rx),
+            Step::Arc(rx, rx, 0, 1, cx, y),
+            Step::Arc(rx, rx, 0, 1, cx + rx, y + rx),
+            Step::Arc(rx, rx, 0, 1, cx + rx * 0.2, y + rx * 1.97),
+            Step::Arc(rx * 0.23, rx * 0.23, 0, 0, cx + 2.0, y + 2.15 * rx),
+        ];
+        // A big enough pin tapers into its foot; a small one runs straight in.
+        let waisted = rx * 0.04 > 4.0;
+        if waisted {
+            pin.push(Step::Line(cx + 2.0, bottom - rx * 0.22));
+            pin.push(Step::Arc(
+                rx * 0.05,
+                rx * 0.05,
+                0,
+                0,
+                cx + rx * 0.04,
+                bottom - rx * 0.19,
+            ));
+        } else {
+            pin.push(Step::Line(cx + 2.0, bottom - 2.0 * small));
+        }
+        pin.push(Step::Arc(small, small, 0, 1, cx + small, bottom - small));
+        pin.push(Step::Arc(small, small, 0, 1, cx, bottom));
+        pin.push(Step::Arc(small, small, 0, 1, cx - small, bottom - small));
+        if waisted {
+            pin.push(Step::Arc(
+                small,
+                small,
+                0,
+                1,
+                cx - rx * 0.04,
+                bottom - rx * 0.19,
+            ));
+            pin.push(Step::Arc(
+                small * 0.5,
+                small * 0.5,
+                0,
+                0,
+                cx - 2.0,
+                bottom - rx * 0.22,
+            ));
+        } else {
+            pin.push(Step::Arc(
+                small,
+                small,
+                0,
+                1,
+                cx - 2.0,
+                bottom - 2.0 * small,
+            ));
+        }
+        pin.push(Step::Close);
+        // The two holes, wound the other way so the fill shows through them.
+        let hole = |centre: f64, radius: f64| {
+            vec![
+                Step::Move(cx, centre - radius),
+                Step::Arc(radius, radius, 0, 0, cx - radius, centre),
+                Step::Arc(radius, radius, 0, 0, cx, centre + radius),
+                Step::Arc(radius, radius, 0, 0, cx + radius, centre),
+                Step::Arc(radius, radius, 0, 0, cx, centre - radius),
+                Step::Close,
+            ]
+        };
+        pin.extend(hole(y + rx, rx * 0.8));
+        pin.extend(hole(bottom - small, small * 0.75));
+        shade.paint(nodes, path_of(&pin), stroke.as_deref(), 1.0, false, None);
+        return true;
+    }
+    // A portrait: the frame, then the face and shoulders drawn over it in the
+    // style's second stroke colour.
+    if style.get("shape") == Some("mxgraph.mockup.containers.userMale") {
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        shade.paint(
+            nodes,
+            user_male(rect),
+            None,
+            1.0,
+            false,
+            Some(&style.text("strokecolor2", "#008CFF")),
+        );
+        return true;
+    }
+    // A map view: the streets and blocks, then the frame over the top of them.
+    if style.get("shape") == Some("mxgraph.ios.iBgMap") {
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        shade.line(
+            nodes,
+            ios_map(rect),
+            Some(&style.text("strokecolor2", "#CCCCCC")),
+            0.5,
+        );
+        shade.paint(nodes, rectangle_path(rect), None, 1.0, true, None);
+        return true;
+    }
+    // A striped background: a rule every five pixels, framed.
+    if style.get("shape") == Some("mxgraph.ios.iBgStriped") {
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        let mut rules = Vec::new();
+        let mut at = 5.0;
+        while at < w && rules.len() < 4096 {
+            rules.push(Step::Move(x + at, y));
+            rules.push(Step::Line(x + at, bottom));
+            at += 5.0;
+        }
+        shade.paint(
+            nodes,
+            path_of(&rules),
+            None,
+            1.0,
+            false,
+            Some(&style.text("strokecolor2", "#657E8F")),
+        );
+        shade.paint(nodes, rectangle_path(rect), None, 1.0, true, None);
+        return true;
+    }
+    // A map pin, the iOS one: the same head and stem the mock-up pin has.
+    if style.get("shape") == Some("mxgraph.ios.iPin") {
+        let head = Rect {
+            x,
+            y,
+            width: w,
+            height: h * 0.4,
+        };
+        shade.line(
+            nodes,
+            line_path((cx, y + h * 0.4), (cx, bottom)),
+            Some(&style.text("pinstemcolor", "#666666")),
+            1.5,
+        );
+        shade.shade(
+            nodes,
+            ellipse_path(head),
+            head,
+            &style.text("fillcolor2", "#000000"),
+            &style.text("fillcolor3", "#000000"),
+            true,
+        );
+        shade.paint(
+            nodes,
+            ellipse_path(Rect {
+                x: x + w * 0.2,
+                y: y + h * 0.08,
+                width: w * 0.3,
+                height: h * 0.12,
+            }),
+            Some("#FFFFFF"),
+            0.5,
+            false,
+            None,
+        );
+        return true;
+    }
+    // A media player bar: the track played so far, and the pause button.
+    if style.get("shape") == Some("mxgraph.gmdl.player") {
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        if h >= 4.0 {
+            shade.paint(
+                nodes,
+                rectangle_path(Rect {
+                    x,
+                    y,
+                    width: w * 0.8,
+                    height: 4.0,
+                }),
+                Some(&style.text("progresscolor", "#FFED00")),
+                1.0,
+                false,
+                None,
+            );
+        }
+        if h >= 14.0 && w >= 33.0 {
+            let icon = style.text("iconcolor", "#717171");
+            for at in [33.0, 25.0] {
+                shade.paint(
+                    nodes,
+                    rectangle_path(Rect {
+                        x: right - at,
+                        y: cy - 7.0,
+                        width: 4.0,
+                        height: 14.0,
+                    }),
+                    Some(&icon),
+                    1.0,
+                    false,
+                    None,
+                );
+            }
+        }
+        return true;
+    }
+    // A logic gate: the body its operation asks for, the input and output
+    // leads, and the bubble that negates it.
+    if style.get("shape") == Some("mxgraph.electrical.logic_gates.logic_gate") {
+        let operation = style.text("operation", "and");
+        let inputs = style.number("numinputs", 2.0).clamp(1.0, 64.0);
+        let spacing = h / inputs;
+        let mut leads = vec![Step::Move(x + w * 0.8, cy), Step::Line(right, cy)];
+        let reach = if operation == "and" { 0.2 } else { 0.23 };
+        for index in 0..inputs as u32 {
+            let at = y + spacing * (0.5 + f64::from(index));
+            leads.push(Step::Move(x, at));
+            leads.push(Step::Line(x + w * reach, at));
+        }
+        shade.paint(nodes, path_of(&leads), None, 1.0, true, None);
+        // An exclusive gate carries a second arc in front of the body.
+        if operation == "xor" {
+            shade.paint(
+                nodes,
+                path_of(&[
+                    Step::Move(x + w * 0.1, y),
+                    Step::Arc(w * 0.6, h, 0, 1, x + w * 0.1, bottom),
+                ]),
+                None,
+                1.0,
+                true,
+                None,
+            );
+        }
+        let body = if operation == "or" || operation == "xor" {
+            path_of(&[
+                Step::Move(x + w * 0.4, y),
+                Step::Arc(w * 0.45, h * 0.83, 0, 1, x + w * 0.8, cy),
+                Step::Arc(w * 0.45, h * 0.83, 0, 1, x + w * 0.4, bottom),
+                Step::Line(x + w * 0.15, bottom),
+                Step::Arc(w * 0.6, h, 0, 0, x + w * 0.15, y),
+                Step::Close,
+            ])
+        } else {
+            path_of(&[
+                Step::Move(x + w * 0.2, y),
+                Step::Line(cx, y),
+                Step::Arc(w * 0.3, h * 0.5, 0, 1, cx, bottom),
+                Step::Line(x + w * 0.2, bottom),
+                Step::Close,
+            ])
+        };
+        shade.paint(nodes, body, fill.as_deref(), 1.0, true, None);
+        if style.flag("negating") {
+            shade.paint(
+                nodes,
+                ellipse_path(Rect {
+                    x: x + w * 0.8,
+                    y: cy - w * 0.05,
+                    width: w * 0.1,
+                    height: w * 0.1,
+                }),
+                fill.as_deref(),
+                1.0,
+                true,
+                None,
+            );
+        }
+        return true;
+    }
+    // A network bus: the same pipe an integration channel is drawn as, with a
+    // white end cap rather than a shaded one.
+    if style.get("shape") == Some("mxgraph.networks.bus") {
+        let (top, foot) = (cy - 10.0, cy + 10.0);
+        shade.paint(
+            nodes,
+            format!(
+                "M {} {} A 12 12 0 0 1 {} {} L {} {} A 12 12 0 0 1 {} {} Z",
+                n(x + 8.0),
+                n(foot),
+                n(x + 8.0),
+                n(top),
+                n(right - 8.0),
+                n(top),
+                n(right - 8.0),
+                n(foot)
+            ),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        shade.paint(
+            nodes,
+            format!(
+                "M {} {} A 12 12 0 0 1 {} {} A 12 12 0 0 1 {} {} Z",
+                n(right - 8.0),
+                n(top),
+                n(right - 8.0),
+                n(foot),
+                n(right - 8.0),
+                n(top)
+            ),
+            Some("#FFFFFF"),
+            1.0,
+            true,
+            None,
+        );
+        return true;
+    }
+    // A face: two eyes and a mouth that turns up, flat or down. Everything but
+    // the face itself is drawn in the feature colour.
+    if style.get("shape") == Some("smileyFace") {
+        let radius = w.min(h) / 2.0;
+        let ink = style.text("smileyfeaturecolor", "#666666");
+        let unit = w.min(h) / 30.0;
+        shade.paint(
+            nodes,
+            ellipse_path(Rect {
+                x: cx - radius,
+                y: cy - radius,
+                width: 2.0 * radius,
+                height: 2.0 * radius,
+            }),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        for side in [-1.0, 1.0] {
+            let eye = 1.5 * unit;
+            shade.paint(
+                nodes,
+                ellipse_path(Rect {
+                    x: cx + side * 5.0 * unit - eye,
+                    y: cy - 5.0 * unit - eye,
+                    width: 2.0 * eye,
+                    height: 2.0 * eye,
+                }),
+                Some(&ink),
+                1.0,
+                false,
+                Some(&ink),
+            );
+        }
+        // A happy or sad mouth is a crescent; a neutral one is a line.
+        let mouth = style.text("smileytype", "happy");
+        if mouth == "neutral" {
+            shade.line(
+                nodes,
+                line_path(
+                    (cx - 5.0 * unit, cy + 7.0 * unit),
+                    (cx + 5.0 * unit, cy + 7.0 * unit),
+                ),
+                Some(&ink),
+                unit,
+            );
+        } else {
+            let happy = mouth != "sad";
+            let level = cy + if happy { 2.0 * unit } else { 7.0 * unit };
+            let (from, back) = if happy { (1.0, -1.0) } else { (-1.0, 1.0) };
+            shade.paint(
+                nodes,
+                format!(
+                    "M {} {} A {r} {r} 0 1 1 {} {} L {} {} A {i} {i} 0 1 0 {} {} Z",
+                    n(cx + from * 7.5 * unit),
+                    n(level),
+                    n(cx + back * 7.5 * unit),
+                    n(level),
+                    n(cx + back * 6.818 * unit),
+                    n(level),
+                    n(cx + from * 6.818 * unit),
+                    n(level),
+                    r = n(7.5 * unit),
+                    i = n(6.818 * unit),
+                ),
+                Some("#000000"),
+                1.0,
+                false,
+                Some(&ink),
+            );
+        }
+        return true;
+    }
+    // A plain window: the frame, three buttons and the line under the title.
+    if style.get("shape") == Some("mxgraph.mockup.containers.window") {
+        let (w, h) = (w.max(90.0), h.max(30.0));
+        let right = x + w;
+        let close = style.text("strokecolor2", "#008CFF");
+        let inside = style.text("strokecolor3", "#C4C4C4");
+        shade.paint(
+            nodes,
+            rectangle_path(Rect {
+                x,
+                y,
+                width: w,
+                height: h,
+            }),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        for (at, colour) in [
+            (75.0, stroke.as_deref()),
+            (50.0, stroke.as_deref()),
+            (25.0, Some(close.as_str())),
+        ] {
+            shade.paint(
+                nodes,
+                ellipse_path(Rect {
+                    x: right - at,
+                    y: y + 5.0,
+                    width: 20.0,
+                    height: 20.0,
+                }),
+                None,
+                1.0,
+                false,
+                colour,
+            );
+        }
+        shade.paint(
+            nodes,
+            line_path((x, y + 30.0), (right, y + 30.0)),
+            None,
+            1.0,
+            false,
+            Some(&inside),
+        );
+        return true;
+    }
+    // A scroll bar: a track twenty pixels tall, an arrow at each end and the
+    // handle where the bar has been dragged to.
+    if style.get("shape") == Some("mxgraph.mockup.navigation.scrollBar") {
+        let button = 20.0;
+        let (w, h) = (w.max(2.0 * button), 20.0);
+        let (right, bottom) = (x + w, y + h);
+        shade.paint(
+            nodes,
+            rectangle_path(Rect {
+                x,
+                y,
+                width: w,
+                height: h,
+            }),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        for at in [x + button, right - button] {
+            shade.paint(
+                nodes,
+                line_path((at, y), (at, bottom)),
+                None,
+                1.0,
+                true,
+                None,
+            );
+        }
+        let arrow_fill = style.text("fillcolor2", "#99DDFF");
+        let arrow_edge = style.text("strokecolor2", "none");
+        let arrow_edge = (arrow_edge != "none").then_some(arrow_edge);
+        for pointing_left in [true, false] {
+            let (tip, back) = if pointing_left {
+                (x + button * 0.2, x + button * 0.8)
+            } else {
+                (right - button * 0.2, right - button * 0.8)
+            };
+            shade.paint(
+                nodes,
+                polygon_path(&[(tip, y + h * 0.5), (back, y + h * 0.2), (back, y + h * 0.8)]),
+                Some(&arrow_fill),
+                1.0,
+                false,
+                arrow_edge.as_deref(),
+            );
+        }
+        // The handle keeps its own width and slides between the two arrows.
+        let span = (w - 2.0 * button).max(0.0);
+        let handle = 60.0_f64.min(span);
+        let at =
+            x + button + (span - handle) * style.number("barpos", 20.0).clamp(0.0, 100.0) / 100.0;
+        shade.paint(
+            nodes,
+            rounded_rect_path(
+                Rect {
+                    x: at,
+                    y: y + h * 0.15,
+                    width: handle,
+                    height: h * 0.7,
+                },
+                5.0,
+            ),
+            Some(&arrow_fill),
+            1.0,
+            false,
+            arrow_edge.as_deref(),
+        );
+        return true;
+    }
+    // A number field with its own stepper down one side.
+    if style.get("shape") == Some("mxgraph.mockup.forms.spinner") {
+        let layout = style.text("spinnerlayout", "right");
+        shade.paint(
+            nodes,
+            rounded_rect_path(rect, 10.0),
+            Some(&style.text("fillcolor2", "#FFFFFF")),
+            1.0,
+            true,
+            None,
+        );
+        // The stepper is twenty pixels along whichever side it sits on.
+        let (divider, split) = match layout.as_str() {
+            "left" => (
+                line_path((x + 20.0, y), (x + 20.0, bottom)),
+                line_path((x + 20.0, cy), (x, cy)),
+            ),
+            "top" => (
+                line_path((x, y + 20.0), (right, y + 20.0)),
+                line_path((cx, y + 20.0), (cx, y)),
+            ),
+            "bottom" => (
+                line_path((x, bottom - 20.0), (right, bottom - 20.0)),
+                line_path((cx, bottom - 20.0), (cx, bottom)),
+            ),
+            _ => (
+                line_path((right - 20.0, y), (right - 20.0, bottom)),
+                line_path((right - 20.0, cy), (right, cy)),
+            ),
+        };
+        shade.paint(nodes, divider, None, 1.0, true, None);
+        shade.paint(nodes, split, None, 1.0, true, None);
+        return true;
+    }
+    // A group of checkboxes, one per option the style lists.
+    if style.get("shape") == Some("mxgraph.mockup.forms.checkboxGroup") {
+        let options = style.text("maintext", "Option 1");
+        let count = options.split(',').count().max(1);
+        let size = 15.0;
+        let font = style.number("textsize", 17.0).max(1.0);
+        let line = (font * 1.5).max(size);
+        let full = line * count as f64;
+        let h = h.max(full);
+        shade.paint(
+            nodes,
+            rectangle_path(Rect {
+                x,
+                y,
+                width: w,
+                height: h,
+            }),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        for (index, option) in options.split(',').enumerate().take(64) {
+            let middle = y + (index as f64 * line + line * 0.5) * h / full;
+            let box_top = middle - size * 0.5;
+            shade.paint(
+                nodes,
+                rectangle_path(Rect {
+                    x: x + size * 0.5,
+                    y: box_top,
+                    width: size,
+                    height: size,
+                }),
+                fill.as_deref(),
+                1.0,
+                true,
+                None,
+            );
+            // A leading `+` in the option marks the one that is ticked.
+            if option.starts_with('+') {
+                shade.paint(
+                    nodes,
+                    polyline_path(&[
+                        (x + size * 0.5 + size * 0.8, box_top + size * 0.2),
+                        (x + size * 0.5 + size * 0.4, box_top + size * 0.8),
+                        (x + size * 0.5 + size * 0.25, box_top + size * 0.6),
+                    ]),
+                    None,
+                    1.0,
+                    true,
+                    None,
+                );
+            }
+        }
+        return true;
+    }
+    // A map pin: a shaded head on a stem, with a highlight over the top.
+    if style.get("shape") == Some("mxgraph.mockup.misc.pin") {
+        let head = Rect {
+            x,
+            y,
+            width: w,
+            height: h * 0.4,
+        };
+        shade.line(
+            nodes,
+            line_path((cx, y + h * 0.4), (cx, bottom)),
+            Some(&style.text("strokecolor2", "#666666")),
+            3.0,
+        );
+        shade.shade(
+            nodes,
+            ellipse_path(head),
+            head,
+            &style.text("fillcolor2", "#000000"),
+            &style.text("fillcolor3", "#000000"),
+            true,
+        );
+        shade.paint(
+            nodes,
+            ellipse_path(Rect {
+                x: x + w * 0.2,
+                y: y + h * 0.08,
+                width: w * 0.3,
+                height: h * 0.12,
+            }),
+            Some(&style.text("fillcolor4", "#FFFFFF")),
+            0.5,
+            false,
+            None,
+        );
+        return true;
+    }
+    // A rating: as many filled stars or hearts as the grade, then empty ones
+    // up to the scale. Each is drawn in a box as wide as the shape is tall.
+    if matches!(
+        style.get("shape"),
+        Some("mxgraph.bootstrap.rating" | "mxgraph.mockup.misc.rating")
+    ) {
+        let hearts = style.text("ratingstyle", "star") == "heart";
+        let grade = style.number("grade", 5.0).clamp(0.0, 64.0);
+        let scale = style.number("ratingscale", 10.0).clamp(0.0, 64.0);
+        let empty = style.text("emptyfillcolor", "#FFFFFF");
+        for index in 0..scale.max(grade) as u32 {
+            let at = x + f64::from(index) * h * 1.2;
+            let colour = if f64::from(index) < grade {
+                fill.as_deref()
+            } else {
+                Some(empty.as_str())
+            };
+            shade.paint(
+                nodes,
+                rating_mark(at, y, h, hearts),
+                colour,
+                1.0,
+                true,
+                None,
+            );
+        }
+        return true;
+    }
+    // A button rounded on its left edge, with a barber pole across it.
+    if style.get("shape") == Some("mxgraph.bootstrap.leftButtonStriped") {
+        let radius = 5.0_f64.min(w / 2.0).min(h / 2.0);
+        let body = format!(
+            "M {} {} L {} {} L {} {} A {r} {r} 0 0 1 {} {} L {} {} A {r} {r} 0 0 1 {} {} Z",
+            n(right),
+            n(y),
+            n(right),
+            n(bottom),
+            n(x + radius),
+            n(bottom),
+            n(x),
+            n(bottom - radius),
+            n(x),
+            n(y + radius),
+            n(x + radius),
+            n(y),
+            r = n(radius),
+        );
+        shade.paint(nodes, body, fill.as_deref(), 1.0, false, None);
+        // The stripes run at forty five degrees and are clipped to the button
+        // by taking whichever of its edges each one reaches first.
+        let stripe = h * 0.5;
+        shade.paint(
+            nodes,
+            polygon_path(&[
+                (x, y + h * 0.75),
+                (x, y + h * 0.25),
+                (x + h * 0.75, bottom),
+                (x + h * 0.25, bottom),
+            ]),
+            Some("#FFFFFF"),
+            0.2,
+            false,
+            None,
+        );
+        let mut at = stripe * 0.5;
+        while at <= w && stripe > 0.0 {
+            let mut points = vec![(x + at, y)];
+            if at + stripe >= w {
+                points.push((right, y));
+                points.push((right, y + w - at));
+            } else {
+                points.push((x + at + stripe, y));
+                if at + stripe + h > w {
+                    points.push((right, y + w - at - stripe));
+                    if w - at > h {
+                        points.push((right, bottom));
+                        points.push((x + at + h, bottom));
+                    } else {
+                        points.push((right, y + w - at));
+                    }
+                } else {
+                    points.push((x + at + stripe + h, bottom));
+                    points.push((x + at + h, bottom));
+                }
+            }
+            shade.paint(
+                nodes,
+                polygon_path(&points),
+                Some("#FFFFFF"),
+                0.2,
+                false,
+                None,
+            );
+            at += 2.0 * stripe;
+        }
+        return true;
+    }
+    // A column chart: three pairs of bars in two colours, over axes drawn
+    // twice as thick as the rest.
+    if style.get("shape") == Some("mxgraph.mockup.graphics.columnChart") {
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        let bar = style.text("strokecolor2", "none");
+        let bar = (bar != "none").then_some(bar);
+        let column = |at: f64, top: f64| {
+            rectangle_path(Rect {
+                x: x + w * at,
+                y: y + h * top,
+                width: w * 0.05,
+                height: h * (1.0 - top),
+            })
+        };
+        for (colour, bars) in [
+            (
+                style.text("fillcolor2", "#008CFF"),
+                [(0.2, 0.25), (0.45, 0.4), (0.7, 0.05)],
+            ),
+            (
+                style.text("fillcolor3", "#DDDDDD"),
+                [(0.25, 0.15), (0.5, 0.35), (0.75, 0.2)],
+            ),
+        ] {
+            for (at, top) in bars {
+                shade.paint(
+                    nodes,
+                    column(at, top),
+                    Some(&colour),
+                    1.0,
+                    false,
+                    bar.as_deref(),
+                );
+            }
+        }
+        let axis = style.text("strokecolor3", "#666666");
+        shade.line(
+            nodes,
+            polyline_path(&[(x, y), (x, bottom), (right, bottom)]),
+            Some(&axis),
+            shade.width * 2.0,
+        );
+        return true;
+    }
+    // A video player: the picture, a progress bar in two colours with a handle
+    // where it has got to, and the transport controls under it.
+    if style.get("shape") == Some("mxgraph.mockup.containers.videoPlayer") {
+        let bar_height = style.number("barheight", 30.0).clamp(0.0, h);
+        let button = style.text("fillcolor2", "#C4C4C4");
+        let done = style.text("strokecolor2", "#008CFF");
+        let togo = style.text("strokecolor3", "#C4C4C4");
+        let reach = 8.0;
+        let track = bottom - bar_height;
+        let at = x
+            + reach
+            + (w - 2.0 * reach).max(0.0) * style.number("barpos", 20.0).clamp(0.0, 100.0) / 100.0;
+        shade.paint(
+            nodes,
+            rectangle_path(rect),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        shade.line(
+            nodes,
+            line_path((x, track), (at, track)),
+            Some(&done),
+            shade.width,
+        );
+        shade.line(
+            nodes,
+            line_path((at, track), (right, track)),
+            Some(&togo),
+            shade.width,
+        );
+        // The handle, then the smaller ring inside it drawn half as thick.
+        shade.paint(
+            nodes,
+            ellipse_path(Rect {
+                x: at - reach,
+                y: track - reach,
+                width: 2.0 * reach,
+                height: 2.0 * reach,
+            }),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        shade.line(
+            nodes,
+            ellipse_path(Rect {
+                x: at - reach * 0.5,
+                y: track - reach * 0.5,
+                width: reach,
+                height: reach,
+            }),
+            None,
+            shade.width / 2.0,
+        );
+        let icon = bar_height * 0.3;
+        let top = bottom - (bar_height + icon) * 0.5;
+        // Play, then the speaker with the two waves coming off it.
+        shade.paint(
+            nodes,
+            polygon_path(&[
+                (x + bar_height * 0.3, top),
+                (x + bar_height * 0.3 + icon, top + icon * 0.5),
+                (x + bar_height * 0.3, top + icon),
+            ]),
+            Some(&button),
+            1.0,
+            false,
+            Some(&button),
+        );
+        let (speaker, level) = (x + bar_height, track);
+        shade.paint(
+            nodes,
+            polygon_path(&[
+                (speaker + bar_height * 0.05, level + bar_height * 0.4),
+                (speaker + bar_height * 0.15, level + bar_height * 0.4),
+                (speaker + bar_height * 0.3, level + bar_height * 0.25),
+                (speaker + bar_height * 0.3, level + bar_height * 0.75),
+                (speaker + bar_height * 0.15, level + bar_height * 0.6),
+                (speaker + bar_height * 0.05, level + bar_height * 0.6),
+            ]),
+            Some(&button),
+            1.0,
+            false,
+            Some(&button),
+        );
+        for (from, span, reach) in [(0.35, 0.65, (0.2, 0.3)), (0.25, 0.75, (0.225, 0.35))] {
+            let start = if from == 0.35 { 0.4 } else { 0.425 };
+            shade.paint(
+                nodes,
+                format!(
+                    "M {} {} A {} {} 0 0 1 {} {}",
+                    n(speaker + bar_height * start),
+                    n(level + bar_height * from),
+                    n(bar_height * reach.0),
+                    n(bar_height * reach.1),
+                    n(speaker + bar_height * start),
+                    n(level + bar_height * span)
+                ),
+                None,
+                1.0,
+                false,
+                Some(&button),
+            );
+        }
+        // The four corners of the full-screen button.
+        let screen = right - bar_height * 1.3;
+        for (side, updown) in [(0.1, 0.3), (0.1, 0.7), (0.9, 0.3), (0.9, 0.7)] {
+            let inward = if side < 0.5 { 0.25 } else { 0.75 };
+            let back = if updown < 0.5 { 0.4 } else { 0.6 };
+            shade.paint(
+                nodes,
+                polyline_path(&[
+                    (screen + bar_height * side, level + bar_height * back),
+                    (screen + bar_height * side, level + bar_height * updown),
+                    (screen + bar_height * inward, level + bar_height * updown),
+                ]),
+                None,
+                1.0,
+                false,
+                Some(&button),
+            );
+        }
+        return true;
+    }
+    // An integration channel: a pipe shaded along its length, with the open
+    // end drawn over it, and a marker for the letters that never arrive.
+    if let Some(kind) = style
+        .get("shape")
+        .filter(|name| name.starts_with("mxgraph.eip.") && name.ends_with("Channel"))
+    {
+        let near = style.text("channelcolor1", "#E6E6E6");
+        let far = style.text("channelcolor2", "#808080");
+        let (top, foot) = (cy - 10.0, cy + 10.0);
+        shade.shade(
+            nodes,
+            format!(
+                "M {} {} A 12 12 0 0 1 {} {} L {} {} A 12 12 0 0 1 {} {} Z",
+                n(x + 8.0),
+                n(foot),
+                n(x + 8.0),
+                n(top),
+                n(right - 8.0),
+                n(top),
+                n(right - 8.0),
+                n(foot)
+            ),
+            rect,
+            &near,
+            &far,
+            true,
+        );
+        shade.paint(
+            nodes,
+            format!(
+                "M {} {} A 12 12 0 0 1 {} {} A 12 12 0 0 1 {} {} Z",
+                n(right - 8.0),
+                n(top),
+                n(right - 8.0),
+                n(foot),
+                n(right - 8.0),
+                n(top)
+            ),
+            Some(&near),
+            1.0,
+            true,
+            None,
+        );
+        if kind.ends_with("deadLetterChannel") {
+            let marker = style.text("markercolor", "#FF0000");
+            shade.paint(
+                nodes,
+                polygon_path(&[
+                    (cx - 6.0, cy - 3.0),
+                    (cx - 3.0, cy - 6.0),
+                    (cx + 3.0, cy - 6.0),
+                    (cx + 6.0, cy - 3.0),
+                    (cx + 6.0, cy + 3.0),
+                    (cx + 3.0, cy + 6.0),
+                    (cx - 3.0, cy + 6.0),
+                    (cx - 6.0, cy + 3.0),
+                ]),
+                Some(&marker),
+                1.0,
+                true,
+                None,
+            );
+            let bar = style.text("markericoncolor", "#FFFFFF");
+            shade.line(
+                nodes,
+                line_path((cx - 4.0, cy), (cx + 4.0, cy)),
+                Some(&bar),
+                2.0,
+            );
+        }
+        return true;
+    }
+    // An app tile: a rounded square shaded from one colour to another, with no
+    // border of its own.
+    if style.get("shape") == Some("mxgraph.ios7ui.icon") {
+        shade.shade(
+            nodes,
+            oval_rect_path(rect, w * 0.1, h * 0.1),
+            rect,
+            &style.text("fillcolor2", "#00D0F0"),
+            &style.text("fillcolor3", "#0080F0"),
+            false,
+        );
+        return true;
+    }
+    // A placeholder image: a rounded frame with a filled panel inside it.
+    if style.get("shape") == Some("mxgraph.bootstrap.image") {
+        let radius = style.number("rsize", 10.0).max(0.0);
+        shade.paint(
+            nodes,
+            rounded_rect_path(rect, radius),
+            None,
+            1.0,
+            true,
+            None,
+        );
+        let half = radius * 0.5;
+        shade.paint(
+            nodes,
+            rounded_rect_path(
+                Rect {
+                    x: x + half,
+                    y: y + half,
+                    width: (w - radius).max(0.0),
+                    height: (h - radius).max(0.0),
+                },
+                half,
+            ),
+            fill.as_deref(),
+            1.0,
+            false,
+            None,
+        );
         return true;
     }
     // A browser window: the frame, the tab and address bar in a third colour,
@@ -2135,7 +3348,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         let right = x + w;
         let close = style.text("strokecolor2", "#008CFF");
         let inside = style.text("strokecolor3", "#C4C4C4");
-        paint(
+        shade.paint(
+            nodes,
             rectangle_path(Rect {
                 x,
                 y,
@@ -2153,7 +3367,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             (50.0, stroke.as_deref()),
             (25.0, Some(close.as_str())),
         ] {
-            paint(
+            shade.paint(
+                nodes,
                 ellipse_path(Rect {
                     x: right - at,
                     y: y + 5.0,
@@ -2168,7 +3383,7 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         }
         let ink = Some(inside.as_str());
         // The tab, the line under the toolbar, and the address field.
-        paint(
+        shade.paint(nodes,
             format!(
                 "M {} {} L {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} L {} {}",
                 n(x),
@@ -2193,14 +3408,15 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             false,
             ink,
         );
-        paint(
+        shade.paint(
+            nodes,
             line_path((x, y + 110.0), (right, y + 110.0)),
             None,
             1.0,
             false,
             ink,
         );
-        paint(
+        shade.paint(nodes,
             format!(
                 "M {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} Z",
                 n(x + 100.0),
@@ -2228,7 +3444,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         // The page icon, once on the tab and once in the address bar.
         for (at, down) in [(37.0, 17.0), (107.0, 64.0)] {
             let (at, down) = (x + at, y + down);
-            paint(
+            shade.paint(
+                nodes,
                 polygon_path(&[
                     (at, down),
                     (at + 11.0, down),
@@ -2241,7 +3458,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 false,
                 ink,
             );
-            paint(
+            shade.paint(
+                nodes,
                 polyline_path(&[
                     (at + 11.0, down),
                     (at + 11.0, down + 4.0),
@@ -2269,10 +3487,11 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 (at + size * 0.5, down + size),
             ])
         };
-        paint(arrow(back, false), ink, 1.0, false, ink);
-        paint(arrow(back + 30.0, true), ink, 1.0, false, ink);
+        shade.paint(nodes, arrow(back, false), ink, 1.0, false, ink);
+        shade.paint(nodes, arrow(back + 30.0, true), ink, 1.0, false, ink);
         let reload = back + 60.0;
-        paint(
+        shade.paint(
+            nodes,
             format!(
                 "M {} {} A {} {} 0 1 1 {} {} L {} {} L {} {} L {} {} L {} {} A {} {} 0 1 0 {} {} Z",
                 n(reload + size * 0.78),
@@ -2313,8 +3532,9 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             width: head,
             height: head,
         };
-        paint(ellipse_path(face), fill.as_deref(), 1.0, true, None);
-        paint(
+        shade.paint(nodes, ellipse_path(face), fill.as_deref(), 1.0, true, None);
+        shade.paint(
+            nodes,
             format!(
                 "M {} {} A {r} {r} 0 0 1 {} {} L {} {} A {r} {r} 0 0 1 {} {} L {} {} \
                  A {r} {r} 0 0 1 {} {} L {} {} A {r} {r} 0 0 1 {} {} Z",
@@ -2341,18 +3561,26 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             true,
             None,
         );
-        paint(ellipse_path(face), fill.as_deref(), 1.0, true, None);
+        shade.paint(nodes, ellipse_path(face), fill.as_deref(), 1.0, true, None);
         return true;
     }
     // The rack units that are more than one colour: a blanking plate shaded at
     // each end, a patch panel in its own body colour, and a cabinet frame.
     match style.get("shape") {
         Some("mxgraph.rackGeneral.plate") => {
-            paint(rectangle_path(rect), fill.as_deref(), 1.0, true, None);
+            shade.paint(
+                nodes,
+                rectangle_path(rect),
+                fill.as_deref(),
+                1.0,
+                true,
+                None,
+            );
             // Nine pixels at each end are the mounting ears, shaded darker.
             if w > 18.0 {
                 for at in [x, right - 9.0] {
-                    paint(
+                    shade.paint(
+                        nodes,
                         rectangle_path(Rect {
                             x: at,
                             y,
@@ -2365,8 +3593,9 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                         None,
                     );
                 }
-                paint(rectangle_path(rect), None, 1.0, true, None);
-                paint(
+                shade.paint(nodes, rectangle_path(rect), None, 1.0, true, None);
+                shade.paint(
+                    nodes,
                     rectangle_path(Rect {
                         x: x + 9.0,
                         y,
@@ -2383,7 +3612,7 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         }
         Some("mxgraph.rackGeneral.neatPatch") => {
             let body = style.text("bodycolor", "#666666");
-            paint(rectangle_path(rect), Some(&body), 1.0, true, None);
+            shade.paint(nodes, rectangle_path(rect), Some(&body), 1.0, true, None);
             return true;
         }
         Some("mxgraph.rackGeneral.rackCabinet3") => {
@@ -2405,7 +3634,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             }
             let panel = style.text("fillcolor2", "#ffffff");
             let rail = fill.clone().unwrap_or_else(|| "#F4F4F4".to_owned());
-            paint(
+            shade.paint(
+                nodes,
                 rectangle_path(Rect {
                     x: left,
                     y,
@@ -2443,7 +3673,7 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                     height: height - 42.0,
                 },
             ] {
-                paint(rectangle_path(bar), Some(&rail), 1.0, true, None);
+                shade.paint(nodes, rectangle_path(bar), Some(&rail), 1.0, true, None);
             }
             // The four screws that hold the frame into the rack.
             for (at, down) in [
@@ -2452,7 +3682,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 (left + 2.5, y + height - 13.5),
                 (left + width - 8.5, y + height - 13.5),
             ] {
-                paint(
+                shade.paint(
+                    nodes,
                     ellipse_path(Rect {
                         x: at,
                         y: down,
@@ -2502,7 +3733,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             }
         };
         for (part, filled) in frame {
-            paint(
+            shade.paint(
+                nodes,
                 part,
                 if filled { fill.as_deref() } else { None },
                 1.0,
@@ -2533,7 +3765,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             style.text("apptype", "")
         };
         for (part, filled) in archimate_badge(&name, badge) {
-            paint(
+            shade.paint(
+                nodes,
                 part,
                 if filled { fill.as_deref() } else { None },
                 1.0,
@@ -2543,7 +3776,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         }
         // A goal's centre is filled solid in the stroke colour.
         if name == "goal" {
-            paint(
+            shade.paint(
+                nodes,
                 ellipse_path(Rect {
                     x: badge.x + badge.width * 0.3,
                     y: badge.y + badge.height * 0.3,
@@ -2565,7 +3799,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         .filter(|name| matches!(*name, "service" | "actor"))
     {
         for (part, filled) in archimate_badge(name, rect) {
-            paint(
+            shade.paint(
+                nodes,
                 part,
                 if filled { fill.as_deref() } else { None },
                 1.0,
@@ -2577,7 +3812,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
     }
     // A lorry: a body and a cab, on wheels that take the stroke colour.
     if style.get("shape") == Some("mxgraph.lean_mapping.truck_shipment") {
-        paint(
+        shade.paint(
+            nodes,
             rectangle_path(Rect {
                 x,
                 y,
@@ -2589,7 +3825,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             true,
             None,
         );
-        paint(
+        shade.paint(
+            nodes,
             rectangle_path(Rect {
                 x: x + w * 0.6,
                 y: y + h * 0.35,
@@ -2602,7 +3839,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             None,
         );
         for at in [0.15, 0.65] {
-            paint(
+            shade.paint(
+                nodes,
                 ellipse_path(Rect {
                     x: x + w * at,
                     y: y + h * 0.8,
@@ -2643,7 +3881,7 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 dot(right - 2.0 * radius, fill.as_deref()),
             ];
             for (d, colour) in dots {
-                paint(d, colour.as_deref(), 1.0, false, None);
+                shade.paint(nodes, d, colour.as_deref(), 1.0, false, None);
             }
             return true;
         }
@@ -2659,8 +3897,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                     height: 2.0,
                 })
             };
-            paint(bar(w), fill.as_deref(), 1.0, false, None);
-            paint(bar(done), stroke.as_deref(), 1.0, false, None);
+            shade.paint(nodes, bar(w), fill.as_deref(), 1.0, false, None);
+            shade.paint(nodes, bar(done), stroke.as_deref(), 1.0, false, None);
             return true;
         }
         // A slider: the same track, plus a handle sitting where it is set to.
@@ -2669,9 +3907,10 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             let at = x + w * (style.number("barpos", 40.0) / 100.0).clamp(0.0, 1.0);
             let size = style.number("handlesize", 10.0).max(0.0);
             let bar = |to: f64| line_path((x, cy), (to, cy));
-            paint(bar(right), None, 1.0, false, Some(&track));
-            paint(bar(at), None, 1.0, true, None);
-            paint(
+            shade.paint(nodes, bar(right), None, 1.0, false, Some(&track));
+            shade.paint(nodes, bar(at), None, 1.0, true, None);
+            shade.paint(
+                nodes,
                 ellipse_path(Rect {
                     x: at - size * 0.5,
                     y: cy - size * 0.5,
@@ -2700,14 +3939,16 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             let off_stroke = style.text("strokecolor2", "#aaaaaa");
             let handle = style.text("handlecolor", "#ffffff");
             if on {
-                paint(
+                shade.paint(
+                    nodes,
                     rounded_rect_path(pill, h * 0.5),
                     fill.as_deref(),
                     1.0,
                     true,
                     None,
                 );
-                paint(
+                shade.paint(
+                    nodes,
                     ellipse_path(Rect {
                         x: x + w - h + 1.0,
                         y: y + 1.0,
@@ -2720,14 +3961,16 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                     None,
                 );
             } else {
-                paint(
+                shade.paint(
+                    nodes,
                     rounded_rect_path(pill, h * 0.5),
                     Some(&off_fill),
                     1.0,
                     false,
                     Some(&off_stroke),
                 );
-                paint(
+                shade.paint(
+                    nodes,
                     ellipse_path(Rect {
                         x,
                         y,
@@ -2747,7 +3990,14 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         Some("mxgraph.ios7ui.appBar") => {
             let ink = style.text("fillcolor2", "#222222");
             let ink = Some(ink.as_str());
-            paint(rectangle_path(rect), fill.as_deref(), 1.0, false, None);
+            shade.paint(
+                nodes,
+                rectangle_path(rect),
+                fill.as_deref(),
+                1.0,
+                false,
+                None,
+            );
             let dot = |at: f64, top: f64, size: f64| {
                 ellipse_path(Rect {
                     x: x + at,
@@ -2757,12 +4007,13 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 })
             };
             for at in [5.0, 9.0, 13.0, 17.0, 21.0] {
-                paint(dot(at, -1.5, 3.0), ink, 1.0, false, None);
+                shade.paint(nodes, dot(at, -1.5, 3.0), ink, 1.0, false, None);
             }
-            paint(dot(54.0, 2.0, 2.0), ink, 1.0, false, None);
+            shade.paint(nodes, dot(54.0, 2.0, 2.0), ink, 1.0, false, None);
             // Two arcs over the dot make the wifi fan.
             for (span, from, lift) in [(3.5, 52.0, 1.0), (6.0, 50.0, -1.0)] {
-                paint(
+                shade.paint(
+                    nodes,
                     format!(
                         "M {} {} A {} {} 0 0 1 {} {}",
                         n(x + from),
@@ -2779,7 +4030,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 );
             }
             // The charge inside the battery, then the play glyph beside it.
-            paint(
+            shade.paint(
+                nodes,
                 polygon_path(&[
                     (right - 19.0, cy - 2.0),
                     (right - 6.0, cy - 2.0),
@@ -2791,7 +4043,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 false,
                 None,
             );
-            paint(
+            shade.paint(
+                nodes,
                 polyline_path(&[
                     (right - 44.0, cy - 2.5),
                     (right - 36.0, cy + 2.5),
@@ -2806,7 +4059,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 ink,
             );
             // The battery case, with its terminal on the right.
-            paint(
+            shade.paint(
+                nodes,
                 polygon_path(&[
                     (right - 20.0, cy - 3.0),
                     (right - 5.0, cy - 3.0),
@@ -2829,8 +4083,9 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
     // An activity's end: a ring with a solid disc inside it, and the disc takes
     // the stroke colour, the way a radio button's dot does.
     if style.get("shape") == Some("mxgraph.sysml.actFinal") {
-        paint(ellipse_path(rect), fill.as_deref(), 1.0, true, None);
-        paint(
+        shade.paint(nodes, ellipse_path(rect), fill.as_deref(), 1.0, true, None);
+        shade.paint(
+            nodes,
             ellipse_path(Rect {
                 x: x + 5.0,
                 y: y + 5.0,
@@ -2846,8 +4101,9 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
     }
     // A radio button fills its dot with the stroke colour rather than the fill.
     if style.get("shape") == Some("mxgraph.bootstrap.radioButton") {
-        paint(ellipse_path(rect), fill.as_deref(), 1.0, true, None);
-        paint(
+        shade.paint(nodes, ellipse_path(rect), fill.as_deref(), 1.0, true, None);
+        shade.paint(
+            nodes,
             ellipse_path(Rect {
                 x: x + w * 0.25,
                 y: y + h * 0.25,
@@ -2912,10 +4168,31 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         }
         _ => None,
     } {
-        paint(polygon_path(&outline), fill.as_deref(), 1.0, false, None);
-        paint(polygon_path(&light), Some("#FFFFFF"), 0.2, false, None);
-        paint(polygon_path(&dark), Some("#000000"), 0.2, false, None);
-        paint(polygon_path(&outline), None, 1.0, true, None);
+        shade.paint(
+            nodes,
+            polygon_path(&outline),
+            fill.as_deref(),
+            1.0,
+            false,
+            None,
+        );
+        shade.paint(
+            nodes,
+            polygon_path(&light),
+            Some("#FFFFFF"),
+            0.2,
+            false,
+            None,
+        );
+        shade.paint(
+            nodes,
+            polygon_path(&dark),
+            Some("#000000"),
+            0.2,
+            false,
+            None,
+        );
+        shade.paint(nodes, polygon_path(&outline), None, 1.0, true, None);
         return true;
     }
     // A ribbon banner, with its folded ends shaded darker than its face.
@@ -2979,9 +4256,17 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 (x + notch, waist),
             ]
         };
-        paint(polygon_path(&outline), fill.as_deref(), 1.0, true, None);
+        shade.paint(
+            nodes,
+            polygon_path(&outline),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
         // A single fold has only the one shaded end, and shades it faintly.
-        paint(
+        shade.paint(
+            nodes,
             polygon_path(&right_end),
             Some("#000000"),
             if single { 0.05 } else { 0.2 },
@@ -2989,7 +4274,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             None,
         );
         if !single {
-            paint(
+            shade.paint(
+                nodes,
                 polygon_path(&[
                     (x, y + dy),
                     (x + dx, y + dy),
@@ -3004,9 +4290,17 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
                 None,
             );
         }
-        paint(polygon_path(&right_fold), Some("#000000"), 0.4, false, None);
+        shade.paint(
+            nodes,
+            polygon_path(&right_fold),
+            Some("#000000"),
+            0.4,
+            false,
+            None,
+        );
         if !single {
-            paint(
+            shade.paint(
+                nodes,
                 polygon_path(&[
                     (x + dx, bottom - dy),
                     (x + dx + 2.0 * dy, bottom - dy),
@@ -3019,7 +4313,7 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
             );
         }
         if single {
-            paint(polygon_path(&outline), None, 1.0, true, None);
+            shade.paint(nodes, polygon_path(&outline), None, 1.0, true, None);
         }
         return true;
     }
@@ -3040,7 +4334,7 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         .split(',')
         .filter_map(parse_color)
         .collect::<Vec<_>>();
-    paint(ellipse_path(rect), fill.as_deref(), 1.0, true, None);
+    shade.paint(nodes, ellipse_path(rect), fill.as_deref(), 1.0, true, None);
     let (cx, cy) = rect.center();
     let (rx, ry) = (w / 2.0, h / 2.0);
     let mut travelled = 0.0;
@@ -3050,7 +4344,8 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         let end = travelled / total * 2.0 * PI;
         let large = u8::from(end - start >= PI);
         let at = |angle: f64| (cx + angle.sin() * rx, cy - angle.cos() * ry);
-        paint(
+        shade.paint(
+            nodes,
             format!(
                 "M {} {} L {} {} A {} {} 0 {large} 1 {} {} Z",
                 n(cx),
@@ -3370,4 +4665,159 @@ fn archimate_badge(kind: &str, rect: Rect) -> Vec<(String, bool)> {
         ],
         _ => Vec::new(),
     }
+}
+
+/// Paints one part of a shape draw.io draws in more than one colour.
+///
+/// The parts of such a shape are painted in the order the editor paints them,
+/// each with its own fill and stroke, so the painter carries the shape's own
+/// colours and hands out a distinct id per part.
+struct Shading {
+    identity: String,
+    index: usize,
+    stroke: Option<String>,
+    width: f64,
+    opacity: f64,
+    transform: Matrix,
+    source: String,
+}
+
+impl Shading {
+    /// `edge` names a colour to stroke with instead of the shape's own, for
+    /// the parts draw.io paints in a second colour the style carries
+    /// separately; `stroked` asks for the shape's own stroke.
+    fn paint(
+        &mut self,
+        nodes: &mut Vec<Node>,
+        d: String,
+        fill: Option<&str>,
+        alpha: f64,
+        stroked: bool,
+        edge: Option<&str>,
+    ) {
+        let paint = fill.map_or(Paint::None, |color| Paint::Solid {
+            color: color.to_owned(),
+            opacity: alpha * self.opacity,
+        });
+        self.push(nodes, d, paint, stroked, edge, None);
+    }
+
+    /// The same, for a part filled with a gradient rather than a flat colour.
+    fn shade(
+        &mut self,
+        nodes: &mut Vec<Node>,
+        d: String,
+        rect: Rect,
+        from: &str,
+        to: &str,
+        stroked: bool,
+    ) {
+        let paint = match (parse_color(from), parse_color(to)) {
+            (Some(from), Some(to)) => {
+                Paint::LinearGradient(Box::new(gradient(rect, &from, &to, "south", self.opacity)))
+            }
+            _ => Paint::None,
+        };
+        self.push(nodes, d, paint, stroked, None, None);
+    }
+
+    /// The same, for a part draw.io strokes thicker or thinner than the rest.
+    fn line(&mut self, nodes: &mut Vec<Node>, d: String, edge: Option<&str>, thickness: f64) {
+        self.push(nodes, d, Paint::None, true, edge, Some(thickness));
+    }
+
+    fn push(
+        &mut self,
+        nodes: &mut Vec<Node>,
+        d: String,
+        fill: Paint,
+        stroked: bool,
+        edge: Option<&str>,
+        thickness: Option<f64>,
+    ) {
+        self.index += 1;
+        nodes.push(Node::Path {
+            id: format!("{}-part-{}", self.identity, self.index),
+            d,
+            fill_rule: "nonzero".into(),
+            fill,
+            stroke: match (stroked || edge.is_some(), edge.or(self.stroke.as_deref())) {
+                (true, Some(color)) => Stroke {
+                    paint: Paint::Solid {
+                        color: color.to_owned(),
+                        opacity: self.opacity,
+                    },
+                    width: thickness.unwrap_or(self.width),
+                    ..Stroke::default()
+                },
+                _ => Stroke::default(),
+            },
+            transform: self.transform,
+            clip_id: None,
+            meta: SourceMeta {
+                kind: "drawio-shaded".into(),
+                source_id: self.source.clone(),
+                ..SourceMeta::default()
+            },
+        });
+    }
+}
+
+/// One mark of a rating, in a box as wide as the rating is tall.
+///
+/// draw.io spaces the marks one and a fifth of that box apart, and draws a
+/// star from straight edges and a heart from four curves.
+fn rating_mark(at: f64, y: f64, size: f64, heart: bool) -> String {
+    if !heart {
+        return polygon_path(&[
+            (at, y + 0.33 * size),
+            (at + 0.364 * size, y + 0.33 * size),
+            (at + 0.475 * size, y),
+            (at + 0.586 * size, y + 0.33 * size),
+            (at + 0.95 * size, y + 0.33 * size),
+            (at + 0.66 * size, y + 0.551 * size),
+            (at + 0.775 * size, y + 0.9 * size),
+            (at + 0.475 * size, y + 0.684 * size),
+            (at + 0.175 * size, y + 0.9 * size),
+            (at + 0.29 * size, y + 0.551 * size),
+        ]);
+    }
+    let across = |share: f64| n(at + share * size);
+    let down = |share: f64| n(y + share * size);
+    format!(
+        "M {} {} C {} {} {} {} {} {} C {} {} {} {} {} {} C {} {} {} {} {} {} \
+         C {} {} {} {} {} {} C {} {} {} {} {} {} Z",
+        across(0.519),
+        down(0.947),
+        across(0.558),
+        down(0.908),
+        across(0.778),
+        down(0.682),
+        across(0.916),
+        down(0.54),
+        across(1.039),
+        down(0.414),
+        across(1.036),
+        down(0.229),
+        across(0.924),
+        down(0.115),
+        across(0.812),
+        down(0.0),
+        across(0.631),
+        down(0.0),
+        across(0.519),
+        down(0.115),
+        across(0.408),
+        down(0.0),
+        across(0.227),
+        down(0.0),
+        across(0.115),
+        down(0.115),
+        across(0.03),
+        down(0.229),
+        across(0.0),
+        down(0.414),
+        across(0.123),
+        down(0.54),
+    )
 }

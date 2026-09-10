@@ -6962,3 +6962,185 @@ fn draws_the_arrows_states_and_data_objects_left_in_the_tail() {
     );
     assert!(svg.contains("M 420 238 L 420 250"), "{svg}");
 }
+
+/// A stencil can defer to the cell it is drawn for: `fill`, `stroke` and
+/// `inherit` name the cell's own colours rather than colours of their own, and
+/// `none` paints nothing. Reading those as literal colours left every stencil
+/// that uses them painted black, which is most of the network and rack sets.
+#[test]
+fn lets_a_stencil_defer_to_the_colours_of_the_cell_it_is_drawn_for() {
+    let temporary = TempDir::new().unwrap();
+    let stencils = temporary.path().join("stencils");
+    fs::create_dir(&stencils).unwrap();
+    fs::write(
+        stencils.join("demo.xml"),
+        r##"<shapes name="mxgraph.demo">
+<shape name="Deferred" h="20" w="20" aspect="fixed" strokewidth="inherit">
+  <connections/>
+  <foreground>
+    <fillcolor color="fill"/>
+    <strokecolor color="stroke"/>
+    <rect x="0" y="0" w="20" h="10"/>
+    <fillstroke/>
+    <fillcolor color="stroke"/>
+    <rect x="0" y="10" w="20" h="5"/>
+    <fill/>
+    <fillcolor color="none"/>
+    <rect x="0" y="15" w="20" h="5"/>
+    <fill/>
+  </foreground>
+</shape>
+</shapes>"##,
+    )
+    .unwrap();
+    let input = temporary.path().join("deferred.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Deferred"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="tile" style="shape=mxgraph.demo.deferred;fillColor=#EDEDED;strokeColor=#884400;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="40" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+    let options = ConvertOptions {
+        stencil_paths: vec![stencils],
+        ..Default::default()
+    };
+
+    let report = convert_path(&input, &output, &options).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // `fill` and `stroke` take the cell's own colours, not black.
+    assert!(svg.contains("fill=\"#EDEDED\""), "{svg}");
+    assert!(svg.contains("stroke=\"#884400\""), "{svg}");
+    // A part filled with `stroke` takes the stroke colour as its fill.
+    assert!(svg.contains("fill=\"#884400\""), "{svg}");
+    // Nothing anywhere is painted black by accident.
+    assert!(!svg.contains("fill=\"#000000\""), "{svg}");
+}
+
+/// Every shape draw.io implements in code that the example diagrams reach for
+/// now draws. This walks the ones added last, which between them cover the
+/// gradients, the stroke widths and the second colours the painter had to grow
+/// to support, and asserts that none of them falls back to a placeholder.
+#[test]
+fn draws_every_coded_shape_the_example_diagrams_reach_for() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("all.drawio");
+    let output = temporary.path().join("out");
+    let shapes = [
+        ("chart", "mxgraph.mockup.graphics.columnChart", ""),
+        (
+            "player",
+            "mxgraph.mockup.containers.videoPlayer",
+            "barHeight=30;barPos=40;",
+        ),
+        ("channel", "mxgraph.eip.messageChannel", ""),
+        ("dead", "mxgraph.eip.deadLetterChannel", ""),
+        ("tile", "mxgraph.ios7ui.icon", ""),
+        ("picture", "mxgraph.bootstrap.image", ""),
+        ("window", "mxgraph.mockup.containers.window", ""),
+        (
+            "scroll",
+            "mxgraph.mockup.navigation.scrollBar",
+            "barPos=40;",
+        ),
+        ("spin", "mxgraph.mockup.forms.spinner", ""),
+        (
+            "checks",
+            "mxgraph.mockup.forms.checkboxGroup",
+            "mainText=One,+Two;",
+        ),
+        ("pin", "mxgraph.mockup.misc.pin", ""),
+        (
+            "stars",
+            "mxgraph.mockup.misc.rating",
+            "grade=3;ratingScale=5;",
+        ),
+        (
+            "hearts",
+            "mxgraph.bootstrap.rating",
+            "ratingStyle=heart;grade=2;ratingScale=4;",
+        ),
+        ("striped", "mxgraph.bootstrap.leftButtonStriped", ""),
+        ("bus", "mxgraph.networks.bus", ""),
+        ("face", "smileyFace", "smileyType=happy;"),
+        ("sad", "smileyFace", "smileyType=sad;"),
+        ("flat", "smileyFace", "smileyType=neutral;"),
+        ("person", "mxgraph.mockup.containers.userMale", ""),
+        ("map", "mxgraph.ios.iBgMap", ""),
+        ("stripes", "mxgraph.ios.iBgStriped", ""),
+        ("marker", "mxgraph.ios.iPin", ""),
+        ("media", "mxgraph.gmdl.player", ""),
+        (
+            "gate",
+            "mxgraph.electrical.logic_gates.logic_gate",
+            "operation=and;numInputs=2;",
+        ),
+        (
+            "orgate",
+            "mxgraph.electrical.logic_gates.logic_gate",
+            "operation=or;numInputs=3;",
+        ),
+        (
+            "xorgate",
+            "mxgraph.electrical.logic_gates.logic_gate",
+            "operation=xor;negating=1;",
+        ),
+        ("locbar", "mxgraph.ios.iLocBar", "barPos=60;"),
+        ("status", "mxgraph.android.statusBar", ""),
+        ("callout", "mxgraph.infographic.circularCallout2", "dy=15;"),
+        ("sheet", "mxgraph.ios7ui.actionDialog", ""),
+        ("column", "mxgraph.pid2misc.column", "columnType=tray;"),
+        ("trayless", "mxgraph.pid2misc.column", "columnType=fixed;"),
+        ("valve", "mxgraph.pid2valves.valve", "valveType=ball;"),
+        ("params", "mxgraph.sysml.actParamNode", ""),
+        ("item", "mxgraph.sysml.itemFlow", "flowDir=e;"),
+        (
+            "times",
+            "mxgraph.lean_mapping.timeline",
+            "mainText=20,A,50,B,30,C;",
+        ),
+        ("state", "mxgraph.sysml.compState", ""),
+        (
+            "speech",
+            "mxgraph.mockup.text.callout",
+            "linkText=Note;callStyle=roundRect;",
+        ),
+        ("composite", "ext", "rounded=1;"),
+        ("grouped", "mxgraph.aws4.groupCenter", ""),
+    ];
+    let mut body = String::from(
+        "<mxfile><diagram name=\"All\"><mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/>",
+    );
+    for (index, (id, shape, extra)) in shapes.iter().enumerate() {
+        let column = (index % 8) as i32 * 200;
+        let row = (index / 8) as i32 * 200;
+        body.push_str(&format!(
+            "<mxCell id=\"{id}\" value=\"x\" style=\"shape={shape};{extra}html=1;\" vertex=\"1\" parent=\"1\">\
+             <mxGeometry x=\"{column}\" y=\"{row}\" width=\"160\" height=\"120\" as=\"geometry\"/></mxCell>"
+        ));
+    }
+    body.push_str("</root></mxGraphModel></diagram></mxfile>");
+    drawio_file(&input, &body);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Every one of them drew something of its own, and none of them fell back
+    // to the placeholder rectangle, which carries the shape name as its role.
+    for (id, shape, _) in shapes {
+        assert!(
+            svg.contains(&format!("id=\"drawio-{id}\""))
+                || svg.contains(&format!("id=\"drawio-{id}-")),
+            "{shape} drew nothing"
+        );
+        assert!(
+            !svg.contains(&format!("data-semantic-role=\"{shape}\"")),
+            "{shape} fell back to a placeholder"
+        );
+    }
+    // The gradients the painter grew to support reach the output as gradients.
+    assert!(svg.contains("linearGradient"), "{svg}");
+}

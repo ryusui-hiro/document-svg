@@ -243,3 +243,53 @@ pub(super) fn shape_transform(rect: Rect, degrees: f64, flip_h: bool, flip_v: bo
     }
     compose([1.0, 0.0, 0.0, 1.0, cx, cy], matrix)
 }
+
+/// One step of a path draw.io's own code draws segment by segment.
+///
+/// The shapes the editor implements in JavaScript are long runs of `moveTo`,
+/// `lineTo` and curves over coordinates derived from the shape's own box.
+/// Keeping them as steps rather than as formatted strings means the geometry
+/// reads the way the editor writes it.
+pub(super) enum Step {
+    Move(f64, f64),
+    Line(f64, f64),
+    Curve(f64, f64, f64, f64, f64, f64),
+    Quad(f64, f64, f64, f64),
+    /// Radii, the large-arc and sweep flags, then the point to end at.
+    Arc(f64, f64, u8, u8, f64, f64),
+    Close,
+}
+
+pub(super) fn path_of(steps: &[Step]) -> String {
+    let mut path = String::new();
+    for step in steps {
+        if !path.is_empty() {
+            path.push(' ');
+        }
+        match step {
+            Step::Move(x, y) => path.push_str(&format!("M {} {}", n(*x), n(*y))),
+            Step::Line(x, y) => path.push_str(&format!("L {} {}", n(*x), n(*y))),
+            Step::Curve(x1, y1, x2, y2, x, y) => path.push_str(&format!(
+                "C {} {} {} {} {} {}",
+                n(*x1),
+                n(*y1),
+                n(*x2),
+                n(*y2),
+                n(*x),
+                n(*y)
+            )),
+            Step::Quad(x1, y1, x, y) => {
+                path.push_str(&format!("Q {} {} {} {}", n(*x1), n(*y1), n(*x), n(*y)));
+            }
+            Step::Arc(rx, ry, large, sweep, x, y) => path.push_str(&format!(
+                "A {} {} 0 {large} {sweep} {} {}",
+                n(*rx),
+                n(*ry),
+                n(*x),
+                n(*y)
+            )),
+            Step::Close => path.push('Z'),
+        }
+    }
+    path
+}

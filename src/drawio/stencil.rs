@@ -617,10 +617,10 @@ impl Stencil {
                     }
                 }
                 Operation::FillColor(color) => {
-                    state.fill = color.as_deref().and_then(parse_color);
+                    state.fill = stencil_color(color.as_deref(), inherited);
                 }
                 Operation::StrokeColor(color) => {
-                    state.stroke = color.as_deref().and_then(parse_color);
+                    state.stroke = stencil_color(color.as_deref(), inherited);
                 }
                 Operation::SetStrokeWidth { width, fixed } => {
                     state.stroke_width = width * if *fixed { 1.0 } else { smallest };
@@ -705,5 +705,20 @@ fn paint_node(id: &str, d: String, state: &State, filled: bool, stroked: bool) -
             kind: "drawio-stencil".into(),
             ..SourceMeta::default()
         },
+    }
+}
+
+/// The colour a stencil's `fillcolor` or `strokecolor` names.
+///
+/// mxStencil lets a shape defer to the cell it is drawn for: `fill`, `stroke`
+/// and `inherit` mean the cell's own colours rather than a colour of their own,
+/// and `none` means to paint nothing. Reading those as literal colours left
+/// every stencil that uses them painted black.
+fn stencil_color(color: Option<&str>, inherited: &Inherited) -> Option<String> {
+    match color.map(str::trim) {
+        Some("fill") | Some("inherit") => inherited.fill.clone(),
+        Some("stroke") => inherited.stroke.clone(),
+        Some("none") | None => None,
+        Some(value) => parse_color(value),
     }
 }
