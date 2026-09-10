@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Draw the last of the shapes the example diagrams reach for: the arrows2 two-way, stylised and jump-in arrows, a data-flow store with its identifier band, SysML's accept-event and call-behaviour actions, a UML state, and BPMN's data object with the marks that say which way the data travels and whether it stands for a collection. 514 of the 613 diagrams in the draw.io project's own example repository now convert without a single warning, up from 476 when this work started; what is left undrawn, setting aside `mxgraph.world` and the AWS 3D service glyphs, is 43 occurrences of shapes used at most twice each.
+
 - Write a draw.io page that has nothing on it at the size the model declares, and say so in the report, rather than leaving a page a few points across. draw.io stands its own "click here to edit" placeholder on such a page; that placeholder is not in the model, so drawing it here would put a shape in the output that the diagram does not contain.
 - Draw the ArchiMate 3 elements: a frame from `archiType` with the badge in its corner that says which kind of element it is — goal, requirement, assessment, node, function, collaboration, event, process, actor, service and system software — plus the service and actor elements that are a badge and nothing else. A badge this does not know leaves the frame drawn and the corner empty rather than losing the element.
 - Draw the rack units: a cabinet frame that snaps to a whole number of rack units and carries its rails and screws, a blanking plate shaded at each mounting ear, a cable duct with a bay every thirty three pixels, a shelf bracket and a patch panel in its own body colour.

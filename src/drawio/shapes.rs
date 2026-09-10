@@ -121,6 +121,14 @@ pub(super) fn canonical_shape(name: &str) -> Option<&'static str> {
         "mxgraph.bootstrap.x" => "crossLines",
         "mxgraph.er.entity" => "erEntity",
         "mxgraph.er.has" => "erHas",
+        "mxgraph.arrows2.twowayarrow" => "twoWayArrow",
+        "mxgraph.arrows2.jumpinarrow" => "jumpInArrow",
+        "mxgraph.arrows2.stylisedarrow" => "stylisedArrow",
+        "mxgraph.dfd.datastoreid" => "dataStoreId",
+        "mxgraph.sysml.accevent" => "sysmlAcceptEvent",
+        "mxgraph.sysml.callbehact" => "sysmlCallBehaviour",
+        "umlstate" => "umlState",
+        "mxgraph.bpmn.data" => "bpmnData",
         // SysML draws its activity and flow nodes in code rather than as
         // stencils. Each is a rounded body with square ports let into it.
         "mxgraph.sysml.flowfinal" => "sysmlFlowFinal",
@@ -843,6 +851,165 @@ pub(super) fn shape_paths(name: &str, rect: Rect, style: &Style) -> Option<Paths
                 n(inner_at(start).0),
                 n(inner_at(start).1)
             ))
+        }
+        // An arrow with a head at each end, its shaft `dy` of the height thick.
+        "twoWayArrow" => {
+            let thick = height * 0.5 * style.number("dy", 0.5).clamp(0.0, 1.0);
+            let head = style.number("dx", 0.5).clamp(0.0, width);
+            Paths::new(polygon_path(&[
+                (x + head, y + thick),
+                (right - head, y + thick),
+                (right - head, y),
+                (right, cy),
+                (right - head, bottom),
+                (right - head, bottom - thick),
+                (x + head, bottom - thick),
+                (x + head, bottom),
+                (x, cy),
+                (x + head, y),
+            ]))
+        }
+        // An arrow that loops back on itself and points into its own tail.
+        "jumpInArrow" => {
+            let dy = style.number("dy", 0.5).clamp(0.0, height);
+            let dx = style.number("dx", 0.5).clamp(0.0, width);
+            let head = style.number("arrowhead", 40.0).clamp(0.0, height);
+            let (back, tip) = (right - dx, y + head);
+            Paths::new(format!(
+                "M {} {} L {} {} L {} {} L {} {} A {} {} 0 0 0 {} {} A {} {} 0 0 1 {} {} Z",
+                n(back),
+                n(y),
+                n(right),
+                n(y + head * 0.5),
+                n(back),
+                n(tip),
+                n(back),
+                n(y + head / 2.0 + dy),
+                n(width - dx),
+                n(height - head / 2.0 - dy),
+                n(x),
+                n(bottom),
+                n(width - dx),
+                n(height - head / 2.0 + dy),
+                n(back),
+                n(y + head / 2.0 - dy)
+            ))
+        }
+        // An arrow with a feathered tail and a notch cut into its back.
+        "stylisedArrow" => {
+            let thick = height * 0.5 * style.number("dy", 0.5).clamp(0.0, 1.0);
+            let head = style.number("dx", 0.5).clamp(0.0, width);
+            let notch = style.number("notch", 0.0).clamp(0.0, width);
+            let feather = height * 0.5 * style.number("feather", 0.5).clamp(0.0, 1.0);
+            Paths::new(polygon_path(&[
+                (x, y + feather),
+                (right - head, y + thick),
+                (right - head - 10.0, y),
+                (right, cy),
+                (right - head - 10.0, bottom),
+                (right - head, bottom - thick),
+                (x, bottom - feather),
+                (x + notch, cy),
+            ]))
+        }
+        // A data store with a band down its left side for its identifier.
+        "dataStoreId" => Paths::fill_only(
+            polyline_path(&[(right, bottom), (x, bottom), (x, y), (right, y)]),
+            vec![
+                polyline_path(&[(right, bottom), (x, bottom), (x, y), (right, y)]),
+                line_path(
+                    (x + 30.0_f64.min(width), y),
+                    (x + 30.0_f64.min(width), bottom),
+                ),
+            ],
+        ),
+        // A box notched on its left side: an activity waiting for an event.
+        "sysmlAcceptEvent" => Paths::new(polygon_path(&[
+            (x, y),
+            (right, y),
+            (right, bottom),
+            (x, bottom),
+            (x + height * 0.3, cy),
+        ])),
+        // A rounded box with the rake that marks a call to another behaviour.
+        "sysmlCallBehaviour" => Paths::with(
+            rounded_rect_path(rect, 10.0),
+            if height > 30.0 && width > 40.0 {
+                let (at, down) = (right - 30.0, bottom - 30.0);
+                vec![
+                    line_path((at + 10.0, down), (at + 10.0, down + 20.0)),
+                    polyline_path(&[
+                        (at, down + 20.0),
+                        (at, down + 10.0),
+                        (at + 20.0, down + 10.0),
+                        (at + 20.0, down + 20.0),
+                    ]),
+                ]
+            } else {
+                Vec::new()
+            },
+        ),
+        // A UML state: a rounded box, indented on the left when it carries a
+        // connection point reference.
+        "umlState" => {
+            let indent = if style.get("umlstateconnection").is_some() {
+                10.0
+            } else {
+                0.0
+            };
+            let body = Rect {
+                x: x + indent,
+                width: (width - indent).max(0.0),
+                ..rect
+            };
+            Paths::new(if style.flag("rounded") {
+                rounded_rect_path(body, corner_radius(body, style))
+            } else {
+                rectangle_path(body)
+            })
+        }
+        // BPMN's data object: a note, plus the marks that say which way the
+        // data travels and whether it stands for a collection.
+        "bpmnData" => {
+            let size = style.number("size", 15.0).min(width).min(height).max(0.0);
+            let mut marks = vec![format!(
+                "M {} {} L {} {} L {} {}",
+                n(right - size),
+                n(y),
+                n(right - size),
+                n(y + size),
+                n(right),
+                n(y + size)
+            )];
+            if matches!(style.get("bpmntransfertype"), Some("input" | "output")) {
+                marks.push(polygon_path(&[
+                    (x + 3.0, y + 6.6),
+                    (x + 10.7, y + 6.6),
+                    (x + 10.7, y + 3.0),
+                    (x + 17.0, y + 9.0),
+                    (x + 10.7, y + 15.0),
+                    (x + 10.7, y + 11.4),
+                    (x + 3.0, y + 11.4),
+                ]));
+            }
+            if style.flag("iscollection") {
+                for at in [2.4, 6.0, 9.6] {
+                    marks.push(line_path(
+                        (cx - 6.0 + at, bottom - 12.0),
+                        (cx - 6.0 + at, bottom),
+                    ));
+                }
+            }
+            Paths::with(
+                polygon_path(&[
+                    (x, y),
+                    (right - size, y),
+                    (right, y + size),
+                    (right, bottom),
+                    (x, bottom),
+                ]),
+                marks,
+            )
         }
         // An entity and a relationship, each of which can be drawn with a second
         // frame inside it to say it is weak.

@@ -6879,3 +6879,86 @@ fn draws_er_entities_a_c4_person_and_a_browser_window() {
         "{svg}"
     );
 }
+
+/// The last of the shapes a real diagram reaches for: the arrows2 set, a data
+/// store with its identifier band, the SysML accept-event and call-behaviour
+/// actions, a UML state and BPMN's data object with its transfer and collection
+/// marks.
+#[test]
+fn draws_the_arrows_states_and_data_objects_left_in_the_tail() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("tail.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Tail"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="both" style="shape=mxgraph.arrows2.twoWayArrow;dx=30;dy=0.5;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="fancy" style="shape=mxgraph.arrows2.stylisedArrow;dx=30;dy=0.5;notch=20;feather=0.6;html=1;" vertex="1" parent="1"><mxGeometry x="200" y="20" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="loop" style="shape=mxgraph.arrows2.jumpInArrow;dx=32;dy=20;arrowHead=40;html=1;" vertex="1" parent="1"><mxGeometry x="380" y="20" width="120" height="100" as="geometry"/></mxCell>
+<mxCell id="store" style="shape=mxgraph.dfd.dataStoreID;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="110" width="160" height="40" as="geometry"/></mxCell>
+<mxCell id="wait" style="shape=mxgraph.sysml.accEvent;html=1;" vertex="1" parent="1"><mxGeometry x="200" y="110" width="140" height="50" as="geometry"/></mxCell>
+<mxCell id="call" style="shape=mxgraph.sysml.callBehAct;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="180" width="160" height="70" as="geometry"/></mxCell>
+<mxCell id="small" style="shape=mxgraph.sysml.callBehAct;html=1;" vertex="1" parent="1"><mxGeometry x="560" y="180" width="30" height="20" as="geometry"/></mxCell>
+<mxCell id="state" style="shape=umlState;rounded=1;html=1;" vertex="1" parent="1"><mxGeometry x="200" y="180" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="entry" style="shape=umlState;rounded=1;umlStateConnection=connPointRefEntry;html=1;" vertex="1" parent="1"><mxGeometry x="380" y="280" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="data" style="shape=mxgraph.bpmn.data;bpmnTransferType=input;isCollection=1;html=1;" vertex="1" parent="1"><mxGeometry x="380" y="150" width="80" height="100" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A head at each end, and a shaft half the height thick.
+    assert!(
+        svg.contains(
+            "M 50 35 L 150 35 L 150 20 L 180 50 L 150 80 L 150 65 L 50 65 L 50 80 L 20 50 L 50 20 Z"
+        ),
+        "{svg}"
+    );
+    // A feathered tail with a notch cut into its back.
+    assert!(
+        svg.contains("M 200 38 L 330 35 L 320 20 L 360 50 L 320 80 L 330 65 L 200 62 L 220 50 Z"),
+        "{svg}"
+    );
+    // A head, then two arcs that carry the shaft back round to it.
+    assert!(
+        svg.contains(
+            "M 468 20 L 500 40 L 468 60 L 468 60 A 88 60 0 0 0 380 120 A 88 100 0 0 1 468 20 Z"
+        ),
+        "{svg}"
+    );
+    // The data store is open on its right, and banded thirty in from the left.
+    assert!(
+        svg.contains("M 180 150 L 20 150 L 20 110 L 180 110"),
+        "{svg}"
+    );
+    assert!(svg.contains("M 50 110 L 50 150"), "{svg}");
+    // An accept-event action is notched by three tenths of its own height.
+    assert!(
+        svg.contains("M 200 110 L 340 110 L 340 160 L 200 160 L 215 135 Z"),
+        "{svg}"
+    );
+    // The rake that marks a call to another behaviour, which a box too small
+    // to hold it leaves off.
+    assert!(
+        svg.contains("M 150 240 L 150 230 L 170 230 L 170 240"),
+        "{svg}"
+    );
+    assert!(!svg.contains("id=\"drawio-small-detail-0\""), "{svg}");
+    // A state carrying a connection point reference is indented ten on the
+    // left to leave room for it; a plain one is not.
+    assert!(svg.contains("M 209 180 H 331 A 9 9 0 0 1 340 189"), "{svg}");
+    assert!(svg.contains("M 399 280 H 511 A 9 9 0 0 1 520 289"), "{svg}");
+    // A data object is a note, with an arrow saying which way the data goes
+    // and three bars saying it stands for a collection.
+    assert!(
+        svg.contains("M 380 150 L 445 150 L 460 165 L 460 250 L 380 250 Z"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 383 156.6 L 390.7 156.6 L 390.7 153 L 397 159 L 390.7 165 L 390.7 161.4 L 383 161.4 Z"),
+        "{svg}"
+    );
+    assert!(svg.contains("M 420 238 L 420 250"), "{svg}");
+}
