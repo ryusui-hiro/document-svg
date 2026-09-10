@@ -1,0 +1,95 @@
+name: Document preview
+
+# Converts PDF, Office and draw.io files changed by a pull request into SVG pages so the
+# diff can be reviewed visually. Other repositories can call this workflow with
+# `uses: ryusui-hiro/document-svg/.github/workflows/document-preview.yml@main`.
+on:
+  pull_request:
+    paths:
+      - '**.pdf'
+      - '**.pptx'
+      - '**.xlsx'
+      - '**.docx'
+      - '**.drawio'
+      - '**.dio'
+  workflow_call:
+    inputs:
+      docsvg-version:
+        description: docsvg release to install, or "latest".
+        type: string
+        required: false
+        default: latest
+      max-documents:
+        description: Maximum number of changed documents to convert.
+        type: number
+        required: false
+        default: 20
+      comment:
+        description: Post the report as a pull request comment.
+        type: boolean
+        required: false
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: document-preview-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    name: Convert changed documents
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install docsvg
+        uses: ryusui-hiro/document-svg/.github/actions/setup-docsvg@main
+        with:
+          version: ${{ inputs.docsvg-version || 'latest' }}
+
+      - name: Convert changed documents
+        id: convert
+        continue-on-error: true
+        uses: ryusui-hiro/document-svg/.github/actions/document-preview@main
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          output: document-svg-preview
+          summary: preview-report.md
+          max-documents: ${{ inputs.max-documents || 20 }}
+
+      - name: Upload SVG pages
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: document-svg-preview
+          path: document-svg-preview
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Comment the conversion report
+        if: >-
+          (inputs.comment == null || inputs.comment) &&
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -s preview-report.md ]; then
+            gh pr comment "$PR_NUMBER" --body-file preview-report.md
+          fi
+
+      - name: Fail if a conversion failed
+        if: steps.convert.outcome == 'failure'
+        run: |
+          echo "At least one document failed to convert; see the report above." >&2
+          exit 1

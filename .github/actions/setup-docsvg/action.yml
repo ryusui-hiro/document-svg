@@ -1,0 +1,42 @@
+name: Setup docsvg
+description: Install the docsvg CLI from a checksum-verified GitHub release and add it to PATH.
+author: document-svg contributors
+branding:
+  icon: file-text
+  color: blue
+inputs:
+  version:
+    description: Release version to install, or "latest".
+    required: false
+    default: latest
+  destination:
+    description: Directory to install the docsvg executable into.
+    required: false
+    default: ${{ runner.temp }}/docsvg-bin
+  token:
+    description: Token used for GitHub API and release downloads.
+    required: false
+    default: ${{ github.token }}
+outputs:
+  docsvg-path:
+    description: Absolute path of the installed docsvg executable.
+    value: ${{ steps.install.outputs.docsvg-path }}
+  version:
+    description: Version that was installed.
+    value: ${{ steps.install.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - id: install
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        DOCSVG_VERSION: ${{ inputs.version }}
+        DOCSVG_DESTINATION: ${{ inputs.destination }}
+      run: |
+        python3 "$GITHUB_ACTION_PATH/install-docsvg.py" \
+          --version "$DOCSVG_VERSION" \
+          --dest "$DOCSVG_DESTINATION" \
+          --github-path
+    - shell: bash
+      run: docsvg --version
