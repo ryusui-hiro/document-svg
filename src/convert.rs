@@ -17,6 +17,22 @@ pub enum SourceFormat {
     Xlsx,
     Docx,
     Drawio,
+    Dxf,
+    Gerber,
+    Hpgl,
+    Dot,
+    Mermaid,
+    Markdown,
+    Chart,
+    Tex,
+    Qr,
+    Raster,
+    Gcode,
+    Excellon,
+    Stl,
+    Simulation,
+    Step,
+    Obj,
 }
 
 impl SourceFormat {
@@ -31,14 +47,39 @@ impl SourceFormat {
             "pptx" => Ok(Self::Pptx),
             "xlsx" => Ok(Self::Xlsx),
             "docx" => Ok(Self::Docx),
-            // draw.io writes `.drawio` by default, `.dio` from some exports,
-            // and plain `.xml` whenever the file was saved from the web editor
-            // with the classic extension. The drawio converter rejects XML that
-            // is not an mxGraphModel, so accepting `.xml` here cannot silently
-            // mis-handle another format.
             "drawio" | "dio" | "xml" => Ok(Self::Drawio),
+            "dxf" => Ok(Self::Dxf),
+            "gbr" | "gerber" => Ok(Self::Gerber),
+            "plt" | "hpgl" => Ok(Self::Hpgl),
+            "gcode" | "nc" | "ngc" | "tap" => Ok(Self::Gcode),
+            "drl" | "drd" | "xln" => Ok(Self::Excellon),
+            "stl" => Ok(Self::Stl),
+            "step" | "stp" => Ok(Self::Step),
+            "obj" => Ok(Self::Obj),
+            "msh" | "vtk" => Ok(Self::Simulation),
+            "dot" | "gv" => Ok(Self::Dot),
+            "mmd" | "mermaid" => Ok(Self::Mermaid),
+            "md" | "markdown" => Ok(Self::Markdown),
+            "chart" => Ok(Self::Chart),
+            "tex" | "latex" => Ok(Self::Tex),
+            "qr" | "qrcode" => Ok(Self::Qr),
+            "png" | "jpg" | "jpeg" => Ok(Self::Raster),
+            "json" => {
+                let filename = path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .unwrap_or("")
+                    .to_ascii_lowercase();
+                if filename.ends_with(".chart.json") {
+                    Ok(Self::Chart)
+                } else {
+                    Err(Error::Unsupported(format!(
+                        "unsupported json format: {filename}"
+                    )))
+                }
+            }
             _ => Err(Error::Unsupported(format!(
-                "extension .{extension}; expected PDF, PPTX, XLSX, DOCX, or DRAWIO"
+                "extension .{extension}; expected PDF, PPTX, XLSX, DOCX, DRAWIO, DXF, GBR, PLT, GCODE, DRL, STL, STEP, OBJ, MSH/VTK, DOT, MMD, MD, CHART, TEX, QR, or PNG/JPG"
             ))),
         }
     }
@@ -52,6 +93,22 @@ impl std::fmt::Display for SourceFormat {
             Self::Xlsx => "XLSX",
             Self::Docx => "DOCX",
             Self::Drawio => "DRAWIO",
+            Self::Dxf => "DXF",
+            Self::Gerber => "GERBER",
+            Self::Hpgl => "HPGL",
+            Self::Gcode => "GCODE",
+            Self::Excellon => "EXCELLON",
+            Self::Stl => "STL",
+            Self::Step => "STEP",
+            Self::Obj => "OBJ",
+            Self::Simulation => "SIMULATION",
+            Self::Dot => "DOT",
+            Self::Mermaid => "MERMAID",
+            Self::Markdown => "MARKDOWN",
+            Self::Chart => "CHART",
+            Self::Tex => "TEX",
+            Self::Qr => "QR",
+            Self::Raster => "RASTER",
         })
     }
 }
@@ -168,6 +225,23 @@ pub fn convert_path(
         SourceFormat::Xlsx => crate::ooxml::xlsx::convert(input, options, &mut sink)?,
         SourceFormat::Docx => crate::ooxml::docx::convert(input, options, &mut sink)?,
         SourceFormat::Drawio => crate::drawio::convert(input, options, &mut sink)?,
+        SourceFormat::Dxf
+        | SourceFormat::Gerber
+        | SourceFormat::Hpgl
+        | SourceFormat::Gcode
+        | SourceFormat::Excellon
+        | SourceFormat::Stl
+        | SourceFormat::Step
+        | SourceFormat::Obj
+        | SourceFormat::Simulation => crate::cad::convert(input, options, &mut sink)?,
+        SourceFormat::Dot | SourceFormat::Mermaid => {
+            crate::diagram::convert(input, options, &mut sink)?
+        }
+        SourceFormat::Markdown => crate::table::convert(input, options, &mut sink)?,
+        SourceFormat::Chart => crate::chart::convert(input, options, &mut sink)?,
+        SourceFormat::Tex => crate::math::convert(input, options, &mut sink)?,
+        SourceFormat::Qr => crate::qr::convert(input, options, &mut sink)?,
+        SourceFormat::Raster => crate::vectorize::convert(input, options, &mut sink)?,
     };
     let pages = sink.finish()?;
     let largest_page_ir_bytes = pages
