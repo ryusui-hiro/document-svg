@@ -1,6 +1,9 @@
-//! Package SVG pages as vector images in PPTX, DOCX, or XLSX files.
+//! Package SVG pages as vector images in PPTX, DOCX, XLSX or draw.io files.
 //!
-//! This preserves the rendered SVG, not the source document's semantic structure.
+//! This preserves the rendered SVG, not the source document's semantic
+//! structure. The one exception is a draw.io output built from SVG pages that
+//! still carry their diagram source in the `content` attribute draw.io writes:
+//! those are restored as the editable diagrams they came from.
 
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -15,7 +18,7 @@ use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
 
 use crate::error::{Error, Result};
-use crate::ooxml::{attribute, local_name};
+use crate::ooxml::{attribute, decode_xml_reference, local_name};
 
 const EMU_PER_POINT: f64 = 12_700.0;
 const FALLBACK_DPI: f64 = 96.0;
@@ -25,13 +28,14 @@ const MAX_NESTED_SVG_DEPTH: usize = 4;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum OpenXmlFormat {
+pub enum ReverseFormat {
     Pptx,
     Docx,
     Xlsx,
+    Drawio,
 }
 
-impl OpenXmlFormat {
+impl ReverseFormat {
     fn detect(path: &Path) -> Result<Self> {
         let extension = path
             .extension()
@@ -42,19 +46,27 @@ impl OpenXmlFormat {
             "pptx" => Ok(Self::Pptx),
             "docx" => Ok(Self::Docx),
             "xlsx" => Ok(Self::Xlsx),
+            "drawio" | "dio" => Ok(Self::Drawio),
             _ => Err(Error::Unsupported(format!(
-                "output extension .{extension}; expected PPTX, DOCX, or XLSX"
+                "output extension .{extension}; expected PPTX, DOCX, XLSX, or DRAWIO"
             ))),
         }
     }
+
+    /// Whether the output embeds each page as a picture that a viewer without
+    /// SVG support still has to be able to show.
+    const fn needs_raster_fallback(self) -> bool {
+        !matches!(self, Self::Drawio)
+    }
 }
 
-impl Display for OpenXmlFormat {
+impl Display for ReverseFormat {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         formatter.write_str(match self {
             Self::Pptx => "PPTX",
             Self::Docx => "DOCX",
             Self::Xlsx => "XLSX",
+            Self::Drawio => "DRAWIO",
         })
     }
 }
@@ -80,7 +92,7 @@ pub struct ReverseReport {
     pub version: &'static str,
     pub source: String,
     pub output: String,
-    pub output_format: OpenXmlFormat,
+    pub output_format: ReverseFormat,
     pub page_count: usize,
     pub input_bytes: u64,
     pub warnings: Vec<String>,
@@ -92,9 +104,12 @@ struct SvgPage {
     fallback_png: Vec<u8>,
     width_points: f64,
     height_points: f64,
+    /// The `<diagram>` elements of the draw.io source this page was exported
+    /// from, when the SVG still carries it.
+    diagrams: Vec<String>,
 }
 
-pub fn svg_to_openxml(
+pub fn svg_to_document(
     input: impl AsRef<Path>,
     output: impl AsRef<Path>,
     options: &ReverseOptions,
@@ -110,7 +125,7 @@ pub fn svg_to_openxml(
     if options.max_pages == 0 {
         return Err(Error::InvalidInput("max_pages must be at least 1".into()));
     }
-    let format = OpenXmlFormat::detect(output)?;
+    let format = ReverseFormat::detect(output)?;
     let paths = collect_svg_paths(input, options.max_pages)?;
     let mut pages = Vec::with_capacity(paths.len());
     let mut input_bytes = 0u64;
@@ -125,20 +140,36 @@ pub fn svg_to_openxml(
             )));
         }
         let bytes = fs::read(&path)?;
-        validate_svg_document(&bytes, 0)?;
+        let diagrams = if format == ReverseFormat::Drawio {
+            embedded_diagrams(&bytes)?
+        } else {
+            Vec::new()
+        };
+        // A page restored from its own diagram source contributes no bytes to
+        // the output: the picture is dropped and the shapes are rebuilt. The
+        // rules that keep an embedded picture inert therefore do not apply to
+        // it, which is what lets a real draw.io export — whose labels are HTML
+        // in `foreignObject` — be turned back into a diagram.
+        if diagrams.is_empty() {
+            validate_svg_document(&bytes, 0)?;
+        }
         let (width_points, height_points) = svg_dimensions(&bytes)?;
-        let render_options = render_options.get_or_insert_with(|| {
-            let mut options = resvg::usvg::Options::default();
-            options.fontdb_mut().load_system_fonts();
-            options
-        });
-        let fallback_png =
-            render_svg_fallback(&bytes, width_points, height_points, render_options)?;
+        let fallback_png = if format.needs_raster_fallback() {
+            let render_options = render_options.get_or_insert_with(|| {
+                let mut options = resvg::usvg::Options::default();
+                options.fontdb_mut().load_system_fonts();
+                options
+            });
+            render_svg_fallback(&bytes, width_points, height_points, render_options)?
+        } else {
+            Vec::new()
+        };
         pages.push(SvgPage {
             bytes,
             fallback_png,
             width_points,
             height_points,
+            diagrams,
         });
     }
 
@@ -150,18 +181,45 @@ pub fn svg_to_openxml(
         .filter(|path| !path.as_os_str().is_empty())
         .unwrap_or(Path::new("."));
     let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
-    let writer = BufWriter::new(temporary.as_file_mut());
-    let mut package = Package::new(writer);
-    match format {
-        OpenXmlFormat::Pptx => write_pptx(&mut package, &pages)?,
-        OpenXmlFormat::Docx => write_docx(&mut package, &pages)?,
-        OpenXmlFormat::Xlsx => write_xlsx(&mut package, &pages)?,
+    let restored = pages
+        .iter()
+        .filter(|page| !page.diagrams.is_empty())
+        .count();
+    if format == ReverseFormat::Drawio {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        writer.write_all(write_drawio(&pages).as_bytes())?;
+        writer.flush()?;
+    } else {
+        let writer = BufWriter::new(temporary.as_file_mut());
+        let mut package = Package::new(writer);
+        match format {
+            ReverseFormat::Pptx => write_pptx(&mut package, &pages)?,
+            ReverseFormat::Docx => write_docx(&mut package, &pages)?,
+            ReverseFormat::Xlsx => write_xlsx(&mut package, &pages)?,
+            ReverseFormat::Drawio => unreachable!("drawio is written without a package"),
+        }
+        package.finish()?;
     }
-    package.finish()?;
     temporary
         .persist_noclobber(output)
         .map_err(|error| error.error)?;
 
+    let warnings = match (format, restored, pages.len()) {
+        (ReverseFormat::Drawio, restored, total) if restored == total => vec![format!(
+            "{restored} page(s) were restored from the diagram source the SVG carries; they are editable shapes again"
+        )],
+        (ReverseFormat::Drawio, 0, _) => vec![
+            "SVG pages are embedded as pictures in the diagram; they are not editable shapes, because the SVG carries no diagram source"
+                .into(),
+        ],
+        (ReverseFormat::Drawio, restored, total) => vec![format!(
+            "{restored} of {total} page(s) were restored from the diagram source the SVG carries; the rest are embedded as pictures"
+        )],
+        _ => vec![
+            "SVG pages are embedded as vector images; original document semantics are not reconstructed"
+                .into(),
+        ],
+    };
     Ok(ReverseReport {
         converter: "document-svg",
         version: env!("CARGO_PKG_VERSION"),
@@ -170,10 +228,7 @@ pub fn svg_to_openxml(
         output_format: format,
         page_count: pages.len(),
         input_bytes,
-        warnings: vec![
-            "SVG pages are embedded as vector images; original document semantics are not reconstructed"
-                .into(),
-        ],
+        warnings,
     })
 }
 
@@ -300,7 +355,10 @@ fn parse_svg_length(value: &str) -> Option<f64> {
     points.is_finite().then_some(points)
 }
 
-fn validate_svg_document(bytes: &[u8], depth: usize) -> Result<()> {
+/// Refuse an SVG that could do anything but draw: scripts, foreign content,
+/// external references, entity declarations and CSS that reaches outside the
+/// document. Shared with the draw.io reader, which embeds SVG pictures.
+pub(crate) fn validate_svg_document(bytes: &[u8], depth: usize) -> Result<()> {
     if depth > MAX_NESTED_SVG_DEPTH {
         return Err(Error::LimitExceeded(format!(
             "nested SVG depth exceeds {MAX_NESTED_SVG_DEPTH}"
@@ -313,22 +371,43 @@ fn validate_svg_document(bytes: &[u8], depth: usize) -> Result<()> {
     let mut root_closed = false;
     let mut element_depth = 0usize;
     let mut style_depth = None::<usize>;
+    let mut style_text = String::new();
     loop {
         match reader.read_event_into(&mut buffer)? {
-            Event::DocType(_) => {
-                return Err(Error::InvalidInput(
-                    "SVG document types and entities are not allowed".into(),
-                ));
+            Event::DocType(doctype) => {
+                // Every draw.io SVG export starts with the standard SVG 1.1
+                // document type, so refusing all of them would refuse the
+                // files this converter most needs to read. What has to stay
+                // out is an entity declaration, which needs an internal subset;
+                // an external DTD is never fetched by this reader or written to
+                // the output.
+                let text = doctype
+                    .decode()
+                    .map_err(|error| {
+                        Error::InvalidInput(format!("invalid SVG document type: {error}"))
+                    })?
+                    .to_ascii_uppercase();
+                if text.contains('[') || text.contains("ENTITY") {
+                    return Err(Error::InvalidInput(
+                        "SVG document type entities are not allowed".into(),
+                    ));
+                }
             }
             Event::PI(_) => {
                 return Err(Error::InvalidInput(
                     "SVG processing instructions are not allowed".into(),
                 ));
             }
-            Event::GeneralRef(_) if style_depth.is_some() => {
-                return Err(Error::InvalidInput(
-                    "SVG CSS entity references are not allowed".into(),
-                ));
+            // A reference inside a style rule is reported separately from the
+            // text around it, so `u&#114;l(...)` would slip past a check that
+            // only ever sees one chunk at a time. Resolving each reference into
+            // the same buffer as the text, and checking the whole rule once the
+            // element closes, is what makes the check see what CSS will.
+            Event::GeneralRef(reference) if style_depth.is_some() => {
+                push_style_text(
+                    &mut style_text,
+                    &decode_xml_reference(&reference, "SVG CSS")?,
+                )?;
             }
             Event::Start(start) => {
                 if root_closed {
@@ -379,7 +458,7 @@ fn validate_svg_document(bytes: &[u8], depth: usize) -> Result<()> {
                     ));
                 }
                 if style_depth.is_some() {
-                    validate_css_references(&value)?;
+                    push_style_text(&mut style_text, &value)?;
                 }
             }
             Event::CData(text) => {
@@ -390,7 +469,7 @@ fn validate_svg_document(bytes: &[u8], depth: usize) -> Result<()> {
                 }
                 if style_depth.is_some() {
                     let value = String::from_utf8_lossy(text.as_ref());
-                    validate_css_references(&value)?;
+                    push_style_text(&mut style_text, &value)?;
                 }
             }
             Event::End(end) => {
@@ -400,9 +479,16 @@ fn validate_svg_document(bytes: &[u8], depth: usize) -> Result<()> {
                 }
                 if local_name(end.name().as_ref()).eq_ignore_ascii_case(b"style") {
                     style_depth = None;
+                    validate_css_references(&style_text)?;
+                    style_text.clear();
                 }
             }
-            Event::Eof => break,
+            Event::Eof => {
+                if !style_text.is_empty() {
+                    validate_css_references(&style_text)?;
+                }
+                break;
+            }
             _ => {}
         }
         buffer.clear();
@@ -483,7 +569,13 @@ fn validate_svg_element(
         if key == "href" {
             validate_svg_href(&value, depth)?;
         }
-        validate_css_references(&value)?;
+        // `content` is where draw.io keeps a copy of the diagram. No renderer
+        // reads it and no CSS can reach it, and this converter parses it as
+        // XML before trusting it, so the CSS rules do not apply and would
+        // reject an ordinary diagram that happens to contain a backslash.
+        if key != "content" {
+            validate_css_references(&value)?;
+        }
     }
     Ok(())
 }
@@ -893,4 +985,176 @@ fn fit_rect(
         points_to_emu(width),
         points_to_emu(height),
     )
+}
+
+// ---------------------------------------------------------------------------
+// draw.io
+// ---------------------------------------------------------------------------
+
+/// draw.io lays out in CSS pixels; SVG pages arrive in points.
+const PIXELS_PER_POINT: f64 = 4.0 / 3.0;
+/// Upper bound on one page's embedded diagram source.
+const MAX_EMBEDDED_SOURCE_BYTES: usize = 32 * 1024 * 1024;
+
+/// The `<diagram>` elements of the draw.io source an SVG carries.
+///
+/// draw.io puts a copy of the diagram in the root element's `content`
+/// attribute when "Include a copy of my diagram" is on, which is what makes an
+/// exported SVG openable as a diagram again. Returns an empty list for an SVG
+/// that carries no source, which the caller turns into an embedded picture.
+fn embedded_diagrams(bytes: &[u8]) -> Result<Vec<String>> {
+    let mut reader = Reader::from_reader(bytes);
+    reader.config_mut().trim_text(false);
+    let mut buffer = Vec::new();
+    let source = loop {
+        match reader.read_event_into(&mut buffer)? {
+            Event::Start(start) | Event::Empty(start) => {
+                if local_name(start.name().as_ref()) != b"svg" {
+                    return Ok(Vec::new());
+                }
+                break attribute(&start, b"content");
+            }
+            Event::Eof => return Ok(Vec::new()),
+            _ => {}
+        }
+    };
+    let Some(source) = source.filter(|value| !value.trim().is_empty()) else {
+        return Ok(Vec::new());
+    };
+    if source.len() > MAX_EMBEDDED_SOURCE_BYTES {
+        return Err(Error::LimitExceeded(format!(
+            "embedded diagram source is {} bytes; maximum is {MAX_EMBEDDED_SOURCE_BYTES} bytes",
+            source.len()
+        )));
+    }
+    // Releases before 2018 stored the copy as `encodeURIComponent` output
+    // rather than as the diagram itself, and those exports are still in
+    // circulation.
+    let source = if source.trim_start().starts_with('<') {
+        source
+    } else {
+        crate::drawio::percent_decode(&source)?
+    };
+    split_embedded_diagrams(&source)
+}
+
+/// Take the `<diagram>` elements out of an embedded `mxfile` verbatim.
+///
+/// The source is data that arrived inside someone else's SVG, so it is parsed
+/// before it is trusted: anything that is not a well-formed `mxfile` carrying
+/// diagrams, or that declares a document type, is refused rather than copied
+/// into the output.
+fn split_embedded_diagrams(source: &str) -> Result<Vec<String>> {
+    let bytes = source.as_bytes();
+    let mut reader = Reader::from_reader(bytes);
+    reader.config_mut().trim_text(false);
+    let mut buffer = Vec::new();
+    let mut diagrams = Vec::new();
+    let mut open = None::<usize>;
+    let mut depth = 0usize;
+    let mut saw_mxfile = false;
+    loop {
+        let position = usize::try_from(reader.buffer_position()).unwrap_or(usize::MAX);
+        match reader.read_event_into(&mut buffer).map_err(|error| {
+            Error::InvalidInput(format!("embedded diagram source is not valid XML: {error}"))
+        })? {
+            Event::DocType(_) | Event::PI(_) => {
+                return Err(Error::InvalidInput(
+                    "embedded diagram source may not declare a document type".into(),
+                ));
+            }
+            Event::Start(start) => {
+                let name = local_name(start.name().as_ref()).to_vec();
+                if name == b"mxfile" {
+                    saw_mxfile = true;
+                } else if name == b"diagram" && open.is_none() {
+                    open = Some(position);
+                    depth = 0;
+                } else if open.is_some() {
+                    depth += 1;
+                }
+            }
+            Event::End(end) => {
+                if local_name(end.name().as_ref()) == b"diagram" && depth == 0 {
+                    if let Some(start_offset) = open.take() {
+                        let element = source
+                            .get(
+                                start_offset
+                                    ..usize::try_from(reader.buffer_position())
+                                        .unwrap_or(usize::MAX),
+                            )
+                            .unwrap_or_default();
+                        diagrams.push(element.to_owned());
+                    }
+                } else if open.is_some() {
+                    depth = depth.saturating_sub(1);
+                }
+            }
+            Event::Eof => break,
+            _ => {}
+        }
+        buffer.clear();
+    }
+    if !saw_mxfile || diagrams.is_empty() {
+        return Err(Error::InvalidInput(
+            "embedded diagram source is not an mxfile with diagrams".into(),
+        ));
+    }
+    Ok(diagrams)
+}
+
+fn write_drawio(pages: &[SvgPage]) -> String {
+    let mut diagrams = String::new();
+    let mut count = 0usize;
+    for (index, page) in pages.iter().enumerate() {
+        let number = index + 1;
+        if page.diagrams.is_empty() {
+            diagrams.push_str(&drawio_picture_diagram(page, number));
+            count += 1;
+        } else {
+            for diagram in &page.diagrams {
+                diagrams.push_str(diagram);
+                count += 1;
+            }
+        }
+    }
+    format!(
+        "<mxfile host=\"document-svg\" agent=\"document-svg {}\" type=\"device\" pages=\"{count}\">{diagrams}</mxfile>\n",
+        env!("CARGO_PKG_VERSION")
+    )
+}
+
+/// One page held as a picture, for an SVG that arrived without its source.
+///
+/// draw.io stores a picture shape's data URI in the style, and reads the
+/// `data:<mime>,<base64>` spelling it writes itself.
+fn drawio_picture_diagram(page: &SvgPage, number: usize) -> String {
+    let width = (page.width_points * PIXELS_PER_POINT).round().max(1.0);
+    let height = (page.height_points * PIXELS_PER_POINT).round().max(1.0);
+    let encoded = base64::engine::general_purpose::STANDARD.encode(&page.bytes);
+    format!(
+        "<diagram id=\"page-{number}\" name=\"Page {number}\">\
+         <mxGraphModel dx=\"{width}\" dy=\"{height}\" grid=\"0\" gridSize=\"10\" guides=\"1\" \
+         tooltips=\"1\" connect=\"1\" arrows=\"1\" fold=\"1\" page=\"1\" pageScale=\"1\" \
+         pageWidth=\"{width}\" pageHeight=\"{height}\" math=\"0\" shadow=\"0\">\
+         <root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/>\
+         <mxCell id=\"page-{number}-image\" value=\"\" \
+         style=\"shape=image;verticalLabelPosition=bottom;verticalAlign=top;imageAspect=0;aspect=fixed;image=data:image/svg+xml,{encoded}\" \
+         vertex=\"1\" parent=\"1\">\
+         <mxGeometry x=\"0\" y=\"0\" width=\"{width}\" height=\"{height}\" as=\"geometry\"/>\
+         </mxCell></root></mxGraphModel></diagram>"
+    )
+}
+
+/// Collect one `<style>` element's content, bounded so a pathological document
+/// cannot make the check itself the problem.
+fn push_style_text(buffer: &mut String, value: &str) -> Result<()> {
+    const MAX_STYLE_BYTES: usize = 4 * 1024 * 1024;
+    if buffer.len().saturating_add(value.len()) > MAX_STYLE_BYTES {
+        return Err(Error::LimitExceeded(format!(
+            "SVG style content exceeds {MAX_STYLE_BYTES} bytes"
+        )));
+    }
+    buffer.push_str(value);
+    Ok(())
 }

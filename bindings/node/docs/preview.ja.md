@@ -6,7 +6,7 @@
 
 ## できること
 
-- PDF、PPTX、XLSX、DOCXを1ページずつ完全なSVG文字列へ変換
+- PDF、PPTX、XLSX、DOCX、drawioを1ページずつ完全なSVG文字列へ変換
 - 出力ファイルを残さないインメモリプレビュー
 - Node.jsサーバー、Electronのmain process、サーバー側TypeScriptでの利用
 - `<img>`向けBlob URL／Data URLの生成

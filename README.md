@@ -1,10 +1,10 @@
 # document-svg
 
-**Preview PDF and Office documents as SVG pages in your application.**
+**Preview PDF, Office and draw.io documents as SVG pages in your application.**
 
 A Rust library and CLI with Node.js and Python bindings. Convert PDF, PowerPoint,
-Excel and Word files into one SVG per page, display them in a browser, and inspect
-conversion warnings before sharing the result.
+Excel, Word and draw.io files into one SVG per page, display them in a browser, and
+inspect conversion warnings before sharing the result.
 
 [日本語](README.ja.md) · [简体中文预览指南](bindings/node/docs/preview.zh-CN.md) ·
 [Examples](samples/) · [Releases](https://github.com/ryusui-hiro/document-svg/releases)
@@ -19,8 +19,8 @@ conversion warnings before sharing the result.
 | Copy an SVG image or its source | `copySvgToClipboard()` |
 | Put SVG pages into an Office file | `docsvg reverse`, Node/Python `reverse()` |
 
-Supported inputs: **PDF, PPTX, XLSX and DOCX**. SVG-to-Office export supports
-**PPTX, DOCX and XLSX**.
+Supported inputs: **PDF, PPTX, XLSX, DOCX and draw.io** (`.drawio`, `.dio`, `.xml`;
+one SVG per diagram page). SVG-to-Office export supports **PPTX, DOCX and XLSX**.
 
 Document conversion runs locally in Rust. In a web application, run it on the
 server or in an Electron main process and send the SVG to your frontend. The
@@ -127,7 +127,13 @@ The Rust crate requires Rust 1.88 or newer. Release builds are tested with Rust 
 ```sh
 docsvg samples/source/sample.pptx --output output/slides
 docsvg report.pdf --output output/report --max-pages 100
+docsvg architecture.drawio --output output/diagram
+docsvg aws.drawio --output output/aws --stencils path/to/drawio/stencils
 ```
+
+`--stencils` takes draw.io's own stencil files, or your own in the same format;
+[the sample](samples/source/sample-stencils.xml) is one written for this
+repository. A shape the diagram carries itself needs nothing.
 
 The output directory must be new or empty:
 
@@ -143,6 +149,8 @@ Embedded images use the SVG 2 `href` attribute, so the renderer must be a curren
 browser, resvg, or librsvg 2.46 or newer.
 Excel worksheets may span several SVG pages according to paper size and print
 settings. [The sample workbook](samples/source/sample.xlsx) produces four pages.
+Each page of a draw.io file — one `<diagram>` element — becomes one SVG, cropped
+to the drawing.
 
 ### Node.js / TypeScript
 
@@ -207,15 +215,26 @@ println!("{} pages", report.page_count);
 # Ok::<(), document_svg::Error>(())
 ```
 
-### Export SVG pages to Office
+### Export SVG pages to Office or draw.io
 
 ```sh
 docsvg reverse output/slides --output slides.pptx
+docsvg reverse output/diagram --output diagram.drawio
 ```
 
-Each SVG becomes a slide, document page or worksheet. Export embeds vector
-images with PNG fallbacks; it does not reconstruct the original paragraphs,
-cells, formulas or charts.
+Each SVG becomes a slide, document page, worksheet or diagram page. Export
+embeds vector images with PNG fallbacks; it does not reconstruct the original
+paragraphs, cells, formulas or charts.
+
+A draw.io output is the exception. An SVG that still carries its diagram source
+— what draw.io writes with "Include a copy of my diagram", and what
+`docsvg --embed-drawio-source` writes — is restored as the editable diagram it
+came from, not as a picture of it:
+
+```sh
+docsvg diagram.drawio --output output/diagram --embed-drawio-source
+docsvg reverse output/diagram --output same-diagram.drawio
+```
 
 ## Accuracy and safety
 
@@ -234,25 +253,56 @@ cells, formulas or charts.
   declarations, not access control, and `docsvg` does not enforce them. Decide
   for yourself whether that is acceptable before converting such a file.
 - Preview helpers perform conservative checks, not universal SVG sanitization.
+- draw.io shape libraries are drawn from draw.io's own stencil files. Point
+  `--stencils` at them to get real icons; without it, a shape from a library
+  becomes a labelled placeholder and says so in a warning. Shapes the editor
+  implements in code rather than as stencils stay placeholders either way.
+  Connector routes without explicit waypoints approximate draw.io's router
+  rather than reproducing it.
 
 See [supported features and limitations](docs/SUPPORT.md), the
 [security policy](SECURITY.md), and [performance measurements](docs/FONT_AND_PERFORMANCE_REVIEW.md).
 
-## Codex and Claude Code
+## Editors, agents and CI
 
-Both plugins are included in this repository. From a trusted source checkout:
+| Surface | How to use it |
+|---|---|
+| Codex | `./scripts/install-codex-plugin.sh`, then invoke `$document-svg` |
+| Claude Code | `/plugin marketplace add ryusui-hiro/document-svg`, then `/plugin install document-svg@document-svg` |
+| GitHub Copilot | Reads `.github/copilot-instructions.md`; add the setup action to your `copilot-setup-steps.yml` to give the coding agent the CLI |
+| GitHub CLI | `./scripts/install-gh-extension.sh`, then `gh docsvg convert report.pdf --output preview/report` |
+| GitHub Actions | `uses: ryusui-hiro/document-svg/.github/actions/setup-docsvg@main` |
 
-```sh
-./scripts/install-codex-plugin.sh
-# Start a new Codex task.
-
-./scripts/install-claude-plugin.sh
-# Restart Claude Code.
-```
+The installers build `docsvg` from the checkout when cargo is available, and
+otherwise install a checksum-verified release build. A Rust toolchain is not
+required.
 
 Example request: “Use document-svg to convert this presentation into SVG previews
 and report any warnings.”
 
+Claude Code also gets four commands: `/document-svg:convert`,
+`/document-svg:reverse`, `/document-svg:preview` and `/document-svg:setup`.
+
+### Preview changed documents in a pull request
+
+```yaml
+name: Document preview
+on:
+  pull_request:
+    paths: ['**.pdf', '**.pptx', '**.xlsx', '**.docx']
+jobs:
+  preview:
+    uses: ryusui-hiro/document-svg/.github/workflows/document-preview.yml@main
+    permissions:
+      contents: read
+      pull-requests: write
+```
+
+Every changed document is converted to SVG pages, attached to the run as an
+artifact, and summarised as a table of page and warning counts on the pull
+request.
+
+[GitHub and agent integration](docs/GITHUB_INTEGRATION.md) ·
 [Plugin installation guide](docs/PLUGIN_INSTALLATION.md)
 
 ## Development

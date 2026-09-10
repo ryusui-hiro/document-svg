@@ -1,0 +1,44 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.drawio",
+  "source_format": "drawio",
+  "output_directory": "samples/svg/drawio",
+  "elapsed_ms": 0,
+  "input_bytes": 5632,
+  "page_count": 3,
+  "largest_page_ir_bytes": 16636,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 330.0,
+      "height_points": 262.5,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 16636
+    },
+    {
+      "number": 2,
+      "svg": "page-0002.svg",
+      "width_points": 300.0,
+      "height_points": 195.0,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 10715
+    },
+    {
+      "number": 3,
+      "svg": "page-0003.svg",
+      "width_points": 375.0,
+      "height_points": 142.5,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 8692
+    }
+  ],
+  "warnings": []
+}

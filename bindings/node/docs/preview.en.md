@@ -6,7 +6,7 @@
 
 ## What it can do
 
-- Convert PDF, PPTX, XLSX, and DOCX files into complete SVG strings, one per page
+- Convert PDF, PPTX, XLSX, DOCX and draw.io files into complete SVG strings, one per page
 - Produce in-memory previews without retaining output files
 - Run in Node.js servers, Electron main processes, and server-side TypeScript
 - Create Blob URLs or Data URLs for an `<img>`

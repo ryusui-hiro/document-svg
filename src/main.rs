@@ -2,17 +2,17 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use clap::Parser;
-use document_svg::{ConvertOptions, ReverseOptions, convert_path, svg_to_openxml};
+use document_svg::{ConvertOptions, ReverseOptions, convert_path, svg_to_document};
 
 #[derive(Debug, Parser)]
 #[command(
     name = "docsvg",
     version,
-    about = "Convert PDF or Office documents to SVG pages; use 'reverse' for SVG to OOXML",
-    after_help = "Reverse conversion: docsvg reverse INPUT.svg --output OUTPUT.pptx\nINPUT may also be a directory containing SVG pages; OUTPUT may end in .pptx, .docx, or .xlsx."
+    about = "Convert PDF, Office or draw.io documents to SVG pages; use 'reverse' to go back",
+    after_help = "Reverse conversion: docsvg reverse INPUT.svg --output OUTPUT.pptx\nINPUT may also be a directory containing SVG pages; OUTPUT may end in .pptx, .docx, .xlsx, or .drawio."
 )]
 struct Cli {
-    /// Source PDF, PPTX, XLSX, or DOCX file.
+    /// Source PDF, PPTX, XLSX, DOCX, or draw.io file.
     input: PathBuf,
 
     /// Directory that receives page-NNNN.svg and conversion.json.
@@ -46,18 +46,28 @@ struct Cli {
     /// Outline embedded PDF fonts for maximum fidelity instead of editable text.
     #[arg(long)]
     outline_embedded_pdf_text: bool,
+
+    /// Keep a copy of the draw.io source in each SVG so it can be opened as an
+    /// editable diagram again, in draw.io or with `docsvg reverse`.
+    #[arg(long)]
+    embed_drawio_source: bool,
+
+    /// draw.io stencil XML file or directory to draw shape libraries with.
+    /// Repeat for more than one.
+    #[arg(long = "stencils", value_name = "PATH")]
+    stencil_paths: Vec<PathBuf>,
 }
 
 #[derive(Debug, Parser)]
 #[command(
     name = "docsvg reverse",
-    about = "Package SVG pages as vector images in PPTX, DOCX, or XLSX"
+    about = "Package SVG pages as vector images in PPTX, DOCX, XLSX, or draw.io"
 )]
 struct ReverseCli {
     /// Source SVG file or directory containing SVG pages.
     input: PathBuf,
 
-    /// Destination PPTX, DOCX, or XLSX file.
+    /// Destination PPTX, DOCX, XLSX, or .drawio file.
     #[arg(short, long)]
     output: PathBuf,
 
@@ -92,6 +102,8 @@ fn convert(cli: Cli) -> anyhow::Result<()> {
         precision: cli.precision.min(12),
         jobs: cli.jobs,
         outline_embedded_pdf_text: cli.outline_embedded_pdf_text,
+        embed_drawio_source: cli.embed_drawio_source,
+        stencil_paths: cli.stencil_paths,
         ..ConvertOptions::default()
     };
     let report = convert_path(&cli.input, &cli.output, &options).with_context(|| {
@@ -119,7 +131,7 @@ fn reverse(cli: ReverseCli) -> anyhow::Result<()> {
         max_input_bytes: cli.max_input_mib.saturating_mul(1024 * 1024),
         max_pages: cli.max_pages,
     };
-    let report = svg_to_openxml(&cli.input, &cli.output, &options).with_context(|| {
+    let report = svg_to_document(&cli.input, &cli.output, &options).with_context(|| {
         format!(
             "failed to package {} into {}",
             cli.input.display(),

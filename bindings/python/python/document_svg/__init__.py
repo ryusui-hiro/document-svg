@@ -57,8 +57,10 @@ def convert(
     precision: int | None = None,
     jobs: int | None = None,
     outline_embedded_pdf_text: bool | None = None,
+    embed_drawio_source: bool | None = None,
+    stencil_paths: list[str] | None = None,
 ) -> ConversionReport:
-    """Convert a PDF/PPTX/XLSX/DOCX file into SVG pages.
+    """Convert a PDF/PPTX/XLSX/DOCX/drawio file into SVG pages.
 
     The conversion runs outside the Python GIL. Files are written to
     ``output_directory`` and the conversion manifest is returned as a dict.
@@ -75,6 +77,8 @@ def convert(
         precision=precision,
         jobs=jobs,
         outline_embedded_pdf_text=outline_embedded_pdf_text,
+        embed_drawio_source=embed_drawio_source,
+        stencil_paths=stencil_paths,
     )
     return json.loads(report)
 
@@ -86,7 +90,7 @@ def reverse(
     max_input_bytes: int | None = None,
     max_pages: int | None = None,
 ) -> ReverseReport:
-    """Package one SVG or a directory of SVG pages as PPTX, DOCX, or XLSX.
+    """Package one SVG or a directory of SVG pages as PPTX, DOCX, XLSX, or draw.io.
 
     SVG pages remain vector images. Original Office paragraphs, cells, formulas,
     charts, and other semantic structures are not reconstructed.

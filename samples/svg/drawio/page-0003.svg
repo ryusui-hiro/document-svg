@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="375pt" height="142.5pt" viewBox="0 0 375 142.5" data-source-format="drawio" data-source-page="3">
+  <title>Shape libraries</title>
+  <metadata id="docsvg-metadata">{"page":3,"nodes":1,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="375" height="142.5" fill="#FFFFFF" data-role="page-background"/>
+  <g id="drawio-page" transform="matrix(0.75 0 0 0.75 -22.5 -22.5)" opacity="1" data-content-kind="drawio-page">
+    <g id="drawio-gauge" transform="matrix(1 0 0 1 0 0)" opacity="1" data-content-kind="drawio-stencil" data-source-id="gauge" data-semantic-role="mxgraph.docsvg.gauge">
+      <path id="drawio-gauge-0" d="M 40 90 A 50 50 0 1 0 140 90 A 50 50 0 1 0 40 90 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-stencil"/>
+      <path id="drawio-gauge-1" d="M 90 90 L 122 70 M 52 90 L 60 90 M 128 90 L 120 90 M 90 52 L 90 60" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#6C8EBF" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-stencil"/>
+      <path id="drawio-gauge-2" d="M 84 90 A 6 6 0 1 0 96 90 A 6 6 0 1 0 84 90 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2D6195" fill-opacity="1" stroke="none" data-content-kind="drawio-stencil"/>
+    </g>
+    <text id="drawio-gauge-label-0" x="90" y="152.8" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="gauge">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">From a library</tspan>
+    </text>
+    <g id="drawio-tray" transform="matrix(1 0 0 1 0 0)" opacity="1" data-content-kind="drawio-stencil" data-source-id="tray" data-semantic-role="mxgraph.docsvg.tray">
+      <path id="drawio-tray-0" d="M 200 76 L 216 60 L 360 60 L 360 124 L 344 140 L 200 140 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-stencil"/>
+      <path id="drawio-tray-1" d="M 344 76 L 344 140" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#82B366" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-stencil"/>
+    </g>
+    <text id="drawio-tray-label-0" x="280" y="152.8" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="tray">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Also from a library</tspan>
+    </text>
+    <g id="drawio-inline" transform="matrix(1 0 0 1 0 0)" opacity="1" data-content-kind="drawio-stencil" data-source-id="inline" data-semantic-role="stencil(fzbbeomgdevpw15hegjr74gyloyuoec1vx1h4rtiwg2tl/x8/ksollo9g5cnfeoqpgyb/grca9rxbpo4t+iaendak5gctbdimdyh9bycpjjvvvcdie/zlpkpqt64n2gzpqk9/mg867jdqictjc2bvbbfp1wyzcoh3ykvlfje2j55gkcrfpslf7amx9r3claxosfn2fscvbnfn1f9fw==)">
+      <path id="drawio-inline-0" d="M 420 140 L 470 60 L 520 140 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFF2CC" fill-opacity="1" stroke="#D6B656" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-stencil"/>
+    </g>
+    <text id="drawio-inline-label-0" x="470" y="152.8" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="inline">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Carried by this file</tspan>
+    </text>
+    <path id="drawio-note" d="M 40 180 H 520 V 210 H 40 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="none" data-content-kind="drawio-shape" data-source-id="note" data-semantic-role="text"/>
+    <text id="drawio-note-label-0" x="42" y="198.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="note">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">The first two need --stencils; the third needs nothing.</tspan>
+    </text>
+  </g>
+</svg>

@@ -16,6 +16,8 @@ struct PythonOptions {
     precision: Option<usize>,
     jobs: Option<usize>,
     outline_embedded_pdf_text: Option<bool>,
+    embed_drawio_source: Option<bool>,
+    stencil_paths: Option<Vec<PathBuf>>,
 }
 
 impl PythonOptions {
@@ -45,6 +47,12 @@ impl PythonOptions {
         if let Some(value) = self.outline_embedded_pdf_text {
             options.outline_embedded_pdf_text = value;
         }
+        if let Some(value) = self.embed_drawio_source {
+            options.embed_drawio_source = value;
+        }
+        if let Some(value) = self.stencil_paths {
+            options.stencil_paths = value;
+        }
         options
     }
 }
@@ -62,7 +70,9 @@ impl PythonOptions {
     include_metadata=None,
     precision=None,
     jobs=None,
-    outline_embedded_pdf_text=None
+    outline_embedded_pdf_text=None,
+    embed_drawio_source=None,
+    stencil_paths=None
 ))]
 #[allow(clippy::too_many_arguments)]
 fn convert_json(
@@ -77,6 +87,8 @@ fn convert_json(
     precision: Option<usize>,
     jobs: Option<usize>,
     outline_embedded_pdf_text: Option<bool>,
+    embed_drawio_source: Option<bool>,
+    stencil_paths: Option<Vec<PathBuf>>,
 ) -> PyResult<String> {
     let options = PythonOptions {
         max_input_bytes,
@@ -87,6 +99,8 @@ fn convert_json(
         precision,
         jobs,
         outline_embedded_pdf_text,
+        embed_drawio_source,
+        stencil_paths,
     }
     .apply();
 

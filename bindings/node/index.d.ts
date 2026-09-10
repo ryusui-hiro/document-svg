@@ -25,6 +25,8 @@ export interface ConvertOptions {
   precision?: number
   jobs?: number
   outlineEmbeddedPdfText?: boolean
+  embedDrawioSource?: boolean
+  stencilPaths?: Array<string>
 }
 
 export interface PageReport {
@@ -39,7 +41,7 @@ export interface PageReport {
 }
 
 /**
- * Convert a PDF/PPTX/XLSX/DOCX file and return complete SVG markup for UI
+ * Convert a PDF/PPTX/XLSX/DOCX/drawio file and return complete SVG markup for UI
  * preview without leaving output files behind.
  *
  * This runs on a libuv worker. It is intended for Node.js, Electron main
@@ -62,6 +64,8 @@ export interface PreviewOptions {
   precision?: number
   jobs?: number
   outlineEmbeddedPdfText?: boolean
+  embedDrawioSource?: boolean
+  stencilPaths?: Array<string>
   /** Maximum UTF-8 byte length of one returned SVG. Default: 64 MiB. */
   maxSvgBytes?: number
   /** Maximum UTF-8 byte length of all returned SVG pages. Default: 256 MiB. */
@@ -96,7 +100,7 @@ export interface PreviewReport {
 }
 
 /**
- * Package one SVG or a directory of SVG pages as PPTX, DOCX, or XLSX.
+ * Package one SVG or a directory of SVG pages as PPTX, DOCX, XLSX, or draw.io.
  *
  * SVG pages remain vector images; Office semantic structure is not reconstructed.
  */

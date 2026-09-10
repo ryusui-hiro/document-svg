@@ -9,7 +9,7 @@
   "interface": {
     "displayName": "Document SVG",
     "shortDescription": "Convert between documents and SVG pages.",
-    "longDescription": "Converts PDF, PPTX, XLSX, and DOCX files into deterministic per-page SVG files, and packages SVG pages back into PPTX, DOCX, or XLSX while preserving vector appearance.",
+    "longDescription": "Converts PDF, PPTX, XLSX, DOCX, and draw.io files into deterministic per-page SVG files, and packages SVG pages back into PPTX, DOCX, or XLSX while preserving vector appearance.",
     "developerName": "document-svg contributors",
     "category": "Productivity",
     "capabilities": [

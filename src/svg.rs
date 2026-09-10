@@ -40,9 +40,18 @@ pub fn write_page<W: Write>(page: &Page, mut output: W, options: SvgOptions) -> 
         .map(|clip| (clip.id.clone(), clip.parent_id.clone()))
         .collect::<HashMap<_, _>>();
     writeln!(output, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>")?;
+    // draw.io stores a diagram's own source in a `content` attribute on the
+    // root and reads it back when the SVG is opened as a diagram. Every SVG
+    // renderer ignores the attribute, so carrying it costs nothing but bytes.
+    let embedded_source = page
+        .embedded_source
+        .as_deref()
+        .filter(|value| !value.is_empty())
+        .map(|value| format!(" content=\"{}\"", escape_attr(value)))
+        .unwrap_or_default();
     writeln!(
         output,
-        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}pt\" height=\"{}pt\" viewBox=\"0 0 {} {}\" data-source-format=\"{}\" data-source-page=\"{}\">",
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}pt\" height=\"{}pt\" viewBox=\"0 0 {} {}\" data-source-format=\"{}\" data-source-page=\"{}\"{embedded_source}>",
         number(page.width, options.precision),
         number(page.height, options.precision),
         number(page.width, options.precision),
@@ -1062,7 +1071,7 @@ fn escape_xml(value: &str, attribute: bool) -> Cow<'_, str> {
     // for each href attribute.
     let needs_escaping = value.bytes().any(|byte| {
         matches!(byte, b'&' | b'<' | b'>' | 0..=8 | 11 | 12 | 14..=31)
-            || (attribute && matches!(byte, b'"' | b'\''))
+            || (attribute && matches!(byte, b'"' | b'\'' | b'\t' | b'\n' | b'\r'))
     });
     if !needs_escaping {
         return Cow::Borrowed(value);
@@ -1075,6 +1084,12 @@ fn escape_xml(value: &str, attribute: bool) -> Cow<'_, str> {
             '>' => escaped.push_str("&gt;"),
             '"' if attribute => escaped.push_str("&quot;"),
             '\'' if attribute => escaped.push_str("&apos;"),
+            // A reader turns literal tabs and newlines inside an attribute
+            // into spaces, so anything meant to survive the trip has to be
+            // written as a character reference.
+            '\t' if attribute => escaped.push_str("&#9;"),
+            '\n' if attribute => escaped.push_str("&#10;"),
+            '\r' if attribute => escaped.push_str("&#13;"),
             '\t' | '\n' | '\r' => escaped.push(character),
             value if value >= ' ' => escaped.push(value),
             _ => {}
@@ -1093,7 +1108,7 @@ mod tests {
         assert_eq!(escape_text("日本語<&>\"'\0\t"), "日本語&lt;&amp;&gt;\"'\t");
         assert_eq!(
             escape_attr("中文<&>\"'\u{b}\n"),
-            "中文&lt;&amp;&gt;&quot;&apos;\n"
+            "中文&lt;&amp;&gt;&quot;&apos;&#10;"
         );
         assert!(matches!(
             escape_attr("data:image/png;base64,AAAA"),

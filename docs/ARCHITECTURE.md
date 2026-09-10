@@ -6,13 +6,19 @@
 PDF ───────────────┐
 PPTX ZIP/XML ──────┤
 XLSX ZIP/XML ──────┼─> Page IR ─> streaming SVG writer ─> page-NNNN.svg
-DOCX ZIP/XML ──────┘                         └────────────> conversion.json
+DOCX ZIP/XML ──────┤                         └────────────> conversion.json
+drawio mxGraphModel┘
 
 SVGファイル／ディレクトリ ─> bounded SVG reader ─> OOXML package writer
-                                                   ├─> PPTX（1 SVG / slide）
-                                                   ├─> DOCX（1 SVG / page）
-                                                   └─> XLSX（1 SVG / sheet）
+                             │                     ├─> PPTX（1 SVG / slide）
+                             │                     ├─> DOCX（1 SVG / page）
+                             │                     └─> XLSX（1 SVG / sheet）
+                             └─> mxfile writer ───> drawio（1 SVG / diagram、
+                                                    sourceを持つSVGは元の
+                                                    `<diagram>`を復元）
 ```
+
+drawioは`mxfile`の`<diagram>`ごとに1ページを生成します。本文は生XMLか、`encodeURIComponent`＋raw deflate＋base64のいずれかで、後者は`max_zip_entry_bytes`を上限に展開します。モデル座標はCSSピクセルなので、page rootの1 groupがピクセル→ポイント変換とcropのoffsetをまとめて持ち、図形geometry、線幅、font sizeを同じ倍率で保ちます。
 
 全入力形式は`Page`、`Node::{Path,Text,Image,Group}`、`Paint`、`Stroke`、`ClipPath`、`MaskDefinition`からなる共通IRへ正規化します。座標はポイント、変換はSVGと同じ6要素アフィン行列です。`TextRun`はrun全体の期待advanceに加え、PDF由来の証明可能なglyph x originも保持できます。SVGライターは入力順と固定精度で直列化し、属性順も決定的です。
 
@@ -49,6 +55,7 @@ PDF効果は、要素自身のtransformと混同しないようidentity座標の
 - 埋め込みfont program: `Arc<[u8]>`でpage/Form/soft-maskのdecoder scope間に共有し、font bytesを複製しません。
 - Page IR: `jobs=1`ではrender直後にSVGへconsumeして破棄します。並列PDFも入力順を保つ`jobs`件単位batchだけを保持し、文書全ページのIRは保持しません。
 - 出力: `BufWriter`へ直接書き、巨大なSVG文字列を二重保持しません。
+- drawio: 図面本文の展開は`max_zip_entry_bytes`で制限します。shape libraryは1ファイル64 MiB、1 shape 200,000命令を上限とし、そのページが実際に使うshapeだけをXMLから抽出して保持します。必要なshapeが全て揃った時点で残りのlibrary fileは読みません（AWS図1枚＋42 MBの全library指定で常駐15 MiB以下）。座標と長さは原点から±1,000,000 pxに収め、ページもその範囲でcropします。
 - SVG逆変換: SVG合計を`max_input_bytes`、ページ数を`max_pages`で制限し、OOXMLを一時ZIPへ書いてからrenameします。
 - 並列化: `jobs=1`が省メモリ既定です。PDFだけ指定worker数でページを並列化し、同時常駐Page IR上限も`jobs`件です。速度と常駐IR数は明示的なトレードオフです。
 
@@ -56,6 +63,7 @@ PDF効果は、要素自身のtransformと混同しないようidentity座標の
 
 ## 安全性
 
+- drawioのstencilは呼び出し元が指定したファイル／ディレクトリだけを読み、図面やstencilの中身からパスを組み立てることはありません。埋め込みSVG画像はSVG逆変換と同じ検査（script、foreignObject、外部参照、ENTITY宣言の拒否）を通してからでなければ出力に入れません。URL参照の画像は取得しません。
 - コアとPythonバインディングは`unsafe_code = "forbid"`、Node.jsバインディングはnapi-rsマクロが生成するFFI glueだけを許可する`unsafe_code = "deny"`です。手書きプロジェクトコードに`unsafe`はありません。
 - ユーザーパスワードを要求するPDFは処理しません。ユーザーパスワードが空の暗号化PDFは読み込み時に復号され、通常どおり変換します。lopdfはオブジェクト単位の復号失敗を握りつぶすため、内容を消費しながら1 nodeも描かなかったページは警告として報告します。
 - ZIP entry展開量、PDF content展開量、XMLイベント、ページ、描画セルに上限があります。
@@ -73,6 +81,24 @@ PDF効果は、要素自身のtransformと混同しないようidentity座標の
 - XLSX formula fallbackは式長1MiB、依存深さ64、演算100,000、range 100,000セルを上限にします。条件集計rangeは数値・文字列・空白の位置対応を維持し、失敗時は警告してcached値契約へ戻します。
 - cross-sheet／defined-name式は、未cached式に`!`または実際のdefinedNameが現れるsheetだけresolverを起動します。外部sheet全体を保持せず、必要座標をgroup化してZIP partから選択抽出します。conditional expressionはruleごとに一度評価し、全cell/tileで結果を共有します。
 - XLSXのdirect string/inline text/formula captureは所有権をCellへmoveし、capture buffer・raw value・display valueの重複保持を避けます。raw valueは数値・booleanなど評価に必要な型だけ保持します。
+
+### drawioモジュールの構成
+
+`src/drawio/`は仕事ごとに分かれています。`mod.rs`が`mxfile`の展開・モデル解析・Scene（親子座標）・
+ページ組み立てを持ち、`geometry.rs`が矩形とpath文字列と変換、`shapes.rs`がshape名の解決と幾何、
+`edge.rs`が経路・矢尻・エッジラベル、`label.rs`がHTMLラベルと折り返し、`bpmn.rs`がBPMNの3層、
+`stencil.rs`がshape libraryの読み込みと解釈を担当します。
+
+### drawioのshape解決
+
+1. `shape=stencil(...)`（図面が自前で持つmxStencil）
+2. 呼び出し元が渡したstencil library（`stencil_paths`／`--stencils`）の完全一致
+3. 本modのnative shape（基本図形、フローチャート、BPMN、UML、floorplan、AWS 3Dの箱など）
+4. label付きplaceholder矩形＋shape名を含む警告
+
+2が3より優先します。libraryはエディタが実際に描く定義そのものなので、同名のnative近似より忠実だからです。mxStencilは`path`（move/line/quad/curve/arc/close）、`rect`／`roundrect`／`ellipse`、`fill`／`stroke`／`fillstroke`、`save`／`restore`、色・線幅・破線・alpha・cap/join/miterを解釈し、`aspect="fixed"`は等倍センタリング、`strokewidth="inherit"`はcell側の線幅を継承します。ベンダーアイコンは同梱せず、利用者が用意したファイルだけを読み、ネットワークは使いません。
+
+drawioがJavaScriptで実装するshapeは、幾何が確定しているものをnative実装として移植しています（BPMNのoutline/background/symbol、floorplanのwall系、UMLのcomponent/folder、AWS 3Dの箱と地上コネクタなど）。AWS 3Dのサービス図形は箱と陰影だけを描き、上に載るグリフが無いことを専用の警告で明示します。
 
 ## 精度方針
 

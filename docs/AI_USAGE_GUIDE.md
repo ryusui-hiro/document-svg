@@ -21,9 +21,10 @@ page-0001.svg、page-0002.svg、...、conversion.json
 
 SVGファイルまたはSVGディレクトリ
           ↓
-SVG image partとしてOOXMLへ格納
+SVG image partとしてOOXMLへ格納 ／ mxfileへ格納
           ↓
-PPTX（1 slide/ SVG）、DOCX（1 page/SVG）、XLSX（1 sheet/SVG）
+PPTX（1 slide/ SVG）、DOCX（1 page/SVG）、XLSX（1 sheet/SVG）、
+drawio（1 diagram/SVG。sourceを持つSVGは元の図面を復元）
 ```
 
 重要な事実は次のとおりです。
@@ -55,8 +56,12 @@ AIがカタログを検索して実在するIDを選び、図のJSONを作り、
 4. `pdf`、`ooxml`、`convert`モジュールは内部実装なので、外部crateから直接呼ばない。
 5. PDF/PPTXなどを一度`Page`として受け取って独自加工する公開APIは、現時点ではない。
    必要なら内部converterと`PageConsumer`を公開・設計し直す必要がある。
-6. SVGをOfficeへ戻すだけなら、CLIの`reverse`または`svg_to_openxml`を使う。この処理は
-   見た目をベクター画像として保持するもので、Officeの意味構造を復元しない。
+6. SVGをOfficeやdrawioへ戻すだけなら、CLIの`reverse`または`svg_to_document`
+   （旧名`svg_to_openxml`も使用可）を使う。この処理は見た目をベクター画像として保持する
+   もので、Officeの意味構造を復元しない。
+7. drawio出力だけは例外で、図面のsourceを持つSVG（drawioの「Include a copy of my
+   diagram」付きexport、または`--embed-drawio-source`で変換した本ツールのSVG）は編集可能な
+   図形として復元する。何ページ復元したかはreportのwarningに出るので、推測せずそれを読む。
 
 ## CLIで変換する
 
@@ -197,7 +202,7 @@ worker上で行われます。ブラウザ用APIではなく、ネイティブNo
 ### TypeScriptで画面プレビューする
 
 ファイルを保存する通常の`convert()`とは別に、`preview()`は各ページの完全なSVG文字列を
-返します。PDFだけでなく、PPTX、XLSX、DOCXにも同じAPIを使用できます。
+返します。PDFだけでなく、PPTX、XLSX、DOCX、drawioにも同じAPIを使用できます。
 
 ```typescript
 import { preview } from "document-svg"
@@ -337,7 +342,7 @@ warningがない                   → converted
 生成AIへの依頼やagent実装では、次の情報を明示すると安定します。
 
 ```text
-目的: PDF/PPTX/XLSX/DOCXをページ単位のSVGへ変換する
+目的: PDF/PPTX/XLSX/DOCX/drawioをページ単位のSVGへ変換する
 推奨入口: document_svg::convert_path（言語bindingではconvert）
 入力判定: 拡張子
 出力: page-NNNN.svg + conversion.json

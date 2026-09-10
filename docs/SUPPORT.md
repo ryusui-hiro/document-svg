@@ -111,6 +111,54 @@
 | OMML math | fraction、sub/sup/subSup、radical、delimiterをsemantic linear runsへ変換。未知のmatrix/n-ary等だけ警告 |
 | Word互換フォント組版と完全同一pagination | 未対応。決定的な近似layout |
 
+## drawio
+
+| 項目 | 状態 |
+|---|---|
+| `mxfile` / 複数`<diagram>` | `<diagram>`1件を1ページとして対応 |
+| 圧縮されたdiagram本体 | `encodeURIComponent`＋raw deflate＋base64を展開。展開後サイズは`max_zip_entry_bytes`で制限 |
+| 素の`mxGraphModel`文書 | 対応。`mxGraphModel`を含まないXMLは入力エラーとして拒否 |
+| `object` / `UserObject`ラッパー | id、labelを内側の`mxCell`へ適用 |
+| mxStyle文字列 | `;`区切りのkey=valueと先頭のshape名を解析。keyは大文字小文字を無視 |
+| 基本図形・フローチャート図形 | rectangle（rounded含む）、ellipse、doubleEllipse、rhombus、triangle、hexagon、parallelogram、trapezoid、step、process、cylinder、cloud、document、multiDocument、note、card、internalStorage、cube、tape、actor、or、xor、dataStorage、delay、display、manualInput、offPageConnector、loopLimit、collate、extract、merge、cross、singleArrow、doubleArrow、swimlane、text、line、callout、message、umlLifeline、umlFrameに対応 |
+| コンテナ系 | `group`と`waypoint`は子要素の位置だけを決め、自身は描画しません。`partialRectangle`は塗りと、`top`/`right`/`bottom`/`left`で有効な辺だけを描きます。`table`／`tableRow`は矩形として描きます |
+| `=`を含まないスタイル語 | mxGraphと同じく、名前付きスタイルとして解決できるものだけをshapeとして扱い、解決できない語は無視します（`shape=`で明示された未対応shapeだけ警告します） |
+| `shape=mxgraph.flowchart.*` / `mxgraph.basic.*` | 末尾名が上記に対応するものへマップ |
+| shape library（`mxgraph.aws4.*`等） | `stencil_paths`（CLIは`--stencils`）にdrawioのstencil XMLファイルまたはそのディレクトリを渡すと、mxStencilを解釈して本物の図形を描画します。path/rect/roundrect/ellipse、fill/stroke/fillstroke、save/restore、色・線幅・破線・alpha、`aspect="fixed"`の等倍センタリングに対応 |
+| インラインstencil（`shape=stencil(...)`） | 対応。図面が自前で持つ図形なので、外部ファイルは不要 |
+| `resIcon`／`grIcon` | 対応。タイルの色はスタイルから、内側のアイコンは指定されたstencilから描きます |
+| drawioがJavaScriptで実装するshape | 主要なものに対応します。BPMN（event／gateway2／shape／taskのoutline・background・symbol 17種）、floorplanのwall/wallCorner/wallU/window/door系/stairs、UMLのcomponent・folder（package）・startState・endState、table／tableRow、partialRectangle、waypoint、group、`mxgraph.gcp2.doubleRect`、AWSのresourceIcon/productIcon/group、AWS 3Dの箱と地上コネクタ（arrowNE/SE/SW/NW、arrowlessNE、flatDoubleEdge、dashedArrowlessEdge）、mockupのsearchBox/comboBox/iconGrid/simpleIcon、infographicのribbonSimple/cylinder/banner/bannerSingleFold/barCallout/shadedTriangle/shadedPyramid/pyramidStep、lean_mappingのoutside_sources/inventory_box/manufacturing_process/schedule/data_box/push_arrow/physical_pull、basicのpartConcEllipse/arc/pie/rectCallout/roundRectCallout、floorplanのroom/stairsRest/doorBypass、sysmlのactFinal/flowFinal/isControl/objFlowL/objFlowR/itemFlowLeft/itemFlowRight/paramDgm/port1、ios7uiのhorLines、rackGeneralのcontainer、bootstrapのrrect/horLines/checkbox/radioButton、各ライブラリ共通のtop/bottom/left/rightButton・rrect・marginRect・uRect・anchor（anchorは非描画）、ios7uiのphone/appBar/pageControl/downloadBar/slider/onOffButton/iconGrid、lean_mappingのtimeline2/fifo_lane/truck_shipment、mockupのmarkup.line/buttons.button/forms.checkbox、basicのdrop/obtuse_triangle/polygon（polyCoords・polyCurves・polylineに対応）、接頭辞なしのisoRectangle/isoCube2/curlyBracket。それ以外はlabel付きplaceholder矩形として描画し、shape名を警告に出力します |
+| AWS 3Dのサービス図形 | 箱と陰影は忠実に描きますが、上に載る白いグリフはdrawio側のコードにあるため描けません。その旨を警告に明示します |
+| 矢尻 | classic／block／open／oval／diamond（thin変種含む）、async／openAsync、box、dash、cross、circle、circlePlus、halfCircle、ER記法6種（ERone／ERmandOne／ERmany／ERoneToMany／ERzeroToOne／ERzeroToMany）に対応。ER記法の距離は`size + strokeWidth + 1`基準でmxMarkerと同じです |
+| ベンダーアイコン本体 | 同梱しません。ライセンスと容量の都合で、利用者が用意したstencilファイルを読みます |
+| `mxgraph.world.*`（国・地域の地図） | 非対応。drawioのオープンソース版にはこのstencilもsidebarも含まれず、オンライン版限定のため、利用者が`--stencils`で補うこともできません |
+| `perimeter=` | `ellipse`／`rhombus`／`triangle`／`hexagon`／`step`／`parallelogram`／`trapezoid`／`center`／`lifeline`／`backbone`に対応。指定がない場合は描画中のshapeの輪郭に合わせます |
+| `overflow=hidden` | ラベルを図形の枠でクリップします（ページ寸法も広げません）。`fill`／`width`は図形の幅で折り返します |
+| `sketch=1`／`comic=1` | 未対応。手描き風の揺らぎは付かず、通常の直線・曲線で描きます |
+| fill / stroke / dashed / dashPattern / opacity | 対応。`fillOpacity`、`strokeOpacity`、`strokeWidth`を含む |
+| `gradientColor` / `gradientDirection` | 2 stopのlinear gradientとして対応 |
+| `shadow` | mxGraphと同じ、(2, 3)ずらしの灰色コピーとして対応 |
+| `direction` / `rotation` / `flipH` / `flipV` | 図形中心まわりの回転・反転として対応。`direction`のnorth/southはwidth/heightを入れ替え |
+| グループ入れ子の座標 | 親vertexのoriginを最大64段まで累積。`visible="0"`は自身と子孫を非表示 |
+| HTMLラベル | `<br>`、`<div>`/`<p>`、`<b>`/`<i>`、`<font>`のcolor/face/size、`style`のcolor/font-size/font-weight/font-style、文字実体参照に対応。それ以外のタグは除去してテキストを残す |
+| `whiteSpace=wrap`と`align`/`verticalAlign`/`spacing*` | 文字体系を見た幅推定による単語単位の折り返しとして対応 |
+| `labelPosition` / `verticalLabelPosition` | ラベル枠を図形1つ分ずらす（アイコン下のキャプション）形で対応 |
+| `labelBackgroundColor` / `labelBorderColor` | 対応 |
+| コネクタ（直線・`curved=1`・`orthogonalEdgeStyle`） | 対応。`elbowEdgeStyle`と`entityRelationEdgeStyle`は直交ルートとして扱います |
+| 固定接続点（`exitX`/`exitY`/`exitDx`、`entryX`/`entryY`/`entryDx`） | 対応。辺上の点は進入方向を決める側面として解釈 |
+| 経由点（`Array as="points"`）と`sourcePoint`/`targetPoint` | 対応 |
+| 直交ルーターの一致 | 近似。`mxEdgeStyle.orthBuffer`の10 px分だけ図形から離れてから曲がり、経由点がない場合は辺の中央から出て図形間の中点で折れます。mxGraphのroute pattern表そのものではありません |
+| エッジラベルの位置（`relative`な`x`とoffset） | 経路長に沿った位置として対応 |
+| swimlane | title barとlane本体の分割線、`swimlaneFillColor`、縦向きtitleに対応。lane内の折り畳みは未対応 |
+| 背景色（`mxGraphModel background`） | 対応 |
+| ページ寸法 | `pageWidth`/`pageHeight`ではなく描画内容のbounding box＋10 pxの余白でcrop。モデル1 px = 0.75 pt |
+| 座標・長さの上限 | モデルが宣言する座標と長さは原点から±1,000,000 pxに、ページも同じ範囲に収めます。超える場合はcropした旨を警告に出します |
+| mxlibrary（シェイプライブラリ）／その他のXML | 変換対象外。何のファイルかを名指ししてエラーにします |
+| 埋め込み画像（`image=data:`） | PNG/JPEG/GIF/WebPのdata URIに対応。`shape=image`はセル全体、それ以外は`imageWidth`/`imageHeight`/`imageAlign`/`imageVerticalAlign`に従うアイコンとして配置。`;base64`が省略されたdrawio形式も正規化 |
+| URL参照の画像 | 未対応。ローカル変換で外部取得は行わず、警告を出して図形だけ描画 |
+| SVGのdata URI画像 | 未対応。出力SVGへ検査していない別文書を埋め込まないため、警告を出して図形だけ描画 |
+| `.drawio.png` / `.drawio.svg`の埋め込みメタデータ | 未対応 |
+
 ## SVGからOpen XMLへの逆変換
 
 | 出力 | 対応 | 契約 |
@@ -118,12 +166,23 @@
 | PPTX | 対応 | SVG 1件をスライド1枚のベクター画像として格納し、`mc:AlternateContent`へPNG fallbackを併設 |
 | DOCX | 対応 | SVG 1件をページ1枚のベクター画像として格納し、`svgBlip`の基底PNG fallbackを併設 |
 | XLSX | 対応 | SVG 1件をシート1枚のベクター画像として格納し、`svgBlip`の基底PNG fallbackを併設 |
+| drawio | 対応 | 図面のsourceを持つSVGは`<diagram>`をそのまま復元し、編集可能な図形に戻す。持たないSVGはpage 1枚＝`shape=image`のSVG data URI 1件として格納 |
 | 元Office意味構造の復元 | 非対応 | 段落、表、セル、数式、グラフ、master等は再構築しない |
+| 元drawio図形の復元（sourceなし） | 非対応 | SVGを画像として持つだけで、shapeやedgeには戻らない |
 
 入力は単一SVGまたはSVGファイルを含むディレクトリです。ディレクトリ内はファイル名順に
 処理されます。SVGの`width`／`height`または`viewBox`からページ寸法を決定します。
-`script`、`foreignObject`、animation、event属性、外部URL、外部CSS参照、DOCTYPE／ENTITYは
-格納前に拒否します。埋め込みraster data URIと、安全検査済みのbase64 SVG data URIは利用できます。
+`script`、`foreignObject`、animation、event属性、外部URL、外部CSS参照、ENTITY宣言は
+格納前に拒否します。実際のdrawioのSVG exportが必ず持つ標準SVG 1.1 DOCTYPE（内部subsetと
+ENTITY宣言のないもの）は受け付けます。埋め込みraster data URIと、安全検査済みのbase64 SVG
+data URIは利用できます。
+
+drawio出力だけは例外があります。drawioの「Include a copy of my diagram」で書き出されたSVG
+（rootの`content`属性に`mxfile`を持つもの。2018年より前のリリースが書くURIエンコード形式も
+含みます）と、`--embed-drawio-source`を付けて変換した本コンバータのSVGは、画像ではなく元の
+`<diagram>`をそのまま復元します。`content`はroot要素のものだけを読みます。この場合そのページのSVG
+本体は出力に入らないため、HTMLラベルの`foreignObject`を含む実exportもそのまま扱えます。
+復元するsourceは、格納前に`mxfile`として構文解析し、DOCTYPE宣言があれば拒否します。
 
 ## 品質の読み方
 

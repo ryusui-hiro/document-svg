@@ -3,7 +3,7 @@ use std::io::Write;
 use std::path::Path;
 
 use base64::Engine;
-use document_svg::{ConvertOptions, SourceFormat, convert_path};
+use document_svg::{ConvertOptions, ReverseOptions, SourceFormat, convert_path};
 use lopdf::content::{Content, Operation};
 use lopdf::{Document, Object, Stream, dictionary};
 use tempfile::TempDir;
@@ -442,11 +442,10 @@ fn rejects_pdf_image_dimension_bombs_before_allocation() {
     // is a warning, not a reason to discard every other page.
     assert_eq!(report.page_count, 1);
     assert!(
-        report
-            .warnings
-            .iter()
-            .any(|warning| warning.contains("expands to 100000x100000 pixels")
-                && warning.contains("was skipped")),
+        report.warnings.iter().any(
+            |warning| warning.contains("expands to 100000x100000 pixels")
+                && warning.contains("was skipped")
+        ),
         "{:?}",
         report.warnings
     );
@@ -3939,7 +3938,14 @@ fn accepts_grayscale_images_that_would_exceed_the_rgba_budget() {
             Operation::new("q", vec![]),
             Operation::new(
                 "cm",
-                vec![612.into(), 0.into(), 0.into(), 792.into(), 0.into(), 0.into()],
+                vec![
+                    612.into(),
+                    0.into(),
+                    0.into(),
+                    792.into(),
+                    0.into(),
+                    0.into(),
+                ],
             ),
             Operation::new("Do", vec![Object::Name(b"Scan".to_vec())]),
             Operation::new("Q", vec![]),
@@ -4016,7 +4022,10 @@ fn warns_when_a_page_consumes_content_but_draws_nothing() {
     // Referring to an XObject that no resource dictionary defines leaves the
     // page with operators to run and nothing to show for them.
     let content = Content {
-        operations: vec![Operation::new("Do", vec![Object::Name(b"Missing".to_vec())])],
+        operations: vec![Operation::new(
+            "Do",
+            vec![Object::Name(b"Missing".to_vec())],
+        )],
     };
     save_single_page_pdf(&mut document, &input, resources_id, content);
 
@@ -4042,7 +4051,12 @@ fn does_not_warn_about_a_genuinely_empty_page() {
     let output = temporary.path().join("out");
     let mut document = Document::with_version("1.7");
     let resources_id = document.add_object(dictionary! {});
-    save_single_page_pdf(&mut document, &input, resources_id, Content { operations: vec![] });
+    save_single_page_pdf(
+        &mut document,
+        &input,
+        resources_id,
+        Content { operations: vec![] },
+    );
 
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
 
@@ -4329,7 +4343,11 @@ fn keeps_docx_text_box_paragraphs_that_overflow_the_frame() {
 
     assert_eq!(report.page_count, 1);
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
-    for line in ["First line of the box", "Second line of the box", "Third line of the box"] {
+    for line in [
+        "First line of the box",
+        "Second line of the box",
+        "Third line of the box",
+    ] {
         assert!(svg.contains(line), "missing {line:?} in {svg}");
     }
 }
@@ -4411,7 +4429,14 @@ fn undoes_png_predictors_including_the_average_row_filter() {
             Operation::new("q", vec![]),
             Operation::new(
                 "cm",
-                vec![100.into(), 0.into(), 0.into(), 100.into(), 0.into(), 0.into()],
+                vec![
+                    100.into(),
+                    0.into(),
+                    0.into(),
+                    100.into(),
+                    0.into(),
+                    0.into(),
+                ],
             ),
             Operation::new("Do", vec![Object::Name(b"Predicted".to_vec())]),
             Operation::new("Q", vec![]),
@@ -4644,7 +4669,14 @@ fn asks_for_pixelated_rendering_only_where_the_image_is_magnified() {
                 Operation::new("q", vec![]),
                 Operation::new(
                     "cm",
-                    vec![scale.into(), 0.into(), 0.into(), scale.into(), 0.into(), 0.into()],
+                    vec![
+                        scale.into(),
+                        0.into(),
+                        0.into(),
+                        scale.into(),
+                        0.into(),
+                        0.into(),
+                    ],
                 ),
                 Operation::new("Do", vec![Object::Name(b"Pic".to_vec())]),
                 Operation::new("Q", vec![]),
@@ -4708,8 +4740,14 @@ fn draws_a_horizontal_bar_chart_with_its_category_names() {
 
     assert_eq!(report.page_count, 1);
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
-    assert!(svg.contains("Moulding"), "category names are missing: {svg}");
-    assert!(svg.contains("Assembly"), "category names are missing: {svg}");
+    assert!(
+        svg.contains("Moulding"),
+        "category names are missing: {svg}"
+    );
+    assert!(
+        svg.contains("Assembly"),
+        "category names are missing: {svg}"
+    );
     // Horizontal bars share a left edge and differ in length; column bars would
     // instead share a bottom edge and differ in height.
     let bars: Vec<&str> = svg
@@ -4904,7 +4942,10 @@ fn draws_a_pptx_paragraphs_own_bullet_at_its_hanging_indent() {
         .and_then(|rest| rest.split('"').next())
         .and_then(|value| value.parse().ok())
         .expect("text x");
-    assert!(bullet_x < 0.01, "bullet should hang at the margin: {bullet_x}");
+    assert!(
+        bullet_x < 0.01,
+        "bullet should hang at the margin: {bullet_x}"
+    );
     assert!(
         (text_x - 18.0).abs() < 0.5,
         "text should start at marL: {text_x}"
@@ -4952,4 +4993,1627 @@ fn draws_curved_connectors_as_curves_not_boxes() {
         "{:?}",
         report.warnings
     );
+}
+
+fn drawio_file(path: &Path, body: &str) {
+    let mut file = File::create(path).unwrap();
+    file.write_all(body.as_bytes()).unwrap();
+}
+
+/// draw.io stores a diagram as `encodeURIComponent` output, raw-deflated and
+/// base64-encoded. This builds the same thing so the reader is exercised the
+/// way the editor writes it.
+fn packed_diagram(xml: &str) -> String {
+    let mut encoded = String::new();
+    for byte in xml.as_bytes() {
+        if byte.is_ascii_alphanumeric() || b"-_.!~*'()".contains(byte) {
+            encoded.push(char::from(*byte));
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    let mut deflater =
+        flate2::write::DeflateEncoder::new(Vec::new(), flate2::Compression::default());
+    deflater.write_all(encoded.as_bytes()).unwrap();
+    base64::engine::general_purpose::STANDARD.encode(deflater.finish().unwrap())
+}
+
+const DRAWIO_FLOW: &str = r##"<mxGraphModel dx="800" dy="600" background="#FAFAFA"><root>
+<mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="start" value="&lt;b&gt;Start&lt;/b&gt;&lt;br&gt;here" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1"><mxGeometry x="40" y="40" width="120" height="60" as="geometry"/></mxCell>
+<mxCell id="dec" value="Is it OK?" style="rhombus;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="280" y="140" width="140" height="90" as="geometry"/></mxCell>
+<mxCell id="edge" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;" edge="1" parent="1" source="start" target="dec"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root></mxGraphModel>"##;
+
+#[test]
+fn converts_drawio_shapes_labels_and_edges() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("flow.drawio");
+    let first = temporary.path().join("first");
+    let second = temporary.path().join("second");
+    drawio_file(
+        &input,
+        &format!(
+            r##"<mxfile host="test"><diagram id="p1" name="Flow">{DRAWIO_FLOW}</diagram></mxfile>"##
+        ),
+    );
+
+    let report = convert_path(&input, &first, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Drawio);
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(first.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("<title>Flow</title>"), "{svg}");
+    // Model pixels reach the page as points: the drawing spans 40..420 across
+    // and 40..230 down, plus the 10 pixel crop margin on each side.
+    assert!(svg.contains(r#"width="300pt" height="157.5pt""#), "{svg}");
+    assert!(svg.contains("#D5E8D4"), "{svg}");
+    assert!(
+        svg.contains(">Start</tspan>") && svg.contains(">here</tspan>"),
+        "{svg}"
+    );
+    assert!(svg.contains("font-weight=\"700\""), "{svg}");
+    assert!(svg.contains(">Is it OK?</tspan>"), "{svg}");
+    assert!(svg.contains(">yes</tspan>"), "{svg}");
+    assert!(
+        svg.contains("data-content-kind=\"drawio-edge-marker\""),
+        "{svg}"
+    );
+    convert_path(&input, &second, &ConvertOptions::default()).unwrap();
+    assert_eq!(
+        svg,
+        fs::read_to_string(second.join("page-0001.svg")).unwrap()
+    );
+}
+
+#[test]
+fn expands_compressed_drawio_diagrams_into_one_page_each() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("packed.drawio");
+    let output = temporary.path().join("out");
+    let second = r##"<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="note" value="Second &amp; last" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="200" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel>"##;
+    drawio_file(
+        &input,
+        &format!(
+            r##"<mxfile host="test"><diagram id="p1" name="Plain">{DRAWIO_FLOW}</diagram><diagram id="p2" name="Packed">{}</diagram></mxfile>"##,
+            packed_diagram(second)
+        ),
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 2);
+    let svg = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(svg.contains("<title>Packed</title>"), "{svg}");
+    assert!(svg.contains(">Second &amp; last</tspan>"), "{svg}");
+}
+
+#[test]
+fn routes_orthogonal_drawio_edges_square_on_to_the_shapes_they_join() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("route.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        &format!(r##"<mxfile><diagram name="Flow">{DRAWIO_FLOW}</diagram></mxfile>"##),
+    );
+
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let path = svg
+        .lines()
+        .find(|line| line.contains(r#"id="drawio-edge""#))
+        .unwrap_or_default();
+    // The route leaves the ellipse's right side and enters the rhombus's left
+    // side, turning halfway between the two shapes rather than at either one.
+    assert!(
+        path.contains(r#"d="M 160 70 L 220 70 L 220 185 L "#),
+        "{path}"
+    );
+}
+
+#[test]
+fn keeps_a_drawio_shape_it_cannot_draw_as_a_labelled_placeholder() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("library.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Icons"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="fn" value="Lambda" style="sketch=0;shape=mxgraph.aws4.lambda_function;fillColor=#F58534;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="78" height="78" as="geometry"/></mxCell>
+<mxCell id="fn2" value="Also Lambda" style="shape=mxgraph.aws4.lambda_function;" vertex="1" parent="1"><mxGeometry x="140" y="20" width="78" height="78" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.warnings.len(), 1, "{:?}", report.warnings);
+    assert!(
+        report.warnings[0].contains("mxgraph.aws4.lambda_function")
+            && report.warnings[0].contains("shape library"),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains(">Lambda</tspan>"), "{svg}");
+    assert!(svg.contains("#F58534"), "{svg}");
+}
+
+#[test]
+fn rejects_xml_that_is_not_a_drawio_document() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("notes.xml");
+    let output = temporary.path().join("out");
+    drawio_file(&input, "<notes><note>Not a diagram</note></notes>");
+
+    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+
+    assert!(error.to_string().contains("mxGraphModel"), "{}", error);
+}
+
+#[test]
+fn embeds_drawio_pictures_and_refuses_to_fetch_remote_ones() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("pictures.drawio");
+    let output = temporary.path().join("out");
+    // A 2x2 PNG, stored the way draw.io writes one: no ";base64" marker.
+    let png = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGP8z8Dwn4GBgYmBgYEBAB0EAwFgYUqTAAAAAElFTkSuQmCC";
+    drawio_file(
+        &input,
+        &format!(
+            r##"<mxfile><diagram name="Pictures"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="pic" value="Photo" style="shape=image;html=1;image=data:image/png,{png}" vertex="1" parent="1"><mxGeometry x="20" y="20" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="remote" value="Remote" style="shape=image;html=1;image=https://example.com/logo.png" vertex="1" parent="1"><mxGeometry x="20" y="140" width="60" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##
+        ),
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.warnings.len(), 1, "{:?}", report.warnings);
+    assert!(
+        report.warnings[0].contains("not fetched"),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains(&format!("data:image/png;base64,{png}")),
+        "{svg}"
+    );
+    assert!(!svg.contains("example.com"), "{svg}");
+}
+
+#[test]
+fn round_trips_a_drawio_file_through_svg_without_losing_the_diagram() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("flow.drawio");
+    let pages = temporary.path().join("pages");
+    let restored = temporary.path().join("restored.drawio");
+    let again = temporary.path().join("again");
+    drawio_file(
+        &input,
+        &format!(
+            r##"<mxfile host="test"><diagram id="p1" name="Flow">{DRAWIO_FLOW}</diagram></mxfile>"##
+        ),
+    );
+    let options = ConvertOptions {
+        embed_drawio_source: true,
+        ..Default::default()
+    };
+
+    convert_path(&input, &pages, &options).unwrap();
+    let svg = fs::read_to_string(pages.join("page-0001.svg")).unwrap();
+    assert!(svg.contains(" content=\"&lt;mxfile"), "{svg}");
+
+    let report =
+        document_svg::svg_to_document(&pages, &restored, &ReverseOptions::default()).unwrap();
+    assert_eq!(report.output_format, document_svg::ReverseFormat::Drawio);
+    assert!(
+        report.warnings[0].contains("restored"),
+        "{:?}",
+        report.warnings
+    );
+    let diagram = fs::read_to_string(&restored).unwrap();
+    assert!(
+        diagram.contains(r#"<diagram id="p1" name="Flow">"#),
+        "{diagram}"
+    );
+
+    // The restored diagram converts to the same SVG the original did, embedded
+    // source and all: a diagram body is written across several lines, and a
+    // reader turns a literal newline inside an attribute into a space, so the
+    // source only survives the trip if it is escaped as a character reference.
+    convert_path(&restored, &again, &options).unwrap();
+    assert_eq!(
+        svg,
+        fs::read_to_string(again.join("page-0001.svg")).unwrap()
+    );
+    let plain = temporary.path().join("plain");
+    convert_path(&input, &plain, &ConvertOptions::default()).unwrap();
+    let plain_again = temporary.path().join("plain-again");
+    convert_path(&restored, &plain_again, &ConvertOptions::default()).unwrap();
+    assert_eq!(
+        fs::read_to_string(plain.join("page-0001.svg")).unwrap(),
+        fs::read_to_string(plain_again.join("page-0001.svg")).unwrap()
+    );
+}
+
+/// Inputs that are malformed, hostile or simply strange must come back as an
+/// error or a page, never as a panic and never as an unbounded run. Written as
+/// a test so it runs in a debug build, where arithmetic overflow aborts.
+#[test]
+fn survives_malformed_and_hostile_drawio_input() {
+    let temporary = TempDir::new().unwrap();
+    let cases: [(&str, String); 17] = [
+        ("empty", String::new()),
+        ("not-xml", "this is not xml at all".into()),
+        ("truncated", "<mxfile><diagram><mxGraphModel><root>".into()),
+        (
+            "cyclic-parents",
+            r##"<mxGraphModel><root><mxCell id="a" parent="b" vertex="1"><mxGeometry x="0" y="0" width="10" height="10" as="geometry"/></mxCell><mxCell id="b" parent="a" vertex="1"><mxGeometry x="0" y="0" width="10" height="10" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "self-parent",
+            r##"<mxGraphModel><root><mxCell id="a" parent="a" vertex="1"><mxGeometry width="10" height="10" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "self-loop-edge",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" parent="1" vertex="1"><mxGeometry width="80" height="40" as="geometry"/></mxCell><mxCell id="e" edge="1" parent="1" source="a" target="a" style="edgeStyle=orthogonalEdgeStyle;"><mxGeometry relative="1" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "edge-to-nothing",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="e" edge="1" parent="1" source="missing" target="gone"><mxGeometry relative="1" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "not-a-number",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" parent="1" vertex="1" style="rounded=1;strokeWidth=NaN;opacity=inf;rotation=1e400;"><mxGeometry x="NaN" y="-inf" width="1e400" height="abc" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "enormous-geometry",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" parent="1" vertex="1"><mxGeometry x="-1e300" y="-1e300" width="1e308" height="1e308" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "zero-size",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" value="x" parent="1" vertex="1"><mxGeometry width="0" height="0" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "negative-size",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" value="x" parent="1" vertex="1"><mxGeometry width="-40" height="-40" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "duplicate-ids",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" parent="1" vertex="1"><mxGeometry width="10" height="10" as="geometry"/></mxCell><mxCell id="a" parent="1" vertex="1"><mxGeometry width="10" height="10" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "unclosed-html-label",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" value="&lt;b&gt;&lt;font color=&quot;#fff&quot;&gt;never closed" style="html=1;whiteSpace=wrap;" parent="1" vertex="1"><mxGeometry width="80" height="40" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+        (
+            "bare-ampersand-and-controls",
+            "<mxGraphModel><root><mxCell id=\"1\"/><mxCell id=\"a\" value=\"A &amp; B &amp;#x; &amp;nope; \u{7}\" style=\"html=1;\" parent=\"1\" vertex=\"1\"><mxGeometry width=\"80\" height=\"40\" as=\"geometry\"/></mxCell></root></mxGraphModel>".into(),
+        ),
+        (
+            "deep-groups",
+            {
+                let mut xml = String::from("<mxGraphModel><root><mxCell id=\"1\"/>");
+                for level in 0..400 {
+                    let parent = if level == 0 { "1".to_owned() } else { format!("g{}", level - 1) };
+                    xml.push_str(&format!(
+                        "<mxCell id=\"g{level}\" parent=\"{parent}\" vertex=\"1\" style=\"group\"><mxGeometry x=\"1\" y=\"1\" width=\"50\" height=\"50\" as=\"geometry\"/></mxCell>"
+                    ));
+                }
+                xml.push_str("</root></mxGraphModel>");
+                xml
+            },
+        ),
+        (
+            "many-waypoints",
+            {
+                let mut xml = String::from("<mxGraphModel><root><mxCell id=\"1\"/><mxCell id=\"e\" edge=\"1\" parent=\"1\" style=\"edgeStyle=orthogonalEdgeStyle;rounded=1;\"><mxGeometry relative=\"1\" as=\"geometry\"><mxPoint x=\"0\" y=\"0\" as=\"sourcePoint\"/><mxPoint x=\"900\" y=\"900\" as=\"targetPoint\"/><Array as=\"points\">");
+                for index in 0..2_000 {
+                    xml.push_str(&format!("<mxPoint x=\"{}\" y=\"{}\"/>", index % 97, index % 89));
+                }
+                xml.push_str("</Array></mxGeometry></mxCell></root></mxGraphModel>");
+                xml
+            },
+        ),
+        (
+            "image-payload-garbage",
+            r##"<mxGraphModel><root><mxCell id="1"/><mxCell id="a" parent="1" vertex="1" style="shape=image;image=data:image/png,!!!not base64!!!"><mxGeometry width="40" height="40" as="geometry"/></mxCell></root></mxGraphModel>"##.into(),
+        ),
+    ];
+    for (name, body) in cases {
+        let input = temporary.path().join(format!("{name}.drawio"));
+        let output = temporary.path().join(name);
+        fs::write(&input, &body).unwrap();
+
+        // Either outcome is fine; hanging, panicking or overflowing is not.
+        match convert_path(&input, &output, &ConvertOptions::default()) {
+            Ok(report) => {
+                assert!(report.page_count >= 1, "{name}");
+                for page in &report.pages {
+                    // A page has to stay a page: positive, finite and small
+                    // enough that a renderer can open it.
+                    assert!(
+                        page.width_points.is_finite() && page.width_points > 0.0,
+                        "{name}"
+                    );
+                    assert!(
+                        page.height_points.is_finite() && page.height_points > 0.0,
+                        "{name}"
+                    );
+                    assert!(
+                        page.width_points <= 1_000_000.0,
+                        "{name}: {}",
+                        page.width_points
+                    );
+                    assert!(
+                        page.height_points <= 1_000_000.0,
+                        "{name}: {}",
+                        page.height_points
+                    );
+                    let svg = fs::read_to_string(output.join(&page.svg)).unwrap();
+                    assert!(svg.starts_with("<?xml"), "{name}");
+                    assert!(!svg.contains("NaN"), "{name}: {svg:.400}");
+                }
+            }
+            Err(error) => {
+                let text = error.to_string();
+                assert!(!text.is_empty(), "{name}");
+            }
+        }
+    }
+}
+
+#[test]
+fn refuses_a_drawio_diagram_that_expands_past_the_entry_limit() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("bomb.drawio");
+    let output = temporary.path().join("out");
+    // 8 MiB of one repeated byte compresses to a few kilobytes.
+    let payload = "A".repeat(8 * 1024 * 1024);
+    drawio_file(
+        &input,
+        &format!(
+            r##"<mxfile><diagram name="Bomb">{}</diagram></mxfile>"##,
+            packed_diagram(&payload)
+        ),
+    );
+    let options = ConvertOptions {
+        max_zip_entry_bytes: 64 * 1024,
+        ..Default::default()
+    };
+
+    let error = convert_path(&input, &output, &options).unwrap_err();
+
+    assert!(error.to_string().contains("expands past"), "{error}");
+    assert!(!output.join("page-0001.svg").exists());
+}
+
+#[test]
+fn refuses_more_drawio_diagrams_than_the_page_limit_allows() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("many.drawio");
+    let output = temporary.path().join("out");
+    let mut body = String::from("<mxfile>");
+    for index in 0..12 {
+        body.push_str(&format!(
+            r##"<diagram id="p{index}" name="P{index}"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="a{index}" value="{index}" style="rounded=1;" vertex="1" parent="1"><mxGeometry width="40" height="20" as="geometry"/></mxCell></root></mxGraphModel></diagram>"##
+        ));
+    }
+    body.push_str("</mxfile>");
+    drawio_file(&input, &body);
+    let options = ConvertOptions {
+        max_pages: 4,
+        ..Default::default()
+    };
+
+    let error = convert_path(&input, &output, &options).unwrap_err();
+
+    assert!(error.to_string().contains("maximum is 4"), "{error}");
+}
+
+#[test]
+fn refuses_a_drawio_model_that_exceeds_the_xml_event_budget() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("chatty.drawio");
+    let output = temporary.path().join("out");
+    let mut body =
+        String::from(r#"<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>"#);
+    for index in 0..2_000 {
+        body.push_str(&format!(
+            r##"<mxCell id="c{index}" vertex="1" parent="1"><mxGeometry width="10" height="10" as="geometry"/></mxCell>"##
+        ));
+    }
+    body.push_str("</root></mxGraphModel>");
+    drawio_file(&input, &body);
+    let options = ConvertOptions {
+        max_xml_events: 500,
+        ..Default::default()
+    };
+
+    let error = convert_path(&input, &output, &options).unwrap_err();
+
+    assert!(error.to_string().contains("events"), "{error}");
+}
+
+/// mxGraph looks a style token without `=` up in the stylesheet's named styles
+/// and ignores what it does not find. Treating any such token as a shape turned
+/// the stray `9E9E9E` left in draw.io's own GCP templates into an unknown shape
+/// warning on 54 of the project's example diagrams.
+#[test]
+fn ignores_a_style_token_that_names_no_shape() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("stray.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Stray"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="stray" value="Card" style="fillColor=#F6F6F6;fontColor=#717171;9E9E9E;verticalAlign=top;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="200" height="60" as="geometry"/></mxCell>
+<mxCell id="named" value="Oval" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="120" width="120" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The stray token leaves a plain rectangle; the leading `ellipse` still
+    // selects a shape, because that one does name a style draw.io defines.
+    assert!(svg.contains("data-semantic-role=\"rectangle\""), "{svg}");
+    assert!(svg.contains("data-semantic-role=\"ellipse\""), "{svg}");
+}
+
+#[test]
+fn draws_the_container_shapes_a_real_diagram_uses() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("containers.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Containers"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="grp" style="group" vertex="1" connectable="0" parent="1"><mxGeometry x="20" y="20" width="200" height="100" as="geometry"/></mxCell>
+<mxCell id="inner" value="In group" style="rounded=1;html=1;" vertex="1" parent="grp"><mxGeometry x="10" y="10" width="100" height="40" as="geometry"/></mxCell>
+<mxCell id="cell" value="Cell" style="shape=partialRectangle;top=0;left=0;html=1;fillColor=#EEEEEE;" vertex="1" parent="1"><mxGeometry x="20" y="160" width="120" height="40" as="geometry"/></mxCell>
+<mxCell id="point" style="shape=waypoint;" vertex="1" parent="1"><mxGeometry x="300" y="160" width="20" height="20" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A group and a waypoint position things without drawing anything.
+    assert!(!svg.contains("id=\"drawio-grp\""), "{svg}");
+    assert!(!svg.contains("id=\"drawio-point\""), "{svg}");
+    // The child is placed relative to the group it sits in: 20 + 10, with the
+    // rounded corner the style asks for starting the path 6 further along.
+    assert!(svg.contains(r#"d="M 36 30 H 124 A 6 6"#), "{svg}");
+    // A partial rectangle fills, and strokes only the sides it switches on.
+    assert!(svg.contains("#EEEEEE"), "{svg}");
+    assert!(svg.contains("id=\"drawio-cell-detail-0\""), "{svg}");
+    assert!(!svg.contains("id=\"drawio-cell-detail-2\""), "{svg}");
+}
+
+#[test]
+fn says_what_a_drawio_shape_library_is_instead_of_calling_it_empty() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("shapes.xml");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r#"<mxlibrary>[{"xml":"...","w":100,"h":100}]</mxlibrary>"#,
+    );
+
+    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+
+    assert!(error.to_string().contains("shape library"), "{error}");
+}
+
+/// A shape library is a drawing program per shape, in the shape's own
+/// coordinate space. Reading it is what puts the real icon on the page instead
+/// of a labelled box.
+#[test]
+fn draws_a_shape_from_a_library_the_caller_supplies() {
+    let temporary = TempDir::new().unwrap();
+    let stencils = temporary.path().join("stencils");
+    fs::create_dir(&stencils).unwrap();
+    fs::write(
+        stencils.join("demo.xml"),
+        r##"<shapes name="mxgraph.demo">
+<shape name="Round Badge" h="20" w="20" aspect="fixed" strokewidth="inherit">
+  <connections/>
+  <background><ellipse x="0" y="0" w="20" h="20"/></background>
+  <foreground>
+    <fillstroke/>
+    <fillcolor color="#123456"/>
+    <path><move x="4" y="10"/><line x="16" y="10"/><close/></path>
+    <fill/>
+  </foreground>
+</shape>
+</shapes>"##,
+    )
+    .unwrap();
+    let input = temporary.path().join("library.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Library"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="badge" value="Badge" style="shape=mxgraph.demo.round_badge;fillColor=#FFEEDD;strokeColor=#884400;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="40" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+    let options = ConvertOptions {
+        stencil_paths: vec![stencils],
+        ..Default::default()
+    };
+
+    let report = convert_path(&input, &output, &options).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains("data-content-kind=\"drawio-stencil\""),
+        "{svg}"
+    );
+    // The shape's own 20x20 space is scaled onto the cell's 40x40 box, and the
+    // cell's colours are what the stencil paints with.
+    assert!(svg.contains("#FFEEDD") && svg.contains("#884400"), "{svg}");
+    // The stencil's own colour overrides the cell's for what follows it.
+    assert!(svg.contains("#123456"), "{svg}");
+    assert!(svg.contains(">Badge</tspan>"), "{svg}");
+
+    // Without the library the same diagram says so, and still shows the label.
+    let plain = temporary.path().join("plain");
+    let bare = convert_path(&input, &plain, &ConvertOptions::default()).unwrap();
+    assert!(
+        bare.warnings[0].contains("mxgraph.demo.round_badge"),
+        "{:?}",
+        bare.warnings
+    );
+    assert!(
+        fs::read_to_string(plain.join("page-0001.svg"))
+            .unwrap()
+            .contains(">Badge</tspan>")
+    );
+}
+
+#[test]
+fn draws_a_shape_the_diagram_carries_inline() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("inline.drawio");
+    let output = temporary.path().join("out");
+    let shape = r#"<shape h="10" w="10" aspect="variable" strokewidth="inherit"><connections/><background><rect x="0" y="0" w="10" h="10"/></background><foreground><fillstroke/></foreground></shape>"#;
+    drawio_file(
+        &input,
+        &format!(
+            r##"<mxfile><diagram name="Inline"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="own" value="Mine" style="shape=stencil({});fillColor=#AABBCC;" vertex="1" parent="1"><mxGeometry x="10" y="10" width="60" height="30" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+            packed_diagram(shape)
+        ),
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains("data-content-kind=\"drawio-stencil\""),
+        "{svg}"
+    );
+    assert!(svg.contains("#AABBCC"), "{svg}");
+    // The shape's 10x10 space is stretched over the whole 60x30 cell.
+    assert!(svg.contains("M 10 10 H 70 V 40 H 10 Z"), "{svg}");
+}
+
+#[test]
+fn draws_the_glyph_a_cloud_tile_names_in_its_style() {
+    let temporary = TempDir::new().unwrap();
+    let stencils = temporary.path().join("stencils");
+    fs::create_dir(&stencils).unwrap();
+    fs::write(
+        stencils.join("cloud.xml"),
+        r##"<shapes name="mxgraph.cloud">
+<shape name="Bucket" h="10" w="10" aspect="fixed" strokewidth="inherit">
+  <connections/><background><rect x="0" y="0" w="10" h="10"/></background>
+  <foreground><fillstroke/></foreground>
+</shape>
+</shapes>"##,
+    )
+    .unwrap();
+    let input = temporary.path().join("tile.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Tile"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="tile" value="Storage" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.cloud.bucket;fillColor=#3334B9;strokeColor=#ffffff;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="100" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+    let options = ConvertOptions {
+        stencil_paths: vec![stencils],
+        ..Default::default()
+    };
+
+    let report = convert_path(&input, &output, &options).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The tile keeps the style's colour, and the glyph sits at seven tenths of
+    // it in white.
+    assert!(svg.contains("#3334B9"), "{svg}");
+    assert!(
+        svg.contains("data-content-kind=\"drawio-stencil-icon\""),
+        "{svg}"
+    );
+    assert!(svg.contains("M 15 15 H 85 V 85 H 15 Z"), "{svg}");
+}
+
+/// Entity-relationship ends are the notation an ER diagram is read by: a tick
+/// for one, a crow's foot for many, and a ring for zero.
+#[test]
+fn draws_entity_relationship_connector_ends() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("er.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="ER"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" value="Order" style="shape=table;startSize=30;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="160" height="90" as="geometry"/></mxCell>
+<mxCell id="b" value="Line" style="shape=table;startSize=30;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="20" width="160" height="90" as="geometry"/></mxCell>
+<mxCell id="e" style="edgeStyle=entityRelationEdgeStyle;html=1;startArrow=ERmandOne;endArrow=ERzeroToMany;" edge="1" parent="1" source="a" target="b"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Two ticks at the mandatory-one end, and a ring plus a crow's foot at the
+    // other. The ring is filled white so the line does not show through it.
+    assert_eq!(
+        svg.matches("data-content-kind=\"drawio-edge-marker\"")
+            .count(),
+        3,
+        "{svg}"
+    );
+    assert!(svg.contains("fill=\"#FFFFFF\""), "{svg}");
+    // A table is a swimlane: its name sits in the band above the rows.
+    assert!(svg.contains("data-semantic-role=\"swimlane\""), "{svg}");
+}
+
+#[test]
+fn draws_bpmn_events_gateways_and_their_symbols() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("bpmn.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="BPMN"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="start" value="Order" style="shape=mxgraph.bpmn.shape;outline=standard;symbol=message;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="50" height="50" as="geometry"/></mxCell>
+<mxCell id="gate" value="Split" style="shape=mxgraph.bpmn.shape;background=gateway;outline=none;symbol=parallelGw;html=1;" vertex="1" parent="1"><mxGeometry x="120" y="20" width="50" height="50" as="geometry"/></mxCell>
+<mxCell id="end" value="Done" style="shape=mxgraph.bpmn.shape;outline=end;symbol=terminate;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="20" width="50" height="50" as="geometry"/></mxCell>
+<mxCell id="task" value="Pack" style="shape=mxgraph.bpmn.task;rectStyle=rounded;size=10;html=1;" vertex="1" parent="1"><mxGeometry x="320" y="20" width="100" height="50" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"drawio-bpmn\""), "{svg}");
+    // A gateway is a diamond with the symbol in its middle half.
+    assert!(
+        svg.contains("M 145 20 L 170 45 L 145 70 L 120 45 Z"),
+        "{svg}"
+    );
+    // An end event's ring is three times the stroke width, and its terminate
+    // symbol takes the line colour because the event throws.
+    assert!(svg.contains("stroke-width=\"3\""), "{svg}");
+    // The activity keeps the corner radius its own style asks for.
+    assert!(svg.contains("A 10 10 0 0 1"), "{svg}");
+}
+
+#[test]
+fn draws_uml_components_and_packages() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("uml.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="UML"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="c" value="Service" style="shape=component;align=left;spacingLeft=36;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="180" height="90" as="geometry"/></mxCell>
+<mxCell id="p" value="Domain" style="shape=folder;tabWidth=80;tabHeight=20;tabPosition=left;labelInHeader=1;html=1;" vertex="1" parent="1"><mxGeometry x="240" y="20" width="200" height="120" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The component keeps its two sockets on the left edge.
+    assert_eq!(svg.matches("drawio-c-detail-").count(), 2, "{svg}");
+    // The package's name sits in the tab, not in the middle of the box.
+    assert!(svg.contains(">Domain</tspan>"), "{svg}");
+    let label = svg
+        .lines()
+        .find(|line| line.contains("drawio-p-label-0"))
+        .unwrap();
+    let baseline = label
+        .split("y=\"")
+        .nth(1)
+        .and_then(|rest| rest.split('"').next())
+        .and_then(|value| value.parse::<f64>().ok())
+        .unwrap();
+    // The tab runs from 20 to 40 in the model's own pixels.
+    assert!(
+        (20.0..40.0).contains(&baseline),
+        "the name is in the tab: {label}"
+    );
+}
+
+/// The shapes draw.io implements in code rather than as stencils still have to
+/// be drawn: a ring segment keeps its angles, a mock-up grid keeps its cells,
+/// and an AWS 3D service keeps the isometric body it stands on.
+#[test]
+fn draws_the_library_shapes_that_have_no_stencil() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("coded.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Coded"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="ring" style="shape=mxgraph.basic.partConcEllipse;startAngle=0;endAngle=0.25;arcWidth=0.5;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="grid" style="shape=mxgraph.mockup.graphics.iconGrid;gridSize=2,2;html=1;" vertex="1" parent="1"><mxGeometry x="140" y="20" width="50" height="50" as="geometry"/></mxCell>
+<mxCell id="ribbon" value="Step" style="shape=mxgraph.infographic.ribbonSimple;notch1=20;notch2=20;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="20" width="160" height="40" as="geometry"/></mxCell>
+<mxCell id="box" value="Server" style="shape=mxgraph.aws3d.application_server;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="140" width="100" height="100" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    // Only the AWS service says something, and it says exactly what is missing.
+    assert_eq!(report.warnings.len(), 1, "{:?}", report.warnings);
+    assert!(
+        report.warnings[0].contains("service glyph it carries is not drawn"),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A quarter ring, drawn from the top round to the right and back.
+    assert!(
+        svg.contains("M 60 20 A 40 40 0 0 1 100 60 L 80 60 A 20 20 0 0 0 60 40 Z"),
+        "{svg}"
+    );
+    // Two by two cells, each two thirds of the box with a gap between them.
+    assert_eq!(svg.matches("id=\"drawio-grid\"").count(), 1, "{svg}");
+    assert!(svg.contains("M 140 20 H 160 V 40 H 140 Z"), "{svg}");
+    // The ribbon keeps its notches.
+    assert!(
+        svg.contains("M 220 60 L 240 40 L 220 20 L 360 20 L 380 40 L 360 60 Z"),
+        "{svg}"
+    );
+    // The isometric body and its two shaded faces.
+    assert!(
+        svg.contains("data-content-kind=\"drawio-isometric\""),
+        "{svg}"
+    );
+    assert_eq!(
+        svg.matches("data-content-kind=\"drawio-isometric-face\"")
+            .count(),
+        2,
+        "{svg}"
+    );
+}
+
+/// The stencil loader reads files the caller points it at, so it has to hold up
+/// against whatever is in that directory: files that are not stencils, shapes
+/// with no geometry, and numbers that are not numbers.
+#[test]
+fn survives_stencil_libraries_that_are_malformed_or_hostile() {
+    let temporary = TempDir::new().unwrap();
+    let stencils = temporary.path().join("stencils");
+    fs::create_dir(&stencils).unwrap();
+    fs::write(stencils.join("not-xml.xml"), "this is not xml at all").unwrap();
+    fs::write(stencils.join("empty.xml"), "").unwrap();
+    fs::write(stencils.join("notes.txt"), "ignored: not an xml file").unwrap();
+    fs::write(
+        stencils.join("odd.xml"),
+        concat!(
+            r##"<shapes name="mxgraph.odd">"##,
+            // No geometry at all.
+            r##"<shape name="Bare" w="0" h="0"/>"##,
+            // Numbers that are not numbers, and a shape that never closes its
+            // path before painting.
+            r##"<shape name="Broken" w="NaN" h="-1e400" aspect="fixed" strokewidth="wide">"##,
+            r##"<foreground><fill/><stroke/><restore/><restore/>"##,
+            r##"<path><line x="1e400" y="NaN"/><arc rx="-5" ry="0" x="10" y="10"/></path>"##,
+            r##"<fillcolor color="not a colour"/><strokewidth width="1e400"/><alpha alpha="5"/>"##,
+            r##"<fillstroke/></foreground></shape>"##,
+            // A deeply nested body, which must not be followed into recursion.
+            r##"<shape name="Nested" w="10" h="10"><foreground>"##,
+            r##"<save/><save/><save/><path><move x="0" y="0"/><line x="10" y="10"/></path><fillstroke/>"##,
+            r##"</foreground></shape></shapes>"##,
+        ),
+    )
+    .unwrap();
+    let input = temporary.path().join("odd.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Odd"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" value="Bare" style="shape=mxgraph.odd.bare;html=1;" vertex="1" parent="1"><mxGeometry x="10" y="10" width="40" height="40" as="geometry"/></mxCell>
+<mxCell id="b" value="Broken" style="shape=mxgraph.odd.broken;html=1;" vertex="1" parent="1"><mxGeometry x="70" y="10" width="40" height="40" as="geometry"/></mxCell>
+<mxCell id="c" value="Nested" style="shape=mxgraph.odd.nested;html=1;" vertex="1" parent="1"><mxGeometry x="130" y="10" width="40" height="40" as="geometry"/></mxCell>
+<mxCell id="d" value="Absent" style="shape=mxgraph.odd.absent;html=1;" vertex="1" parent="1"><mxGeometry x="190" y="10" width="40" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+    let options = ConvertOptions {
+        stencil_paths: vec![stencils, temporary.path().join("missing-directory")],
+        ..Default::default()
+    };
+
+    // A directory that is not there is an error the caller can act on; nothing
+    // in the files themselves may panic or run away.
+    let error = convert_path(&input, &output, &options).unwrap_err();
+    assert!(error.to_string().contains("No such file"), "{error}");
+
+    let options = ConvertOptions {
+        stencil_paths: options.stencil_paths[..1].to_vec(),
+        ..Default::default()
+    };
+    let report = convert_path(&input, &output, &options).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(!svg.contains("NaN"), "{svg}");
+    // Every label survives, whatever happened to the shape around it.
+    for label in ["Bare", "Broken", "Nested", "Absent"] {
+        assert!(svg.contains(&format!(">{label}</tspan>")), "{label}: {svg}");
+    }
+    // The shape that was not in any library is the only one reported.
+    assert_eq!(report.warnings.len(), 1, "{:?}", report.warnings);
+    assert!(
+        report.warnings[0].contains("mxgraph.odd.absent"),
+        "{:?}",
+        report.warnings
+    );
+}
+
+#[test]
+fn refuses_a_stencil_library_that_exceeds_the_event_budget() {
+    let temporary = TempDir::new().unwrap();
+    let stencils = temporary.path().join("stencils");
+    fs::create_dir(&stencils).unwrap();
+    let mut library = String::from(
+        r##"<shapes name="mxgraph.big"><shape name="Long" w="10" h="10"><foreground><path>"##,
+    );
+    for index in 0..4_000 {
+        library.push_str(&format!(
+            r##"<line x="{}" y="{}"/>"##,
+            index % 10,
+            index % 7
+        ));
+    }
+    library.push_str("</path><fillstroke/></foreground></shape></shapes>");
+    fs::write(stencils.join("big.xml"), library).unwrap();
+    let input = temporary.path().join("big.drawio");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Big"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" style="shape=mxgraph.big.long;html=1;" vertex="1" parent="1"><mxGeometry width="40" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+    let options = ConvertOptions {
+        stencil_paths: vec![stencils],
+        max_xml_events: 500,
+        ..Default::default()
+    };
+
+    let error = convert_path(&input, temporary.path().join("out"), &options).unwrap_err();
+
+    assert!(error.to_string().contains("events"), "{error}");
+}
+
+#[test]
+fn draws_the_shapes_that_need_more_than_one_colour() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("shaded.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Shaded"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="pie" style="shape=mxgraph.mockup.graphics.pieChart;parts=25,25,50;partColors=#FF0000,#00FF00,#0000FF;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="cube" style="shape=mxgraph.infographic.shadedCube;isoAngle=15;html=1;fillColor=#DDDDDD;" vertex="1" parent="1"><mxGeometry x="140" y="20" width="80" height="80" as="geometry"/></mxCell>
+<mxCell id="brace" style="shape=mxgraph.mockup.markup.curlyBrace;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="140" width="120" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Three slices, each in the colour the style lists for it.
+    for colour in ["#FF0000", "#00FF00", "#0000FF"] {
+        assert!(svg.contains(colour), "{colour}: {svg}");
+    }
+    // The cube's body plus its two shaded faces.
+    assert_eq!(
+        svg.matches("data-content-kind=\"drawio-shaded\"").count(),
+        7,
+        "{svg}"
+    );
+    assert!(svg.contains("fill-opacity=\"0.2\""), "{svg}");
+    // The brace is a line, so it carries no fill of its own.
+    let brace = svg
+        .lines()
+        .find(|line| line.contains("drawio-brace-detail-0"))
+        .unwrap();
+    assert!(brace.contains("fill=\"none\""), "{brace}");
+}
+
+/// A connector has to meet the outline it points at, not the box around it.
+#[test]
+fn attaches_connectors_to_the_outline_the_perimeter_names() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("perimeter.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Perimeter"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="tri" style="triangle;perimeter=trianglePerimeter;html=1;" vertex="1" parent="1"><mxGeometry x="0" y="0" width="100" height="100" as="geometry"/></mxCell>
+<mxCell id="far" style="rounded=0;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="40" width="40" height="20" as="geometry"/></mxCell>
+<mxCell id="e" style="html=1;" edge="1" parent="1" source="tri" target="far"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let edge = svg
+        .lines()
+        .find(|line| line.contains(r#"id="drawio-e""#))
+        .unwrap();
+    // The triangle points right, so the line starts at its tip, not at the
+    // right edge of its bounding box at the centre height.
+    assert!(edge.contains("M 100 50 L"), "{edge}");
+}
+
+#[test]
+fn keeps_a_hidden_overflow_label_inside_its_shape() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("overflow.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Overflow"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="clipped" value="A label far longer than the box it belongs to" style="rounded=0;html=1;overflow=hidden;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="60" height="30" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains("<clipPath id=\"drawio-clipped-label-clip\""),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("clip-path=\"url(#drawio-clipped-label-clip)\""),
+        "{svg}"
+    );
+    // The page is the shape plus the margin: the label does not stretch it.
+    assert_eq!(report.pages[0].width_points, 60.0);
+}
+
+/// draw.io's stylesheet gives a bare style token its own settings, which is how
+/// `plain-yellow` colours a shape, and `glass=1` lays a sheen over the top of
+/// it. Ignoring either left the shape white.
+#[test]
+fn applies_the_named_styles_drawio_ships_with() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("named.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Named"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="a" value="Yellow" style="ellipse;whiteSpace=wrap;html=1;plain-yellow;strokeWidth=2;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="120" height="60" as="geometry"/></mxCell>
+<mxCell id="b" value="Override" style="rounded=1;html=1;plain-orange;glass=1;fillColor=#123456;" vertex="1" parent="1"><mxGeometry x="180" y="20" width="120" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The named style brings a fill, a border and a gradient with it.
+    assert!(svg.contains("#FFF2CC") && svg.contains("#D6B656"), "{svg}");
+    assert!(svg.contains("#FFD966"), "the gradient stop: {svg}");
+    // A setting after the name still wins over it.
+    assert!(svg.contains("#123456"), "{svg}");
+    assert!(
+        !svg.contains("#FFCD28"),
+        "the overridden fill is gone: {svg}"
+    );
+    // The sheen is a white gradient over the top of the shape.
+    assert!(svg.contains("data-content-kind=\"drawio-glass\""), "{svg}");
+    assert!(svg.contains("stop-opacity=\"0.9\""), "{svg}");
+}
+
+/// A value stream map is drawn almost entirely out of lean-mapping shapes: the
+/// process boxes with a band for their name, the data boxes ruled underneath
+/// them, and the striped push and hooked pull arrows that join them.
+#[test]
+fn draws_the_lean_mapping_shapes_a_value_stream_map_is_made_of() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("vsm.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="VSM"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="proc" value="Wafer" style="shape=mxgraph.lean_mapping.manufacturing_process;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="120" height="60" as="geometry"/></mxCell>
+<mxCell id="data" value="C/T= 2 min" style="shape=mxgraph.lean_mapping.data_box;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="100" width="100" height="100" as="geometry"/></mxCell>
+<mxCell id="push" style="shape=mxgraph.lean_mapping.push_arrow;html=1;" vertex="1" parent="1"><mxGeometry x="160" y="20" width="100" height="100" as="geometry"/></mxCell>
+<mxCell id="pull" style="shape=mxgraph.lean_mapping.physical_pull;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="20" width="100" height="100" as="geometry"/></mxCell>
+<mxCell id="plan" value="Schedule" style="shape=mxgraph.lean_mapping.schedule;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="140" width="100" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The process box wears a band the height of one and a half lines of text.
+    assert!(svg.contains("M 20 20 H 140 V 80 H 20 Z"), "{svg}");
+    assert!(svg.contains("M 20 32 L 140 32"), "{svg}");
+    // The data box is open at the top and ruled into five rows.
+    assert!(
+        svg.contains("M 20 200 L 20 100 L 120 100 L 120 200"),
+        "{svg}"
+    );
+    for rule in ["M 20 120 L 120 120", "M 20 180 L 120 180"] {
+        assert!(svg.contains(rule), "{rule} missing from {svg}");
+    }
+    // The push arrow keeps its three stripes.
+    assert!(
+        svg.contains("M 160 37 L 235 37 L 235 20 L 260 70 L 235 120 L 235 103 L 160 103 Z"),
+        "{svg}"
+    );
+    for stripe in [
+        "M 160 37 H 172 V 103 H 160 Z",
+        "M 184 37 H 196 V 103 H 184 Z",
+        "M 208 37 H 220 V 103 H 208 Z",
+    ] {
+        assert!(svg.contains(stripe), "{stripe} missing from {svg}");
+    }
+    // The pull arrow is a near-full circle ending in a solid head.
+    assert!(
+        svg.contains("M 373.2 27.36 A 48.27 49.59 0 1 0 395.53 81.91"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 390.71 81.91 L 397.94 69.51 L 400 84.38 Z"),
+        "{svg}"
+    );
+    // A schedule is a plain box, and it keeps its label.
+    assert!(svg.contains("M 300 140 H 400 V 180 H 300 Z"), "{svg}");
+    assert!(svg.contains("Schedule"), "{svg}");
+}
+
+/// Callouts and the shaded infographic shapes. The banners and pyramids are
+/// drawn as several layers — a face, a light side and a dark one — so the test
+/// checks that the layers are there as well as that the outline is right.
+#[test]
+fn draws_the_callouts_and_shaded_shapes_an_infographic_is_built_from() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("info.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Info"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="bar" style="shape=mxgraph.infographic.barCallout;dx=60;dy=20;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="180" height="60" as="geometry"/></mxCell>
+<mxCell id="rect" style="shape=mxgraph.basic.rectCallout;dx=30;dy=20;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="20" width="140" height="70" as="geometry"/></mxCell>
+<mxCell id="round" style="shape=mxgraph.basic.roundRectCallout;dx=60;dy=20;size=10;html=1;" vertex="1" parent="1"><mxGeometry x="380" y="20" width="140" height="70" as="geometry"/></mxCell>
+<mxCell id="tri" style="shape=mxgraph.infographic.shadedTriangle;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="120" width="100" height="100" as="geometry"/></mxCell>
+<mxCell id="pyr" style="shape=mxgraph.infographic.shadedPyramid;html=1;" vertex="1" parent="1"><mxGeometry x="140" y="120" width="100" height="100" as="geometry"/></mxCell>
+<mxCell id="step" style="shape=mxgraph.infographic.pyramidStep;html=1;" vertex="1" parent="1"><mxGeometry x="260" y="120" width="100" height="60" as="geometry"/></mxCell>
+<mxCell id="banner" style="shape=mxgraph.infographic.banner;dx=25;dy=15;notch=15;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="260" width="240" height="80" as="geometry"/></mxCell>
+<mxCell id="fold" style="shape=mxgraph.infographic.bannerSingleFold;dx=32;dy=15;dx2=20;notch=15;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="260" width="240" height="80" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A bar with a pointer hanging seven pixels either side of x = 60.
+    assert!(
+        svg.contains("M 20 20 L 200 20 L 200 60 L 87 60 L 80 80 L 73 60 L 20 60 Z"),
+        "{svg}"
+    );
+    // A speech box, its tail below the body rather than inside it.
+    assert!(
+        svg.contains("M 240 70 L 220 70 L 220 20 L 360 20 L 360 70 L 260 70 L 230 90 Z"),
+        "{svg}"
+    );
+    // The rounded one turns each corner with an arc of the requested size.
+    assert!(
+        svg.contains("M 430 70 L 390 70 A 10 10 0 0 1 380 60 L 380 30 A 10 10 0 0 1 390 20"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("A 38 28 0 0 1 420 90 A 18 28 0 0 0 430 70 Z"),
+        "{svg}"
+    );
+    // The triangle is one face plus a light and a dark side, stroked over.
+    assert_eq!(svg.matches("id=\"drawio-tri-part-").count(), 4, "{svg}");
+    assert!(svg.contains("M 20 220 L 70 120 L 120 220 Z"), "{svg}");
+    assert!(svg.contains("M 20 220 L 70 120 L 70 187 Z"), "{svg}");
+    assert!(svg.contains("M 120 220 L 70 187 L 70 120 Z"), "{svg}");
+    // The pyramid's ridge sits three tenths of its width above the base.
+    assert!(
+        svg.contains("M 140 190 L 190 120 L 240 190 L 190 220 Z"),
+        "{svg}"
+    );
+    // The stepped block is a box with a shallow ridge on top.
+    assert!(
+        svg.contains("M 260 130 L 310 120 L 360 130 L 360 180 L 260 180 Z"),
+        "{svg}"
+    );
+    // The ribbon banner: notched ends, folded tails, and shading on both ends.
+    assert!(
+        svg.contains(
+            "M 20 275 L 45 275 L 45 260 L 235 260 L 235 275 L 260 275 L 245 307.5 \
+             L 260 340 L 205 340 L 205 325 L 75 325 L 75 340 L 20 340 L 35 307.5 Z"
+        ),
+        "{svg}"
+    );
+    assert_eq!(svg.matches("id=\"drawio-banner-part-").count(), 5, "{svg}");
+    // A single fold is pointed on the left and folded only on the right.
+    assert!(
+        svg.contains(
+            "M 320 260 L 508 260 L 508 275 L 540 275 L 525 307.5 L 540 340 \
+             L 478 340 L 478 325 L 320 325 L 300 292.5 Z"
+        ),
+        "{svg}"
+    );
+}
+
+/// The controls a mock-up is assembled from, and the shapes several libraries
+/// each define their own copy of: buttons rounded along one edge, rounded and
+/// inset rectangles, checkboxes and radio buttons, and anchors, which draw
+/// nothing at all because they are only there to attach a connector to.
+#[test]
+fn draws_the_controls_a_mock_up_is_assembled_from() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("ui.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="UI"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="top" style="shape=mxgraph.mockup.containers.topButton;rSize=10;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="120" height="40" as="geometry"/></mxCell>
+<mxCell id="bottom" style="shape=mxgraph.bootstrap.bottomButton;rSize=10;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="60" width="120" height="40" as="geometry"/></mxCell>
+<mxCell id="left" style="shape=mxgraph.mockup.leftButton;rSize=10;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="20" width="60" height="40" as="geometry"/></mxCell>
+<mxCell id="right" style="shape=mxgraph.bootstrap.rightButton;rSize=10;html=1;" vertex="1" parent="1"><mxGeometry x="240" y="20" width="60" height="40" as="geometry"/></mxCell>
+<mxCell id="round" style="shape=mxgraph.mockup.forms.rrect;rSize=15;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="80" width="120" height="50" as="geometry"/></mxCell>
+<mxCell id="inset" style="shape=mxgraph.mockup.containers.marginRect;rectMargin=10;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="20" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="plain" style="shape=mxgraph.gmdl.marginRect;rectMargin=5;rectMarginTop=15;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="90" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="open" style="shape=mxgraph.mockup.forms.uRect;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="120" width="120" height="40" as="geometry"/></mxCell>
+<mxCell id="tick" style="shape=mxgraph.bootstrap.checkbox;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="150" width="24" height="24" as="geometry"/></mxCell>
+<mxCell id="radio" style="shape=mxgraph.bootstrap.radioButton;strokeColor=#0085FC;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="150" width="24" height="24" as="geometry"/></mxCell>
+<mxCell id="hold" style="shape=mxgraph.ios7ui.anchor;html=1;" vertex="1" parent="1"><mxGeometry x="500" y="20" width="10" height="10" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Each button rounds the two corners on its own edge and squares the rest.
+    for (id, d) in [
+        (
+            "top",
+            "M 20 30 A 10 10 0 0 1 30 20 L 130 20 A 10 10 0 0 1 140 30 L 140 60 L 20 60 Z",
+        ),
+        (
+            "bottom",
+            "M 140 90 A 10 10 0 0 1 130 100 L 30 100 A 10 10 0 0 1 20 90 L 20 60 L 140 60 Z",
+        ),
+        (
+            "left",
+            "M 190 60 A 10 10 0 0 1 180 50 L 180 30 A 10 10 0 0 1 190 20 L 240 20 L 240 60 Z",
+        ),
+        (
+            "right",
+            "M 290 20 A 10 10 0 0 1 300 30 L 300 50 A 10 10 0 0 1 290 60 L 240 60 L 240 20 Z",
+        ),
+    ] {
+        assert!(
+            svg.contains(&format!("id=\"drawio-{id}\" d=\"{d}\"")),
+            "{id} missing from {svg}"
+        );
+    }
+    // A rounded rectangle takes its radius from `rSize`, not from `arcSize`.
+    assert!(svg.contains("M 195 80 H 285 A 15 15 0 0 1 300 95"), "{svg}");
+    // An inset rectangle is rounded by ten, and its plain form by nothing.
+    assert!(svg.contains("M 360 30 H 460 A 10 10 0 0 1 470 40"), "{svg}");
+    assert!(svg.contains("M 345 110 H 475 V 145 H 345 Z"), "{svg}");
+    // Three sides of a box, open along the bottom.
+    assert!(
+        svg.contains("M 20 160 L 20 120 L 140 120 L 140 160"),
+        "{svg}"
+    );
+    // A checkbox is rounded by three whatever its size, and carries a tick.
+    assert!(svg.contains("M 183 150 H 201 A 3 3 0 0 1 204 153"), "{svg}");
+    assert!(
+        svg.contains("d=\"M 199.2 154.8 L 189.6 169.2 L 186 164.4\""),
+        "{svg}"
+    );
+    // A radio button's dot takes the stroke colour rather than the fill.
+    assert!(
+        svg.contains("M 226 162 A 6 6 0 1 0 238 162 A 6 6 0 1 0 226 162 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"#0085FC\""),
+        "{svg}"
+    );
+    // An anchor has no outline of its own.
+    assert!(!svg.contains("id=\"drawio-hold\""), "{svg}");
+}
+
+/// The shapes draw.io registers under a plain name, which a diagram reaches for
+/// without naming a library: the isometric faces, the brace and the pie slice.
+#[test]
+fn draws_the_isometric_faces_the_brace_and_the_pie_slice() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("iso.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Iso"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="face" style="shape=isoRectangle;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="120" height="80" as="geometry"/></mxCell>
+<mxCell id="cube" style="shape=isoCube2;isoAngle=15;html=1;" vertex="1" parent="1"><mxGeometry x="170" y="20" width="100" height="120" as="geometry"/></mxCell>
+<mxCell id="brace" style="shape=curlyBracket;size=0.5;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="20" width="40" height="120" as="geometry"/></mxCell>
+<mxCell id="slice" style="shape=mxgraph.basic.pie;startAngle=0.25;endAngle=0.9;html=1;" vertex="1" parent="1"><mxGeometry x="370" y="20" width="100" height="100" as="geometry"/></mxCell>
+<mxCell id="half" style="shape=mxgraph.basic.pie;startAngle=0;endAngle=0.5;html=1;" vertex="1" parent="1"><mxGeometry x="490" y="20" width="100" height="100" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A rhombus on a thirty degree grid, centred in a box wider than it is.
+    assert!(
+        svg.contains("M 20 60 L 80 25.359 L 140 60 L 80 94.641 Z"),
+        "{svg}"
+    );
+    // A cube: six sides, with a Y drawn over it to divide the three faces.
+    assert!(
+        svg.contains("M 220 20 L 270 44.008 L 270 115.992 L 220 140 L 170 115.992 L 170 44.008 Z"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 170 44.008 L 220 68.016 L 270 44.008"),
+        "{svg}"
+    );
+    assert!(svg.contains("M 220 68.016 L 220 140"), "{svg}");
+    // A brace is drawn open, so it has strokes but no outline to fill.
+    assert!(!svg.contains("id=\"drawio-brace\" "), "{svg}");
+    assert!(
+        svg.contains("M 340 20 L 320 20 L 320 80 L 300 80 L 320 80 L 320 140 L 340 140"),
+        "{svg}"
+    );
+    // Two thirds of a turn is drawn as two arcs, because one arc of half a
+    // turn or more leaves the direction it sweeps in undefined.
+    assert!(
+        svg.contains("M 420 70 L 470 70 A 50 50 0 0 1 397.3 114.55 A 50 50 0 0 1 390.611 29.549 Z"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 540 70 L 540 20 A 50 50 0 0 1 590 70 A 50 50 0 0 1 540 120 Z"),
+        "{svg}"
+    );
+}
+
+/// The SysML activity and flow nodes draw.io implements in code. Each is a
+/// body with square ports let into its sides, and because every part takes the
+/// same fill and stroke they are drawn as one path with several subpaths.
+#[test]
+fn draws_the_sysml_activity_and_flow_nodes() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("sysml.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="SysML"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="done" style="shape=mxgraph.sysml.actFinal;strokeColor=#FF0000;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="50" height="50" as="geometry"/></mxCell>
+<mxCell id="stop" style="shape=mxgraph.sysml.flowFinal;html=1;" vertex="1" parent="1"><mxGeometry x="90" y="20" width="50" height="50" as="geometry"/></mxCell>
+<mxCell id="ctrl" style="shape=mxgraph.sysml.isControl;html=1;" vertex="1" parent="1"><mxGeometry x="170" y="20" width="140" height="50" as="geometry"/></mxCell>
+<mxCell id="inflow" style="shape=mxgraph.sysml.objFlowL;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="20" width="120" height="50" as="geometry"/></mxCell>
+<mxCell id="outflow" style="shape=mxgraph.sysml.objFlowR;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="90" width="120" height="50" as="geometry"/></mxCell>
+<mxCell id="items" style="shape=mxgraph.sysml.itemFlowRight;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="100" width="140" height="120" as="geometry"/></mxCell>
+<mxCell id="frame" style="shape=mxgraph.sysml.paramDgm;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="160" width="160" height="100" as="geometry"/></mxCell>
+<mxCell id="short" style="shape=mxgraph.sysml.paramDgm;html=1;" vertex="1" parent="1"><mxGeometry x="520" y="160" width="160" height="50" as="geometry"/></mxCell>
+<mxCell id="port" style="shape=mxgraph.sysml.port1;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="250" width="100" height="40" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // An activity end is a ring with a disc inside it, and the disc takes the
+    // stroke colour rather than the fill.
+    assert!(
+        svg.contains("M 25 45 A 20 20 0 1 0 65 45 A 20 20 0 1 0 25 45 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"#FF0000\""),
+        "{svg}"
+    );
+    // A flow end is the same ring crossed out.
+    assert!(svg.contains("M 97.25 27.25 L 132.75 62.75"), "{svg}");
+    assert!(svg.contains("M 132.75 27.25 L 97.25 62.75"), "{svg}");
+    // A control operator has a port at each end, an object flow one.
+    assert!(
+        svg.contains(
+            "M 170 35 H 180 V 55 H 170 Z M 190 20 H 290 A 10 10 0 0 1 300 30 V 60 \
+             A 10 10 0 0 1 290 70 H 190 A 10 10 0 0 1 180 60 V 30 A 10 10 0 0 1 190 20 Z \
+             M 300 35 H 310 V 55 H 300 Z"
+        ),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 340 35 H 350 V 55 H 340 Z M 360 20 H 450"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("A 10 10 0 0 1 350 90 Z M 450 105 H 460 V 125 H 450 Z"),
+        "{svg}"
+    );
+    // An item flow carries three ports, spaced a quarter apart down its side.
+    assert!(
+        svg.contains(
+            "M 180 100 H 310 V 220 H 180 Z M 300 120 H 320 V 140 H 300 Z \
+             M 300 150 H 320 V 170 H 300 Z M 300 180 H 320 V 200 H 300 Z"
+        ),
+        "{svg}"
+    );
+    // A parametric frame carries two ports, but only when it is tall enough.
+    assert!(svg.contains("M 340 175 H 360 V 195 H 340 Z"), "{svg}");
+    assert!(!svg.contains("id=\"drawio-short-detail-0\""), "{svg}");
+    // A port is drawn inset by a twentieth of its box on each side.
+    assert!(svg.contains("M 25 250 H 115 V 290 H 25 Z"), "{svg}");
+}
+
+/// The floor-plan shapes that are drawn from their own measurements rather than
+/// from a stencil: a room's four walls, a flight of stairs with a landing, and
+/// a sliding door.
+#[test]
+fn draws_a_room_its_stairs_and_its_sliding_door() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("plan.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Plan"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="room" style="shape=mxgraph.floorplan.room;wallThickness=10;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="200" height="140" as="geometry"/></mxCell>
+<mxCell id="stairs" style="shape=mxgraph.floorplan.stairsRest;html=1;" vertex="1" parent="1"><mxGeometry x="260" y="20" width="180" height="60" as="geometry"/></mxCell>
+<mxCell id="door" style="shape=mxgraph.floorplan.doorBypass;dx=0.3;html=1;" vertex="1" parent="1"><mxGeometry x="260" y="110" width="160" height="30" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The inside of the room is wound the other way round, so it reads as a
+    // hole in the walls rather than as a second filled box.
+    assert!(
+        svg.contains("M 20 160 L 20 20 L 220 20 L 220 160 Z M 30 30 L 30 150 L 210 150 L 210 30 Z"),
+        "{svg}"
+    );
+    // A tread every twenty five pixels, stopping short of the landing.
+    assert_eq!(
+        svg.matches("id=\"drawio-stairs-detail-").count(),
+        8,
+        "{svg}"
+    );
+    assert!(svg.contains("M 285 20 L 285 80"), "{svg}");
+    assert!(svg.contains("M 385 20 L 385 80"), "{svg}");
+    // The landing carries the arrow that says which way the stairs go up.
+    assert!(svg.contains("M 440 20 L 410 50 L 440 80"), "{svg}");
+    // Two panels that pass each other, between a jamb at either end.
+    assert!(
+        svg.contains(
+            "M 260 120 H 265 V 130 H 260 Z M 415 120 H 420 V 130 H 415 Z \
+             M 260 125 H 340 V 130 H 260 Z M 308 120 H 388 V 125 H 308 Z"
+        ),
+        "{svg}"
+    );
+}
+
+/// The iOS 7 controls. Several of them carry a second colour of their own —
+/// the status bar's ink, a slider's track, a switch's off state — which the
+/// shape has to read from the style rather than take from the fill and stroke.
+#[test]
+fn draws_the_ios_controls_and_the_status_bar_above_them() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("ios.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="iOS"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="phone" style="shape=mxgraph.ios7ui.phone;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="160" height="320" as="geometry"/></mxCell>
+<mxCell id="bar" style="shape=mxgraph.ios7ui.appBar;fillColor2=#222222;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="20" width="220" height="24" as="geometry"/></mxCell>
+<mxCell id="dots" style="shape=mxgraph.ios7ui.pageControl;fillColor=#FFFFFF;strokeColor=#999999;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="60" width="120" height="16" as="geometry"/></mxCell>
+<mxCell id="load" style="shape=mxgraph.ios7ui.downloadBar;fillColor=#DDDDDD;strokeColor=#0080F0;barPos=60;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="90" width="200" height="20" as="geometry"/></mxCell>
+<mxCell id="slide" style="shape=mxgraph.ios7ui.slider;barColor=#BBBBBB;barPos=40;handleSize=14;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="130" width="200" height="20" as="geometry"/></mxCell>
+<mxCell id="on" style="shape=mxgraph.ios7ui.onOffButton;buttonState=on;handleColor=#FFFFFF;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="170" width="60" height="30" as="geometry"/></mxCell>
+<mxCell id="off" style="shape=mxgraph.ios7ui.onOffButton;buttonState=off;fillColor2=#FFFFFF;strokeColor2=#AAAAAA;html=1;" vertex="1" parent="1"><mxGeometry x="300" y="170" width="60" height="30" as="geometry"/></mxCell>
+<mxCell id="apps" style="shape=mxgraph.ios7ui.iconGrid;gridSize=4,5;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="220" width="140" height="160" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The case is rounded by twenty five, and carries the screen, the earpiece
+    // and the home button as outlines over it.
+    assert!(svg.contains("M 45 20 H 155 A 25 25 0 0 1 180 45"), "{svg}");
+    assert!(svg.contains("M 30 68 H 170 V 292 H 30 Z"), "{svg}");
+    // The earpiece is a rounded rectangle with oval, not circular, corners.
+    assert!(
+        svg.contains("M 83.2 44 H 116.8 A 3.2 3 0 0 1 120 47 V 47 A 3.2 3 0 0 1 116.8 50"),
+        "{svg}"
+    );
+    // The status bar: five signal dots, then the wifi fan over its own dot.
+    assert!(
+        svg.contains("M 225 32 A 1.5 1.5 0 1 0 228 32 A 1.5 1.5 0 1 0 225 32 Z"),
+        "{svg}"
+    );
+    assert!(svg.contains("M 272 33 A 3.5 3.5 0 0 1 279 33"), "{svg}");
+    assert!(svg.contains("M 270 31 A 6 6 0 0 1 282 31"), "{svg}");
+    // The battery, its charge, and the glyph beside it.
+    assert!(
+        svg.contains("M 421 30 L 434 30 L 434 34 L 421 34 Z"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains(
+            "M 420 29 L 435 29 L 435 31 L 436.5 31 L 436.5 33 L 435 33 L 435 35 L 420 35 Z"
+        ),
+        "{svg}"
+    );
+    // Five page dots, the last one the odd one out in the fill colour.
+    assert_eq!(svg.matches("id=\"drawio-dots-part-").count(), 5, "{svg}");
+    assert!(
+        svg.contains("M 328 68 A 6 6 0 1 0 340 68 A 6 6 0 1 0 328 68 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"#FFFFFF\""),
+        "{svg}"
+    );
+    // The download bar draws the whole track, then the part already done.
+    assert!(svg.contains("M 220 99 H 420 V 101 H 220 Z"), "{svg}");
+    assert!(svg.contains("M 220 99 H 340 V 101 H 220 Z"), "{svg}");
+    // The slider's track takes `barColor`, and so does its handle's edge.
+    assert!(
+        svg.contains("M 220 140 L 420 140\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"none\" stroke=\"#BBBBBB\""),
+        "{svg}"
+    );
+    assert!(svg.contains("M 293 140 A 7 7 0 1 0 307 140"), "{svg}");
+    // A switch is at least twice as wide as it is tall, and its handle sits at
+    // whichever end matches its state.
+    assert!(svg.contains("M 251 185 A 14 14 0 1 0 279 185"), "{svg}");
+    assert!(svg.contains("M 300 185 A 15 15 0 1 0 330 185"), "{svg}");
+    // Twenty tiles, each a tenth of its own width clear of the next.
+    assert_eq!(svg.matches("H 252.558 V").count(), 5, "{svg}");
+    assert!(
+        svg.contains("M 255.814 220 H 288.372 V 249.63 H 255.814 Z"),
+        "{svg}"
+    );
+}
+
+/// The rest of the lean mapping set: the lead time ladder, the FIFO lane and
+/// the lorry, whose wheels take the stroke colour.
+#[test]
+fn draws_the_lead_time_ladder_the_fifo_lane_and_the_lorry() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("lean.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Lean"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="ladder" style="shape=mxgraph.lean_mapping.timeline2;dy1=0;dx2=60;dy2=1;dx3=140;dy3=0;dx4=220;dy4=1;dx5=300;dy5=0;dy6=1;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="380" height="60" as="geometry"/></mxCell>
+<mxCell id="lane" style="shape=mxgraph.lean_mapping.fifo_lane;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="110" width="160" height="60" as="geometry"/></mxCell>
+<mxCell id="lorry" style="shape=mxgraph.lean_mapping.truck_shipment;strokeColor=#000000;html=1;" vertex="1" parent="1"><mxGeometry x="220" y="110" width="120" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A square wave that turns where each step says, and only where it turns.
+    assert!(
+        svg.contains(
+            "M 20 20 L 80 20 L 80 80 L 160 80 L 160 20 L 240 20 L 240 80 \
+             L 320 80 L 320 20 L 400 20 L 400 80"
+        ),
+        "{svg}"
+    );
+    // The lane's band, and the three shapes queued along it.
+    assert!(svg.contains("M 20 122 L 180 122"), "{svg}");
+    assert!(
+        svg.contains(
+            "M 23.2 126 H 64.8 V 166 H 23.2 Z M 76 146 A 20.8 20 0 1 0 117.6 146 \
+             A 20.8 20 0 1 0 76 146 Z M 130.4 126 L 176.8 126 L 153.6 166 Z"
+        ),
+        "{svg}"
+    );
+    // A body and a cab, on wheels drawn in the stroke colour.
+    assert!(svg.contains("M 220 110 H 292 V 158 H 220 Z"), "{svg}");
+    assert!(
+        svg.contains("M 238 164 A 12 6 0 1 0 262 164 A 12 6 0 1 0 238 164 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"#000000\""),
+        "{svg}"
+    );
+}
+
+/// The odds and ends a real diagram reaches for: a mock-up rule, button and
+/// checkbox, a close cross, and the basic set's drop, obtuse triangle and the
+/// polygon a style spells out corner by corner.
+#[test]
+fn draws_a_polygon_a_style_spells_out_and_the_shapes_beside_it() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("misc.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Misc"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="rule" style="shape=mxgraph.mockup.markup.line;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="180" height="20" as="geometry"/></mxCell>
+<mxCell id="go" style="shape=mxgraph.mockup.buttons.button;buttonStyle=round;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="60" width="140" height="40" as="geometry"/></mxCell>
+<mxCell id="next" style="shape=mxgraph.mockup.buttons.button;buttonStyle=chevron;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="60" width="140" height="40" as="geometry"/></mxCell>
+<mxCell id="tick" style="shape=mxgraph.mockup.forms.checkbox;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="60" width="30" height="30" as="geometry"/></mxCell>
+<mxCell id="close" style="shape=mxgraph.bootstrap.x;html=1;" vertex="1" parent="1"><mxGeometry x="390" y="60" width="20" height="20" as="geometry"/></mxCell>
+<mxCell id="drop" style="shape=mxgraph.basic.drop;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="130" width="70" height="110" as="geometry"/></mxCell>
+<mxCell id="wedge" style="shape=mxgraph.basic.obtuse_triangle;dx=0.2;html=1;" vertex="1" parent="1"><mxGeometry x="120" y="130" width="120" height="90" as="geometry"/></mxCell>
+<mxCell id="poly" style="shape=mxgraph.basic.polygon;polyCoords=[[0,0.5],[0.35,0],[1,0.15],[0.8,1],[0.15,0.9]];html=1;" vertex="1" parent="1"><mxGeometry x="270" y="130" width="140" height="110" as="geometry"/></mxCell>
+<mxCell id="curved" style="shape=mxgraph.basic.polygon;polyCoords=[[0,1],[0.5,0],[1,1]];polyCurves=[[&quot;Q&quot;,0.1,0.2],null,[&quot;Q&quot;,0.5,0.6]];html=1;" vertex="1" parent="1"><mxGeometry x="440" y="130" width="140" height="110" as="geometry"/></mxCell>
+<mxCell id="open" style="shape=mxgraph.basic.polygon;polyCoords=[[0,1],[0.5,0],[1,1]];polyline=1;html=1;" vertex="1" parent="1"><mxGeometry x="600" y="130" width="140" height="110" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("M 20 30 L 200 30"), "{svg}");
+    assert!(svg.contains("M 30 60 H 150 A 10 10 0 0 1 160 70"), "{svg}");
+    // A chevron button comes to a point on the right.
+    assert!(
+        svg.contains("L 318.6 78.34 A 12.6 4 0 0 1 318.6 81.66"),
+        "{svg}"
+    );
+    assert!(svg.contains("M 364 66 L 352 84 L 347.5 78"), "{svg}");
+    assert!(svg.contains("M 390 60 L 410 80"), "{svg}");
+    // A drop: straight sides from the point, meeting the circle at a tangent.
+    assert!(
+        svg.contains("M 55 130 L 85.955 188.667 A 35 35 0 0 1 90 205"),
+        "{svg}"
+    );
+    // The triangle's apex sits a fifth of the way along the top.
+    assert!(svg.contains("M 144 220 L 120 130 L 240 220 Z"), "{svg}");
+    // The polygon's corners are fractions of its own box.
+    assert!(
+        svg.contains("M 270 185 L 319 130 L 410 146.5 L 382 240 L 291 229 Z"),
+        "{svg}"
+    );
+    // A curved side names its control point in a second list, one entry per
+    // side, so a straight side has to keep its place in that list.
+    assert!(
+        svg.contains("M 440 240 Q 454 152 510 130 L 580 240 Q 510 196 440 240 Z"),
+        "{svg}"
+    );
+    // A polyline is left open, so it has no outline to fill.
+    assert!(!svg.contains("id=\"drawio-open\" "), "{svg}");
+    assert!(svg.contains("M 600 240 L 670 130 L 740 240"), "{svg}");
 }

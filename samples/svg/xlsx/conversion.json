@@ -1,10 +1,10 @@
 {
   "converter": "document-svg",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "source": "samples/source/sample.xlsx",
   "source_format": "xlsx",
   "output_directory": "samples/svg/xlsx",
-  "elapsed_ms": 9,
+  "elapsed_ms": 8,
   "input_bytes": 9672,
   "page_count": 4,
   "largest_page_ir_bytes": 350261,

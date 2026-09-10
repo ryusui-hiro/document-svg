@@ -16,6 +16,7 @@ pub enum SourceFormat {
     Pptx,
     Xlsx,
     Docx,
+    Drawio,
 }
 
 impl SourceFormat {
@@ -30,8 +31,14 @@ impl SourceFormat {
             "pptx" => Ok(Self::Pptx),
             "xlsx" => Ok(Self::Xlsx),
             "docx" => Ok(Self::Docx),
+            // draw.io writes `.drawio` by default, `.dio` from some exports,
+            // and plain `.xml` whenever the file was saved from the web editor
+            // with the classic extension. The drawio converter rejects XML that
+            // is not an mxGraphModel, so accepting `.xml` here cannot silently
+            // mis-handle another format.
+            "drawio" | "dio" | "xml" => Ok(Self::Drawio),
             _ => Err(Error::Unsupported(format!(
-                "extension .{extension}; expected PDF, PPTX, XLSX, or DOCX"
+                "extension .{extension}; expected PDF, PPTX, XLSX, DOCX, or DRAWIO"
             ))),
         }
     }
@@ -44,6 +51,7 @@ impl std::fmt::Display for SourceFormat {
             Self::Pptx => "PPTX",
             Self::Xlsx => "XLSX",
             Self::Docx => "DOCX",
+            Self::Drawio => "DRAWIO",
         })
     }
 }
@@ -61,6 +69,22 @@ pub struct ConvertOptions {
     /// substitute-font text. This improves fidelity but requires the caller to
     /// verify the source font's outline/embedding rights.
     pub outline_embedded_pdf_text: bool,
+    /// draw.io shape libraries to draw `shape=mxgraph.<library>.<name>` with.
+    ///
+    /// Each entry is a stencil XML file or a directory of them, as shipped in
+    /// draw.io's own `stencils` folder. Without one, a shape from a library is
+    /// drawn as a labelled placeholder, because the outline lives in the
+    /// library rather than in the diagram. A shape the diagram carries inline,
+    /// as `shape=stencil(...)`, is always drawn.
+    pub stencil_paths: Vec<std::path::PathBuf>,
+    /// Keep a copy of a draw.io page's own source in the SVG it produces, in
+    /// the `content` attribute draw.io itself uses.
+    ///
+    /// The SVG stays a picture for every renderer, and both draw.io and
+    /// [`crate::svg_to_document`] can restore the editable diagram from it.
+    /// Off by default: it roughly doubles the output and puts the source
+    /// document inside a file that is usually shared as an image.
+    pub embed_drawio_source: bool,
 }
 
 impl Default for ConvertOptions {
@@ -74,6 +98,8 @@ impl Default for ConvertOptions {
             precision: 5,
             jobs: 1,
             outline_embedded_pdf_text: false,
+            stencil_paths: Vec::new(),
+            embed_drawio_source: false,
         }
     }
 }
@@ -141,6 +167,7 @@ pub fn convert_path(
         SourceFormat::Pptx => crate::ooxml::pptx::convert(input, options, &mut sink)?,
         SourceFormat::Xlsx => crate::ooxml::xlsx::convert(input, options, &mut sink)?,
         SourceFormat::Docx => crate::ooxml::docx::convert(input, options, &mut sink)?,
+        SourceFormat::Drawio => crate::drawio::convert(input, options, &mut sink)?,
     };
     let pages = sink.finish()?;
     let largest_page_ir_bytes = pages

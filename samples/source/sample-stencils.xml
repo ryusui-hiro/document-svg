@@ -1,0 +1,35 @@
+<shapes name="mxgraph.docsvg">
+  <shape name="Gauge" w="100" h="100" aspect="fixed" strokewidth="inherit">
+    <connections/>
+    <background><ellipse x="0" y="0" w="100" h="100"/></background>
+    <foreground>
+      <fillstroke/>
+      <path>
+        <move x="50" y="50"/><line x="82" y="30"/>
+        <move x="12" y="50"/><line x="20" y="50"/>
+        <move x="88" y="50"/><line x="80" y="50"/>
+        <move x="50" y="12"/><line x="50" y="20"/>
+      </path>
+      <stroke/>
+      <fillcolor color="#2D6195"/>
+      <ellipse x="44" y="44" w="12" h="12"/>
+      <fill/>
+    </foreground>
+  </shape>
+  <shape name="Tray" w="120" h="60" aspect="variable" strokewidth="inherit">
+    <connections/>
+    <background>
+      <path>
+        <move x="0" y="12"/><line x="12" y="0"/><line x="120" y="0"/>
+        <line x="120" y="48"/><line x="108" y="60"/><line x="0" y="60"/>
+        <close/>
+      </path>
+    </background>
+    <foreground>
+      <fillstroke/>
+      <path><move x="0" y="12"/><line x="108" y="12"/><line x="120" y="0"/></path>
+      <path><move x="108" y="12"/><line x="108" y="60"/></path>
+      <stroke/>
+    </foreground>
+  </shape>
+</shapes>

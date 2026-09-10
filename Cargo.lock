@@ -350,6 +350,7 @@ dependencies = [
  "base64",
  "clap",
  "emf-core",
+ "flate2",
  "hayro-ccitt",
  "jpeg-decoder",
  "jpeg-encoder",

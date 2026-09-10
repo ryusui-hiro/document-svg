@@ -287,6 +287,14 @@ pub struct Page {
     pub source_format: String,
     pub title: String,
     pub description: String,
+    /// The source document this page was drawn from, kept verbatim so a
+    /// reverse conversion can restore it instead of packaging a picture.
+    ///
+    /// draw.io writes the same thing into its own SVG exports, as the `content`
+    /// attribute on the root element, and reads it back when the SVG is opened
+    /// as a diagram.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub embedded_source: Option<String>,
     pub nodes: Vec<Node>,
     pub clips: Vec<ClipPath>,
     pub masks: Vec<MaskDefinition>,
@@ -304,6 +312,7 @@ impl Page {
             source_format: source_format.into(),
             title: String::new(),
             description: String::new(),
+            embedded_source: None,
             nodes: Vec::new(),
             clips: Vec::new(),
             masks: Vec::new(),

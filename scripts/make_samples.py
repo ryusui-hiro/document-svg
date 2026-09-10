@@ -13,12 +13,14 @@ Python 3.10+, standard library only.
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import shutil
 import struct
 import subprocess
 import sys
+import urllib.parse
 import zlib
 from pathlib import Path
 
@@ -732,6 +734,181 @@ def build_xlsx(path: Path) -> None:
 
 
 # --------------------------------------------------------------------------
+# drawio
+# --------------------------------------------------------------------------
+
+
+def build_drawio(path: Path) -> None:
+    """Write a two-page draw.io file with its diagram bodies left readable.
+
+    The editor compresses each `<diagram>` by default and docsvg reads that
+    form too, but a sample is more useful as XML anyone can open and diff.
+    """
+
+    def cell(identity: str, label: str, style: str, x: int, y: int,
+             width: int, height: int, parent: str = "1") -> str:
+        return (
+            f'        <mxCell id="{identity}" value="{label}" style="{style}" '
+            f'vertex="1" parent="{parent}">\n'
+            f'          <mxGeometry x="{x}" y="{y}" width="{width}" '
+            f'height="{height}" as="geometry"/>\n'
+            "        </mxCell>"
+        )
+
+    def edge(identity: str, label: str, style: str, source: str, target: str) -> str:
+        return (
+            f'        <mxCell id="{identity}" value="{label}" style="{style}" '
+            f'edge="1" parent="1" source="{source}" target="{target}">\n'
+            '          <mxGeometry relative="1" as="geometry"/>\n'
+            "        </mxCell>"
+        )
+
+    rounded = "rounded=1;whiteSpace=wrap;html=1;"
+    orthogonal = "edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;"
+    flow = "\n".join([
+        cell("intake", "Upload document", "ellipse;whiteSpace=wrap;html=1;"
+             "fillColor=#D5E8D4;strokeColor=#82B366;", 40, 40, 160, 60),
+        cell("check", "Supported<br>format?", "rhombus;whiteSpace=wrap;html=1;"
+             "fillColor=#FFF2CC;strokeColor=#D6B656;", 60, 150, 120, 90),
+        cell("convert", "Convert to SVG pages", rounded + "shadow=1;", 260, 165, 180, 60),
+        cell("reject", "Report unsupported input", rounded
+             + "fillColor=#F8CECC;strokeColor=#B85450;", 20, 300, 200, 60),
+        cell("store", "conversion.json", "shape=cylinder3;whiteSpace=wrap;html=1;"
+             "size=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;", 290, 300, 120, 70),
+        edge("yes", "yes", orthogonal, "check", "convert"),
+        edge("no", "no", orthogonal + "dashed=1;", "check", "reject"),
+        edge("start", "", orthogonal, "intake", "check"),
+        edge("record", "warnings", "html=1;curved=1;endArrow=open;", "convert", "store"),
+    ])
+    lanes = "\n".join([
+        cell("lane", "Reader", "swimlane;html=1;startSize=26;"
+             "fillColor=#E1D5E7;strokeColor=#9673A6;", 40, 40, 380, 130),
+        cell("parse", "Parse", rounded, 30, 50, 120, 50, parent="lane"),
+        cell("layout", "Build page IR", rounded, 210, 50, 130, 50, parent="lane"),
+        cell("writer", "SVG writer", "shape=process;whiteSpace=wrap;html=1;", 130, 220, 180, 60),
+        edge("step", "", orthogonal, "parse", "layout"),
+        edge("emit", "one page", orthogonal, "layout", "writer"),
+    ])
+    body = "\n".join([
+        '<mxfile host="document-svg" version="1.0">',
+        '  <diagram id="flow" name="Conversion flow">',
+        '    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" '
+        'pageWidth="850" pageHeight="1100" background="#FFFFFF">',
+        "      <root>",
+        '        <mxCell id="0"/>',
+        '        <mxCell id="1" parent="0"/>',
+        flow,
+        "      </root>",
+        "    </mxGraphModel>",
+        "  </diagram>",
+        '  <diagram id="lanes" name="Reader stages">',
+        '    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" '
+        'pageWidth="850" pageHeight="1100">',
+        "      <root>",
+        '        <mxCell id="0"/>',
+        '        <mxCell id="1" parent="0"/>',
+        lanes,
+        "      </root>",
+        "    </mxGraphModel>",
+        "  </diagram>",
+        '  <diagram id="shapes" name="Shape libraries">',
+        '    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" '
+        'pageWidth="850" pageHeight="1100">',
+        "      <root>",
+        '        <mxCell id="0"/>',
+        '        <mxCell id="1" parent="0"/>',
+        library_page(),
+        "      </root>",
+        "    </mxGraphModel>",
+        "  </diagram>",
+        "</mxfile>",
+        "",
+    ])
+    path.write_text(body, encoding="utf-8")
+
+
+def build_stencils(path: Path) -> None:
+    """Write a small shape library, in the mxStencil form draw.io uses.
+
+    draw.io's own libraries are not redistributed here, so the sample carries
+    one written for it. `docsvg --stencils` reads this file the same way it
+    reads the editor's.
+    """
+
+    path.write_text("""<shapes name="mxgraph.docsvg">
+  <shape name="Gauge" w="100" h="100" aspect="fixed" strokewidth="inherit">
+    <connections/>
+    <background><ellipse x="0" y="0" w="100" h="100"/></background>
+    <foreground>
+      <fillstroke/>
+      <path>
+        <move x="50" y="50"/><line x="82" y="30"/>
+        <move x="12" y="50"/><line x="20" y="50"/>
+        <move x="88" y="50"/><line x="80" y="50"/>
+        <move x="50" y="12"/><line x="50" y="20"/>
+      </path>
+      <stroke/>
+      <fillcolor color="#2D6195"/>
+      <ellipse x="44" y="44" w="12" h="12"/>
+      <fill/>
+    </foreground>
+  </shape>
+  <shape name="Tray" w="120" h="60" aspect="variable" strokewidth="inherit">
+    <connections/>
+    <background>
+      <path>
+        <move x="0" y="12"/><line x="12" y="0"/><line x="120" y="0"/>
+        <line x="120" y="48"/><line x="108" y="60"/><line x="0" y="60"/>
+        <close/>
+      </path>
+    </background>
+    <foreground>
+      <fillstroke/>
+      <path><move x="0" y="12"/><line x="108" y="12"/><line x="120" y="0"/></path>
+      <path><move x="108" y="12"/><line x="108" y="60"/></path>
+      <stroke/>
+    </foreground>
+  </shape>
+</shapes>
+""", encoding="utf-8")
+
+
+def library_page() -> str:
+    """Cells for the page that draws shapes from a library and from itself."""
+
+    inline = (
+        '<shape h="10" w="10" aspect="variable" strokewidth="inherit"><connections/>'
+        '<background><path><move x="0" y="10"/><line x="5" y="0"/><line x="10" y="10"/>'
+        '<close/></path></background><foreground><fillstroke/></foreground></shape>'
+    )
+    quoted = urllib.parse.quote(inline, safe="!~*'()")
+    compressor = zlib.compressobj(9, zlib.DEFLATED, -15)
+    packed = base64.b64encode(compressor.compress(quoted.encode()) + compressor.flush()).decode()
+    cells = [
+        '        <mxCell id="gauge" value="From a library" '
+        'style="shape=mxgraph.docsvg.gauge;html=1;verticalLabelPosition=bottom;verticalAlign=top;'
+        'fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">\n'
+        '          <mxGeometry x="40" y="40" width="100" height="100" as="geometry"/>\n'
+        "        </mxCell>",
+        '        <mxCell id="tray" value="Also from a library" '
+        'style="shape=mxgraph.docsvg.tray;html=1;verticalLabelPosition=bottom;verticalAlign=top;'
+        'fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">\n'
+        '          <mxGeometry x="200" y="60" width="160" height="80" as="geometry"/>\n'
+        "        </mxCell>",
+        f'        <mxCell id="inline" value="Carried by this file" '
+        f'style="shape=stencil({packed});html=1;verticalLabelPosition=bottom;verticalAlign=top;'
+        f'fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">\n'
+        '          <mxGeometry x="420" y="60" width="100" height="80" as="geometry"/>\n'
+        "        </mxCell>",
+        '        <mxCell id="note" value="The first two need --stencils; the third needs nothing." '
+        'style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">\n'
+        '          <mxGeometry x="40" y="180" width="480" height="30" as="geometry"/>\n'
+        "        </mxCell>",
+    ]
+    return "\n".join(cells)
+
+
+# --------------------------------------------------------------------------
 # Driver
 # --------------------------------------------------------------------------
 
@@ -740,6 +917,8 @@ BUILDERS = {
     "sample.docx": build_docx,
     "sample.pptx": build_pptx,
     "sample.xlsx": build_xlsx,
+    "sample.drawio": build_drawio,
+    "sample-stencils.xml": build_stencils,
 }
 
 
@@ -815,13 +994,15 @@ def main() -> int:
 
     failed = False
     for name in BUILDERS:
+        # The shape library is an input to a conversion, not a document.
+        if name == "sample-stencils.xml":
+            continue
         suffix = Path(name).suffix.lstrip(".")
         destination = RENDERED / suffix
-        result = subprocess.run(
-            [binary, str(SOURCE / name), "--output", str(destination)],
-            capture_output=True,
-            text=True,
-        )
+        arguments = [binary, str(SOURCE / name), "--output", str(destination)]
+        if name == "sample.drawio":
+            arguments += ["--stencils", str(SOURCE / "sample-stencils.xml")]
+        result = subprocess.run(arguments, capture_output=True, text=True)
         if result.returncode != 0:
             failed = True
             print(f"FAILED {name}: {result.stderr.strip()}", file=sys.stderr)

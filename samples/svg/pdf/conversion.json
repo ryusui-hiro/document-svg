@@ -1,10 +1,10 @@
 {
   "converter": "document-svg",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "source": "samples/source/sample.pdf",
   "source_format": "pdf",
   "output_directory": "samples/svg/pdf",
-  "elapsed_ms": 2,
+  "elapsed_ms": 1,
   "input_bytes": 54310,
   "page_count": 2,
   "largest_page_ir_bytes": 18594,
@@ -17,7 +17,7 @@
       "node_count": 10,
       "warning_count": 0,
       "warnings": [],
-      "estimated_ir_bytes": 11967
+      "estimated_ir_bytes": 11962
     },
     {
       "number": 2,

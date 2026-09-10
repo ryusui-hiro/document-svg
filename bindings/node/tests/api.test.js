@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict')
-const { access, mkdtemp, writeFile } = require('node:fs/promises')
+const { access, mkdir, mkdtemp, writeFile } = require('node:fs/promises')
 const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
@@ -163,4 +163,65 @@ test('packages an SVG as PPTX', async () => {
   assert.equal(report.outputFormat, 'pptx')
   assert.equal(report.pageCount, 1)
   await access(output)
+})
+
+const DRAWIO_DIAGRAM =
+  '<mxfile><diagram id="p1" name="Flow"><mxGraphModel><root>' +
+  '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+  '<mxCell id="a" value="Start" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">' +
+  '<mxGeometry x="20" y="20" width="120" height="60" as="geometry"/></mxCell>' +
+  '</root></mxGraphModel></diagram></mxfile>'
+
+test('converts drawio and keeps the diagram source when asked', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'document-svg-drawio-'))
+  const source = path.join(directory, 'diagram.drawio')
+  await writeFile(source, DRAWIO_DIAGRAM, 'utf8')
+
+  const plain = await convert(source, path.join(directory, 'plain'))
+  assert.equal(plain.sourceFormat, 'drawio')
+  assert.equal(plain.pageCount, 1)
+
+  const embedded = await convert(source, path.join(directory, 'embedded'), {
+    embedDrawioSource: true,
+  })
+  const pages = await preview(source, { embedDrawioSource: true })
+  assert.match(pages.pages[0].svg, /content="&lt;mxfile/)
+  assert.equal(embedded.pageCount, 1)
+
+  // The embedded copy is what lets the round trip give back a diagram.
+  const restored = path.join(directory, 'restored.drawio')
+  const report = await reverse(path.join(directory, 'embedded'), restored)
+  assert.equal(report.outputFormat, 'drawio')
+  assert.match(report.warnings[0], /restored/)
+})
+
+test('draws a shape from a stencil library the caller supplies', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'document-svg-stencil-'))
+  const stencils = path.join(directory, 'stencils')
+  await mkdir(stencils)
+  await writeFile(
+    path.join(stencils, 'demo.xml'),
+    '<shapes name="mxgraph.demo"><shape name="Badge" h="10" w="10" aspect="fixed">' +
+      '<connections/><background><ellipse x="0" y="0" w="10" h="10"/></background>' +
+      '<foreground><fillstroke/></foreground></shape></shapes>',
+    'utf8',
+  )
+  const source = path.join(directory, 'badge.drawio')
+  await writeFile(
+    source,
+    '<mxfile><diagram name="Badge"><mxGraphModel><root>' +
+      '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+      '<mxCell id="b" style="shape=mxgraph.demo.badge;html=1;" vertex="1" parent="1">' +
+      '<mxGeometry x="0" y="0" width="40" height="40" as="geometry"/></mxCell>' +
+      '</root></mxGraphModel></diagram></mxfile>',
+    'utf8',
+  )
+
+  const without = await convert(source, path.join(directory, 'without'))
+  assert.ok(without.warnings.some((warning) => warning.includes('mxgraph.demo.badge')))
+
+  const withLibrary = await convert(source, path.join(directory, 'with'), {
+    stencilPaths: [stencils],
+  })
+  assert.deepEqual(withLibrary.warnings, [])
 })

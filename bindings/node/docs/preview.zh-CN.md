@@ -6,7 +6,7 @@
 
 ## 可以做什么
 
-- 将 PDF、PPTX、XLSX、DOCX 转换为每页一个完整的 SVG 字符串
+- 将 PDF、PPTX、XLSX、DOCX、draw.io 转换为每页一个完整的 SVG 字符串
 - 在内存中生成预览，不保留输出文件
 - 用于 Node.js 服务端、Electron main process 和服务端 TypeScript
 - 为 `<img>` 创建 Blob URL 或 Data URL

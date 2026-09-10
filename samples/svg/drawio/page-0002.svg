@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300pt" height="195pt" viewBox="0 0 300 195" data-source-format="drawio" data-source-page="2">
+  <title>Reader stages</title>
+  <metadata id="docsvg-metadata">{"page":2,"nodes":1,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="300" height="195" fill="#FFFFFF" data-role="page-background"/>
+  <g id="drawio-page" transform="matrix(0.75 0 0 0.75 -22.5 -22.5)" opacity="1" data-content-kind="drawio-page">
+    <path id="drawio-lane" d="M 40 40 H 420 V 170 H 40 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#E1D5E7" fill-opacity="1" stroke="#9673A6" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="lane" data-semantic-role="swimlane"/>
+    <path id="drawio-lane-divider" d="M 40 66 L 420 66" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#9673A6" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-swimlane-divider" data-source-id="lane"/>
+    <text id="drawio-lane-label-0" x="230" y="56.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="lane">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Reader</tspan>
+    </text>
+    <path id="drawio-parse" d="M 77.5 90 H 182.5 A 7.5 7.5 0 0 1 190 97.5 V 132.5 A 7.5 7.5 0 0 1 182.5 140 H 77.5 A 7.5 7.5 0 0 1 70 132.5 V 97.5 A 7.5 7.5 0 0 1 77.5 90 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFFFFF" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="parse" data-semantic-role="rectangle"/>
+    <text id="drawio-parse-label-0" x="130" y="118.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="parse">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Parse</tspan>
+    </text>
+    <path id="drawio-layout" d="M 257.5 90 H 372.5 A 7.5 7.5 0 0 1 380 97.5 V 132.5 A 7.5 7.5 0 0 1 372.5 140 H 257.5 A 7.5 7.5 0 0 1 250 132.5 V 97.5 A 7.5 7.5 0 0 1 257.5 90 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFFFFF" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="layout" data-semantic-role="rectangle"/>
+    <text id="drawio-layout-label-0" x="315" y="118.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="layout">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Build page IR</tspan>
+    </text>
+    <path id="drawio-writer" d="M 130 220 H 310 V 280 H 130 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFFFFF" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="writer" data-semantic-role="process"/>
+    <path id="drawio-writer-detail-0" d="M 148 220 L 148 280" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape-detail" data-source-id="writer" data-semantic-role="process"/>
+    <path id="drawio-writer-detail-1" d="M 292 220 L 292 280" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape-detail" data-source-id="writer" data-semantic-role="process"/>
+    <text id="drawio-writer-label-0" x="220" y="253.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="writer">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">SVG writer</tspan>
+    </text>
+    <path id="drawio-step" d="M 190 115 L 244.75 115" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" data-content-kind="drawio-edge" data-source-id="step"/>
+    <path id="drawio-step-end-0" d="M 250 115 L 243 118.5 L 244.75 115 L 243 111.5 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#000000" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-edge-marker" data-source-id="step"/>
+    <path id="drawio-emit" d="M 315 140 L 315 170 Q 315 180 305 180 L 230 180 Q 220 180 220 190 L 220 214.75" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" data-content-kind="drawio-edge" data-source-id="emit"/>
+    <path id="drawio-emit-end-0" d="M 220 220 L 216.5 213 L 220 214.75 L 223.5 213 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#000000" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-edge-marker" data-source-id="emit"/>
+    <text id="drawio-emit-label-0" x="267.5" y="183.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="emit">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">one page</tspan>
+    </text>
+  </g>
+</svg>

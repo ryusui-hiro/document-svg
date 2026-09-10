@@ -3,7 +3,7 @@ name = "document-svg"
 version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
-description = "Bounded PDF/OOXML to SVG conversion and SVG to OOXML packaging in Rust"
+description = "Bounded PDF/OOXML/draw.io to SVG conversion and SVG to OOXML packaging in Rust"
 license = "MIT OR Apache-2.0"
 publish = ["crates-io"]
 documentation = "https://docs.rs/document-svg"
@@ -29,6 +29,7 @@ anyhow = "1.0.104"
 base64 = "0.23.1"
 clap = { version = "4.6.6", features = ["derive"] }
 emf-core = { version = "0.1.0", default-features = false, features = ["svg"] }
+flate2 = { version = "1.1.9", default-features = false, features = ["zlib-rs"] }
 hayro-ccitt = "0.3.0"
 jpeg-decoder = "0.3.2"
 jpeg-encoder = "0.6.1"

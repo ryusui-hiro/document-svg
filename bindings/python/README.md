@@ -31,7 +31,10 @@ fidelity = convert(
 )
 ```
 
-Package SVG pages as vector images in PPTX, DOCX or XLSX:
+Pass `embed_drawio_source=True` when converting a draw.io file to keep a copy of
+the diagram in each SVG, so `reverse()` can restore the editable diagram from it.
+
+Package SVG pages as vector images in PPTX, DOCX, XLSX or draw.io:
 
 ```python
 from document_svg import reverse

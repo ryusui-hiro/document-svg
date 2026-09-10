@@ -19,6 +19,8 @@ pub struct ConvertOptions {
     pub precision: Option<f64>,
     pub jobs: Option<f64>,
     pub outline_embedded_pdf_text: Option<bool>,
+    pub embed_drawio_source: Option<bool>,
+    pub stencil_paths: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -41,6 +43,8 @@ pub struct PreviewOptions {
     pub precision: Option<f64>,
     pub jobs: Option<f64>,
     pub outline_embedded_pdf_text: Option<bool>,
+    pub embed_drawio_source: Option<bool>,
+    pub stencil_paths: Option<Vec<String>>,
     /// Maximum UTF-8 byte length of one returned SVG. Default: 64 MiB.
     pub max_svg_bytes: Option<f64>,
     /// Maximum UTF-8 byte length of all returned SVG pages. Default: 256 MiB.
@@ -244,7 +248,7 @@ pub fn convert(
     }))
 }
 
-/// Package one SVG or a directory of SVG pages as PPTX, DOCX, or XLSX.
+/// Package one SVG or a directory of SVG pages as PPTX, DOCX, XLSX, or draw.io.
 ///
 /// SVG pages remain vector images; Office semantic structure is not reconstructed.
 #[napi]
@@ -264,7 +268,7 @@ pub fn reverse(
     }))
 }
 
-/// Convert a PDF/PPTX/XLSX/DOCX file and return complete SVG markup for UI
+/// Convert a PDF/PPTX/XLSX/DOCX/drawio file and return complete SVG markup for UI
 /// preview without leaving output files behind.
 ///
 /// This runs on a libuv worker. It is intended for Node.js, Electron main
@@ -316,6 +320,12 @@ impl TryFrom<ConvertOptions> for CoreConvertOptions {
         if let Some(outline) = value.outline_embedded_pdf_text {
             options.outline_embedded_pdf_text = outline;
         }
+        if let Some(embed) = value.embed_drawio_source {
+            options.embed_drawio_source = embed;
+        }
+        if let Some(paths) = value.stencil_paths {
+            options.stencil_paths = paths.into_iter().map(std::path::PathBuf::from).collect();
+        }
         Ok(options)
     }
 }
@@ -363,6 +373,12 @@ impl TryFrom<PreviewOptions> for PreviewConfig {
         }
         if let Some(outline) = value.outline_embedded_pdf_text {
             convert.outline_embedded_pdf_text = outline;
+        }
+        if let Some(embed) = value.embed_drawio_source {
+            convert.embed_drawio_source = embed;
+        }
+        if let Some(paths) = value.stencil_paths {
+            convert.stencil_paths = paths.into_iter().map(std::path::PathBuf::from).collect();
         }
         let max_svg_bytes = value
             .max_svg_bytes

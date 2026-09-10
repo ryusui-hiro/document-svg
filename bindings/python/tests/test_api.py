@@ -71,3 +71,63 @@ def test_packages_svg_as_pptx(tmp_path: Path) -> None:
     assert report["output_format"] == "pptx"
     assert report["page_count"] == 1
     assert output.is_file()
+
+
+DRAWIO_DIAGRAM = (
+    '<mxfile><diagram id="p1" name="Flow"><mxGraphModel><root>'
+    '<mxCell id="0"/><mxCell id="1" parent="0"/>'
+    '<mxCell id="a" value="Start" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">'
+    '<mxGeometry x="20" y="20" width="120" height="60" as="geometry"/></mxCell>'
+    "</root></mxGraphModel></diagram></mxfile>"
+)
+
+
+def test_converts_drawio_and_keeps_the_source_when_asked(tmp_path: Path) -> None:
+    source = tmp_path / "diagram.drawio"
+    source.write_text(DRAWIO_DIAGRAM, encoding="utf-8")
+
+    plain = convert(source, tmp_path / "plain")
+    assert plain["source_format"] == "drawio"
+    assert plain["page_count"] == 1
+    assert "content=" not in (tmp_path / "plain" / plain["pages"][0]["svg"]).read_text(
+        encoding="utf-8"
+    )
+
+    embedded = convert(source, tmp_path / "embedded", embed_drawio_source=True)
+    page = (tmp_path / "embedded" / embedded["pages"][0]["svg"]).read_text(encoding="utf-8")
+    assert "content=" in page
+
+    # The embedded copy is what makes the round trip give back a diagram.
+    restored = tmp_path / "restored.drawio"
+    report = reverse(tmp_path / "embedded", restored)
+    assert report["output_format"] == "drawio"
+    assert "restored" in report["warnings"][0]
+    assert '<diagram id="p1" name="Flow">' in restored.read_text(encoding="utf-8")
+
+
+def test_draws_a_shape_from_a_stencil_library(tmp_path: Path) -> None:
+    stencils = tmp_path / "stencils"
+    stencils.mkdir()
+    (stencils / "demo.xml").write_text(
+        '<shapes name="mxgraph.demo"><shape name="Badge" h="10" w="10" aspect="fixed">'
+        '<connections/><background><ellipse x="0" y="0" w="10" h="10"/></background>'
+        "<foreground><fillstroke/></foreground></shape></shapes>",
+        encoding="utf-8",
+    )
+    source = tmp_path / "badge.drawio"
+    source.write_text(
+        '<mxfile><diagram name="Badge"><mxGraphModel><root>'
+        '<mxCell id="0"/><mxCell id="1" parent="0"/>'
+        '<mxCell id="b" style="shape=mxgraph.demo.badge;html=1;" vertex="1" parent="1">'
+        '<mxGeometry x="0" y="0" width="40" height="40" as="geometry"/></mxCell>'
+        "</root></mxGraphModel></diagram></mxfile>",
+        encoding="utf-8",
+    )
+
+    without = convert(source, tmp_path / "without")
+    assert any("mxgraph.demo.badge" in warning for warning in without["warnings"])
+
+    with_library = convert(source, tmp_path / "with", stencil_paths=[str(stencils)])
+    assert with_library["warnings"] == []
+    page = (tmp_path / "with" / with_library["pages"][0]["svg"]).read_text(encoding="utf-8")
+    assert "drawio-stencil" in page

@@ -1,6 +1,6 @@
 ---
 name: document-svg
-description: Convert PDF, PPTX, XLSX, or DOCX files into deterministic per-page SVG files, or package SVG pages back into PPTX, DOCX, or XLSX with the repository's docsvg CLI. Use for document-to-SVG conversion, SVG previews, batch rendering, and appearance-preserving SVG-to-OOXML conversion; do not claim that reverse conversion reconstructs original Office semantics.
+description: Convert PDF, PPTX, XLSX, DOCX, or draw.io files into deterministic per-page SVG files, or package SVG pages back into PPTX, DOCX, XLSX, or draw.io with the repository's docsvg CLI. Use for document-to-SVG conversion, SVG previews, batch rendering, and appearance-preserving SVG-to-OOXML conversion; do not claim that reverse conversion reconstructs original Office semantics.
 ---
 
 # Document SVG
@@ -9,7 +9,7 @@ Use this skill when the requested output is a directory of self-contained SVG pa
 
 ## Convert
 
-1. Resolve the input to a local `.pdf`, `.pptx`, `.xlsx`, or `.docx` file.
+1. Resolve the input to a local `.pdf`, `.pptx`, `.xlsx`, `.docx`, or draw.io (`.drawio`, `.dio`, `.xml`) file.
 2. Choose a dedicated output directory. If the user did not name one, use `<input-stem>-svg` beside the input. Never reuse a non-empty directory unless the user explicitly asks to mix or replace its contents.
 3. Run the bundled wrapper using its absolute path from this skill directory:
 
@@ -32,10 +32,10 @@ Use this skill when the requested output is a directory of self-contained SVG pa
    Read `preview.json` for page ordering. The preview runner rejects active SVG content and refuses
    non-empty output directories.
 
-## Reverse to OOXML
+## Reverse to OOXML or draw.io
 
 1. Resolve the input to one `.svg` file or a directory containing SVG pages. Directory pages are ordered lexicographically, so prefer `page-NNNN.svg` names.
-2. Choose a new output file ending in `.pptx`, `.docx`, or `.xlsx`.
+2. Choose a new output file ending in `.pptx`, `.docx`, `.xlsx`, or `.drawio`.
 3. Run:
 
    ```bash
@@ -44,6 +44,7 @@ Use this skill when the requested output is a directory of self-contained SVG pa
 
 4. Report the output format and page count, and always disclose that the SVGs are embedded as vector images with PNG compatibility fallbacks. PPTX uses one SVG per slide, DOCX one SVG per page, and XLSX one SVG per sheet.
 5. Do not describe reverse conversion as a lossless restoration of the original Office document. Paragraphs, tables, spreadsheet cells and formulas, charts, comments, masters, and other semantics are not reconstructed.
+6. A `.drawio` output is the exception: an SVG that still carries its diagram source is restored as editable shapes. That applies to draw.io's own exports made with "Include a copy of my diagram" and to SVGs this converter wrote with `--embed-drawio-source`. The report says how many pages were restored that way; report that number instead of assuming, because the rest are pictures inside a diagram.
 
 ## CLI availability
 
@@ -53,5 +54,5 @@ The repository installer normally places `docsvg` on `PATH`. If it is unavailabl
 
 - The converter intentionally rejects encrypted PDFs and does not bypass access controls.
 - Preserve source files. The runner refuses non-empty output directories to avoid mixing stale and new pages.
-- Reverse conversion refuses to overwrite an existing OOXML output file.
+- Reverse conversion refuses to overwrite an existing output file.
 - Do not expose internal PDF/OOXML parser modules for ordinary use; the `docsvg` CLI is the supported entrypoint.

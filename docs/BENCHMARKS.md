@@ -2,6 +2,39 @@
 
 2026-08-22、Apple M5（arm64）、macOS 26.5.1、Rust 1.93.0、`cargo build --release`で測定しました。時間は`conversion.json`の変換処理時間、RSSはmacOS `/usr/bin/time -l`のmaximum resident set sizeです。
 
+## drawio 変換
+
+2026-09-10、`scripts/benchmark-conversion.py`が生成する合成図面（400図形＋399本の直交コネクタ、
+64 shapeのstencil library付き）を`--stencils`指定で変換した測定です。同スクリプトは2つのバイナリの
+出力がバイト一致することも検証します。
+
+| 経路 | 中央値時間 | 最大RSS |
+|---|---:|---:|
+| drawio → SVG（stencil解決込み） | 12.0 ms | 7.5 MiB |
+
+実ファイルでの参考値として、drawio公式リポジトリの613テンプレートをdrawioの全stencil
+（204ファイル・42 MB）指定で変換した場合、1ファイルあたり中央値10 ms未満、常駐15 MiB以下です。
+必要なshapeが揃った時点で残りのlibrary fileを読まないため、library総量は常駐に比例しません。
+
+## drawio 忠実度（drawio自身のSVG書き出しとの比較）
+
+2026-09-10、`scripts/compare-drawio-export.py`で、drawio公式リポジトリのSVG書き出し
+（「Include a copy of my diagram」付き）から元の図面を取り出して変換し、同一グリッドで
+描画して画素比較しました。drawioはラベルを`foreignObject`で描くため単体レンダラでは
+描画されず、比較はテキストを除いた幾何のみです。位置は互いが描いた内容で揃えています。
+
+| 図面 | 比較領域 | 平均差 | `>32`の画素率 |
+|---|---:|---:|---:|
+| connect-shapes（2件） | 1081x598 | 0.44 | 0.60% |
+| infographic | 1012x3206 | 0.15 | 0.14% |
+| infographic2 | 776x1700 | 0.42 | 0.37% |
+| flowchart | 281x391 | 4.35 | 3.32% |
+| svgfile | 612x1017 | 9.10 | 7.29% |
+
+flowchartの残差は、drawioが`viewBox="-0.5 -0.5 …"`で半画素ずらして1px線を画素中心へ
+合わせる規約によるもので、幾何自体は一致しています。svgfileはdrawio内蔵clip artを
+URL参照で持つページを含み、そのぶんが差になります（外部取得は行いません）。
+
 ## ローカル検証用 SVG/OpenXML interoperability regression
 
 2026-08-26、ローカル検証用 backendのSVG fidelity fixtureと実PPTXを使い、librsvg参照画像と

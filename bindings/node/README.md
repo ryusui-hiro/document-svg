@@ -35,7 +35,10 @@ async function main() {
 main().catch(console.error)
 ```
 
-Package SVG pages as vector images in PPTX, DOCX or XLSX:
+Pass `embedDrawioSource: true` when converting a draw.io file to keep a copy of
+the diagram in each SVG, so `reverse()` can restore the editable diagram from it.
+
+Package SVG pages as vector images in PPTX, DOCX, XLSX or draw.io:
 
 ```js
 const { reverse } = require("document-svg")
@@ -53,7 +56,7 @@ the original paragraphs, cells, formulas or other Office semantics.
 
 ## TypeScript and application previews
 
-`preview()` converts PDF, PPTX, XLSX or DOCX in temporary storage and returns
+`preview()` converts PDF, PPTX, XLSX, DOCX or draw.io files in temporary storage and returns
 complete SVG strings for every page. No output directory is required; temporary
 files are removed before its Promise resolves.
 

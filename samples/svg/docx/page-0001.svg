@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="595.3pt" height="841.9pt" viewBox="0 0 595.3 841.9" data-source-format="docx" data-source-page="1">
+<svg xmlns="http://www.w3.org/2000/svg" width="595.3pt" height="841.9pt" viewBox="0 0 595.3 841.9" data-source-format="docx" data-source-page="1">
   <desc>DOCX page approximated with deterministic Rust layout</desc>
   <metadata id="docsvg-metadata">{"page":1,"nodes":40,"warnings":[]}</metadata>
   <rect x="0" y="0" width="595.3" height="841.9" fill="#FFFFFF" data-role="page-background"/>
