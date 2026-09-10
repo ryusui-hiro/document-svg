@@ -151,72 +151,89 @@ fn is_numeric_attr(key: &[u8]) -> bool {
 }
 
 fn round_numbers_in_str(s: &str, precision: usize) -> String {
-    let mut result = String::with_capacity(s.len());
-    let chars: Vec<char> = s.chars().collect();
-    let n = chars.len();
+    let bytes = s.as_bytes();
+    let n = bytes.len();
     let mut i = 0;
+    let mut output: Option<String> = None;
+    let mut token_start = 0;
 
     while i < n {
-        let ch = chars[i];
+        let ch = bytes[i];
         let is_num_start = ch.is_ascii_digit()
-            || ((ch == '-' || ch == '+' || ch == '.')
+            || ((ch == b'-' || ch == b'+' || ch == b'.')
                 && i + 1 < n
-                && (chars[i + 1].is_ascii_digit()
-                    || (ch != '.'
-                        && chars[i + 1] == '.'
+                && (bytes[i + 1].is_ascii_digit()
+                    || (ch != b'.'
+                        && bytes[i + 1] == b'.'
                         && i + 2 < n
-                        && chars[i + 2].is_ascii_digit())));
+                        && bytes[i + 2].is_ascii_digit())));
 
         if is_num_start {
             let start = i;
-            if chars[i] == '-' || chars[i] == '+' {
+            if bytes[i] == b'-' || bytes[i] == b'+' {
                 i += 1;
             }
             let mut has_dot = false;
             let mut has_exp = false;
             while i < n {
-                let c = chars[i];
+                let c = bytes[i];
                 if c.is_ascii_digit() {
                     i += 1;
-                } else if c == '.' && !has_dot && !has_exp {
+                } else if c == b'.' && !has_dot && !has_exp {
                     has_dot = true;
                     i += 1;
-                } else if (c == 'e' || c == 'E') && !has_exp {
+                } else if (c == b'e' || c == b'E') && !has_exp {
                     has_exp = true;
                     i += 1;
-                    if i < n && (chars[i] == '+' || chars[i] == '-') {
+                    if i < n && (bytes[i] == b'+' || bytes[i] == b'-') {
                         i += 1;
                     }
                 } else {
                     break;
                 }
             }
-            let num_str: String = chars[start..i].iter().collect();
-            if let Ok(val) = num_str.parse::<f64>() {
+            let raw = &s[start..i];
+            let mut rounded = None;
+            if let Ok(val) = raw.parse::<f64>() {
                 if has_dot || has_exp {
                     let formatted = format!("{val:.precision$}");
                     let trimmed = if formatted.contains('.') {
                         formatted.trim_end_matches('0').trim_end_matches('.')
                     } else {
-                        &formatted
+                        formatted.as_str()
                     };
-                    result.push_str(if trimmed.is_empty() || trimmed == "-0" {
+                    let normalized = if trimmed.is_empty() || trimmed == "-0" {
                         "0"
                     } else {
                         trimmed
-                    });
-                } else {
-                    result.push_str(&num_str);
+                    };
+                    if normalized != raw {
+                        rounded = Some(normalized.to_string());
+                    }
                 }
-            } else {
-                result.push_str(&num_str);
+            }
+
+            if let Some(token_out) = rounded {
+                if output.is_none() {
+                    let mut out = String::with_capacity(s.len());
+                    out.push_str(&s[token_start..start]);
+                    output = Some(out);
+                }
+                output.as_mut().unwrap().push_str(&token_out);
+                token_start = i;
             }
         } else {
-            result.push(ch);
             i += 1;
         }
     }
-    result
+
+    match output {
+        Some(mut out) => {
+            out.push_str(&s[token_start..]);
+            out
+        }
+        None => s.to_owned(),
+    }
 }
 
 fn write_transformed_element<W: Write>(
