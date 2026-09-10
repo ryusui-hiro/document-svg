@@ -8,11 +8,11 @@ use document_svg::{ConvertOptions, ReverseOptions, convert_path, svg_to_document
 #[command(
     name = "docsvg",
     version,
-    about = "Convert PDF, Office or draw.io documents to SVG pages; use 'reverse' to go back",
-    after_help = "Reverse conversion: docsvg reverse INPUT.svg --output OUTPUT.pptx\nINPUT may also be a directory containing SVG pages; OUTPUT may end in .pptx, .docx, .xlsx, or .drawio."
+    about = "Convert PDF, Office, draw.io, CAD (DXF/Gerber/HP-GL/G-code/Excellon/STL/STEP/OBJ/Simulation), Diagram (DOT/Mermaid), LaTeX, Markdown table, or Chart documents to SVG pages; use 'reverse' to go back",
+    after_help = "Reverse conversion: docsvg reverse INPUT.svg --output OUTPUT.pptx\nINPUT may also be a directory containing SVG pages; OUTPUT may end in .pptx, .docx, .xlsx, .drawio, .dxf, .gcode, .nc, .gbr, .plt, .dot, .mmd, .md, .csv, .tex, .datauri, .png, .jsx, .tsx, .vue."
 )]
 struct Cli {
-    /// Source PDF, PPTX, XLSX, DOCX, or draw.io file.
+    /// Source PDF, PPTX, XLSX, DOCX, draw.io, DXF, Gerber, HP-GL, G-code, Excellon, STL, STEP, OBJ, Gmsh/VTK, DOT, Mermaid, Markdown, Chart, or LaTeX file.
     input: PathBuf,
 
     /// Directory that receives page-NNNN.svg and conversion.json.
@@ -61,13 +61,13 @@ struct Cli {
 #[derive(Debug, Parser)]
 #[command(
     name = "docsvg reverse",
-    about = "Package SVG pages as vector images in PPTX, DOCX, XLSX, or draw.io"
+    about = "Package SVG pages into PPTX, DOCX, XLSX, draw.io, CAD (DXF, G-code, Gerber, HP-GL), DOT/Mermaid, Markdown, CSV, LaTeX, React JSX/TSX, Vue, DataURI, or PNG"
 )]
 struct ReverseCli {
     /// Source SVG file or directory containing SVG pages.
     input: PathBuf,
 
-    /// Destination PPTX, DOCX, XLSX, or .drawio file.
+    /// Destination PPTX, DOCX, XLSX, .drawio, .dxf, .gcode, .nc, .gbr, .plt, .dot, .mmd, .md, .csv, .tex, .datauri, .png, .jsx, .tsx, or .vue file.
     #[arg(short, long)]
     output: PathBuf,
 
@@ -80,6 +80,36 @@ struct ReverseCli {
     max_pages: usize,
 }
 
+#[derive(Debug, Parser)]
+#[command(
+    name = "docsvg transform",
+    about = "Transform and optimize SVG files (minify, monochrome, responsive)"
+)]
+struct TransformCli {
+    /// Source SVG file.
+    input: PathBuf,
+
+    /// Destination transformed SVG file.
+    #[arg(short, long)]
+    output: PathBuf,
+
+    /// Remove comments, empty spaces, and minify SVG output.
+    #[arg(long)]
+    minify: bool,
+
+    /// Unify all fill and stroke colors to a single monochrome color (e.g. "#000000").
+    #[arg(long)]
+    monochrome: Option<String>,
+
+    /// Remove fixed width/height and ensure viewBox is present for responsive scaling.
+    #[arg(long)]
+    responsive: bool,
+
+    /// Round coordinates and path numbers to N decimal digits.
+    #[arg(long)]
+    precision: Option<usize>,
+}
+
 fn main() -> anyhow::Result<()> {
     let mut arguments = std::env::args_os().collect::<Vec<_>>();
     if arguments
@@ -89,6 +119,14 @@ fn main() -> anyhow::Result<()> {
         arguments.remove(1);
         arguments[0] = "docsvg reverse".into();
         return reverse(ReverseCli::parse_from(arguments));
+    }
+    if arguments
+        .get(1)
+        .is_some_and(|argument| argument == "transform")
+    {
+        arguments.remove(1);
+        arguments[0] = "docsvg transform".into();
+        return transform(TransformCli::parse_from(arguments));
     }
     convert(Cli::parse_from(arguments))
 }
@@ -145,5 +183,31 @@ fn reverse(cli: ReverseCli) -> anyhow::Result<()> {
     for warning in &report.warnings {
         eprintln!("warning: {warning}");
     }
+    Ok(())
+}
+
+fn transform(cli: TransformCli) -> anyhow::Result<()> {
+    let bytes = std::fs::read(&cli.input)
+        .with_context(|| format!("failed to read {}", cli.input.display()))?;
+    let options = document_svg::TransformOptions {
+        minify: cli.minify,
+        monochrome: cli.monochrome,
+        responsive: cli.responsive,
+        precision: cli.precision,
+    };
+    let transformed = document_svg::transform_svg(&bytes, &options)
+        .with_context(|| format!("failed to transform {}", cli.input.display()))?;
+    if let Some(parent) = cli.output.parent().filter(|p| !p.as_os_str().is_empty()) {
+        std::fs::create_dir_all(parent)?;
+    }
+    std::fs::write(&cli.output, &transformed)
+        .with_context(|| format!("failed to write {}", cli.output.display()))?;
+    println!(
+        "transformed {} ({} bytes) -> {} ({} bytes)",
+        cli.input.display(),
+        bytes.len(),
+        cli.output.display(),
+        transformed.len()
+    );
     Ok(())
 }
