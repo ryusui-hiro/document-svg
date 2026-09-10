@@ -4,7 +4,7 @@
   "source": "samples/source/sample.xlsx",
   "source_format": "xlsx",
   "output_directory": "samples/svg/xlsx",
-  "elapsed_ms": 8,
+  "elapsed_ms": 0,
   "input_bytes": 9672,
   "page_count": 4,
   "largest_page_ir_bytes": 350261,

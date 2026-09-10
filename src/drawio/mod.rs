@@ -327,6 +327,9 @@ struct Cell {
 struct Model {
     cells: Vec<Cell>,
     background: Option<String>,
+    /// The page size the model declares, which is the only size a diagram with
+    /// nothing on it has to offer.
+    page: Option<(f64, f64)>,
 }
 
 fn parse_model(xml: &[u8], max_events: usize) -> Result<Model> {
@@ -364,6 +367,13 @@ fn parse_model(xml: &[u8], max_events: usize) -> Result<Model> {
                     saw_model = true;
                     model.background = attribute(start, b"background")
                         .filter(|value| !value.eq_ignore_ascii_case("none") && !value.is_empty());
+                    let side = |name: &[u8]| {
+                        attribute(start, name)
+                            .and_then(|value| value.trim().parse::<f64>().ok())
+                            .filter(|value| value.is_finite() && *value > 0.0)
+                            .map(bounded)
+                    };
+                    model.page = side(b"pageWidth").zip(side(b"pageHeight"));
                 }
                 b"object" | b"UserObject" => {
                     let label = attribute(start, b"label").unwrap_or_default();
@@ -951,13 +961,27 @@ fn render(model: &Model, number: usize, name: &str, library: &mut stencil::Libra
             );
         }
     }
-    let content = bounds.unwrap_or(Rect {
-        x: 0.0,
-        y: 0.0,
-        width: 1.0,
-        height: 1.0,
-    });
-    let mut frame = content.grow(PAGE_MARGIN);
+    // A page with nothing on it has no content to size itself against, so it
+    // takes the size the model declares. draw.io stands its own "click here to
+    // edit" placeholder on such a page; that placeholder is not in the model,
+    // and inventing it here would put a shape in the output that the diagram
+    // does not contain.
+    let mut frame = match bounds {
+        Some(content) => content.grow(PAGE_MARGIN),
+        None => {
+            warnings.push(
+                "drawio page has no cells to draw; a blank page of the size the model declares is written"
+                    .to_owned(),
+            );
+            let (width, height) = model.page.unwrap_or((850.0, 1100.0));
+            Rect {
+                x: 0.0,
+                y: 0.0,
+                width,
+                height,
+            }
+        }
+    };
     // Geometry is already held inside the coordinate range, but a drawing that
     // spans it from end to end still has to produce a page a renderer can open.
     let clamped = Rect {
@@ -1215,6 +1239,15 @@ fn draw_vertex(
                 | "mxgraph.ios7ui.slider"
                 | "mxgraph.ios7ui.onOffButton"
                 | "mxgraph.lean_mapping.truck_shipment"
+                | "mxgraph.archimate3.application"
+                | "mxgraph.archimate3.tech"
+                | "mxgraph.archimate3.service"
+                | "mxgraph.archimate3.actor"
+                | "mxgraph.rackGeneral.plate"
+                | "mxgraph.rackGeneral.neatPatch"
+                | "mxgraph.rackGeneral.rackCabinet3"
+                | "mxgraph.c4.person"
+                | "mxgraph.mockup.containers.browserWindow"
                 | "mxgraph.mockup.graphics.pieChart"
         )
     ) && draw_shaded_shape(cell, drawing, transform, nodes)
@@ -2093,6 +2126,455 @@ fn draw_shaded_shape(cell: &Cell, rect: Rect, transform: Matrix, nodes: &mut Vec
         }
         return true;
     }
+    // A browser window: the frame, the tab and address bar in a third colour,
+    // and the navigation icons filled in that same colour.
+    if style.get("shape") == Some("mxgraph.mockup.containers.browserWindow") {
+        // draw.io lays the chrome out at fixed pixel offsets, so the window has
+        // a size below which the parts would overlap.
+        let (w, h) = (w.max(260.0), h.max(110.0));
+        let right = x + w;
+        let close = style.text("strokecolor2", "#008CFF");
+        let inside = style.text("strokecolor3", "#C4C4C4");
+        paint(
+            rectangle_path(Rect {
+                x,
+                y,
+                width: w,
+                height: h,
+            }),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        // Two window buttons, then the close button in its own colour.
+        for (at, colour) in [
+            (75.0, stroke.as_deref()),
+            (50.0, stroke.as_deref()),
+            (25.0, Some(close.as_str())),
+        ] {
+            paint(
+                ellipse_path(Rect {
+                    x: right - at,
+                    y: y + 5.0,
+                    width: 20.0,
+                    height: 20.0,
+                }),
+                None,
+                1.0,
+                false,
+                colour,
+            );
+        }
+        let ink = Some(inside.as_str());
+        // The tab, the line under the toolbar, and the address field.
+        paint(
+            format!(
+                "M {} {} L {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} L {} {}",
+                n(x),
+                n(y + 40.0),
+                n(x + 30.0),
+                n(y + 40.0),
+                n(x + 30.0),
+                n(y + 15.0),
+                n(x + 35.0),
+                n(y + 10.0),
+                n(x + 170.0),
+                n(y + 10.0),
+                n(x + 175.0),
+                n(y + 15.0),
+                n(x + 175.0),
+                n(y + 40.0),
+                n(right),
+                n(y + 40.0),
+            ),
+            None,
+            1.0,
+            false,
+            ink,
+        );
+        paint(
+            line_path((x, y + 110.0), (right, y + 110.0)),
+            None,
+            1.0,
+            false,
+            ink,
+        );
+        paint(
+            format!(
+                "M {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} L {} {} A 5 5 0 0 1 {} {} Z",
+                n(x + 100.0),
+                n(y + 60.0),
+                n(x + 105.0),
+                n(y + 55.0),
+                n(right - 15.0),
+                n(y + 55.0),
+                n(right - 10.0),
+                n(y + 60.0),
+                n(right - 10.0),
+                n(y + 85.0),
+                n(right - 15.0),
+                n(y + 90.0),
+                n(x + 105.0),
+                n(y + 90.0),
+                n(x + 100.0),
+                n(y + 85.0),
+            ),
+            None,
+            1.0,
+            false,
+            ink,
+        );
+        // The page icon, once on the tab and once in the address bar.
+        for (at, down) in [(37.0, 17.0), (107.0, 64.0)] {
+            let (at, down) = (x + at, y + down);
+            paint(
+                polygon_path(&[
+                    (at, down),
+                    (at + 11.0, down),
+                    (at + 15.0, down + 4.0),
+                    (at + 15.0, down + 18.0),
+                    (at, down + 18.0),
+                ]),
+                None,
+                1.0,
+                false,
+                ink,
+            );
+            paint(
+                polyline_path(&[
+                    (at + 11.0, down),
+                    (at + 11.0, down + 4.0),
+                    (at + 15.0, down + 5.0),
+                ]),
+                None,
+                1.0,
+                false,
+                ink,
+            );
+        }
+        // Back, forward and reload, each twenty pixels across.
+        let size = 20.0;
+        let (back, down) = (x + 12.0, y + 64.0);
+        let arrow = |at: f64, forward: bool| {
+            let point = if forward { at + size } else { at };
+            let spine = if forward { at } else { at + size };
+            polygon_path(&[
+                (point, down + size * 0.5),
+                (at + size * 0.5, down),
+                (at + size * 0.5, down + size * 0.3),
+                (spine, down + size * 0.3),
+                (spine, down + size * 0.7),
+                (at + size * 0.5, down + size * 0.7),
+                (at + size * 0.5, down + size),
+            ])
+        };
+        paint(arrow(back, false), ink, 1.0, false, ink);
+        paint(arrow(back + 30.0, true), ink, 1.0, false, ink);
+        let reload = back + 60.0;
+        paint(
+            format!(
+                "M {} {} A {} {} 0 1 1 {} {} L {} {} L {} {} L {} {} L {} {} A {} {} 0 1 0 {} {} Z",
+                n(reload + size * 0.78),
+                n(down + size * 0.665),
+                n(size * 0.3),
+                n(size * 0.3),
+                n(reload + size * 0.675),
+                n(down + size * 0.252),
+                n(reload + size * 0.595),
+                n(down + size * 0.325),
+                n(reload + size * 0.99),
+                n(down + size * 0.415),
+                n(reload + size * 0.9),
+                n(down + size * 0.04),
+                n(reload + size * 0.815),
+                n(down + size * 0.12),
+                n(size * 0.49),
+                n(size * 0.49),
+                n(reload + size * 0.92),
+                n(down + size * 0.8),
+            ),
+            ink,
+            1.0,
+            false,
+            ink,
+        );
+        return true;
+    }
+    // A C4 person: a head over a rounded body, with the head drawn again on top
+    // so that the body's shoulder line stops at it.
+    if style.get("shape") == Some("mxgraph.c4.person") {
+        let head = (w / 2.0).min(h / 3.0);
+        let radius = head / 2.0;
+        let shoulder = y + head * 0.8;
+        let face = Rect {
+            x: cx - head * 0.5,
+            y,
+            width: head,
+            height: head,
+        };
+        paint(ellipse_path(face), fill.as_deref(), 1.0, true, None);
+        paint(
+            format!(
+                "M {} {} A {r} {r} 0 0 1 {} {} L {} {} A {r} {r} 0 0 1 {} {} L {} {} \
+                 A {r} {r} 0 0 1 {} {} L {} {} A {r} {r} 0 0 1 {} {} Z",
+                n(x),
+                n(shoulder + radius),
+                n(x + radius),
+                n(shoulder),
+                n(right - radius),
+                n(shoulder),
+                n(right),
+                n(shoulder + radius),
+                n(right),
+                n(bottom - radius),
+                n(right - radius),
+                n(bottom),
+                n(x + radius),
+                n(bottom),
+                n(x),
+                n(bottom - radius),
+                r = n(radius),
+            ),
+            fill.as_deref(),
+            1.0,
+            true,
+            None,
+        );
+        paint(ellipse_path(face), fill.as_deref(), 1.0, true, None);
+        return true;
+    }
+    // The rack units that are more than one colour: a blanking plate shaded at
+    // each end, a patch panel in its own body colour, and a cabinet frame.
+    match style.get("shape") {
+        Some("mxgraph.rackGeneral.plate") => {
+            paint(rectangle_path(rect), fill.as_deref(), 1.0, true, None);
+            // Nine pixels at each end are the mounting ears, shaded darker.
+            if w > 18.0 {
+                for at in [x, right - 9.0] {
+                    paint(
+                        rectangle_path(Rect {
+                            x: at,
+                            y,
+                            width: 9.0,
+                            height: h,
+                        }),
+                        Some("#000000"),
+                        0.23,
+                        false,
+                        None,
+                    );
+                }
+                paint(rectangle_path(rect), None, 1.0, true, None);
+                paint(
+                    rectangle_path(Rect {
+                        x: x + 9.0,
+                        y,
+                        width: w - 18.0,
+                        height: h,
+                    }),
+                    None,
+                    1.0,
+                    true,
+                    None,
+                );
+            }
+            return true;
+        }
+        Some("mxgraph.rackGeneral.neatPatch") => {
+            let body = style.text("bodycolor", "#666666");
+            paint(rectangle_path(rect), Some(&body), 1.0, true, None);
+            return true;
+        }
+        Some("mxgraph.rackGeneral.rackCabinet3") => {
+            let unit = style.number("rackunitsize", 14.8).max(1.0);
+            let numbered = style.text("numdisp", "descend") != "off";
+            let font = style.number("textsize", 12.0).max(0.0);
+            // The numbering column is outside the cabinet's own frame.
+            let column = if numbered { font * 2.0 } else { 0.0 };
+            let left = if numbered && style.text("rackunitdirleft", "1") != "0" {
+                x + column
+            } else {
+                x
+            };
+            let width = w - column;
+            // The frame is a whole number of rack units tall, plus its rails.
+            let height = ((h - 42.0) / unit).round().max(0.0) * unit + 42.0;
+            if width <= 0.0 {
+                return false;
+            }
+            let panel = style.text("fillcolor2", "#ffffff");
+            let rail = fill.clone().unwrap_or_else(|| "#F4F4F4".to_owned());
+            paint(
+                rectangle_path(Rect {
+                    x: left,
+                    y,
+                    width,
+                    height,
+                }),
+                Some(&panel),
+                1.0,
+                true,
+                None,
+            );
+            for bar in [
+                Rect {
+                    x: left,
+                    y,
+                    width,
+                    height: 21.0,
+                },
+                Rect {
+                    x: left,
+                    y: y + height - 21.0,
+                    width,
+                    height: 21.0,
+                },
+                Rect {
+                    x: left,
+                    y: y + 21.0,
+                    width: 9.0,
+                    height: height - 42.0,
+                },
+                Rect {
+                    x: left + width - 9.0,
+                    y: y + 21.0,
+                    width: 9.0,
+                    height: height - 42.0,
+                },
+            ] {
+                paint(rectangle_path(bar), Some(&rail), 1.0, true, None);
+            }
+            // The four screws that hold the frame into the rack.
+            for (at, down) in [
+                (left + 2.5, y + 7.5),
+                (left + width - 8.5, y + 7.5),
+                (left + 2.5, y + height - 13.5),
+                (left + width - 8.5, y + height - 13.5),
+            ] {
+                paint(
+                    ellipse_path(Rect {
+                        x: at,
+                        y: down,
+                        width: 6.0,
+                        height: 6.0,
+                    }),
+                    None,
+                    1.0,
+                    true,
+                    None,
+                );
+            }
+            return true;
+        }
+        _ => {}
+    }
+    // ArchiMate 3 draws an element as a frame with a small badge in its top
+    // right corner saying which kind of element it is. The frame's shape comes
+    // from `archiType` and the badge from `appType` or `techType`.
+    if let Some(kind) = style.get("shape").filter(|name| {
+        matches!(
+            *name,
+            "mxgraph.archimate3.application" | "mxgraph.archimate3.tech"
+        )
+    }) {
+        let technology = kind.ends_with(".tech");
+        let frame = if technology {
+            // A technology element is always drawn as a node box.
+            archimate_badge("node", rect)
+        } else {
+            match style.text("architype", "square").as_str() {
+                "rounded" => vec![(rounded_rect_path(rect, 10.0), true)],
+                "oct" if w >= 20.0 && h >= 20.0 => vec![(
+                    polygon_path(&[
+                        (x, y + 10.0),
+                        (x + 10.0, y),
+                        (right - 10.0, y),
+                        (right, y + 10.0),
+                        (right, bottom - 10.0),
+                        (right - 10.0, bottom),
+                        (x + 10.0, bottom),
+                        (x, bottom - 10.0),
+                    ]),
+                    true,
+                )],
+                _ => vec![(rectangle_path(rect), true)],
+            }
+        };
+        for (part, filled) in frame {
+            paint(
+                part,
+                if filled { fill.as_deref() } else { None },
+                1.0,
+                true,
+                None,
+            );
+        }
+        // The badge sits fifteen pixels in from the corner, and is fifteen
+        // across, whatever size the element itself is.
+        let badge = if technology {
+            Rect {
+                x: right - 30.0,
+                y: y + 15.0,
+                width: 15.0,
+                height: 15.0,
+            }
+        } else {
+            Rect {
+                x: right - 20.0,
+                y: y + 5.0,
+                width: 15.0,
+                height: 15.0,
+            }
+        };
+        let name = if technology {
+            style.text("techtype", "")
+        } else {
+            style.text("apptype", "")
+        };
+        for (part, filled) in archimate_badge(&name, badge) {
+            paint(
+                part,
+                if filled { fill.as_deref() } else { None },
+                1.0,
+                true,
+                None,
+            );
+        }
+        // A goal's centre is filled solid in the stroke colour.
+        if name == "goal" {
+            paint(
+                ellipse_path(Rect {
+                    x: badge.x + badge.width * 0.3,
+                    y: badge.y + badge.height * 0.3,
+                    width: badge.width * 0.4,
+                    height: badge.height * 0.4,
+                }),
+                stroke.as_deref(),
+                1.0,
+                true,
+                None,
+            );
+        }
+        return true;
+    }
+    // The two ArchiMate elements that are a badge and nothing else.
+    if let Some(name) = style
+        .get("shape")
+        .and_then(|name| name.strip_prefix("mxgraph.archimate3."))
+        .filter(|name| matches!(*name, "service" | "actor"))
+    {
+        for (part, filled) in archimate_badge(name, rect) {
+            paint(
+                part,
+                if filled { fill.as_deref() } else { None },
+                1.0,
+                true,
+                None,
+            );
+        }
+        return true;
+    }
     // A lorry: a body and a cab, on wheels that take the stroke colour.
     if style.get("shape") == Some("mxgraph.lean_mapping.truck_shipment") {
         paint(
@@ -2672,5 +3154,220 @@ fn glass_node(id: &str, rect: Rect, style: &Style, transform: Matrix) -> Node {
             kind: "drawio-glass".into(),
             ..SourceMeta::default()
         },
+    }
+}
+
+/// The glyph ArchiMate 3 draws for one kind of element, inside `rect`.
+///
+/// Each part is paired with whether it takes the element's fill; a line drawn
+/// across a badge, such as an assessment's handle or a figure's arms, is
+/// stroked only. An element type this does not know returns nothing, which
+/// leaves the frame drawn and the corner empty.
+fn archimate_badge(kind: &str, rect: Rect) -> Vec<(String, bool)> {
+    let Rect { x, y, .. } = rect;
+    let (w, h) = (rect.width, rect.height);
+    let (right, bottom) = (rect.right(), rect.bottom());
+    // Several badges are drawn inset from the box they are given.
+    let inset = |top: f64| Rect {
+        x,
+        y: y + top,
+        width: w,
+        height: (h - 2.0 * top).max(0.0),
+    };
+    match kind {
+        // A ring with a solid centre: something the design is aiming at.
+        "goal" => {
+            let ring = |share: f64| {
+                ellipse_path(Rect {
+                    x: x + w * (1.0 - share) * 0.5,
+                    y: y + h * (1.0 - share) * 0.5,
+                    width: w * share,
+                    height: h * share,
+                })
+            };
+            vec![(ring(1.0), true), (ring(0.7), false)]
+        }
+        // A leaning box: something the design has to satisfy.
+        "requirement" => vec![(
+            polygon_path(&[
+                (x + w * 0.25, y),
+                (right, y),
+                (right - w * 0.25, bottom),
+                (x, bottom),
+            ]),
+            true,
+        )],
+        // A magnifying glass: something the design has looked into.
+        "assess" => vec![
+            (
+                ellipse_path(Rect {
+                    x: x + w * 0.2,
+                    y,
+                    width: w * 0.8,
+                    height: h * 0.8,
+                }),
+                true,
+            ),
+            (line_path((x, bottom), (x + w * 0.32, y + h * 0.68)), false),
+        ],
+        // A box drawn in three dimensions: a node.
+        "node" => vec![(
+            format!(
+                "{} {}",
+                polygon_path(&[
+                    (x, y + h * 0.25),
+                    (x + w * 0.25, y),
+                    (right, y),
+                    (right, bottom - h * 0.25),
+                    (right - w * 0.25, bottom),
+                    (x, bottom),
+                ]),
+                polyline_path(&[
+                    (x, y + h * 0.25),
+                    (right - w * 0.25, y + h * 0.25),
+                    (right - w * 0.25, bottom),
+                ])
+            ),
+            true,
+        )],
+        "func" => vec![(
+            polygon_path(&[
+                (x + w * 0.5, y),
+                (right, y + h * 0.2),
+                (right, bottom),
+                (x + w * 0.5, bottom - h * 0.2),
+                (x, bottom),
+                (x, y + h * 0.2),
+            ]),
+            true,
+        )],
+        // Two overlapping circles: two parties working together.
+        "collab" => {
+            let inner = inset(3.0);
+            vec![
+                (
+                    ellipse_path(Rect {
+                        width: inner.width * 0.6,
+                        ..inner
+                    }),
+                    true,
+                ),
+                (
+                    ellipse_path(Rect {
+                        x: inner.x + inner.width * 0.4,
+                        width: inner.width * 0.6,
+                        ..inner
+                    }),
+                    true,
+                ),
+            ]
+        }
+        // An arrow notched at the back: something that happens.
+        "event" => {
+            let inner = inset(3.0);
+            let (top, foot) = (inner.y, inner.bottom());
+            let reach = inner.height * 0.5;
+            vec![(
+                format!(
+                    "M {} {} A {} {} 0 0 1 {} {} L {} {} L {} {} L {} {} Z",
+                    n(inner.right() - reach),
+                    n(top),
+                    n(reach),
+                    n(reach),
+                    n(inner.right() - reach),
+                    n(foot),
+                    n(inner.x),
+                    n(foot),
+                    n(inner.x + reach),
+                    n(top + reach),
+                    n(inner.x),
+                    n(top)
+                ),
+                true,
+            )]
+        }
+        // A thick arrow: something that runs from one state to another.
+        "proc" => vec![(
+            polygon_path(&[
+                (x, y + h * 0.3),
+                (x + w * 0.6, y + h * 0.3),
+                (x + w * 0.6, y),
+                (right, y + h * 0.5),
+                (x + w * 0.6, bottom),
+                (x + w * 0.6, bottom - h * 0.3),
+                (x, bottom - h * 0.3),
+            ]),
+            true,
+        )],
+        // A stick figure: somebody who acts.
+        "actor" => vec![
+            (
+                ellipse_path(Rect {
+                    x: x + w * 0.2,
+                    y,
+                    width: w * 0.6,
+                    height: h * 0.3,
+                }),
+                true,
+            ),
+            (
+                line_path((x + w * 0.5, y + h * 0.3), (x + w * 0.5, y + h * 0.75)),
+                false,
+            ),
+            (line_path((x, y + h * 0.45), (right, y + h * 0.45)), false),
+            (
+                polyline_path(&[(x, bottom), (x + w * 0.5, y + h * 0.75), (right, bottom)]),
+                false,
+            ),
+        ],
+        // A rounded bar: something offered to somebody else.
+        "serv" | "service" => {
+            let inner = if kind == "serv" { inset(3.0) } else { rect };
+            let (near, far) = (
+                (inner.width - inner.height * 0.5).max(inner.width * 0.5),
+                (inner.height * 0.5).min(inner.width * 0.5),
+            );
+            let reach = inner.height * 0.5;
+            vec![(
+                format!(
+                    "M {} {} A {} {} 0 0 1 {} {} L {} {} A {} {} 0 0 1 {} {} Z",
+                    n(inner.x + near),
+                    n(inner.y),
+                    n(reach),
+                    n(reach),
+                    n(inner.x + near),
+                    n(inner.bottom()),
+                    n(inner.x + far),
+                    n(inner.bottom()),
+                    n(reach),
+                    n(reach),
+                    n(inner.x + far),
+                    n(inner.y)
+                ),
+                true,
+            )]
+        }
+        // Two overlapping discs: the system software a node runs.
+        "sysSw" => vec![
+            (
+                ellipse_path(Rect {
+                    x: x + w * 0.3,
+                    y,
+                    width: w * 0.7,
+                    height: h * 0.7,
+                }),
+                true,
+            ),
+            (
+                ellipse_path(Rect {
+                    x,
+                    y: y + h * 0.02,
+                    width: w * 0.98,
+                    height: h * 0.98,
+                }),
+                true,
+            ),
+        ],
+        _ => Vec::new(),
     }
 }

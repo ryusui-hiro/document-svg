@@ -119,6 +119,8 @@ pub(super) fn canonical_shape(name: &str) -> Option<&'static str> {
         "mxgraph.mockup.buttons.button" => "mockupButton",
         "mxgraph.mockup.forms.checkbox" => "mockupCheckbox",
         "mxgraph.bootstrap.x" => "crossLines",
+        "mxgraph.er.entity" => "erEntity",
+        "mxgraph.er.has" => "erHas",
         // SysML draws its activity and flow nodes in code rather than as
         // stencils. Each is a rounded body with square ports let into it.
         "mxgraph.sysml.flowfinal" => "sysmlFlowFinal",
@@ -194,6 +196,8 @@ pub(super) fn canonical_shape(name: &str) -> Option<&'static str> {
         "mxgraph.ios7ui.phone" => "iosPhone",
         "mxgraph.ios7ui.icongrid" => "iosIconGrid",
         "mxgraph.rackgeneral.container" | "mxgraph.rack.general.1u_rack_unit" => "rackContainer",
+        "mxgraph.rackgeneral.horcableduct" => "rackCableDuct",
+        "mxgraph.rackgeneral.shelf" => "rackShelf",
         "plus" => "cross",
         "folder" | "umlpackage" | "mxgraph.sysml.package" | "package" => "folder",
         "endstate" => "endState",
@@ -840,6 +844,80 @@ pub(super) fn shape_paths(name: &str, rect: Rect, style: &Style) -> Option<Paths
                 n(inner_at(start).1)
             ))
         }
+        // An entity and a relationship, each of which can be drawn with a second
+        // frame inside it to say it is weak.
+        "erEntity" | "erHas" => {
+            let double = style.text("buttonstyle", "") == "dblFrame";
+            let inset = width.min(height) * 0.1;
+            if name == "erHas" {
+                let diamond = |by: f64| {
+                    polygon_path(&[
+                        (x + width * by, cy),
+                        (cx, y + height * by),
+                        (right - width * by, cy),
+                        (cx, bottom - height * by),
+                    ])
+                };
+                Paths::with(
+                    diamond(0.0),
+                    if double {
+                        vec![diamond(0.1)]
+                    } else {
+                        Vec::new()
+                    },
+                )
+            } else if double || style.text("buttonstyle", "round") == "rect" {
+                Paths::with(
+                    rectangle_path(rect),
+                    if double {
+                        vec![rectangle_path(Rect {
+                            x: x + inset,
+                            y: y + inset,
+                            width: width - 2.0 * inset,
+                            height: height - 2.0 * inset,
+                        })]
+                    } else {
+                        Vec::new()
+                    },
+                )
+            } else {
+                Paths::new(rounded_rect_path(rect, 10.0))
+            }
+        }
+        // A cable duct: a bay every thirty three pixels across the unit.
+        "rackCableDuct" => {
+            let bays = ((width - 20.0) / 33.0).floor();
+            let mut ducts = Vec::new();
+            if (0.0..1024.0).contains(&bays) {
+                let mut at = x + 10.0 + ((width - 20.0 - bays * 33.0) / 2.0).floor();
+                for _ in 0..=(bays as u32) {
+                    ducts.push(rectangle_path(Rect {
+                        x: at,
+                        y,
+                        width: 3.0,
+                        height: 7.0,
+                    }));
+                    ducts.push(rectangle_path(Rect {
+                        x: at,
+                        y: y + 7.0,
+                        width: 3.0,
+                        height: 7.8,
+                    }));
+                    at += 33.0;
+                }
+            }
+            Paths::with(rectangle_path(rect), ducts)
+        }
+        // A shelf, drawn as the bracket that holds it rather than as a box.
+        "rackShelf" => Paths::fill_only(
+            String::new(),
+            vec![polyline_path(&[
+                (x + 1.0, y),
+                (x + 1.0, bottom - 1.0),
+                (right - 1.0, bottom - 1.0),
+                (right - 1.0, y + 1.0),
+            ])],
+        ),
         // A rule drawn across the middle of its own box.
         "mockupLine" => Paths::fill_only(String::new(), vec![line_path((x, cy), (right, cy))]),
         // A cross, for the close control on a mock-up window.

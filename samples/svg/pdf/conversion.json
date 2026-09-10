@@ -4,7 +4,7 @@
   "source": "samples/source/sample.pdf",
   "source_format": "pdf",
   "output_directory": "samples/svg/pdf",
-  "elapsed_ms": 1,
+  "elapsed_ms": 0,
   "input_bytes": 54310,
   "page_count": 2,
   "largest_page_ir_bytes": 18594,

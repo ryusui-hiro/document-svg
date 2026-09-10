@@ -14,6 +14,7 @@ Requires `rsvg-convert`, Pillow and NumPy. No diagram is downloaded; the files
 the caller names are the only input.
 """
 import argparse
+import json
 import html
 import pathlib
 import re
@@ -85,8 +86,20 @@ def compare(export, docsvg, stencils, work):
     theirs = render(without_text(export, room / "theirs.svg"), room / "theirs.png")
     ours = render(without_text(pages[0], room / "ours.svg"), room / "ours.png")
     a, b = content_box(theirs), content_box(ours)
-    if a is None or b is None:
-        return export.name, "one side is blank", ""
+    if a is None and b is None:
+        # A diagram whose only content is a label leaves both sides blank once
+        # the text is stripped, so there is no geometry to compare.
+        return export.name, "no geometry either side", ""
+    if b is None:
+        # draw.io stands a "click here to edit" placeholder on a diagram that
+        # has nothing in it. That placeholder is not in the model, so drawing
+        # nothing is right and the difference is not a defect.
+        report = json.loads((room / "ours" / "conversion.json").read_text())
+        if any("no cells to draw" in warning for warning in report["warnings"]):
+            return export.name, "empty diagram", "draw.io drew its own placeholder"
+        return export.name, "WE DREW NOTHING", "draw.io drew geometry here"
+    if a is None:
+        return export.name, "they drew nothing", "we drew geometry they did not"
     height = min(a[1] - a[0], b[1] - b[0]) + 1
     width = min(a[3] - a[2], b[3] - b[2]) + 1
     theirs = theirs[a[0]:a[0] + height, a[2]:a[2] + width]

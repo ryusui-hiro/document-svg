@@ -940,9 +940,11 @@ def find_docsvg(explicit: str | None) -> str:
 
 
 def relativize_report(report: Path) -> None:
-    """Rewrite the absolute paths docsvg records so the samples can be shared.
+    """Rewrite the machine-specific parts of the report docsvg records.
 
-    A committed report should not carry whoever regenerated it home directory.
+    A committed report should not carry whoever regenerated it home directory,
+    nor how fast their machine was: `elapsed_ms` otherwise makes every sample
+    regeneration show up as a change to every report.
     """
 
     if not report.is_file():
@@ -958,6 +960,8 @@ def relativize_report(report: Path) -> None:
             data[key] = str(Path(value).resolve().relative_to(REPOSITORY))
         except ValueError:
             pass
+    if "elapsed_ms" in data:
+        data["elapsed_ms"] = 0
     report.write_text(json.dumps(data, indent=2) + "\n")
 
 

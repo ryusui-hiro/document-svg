@@ -6617,3 +6617,265 @@ fn draws_a_polygon_a_style_spells_out_and_the_shapes_beside_it() {
     assert!(!svg.contains("id=\"drawio-open\" "), "{svg}");
     assert!(svg.contains("M 600 240 L 670 130 L 740 240"), "{svg}");
 }
+
+/// A diagram can be saved with nothing on it. draw.io stands its own "click
+/// here to edit" placeholder on such a page, but that placeholder is not in the
+/// model, so the page is written blank at the size the model declares and the
+/// report says why rather than leaving a speck of a page behind.
+#[test]
+fn writes_an_empty_drawio_page_at_the_size_the_model_declares() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("empty.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Page-1"><mxGraphModel pageWidth="850" pageHeight="1100">
+<root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    assert_eq!(report.warnings.len(), 1, "{:?}", report.warnings);
+    assert!(
+        report.warnings[0].contains("no cells to draw"),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // 850 x 1100 pixels is 637.5 x 825 points.
+    assert!(svg.contains("width=\"637.5pt\" height=\"825pt\""), "{svg}");
+
+    // Without a declared size the page falls back to US Letter rather than to
+    // a page barely larger than nothing.
+    let bare = temporary.path().join("bare.drawio");
+    let bare_output = temporary.path().join("bare-out");
+    drawio_file(
+        &bare,
+        r##"<mxfile><diagram name="Page-1"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/></root></mxGraphModel></diagram></mxfile>"##,
+    );
+    convert_path(&bare, &bare_output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(bare_output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("width=\"637.5pt\" height=\"825pt\""), "{svg}");
+}
+
+/// ArchiMate 3 draws an element as a frame with a small badge in its corner
+/// saying which kind of element it is. The frame comes from `archiType` and the
+/// badge from `appType` or `techType`, and both take the element's own colours,
+/// except for the lines across a badge, which are stroked and not filled.
+#[test]
+fn draws_archimate_elements_with_the_badge_that_names_their_kind() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("archi.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="ArchiMate"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="goal" style="shape=mxgraph.archimate3.application;appType=goal;archiType=oct;strokeColor=#FF0000;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="need" style="shape=mxgraph.archimate3.application;appType=requirement;archiType=oct;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="20" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="look" style="shape=mxgraph.archimate3.application;appType=assess;archiType=oct;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="20" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="node" style="shape=mxgraph.archimate3.application;appType=node;archiType=square;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="100" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="func" style="shape=mxgraph.archimate3.application;appType=func;archiType=rounded;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="100" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="both" style="shape=mxgraph.archimate3.application;appType=collab;archiType=square;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="100" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="when" style="shape=mxgraph.archimate3.application;appType=event;archiType=rounded;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="180" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="step" style="shape=mxgraph.archimate3.application;appType=proc;archiType=rounded;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="180" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="who" style="shape=mxgraph.archimate3.application;appType=actor;archiType=square;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="180" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="offer" style="shape=mxgraph.archimate3.service;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="260" width="140" height="50" as="geometry"/></mxCell>
+<mxCell id="runs" style="shape=mxgraph.archimate3.tech;techType=sysSw;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="260" width="140" height="60" as="geometry"/></mxCell>
+<mxCell id="mystery" style="shape=mxgraph.archimate3.application;appType=nosuchtype;archiType=square;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="260" width="140" height="60" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The frame takes one of three shapes, and the badge sits fifteen pixels
+    // in from its top right corner whatever size the element is.
+    assert!(
+        svg.contains("M 20 30 L 30 20 L 150 20 L 160 30 L 160 70 L 150 80 L 30 80 L 20 70 Z"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 190 100 H 310 A 10 10 0 0 1 320 110"),
+        "{svg}"
+    );
+    assert!(svg.contains("M 340 100 H 480 V 160 H 340 Z"), "{svg}");
+    // A goal is three rings, and only its centre takes the stroke colour.
+    assert!(svg.contains("M 140 32.5 A 7.5 7.5 0 1 0 155 32.5"), "{svg}");
+    assert!(
+        svg.contains("M 144.5 32.5 A 3 3 0 1 0 150.5 32.5 A 3 3 0 1 0 144.5 32.5 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"#FF0000\""),
+        "{svg}"
+    );
+    // The badges that say which kind of element each one is.
+    for (what, d) in [
+        ("requirement", "M 303.75 25 L 315 25 L 311.25 40 L 300 40 Z"),
+        ("assessment handle", "M 460 40 L 464.8 35.2"),
+        (
+            "node",
+            "M 140 108.75 L 143.75 105 L 155 105 L 155 116.25 L 151.25 120 L 140 120 Z \
+             M 140 108.75 L 151.25 108.75 L 151.25 120",
+        ),
+        (
+            "function",
+            "M 307.5 105 L 315 108 L 315 120 L 307.5 117 L 300 120 L 300 108 Z",
+        ),
+        ("collaboration", "M 466 112.5 A 4.5 4.5 0 1 0 475 112.5"),
+        (
+            "event",
+            "M 150.5 188 A 4.5 4.5 0 0 1 150.5 197 L 140 197 L 144.5 192.5 L 140 188 Z",
+        ),
+        (
+            "process",
+            "M 300 189.5 L 309 189.5 L 309 185 L 315 192.5 L 309 200 L 309 195.5 L 300 195.5 Z",
+        ),
+        (
+            "system software",
+            "M 290 282.65 A 7.35 7.35 0 1 0 304.7 282.65",
+        ),
+    ] {
+        assert!(svg.contains(d), "{what} badge missing from {svg}");
+    }
+    // A figure's arms and legs are stroked, not filled.
+    assert!(
+        svg.contains("M 460 200 L 467.5 196.25 L 475 200\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"none\""),
+        "{svg}"
+    );
+    // A service is a rounded bar and carries no badge of its own.
+    assert!(
+        svg.contains("M 135 260 A 25 25 0 0 1 135 310 L 45 310 A 25 25 0 0 1 45 260 Z"),
+        "{svg}"
+    );
+    assert!(!svg.contains("id=\"drawio-offer-part-2\""), "{svg}");
+    // An element type that names no badge keeps its frame and an empty corner
+    // rather than losing the element altogether.
+    assert!(svg.contains("id=\"drawio-mystery-part-1\""), "{svg}");
+    assert!(!svg.contains("id=\"drawio-mystery-part-2\""), "{svg}");
+}
+
+/// The rack units draw.io implements in code: a cabinet frame that snaps to a
+/// whole number of rack units, a blanking plate shaded at each mounting ear, a
+/// cable duct with a bay every thirty three pixels, a shelf bracket and a patch
+/// panel in its own body colour.
+#[test]
+fn draws_the_rack_units_a_cabinet_is_filled_with() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("rack.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Rack"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="cabinet" style="shape=mxgraph.rackGeneral.rackCabinet3;fillColor=#F4F4F4;fillColor2=#FFFFFF;rackUnitSize=14.8;numDisp=descend;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="180" height="220" as="geometry"/></mxCell>
+<mxCell id="plate" style="shape=mxgraph.rackGeneral.plate;html=1;" vertex="1" parent="1"><mxGeometry x="240" y="20" width="160" height="20" as="geometry"/></mxCell>
+<mxCell id="duct" style="shape=mxgraph.rackGeneral.horCableDuct;html=1;" vertex="1" parent="1"><mxGeometry x="240" y="60" width="160" height="20" as="geometry"/></mxCell>
+<mxCell id="shelf" style="shape=mxgraph.rackGeneral.shelf;html=1;" vertex="1" parent="1"><mxGeometry x="240" y="100" width="160" height="24" as="geometry"/></mxCell>
+<mxCell id="patch" style="shape=mxgraph.rackGeneral.neatPatch;bodyColor=#666666;html=1;" vertex="1" parent="1"><mxGeometry x="240" y="140" width="160" height="24" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The numbering column is outside the frame, so the frame starts 24 in,
+    // and its height snaps to twelve units of 14.8 plus its two 21-tall rails.
+    assert!(svg.contains("M 44 20 H 200 V 239.6 H 44 Z"), "{svg}");
+    assert!(svg.contains("M 44 20 H 200 V 41 H 44 Z"), "{svg}");
+    assert!(svg.contains("M 44 41 H 53 V 218.6 H 44 Z"), "{svg}");
+    // Four screws hold it in.
+    assert_eq!(svg.matches("A 3 3 0 1 0").count(), 8, "{svg}");
+    // The plate's mounting ears are shaded rather than a different fill.
+    assert!(
+        svg.contains("M 240 20 H 249 V 40 H 240 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"#000000\" fill-opacity=\"0.23\""),
+        "{svg}"
+    );
+    // A bay every thirty three pixels, each drawn as two stacked slots.
+    assert!(svg.contains("M 254 60 H 257 V 67 H 254 Z"), "{svg}");
+    assert!(svg.contains("M 287 60 H 290 V 67 H 287 Z"), "{svg}");
+    assert_eq!(svg.matches("id=\"drawio-duct-detail-").count(), 10, "{svg}");
+    // A shelf is the bracket that holds it, so it has no outline to fill.
+    assert!(!svg.contains("id=\"drawio-shelf\" "), "{svg}");
+    assert!(
+        svg.contains("M 241 100 L 241 123 L 399 123 L 399 101"),
+        "{svg}"
+    );
+    // The patch panel takes its body colour, not the style's fill.
+    assert!(
+        svg.contains("M 240 140 H 400 V 164 H 240 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"#666666\""),
+        "{svg}"
+    );
+}
+
+/// An entity-relationship diagram's own shapes, a C4 person and a browser
+/// window. Each carries colours or an order of its own: a weak entity gets a
+/// second frame, a person's head is drawn over the shoulders, and a browser's
+/// close button and chrome are separate colours from the frame.
+#[test]
+fn draws_er_entities_a_c4_person_and_a_browser_window() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("mixed.drawio");
+    let output = temporary.path().join("out");
+    drawio_file(
+        &input,
+        r##"<mxfile><diagram name="Mixed"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>
+<mxCell id="entity" value="Customer" style="shape=mxgraph.er.entity;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="20" width="140" height="50" as="geometry"/></mxCell>
+<mxCell id="weak" value="Order" style="shape=mxgraph.er.entity;buttonStyle=dblFrame;html=1;" vertex="1" parent="1"><mxGeometry x="180" y="20" width="140" height="50" as="geometry"/></mxCell>
+<mxCell id="has" value="places" style="shape=mxgraph.er.has;html=1;" vertex="1" parent="1"><mxGeometry x="340" y="10" width="140" height="70" as="geometry"/></mxCell>
+<mxCell id="owns" value="owns" style="shape=mxgraph.er.has;buttonStyle=dblFrame;html=1;" vertex="1" parent="1"><mxGeometry x="500" y="10" width="140" height="70" as="geometry"/></mxCell>
+<mxCell id="user" value="User" style="shape=mxgraph.c4.person;html=1;" vertex="1" parent="1"><mxGeometry x="20" y="110" width="100" height="120" as="geometry"/></mxCell>
+<mxCell id="page" style="shape=mxgraph.mockup.containers.browserWindow;strokeColor2=#008CFF;strokeColor3=#C4C4C4;html=1;" vertex="1" parent="1"><mxGeometry x="200" y="110" width="500" height="320" as="geometry"/></mxCell>
+</root></mxGraphModel></diagram></mxfile>"##,
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // An entity is rounded by ten; a weak one is square with a frame inside.
+    assert!(svg.contains("M 30 20 H 150 A 10 10 0 0 1 160 30"), "{svg}");
+    assert!(svg.contains("M 180 20 H 320 V 70 H 180 Z"), "{svg}");
+    assert!(svg.contains("M 185 25 H 315 V 65 H 185 Z"), "{svg}");
+    // A relationship is a diamond, and a weak one gets a second one inside.
+    assert!(
+        svg.contains("M 340 45 L 410 10 L 480 45 L 410 80 Z"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 514 45 L 570 17 L 626 45 L 570 73 Z"),
+        "{svg}"
+    );
+    // The person's head is drawn twice, so the shoulders stop at it.
+    assert_eq!(
+        svg.matches("M 50 130 A 20 20 0 1 0 90 130 A 20 20 0 1 0 50 130 Z")
+            .count(),
+        2,
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 20 162 A 20 20 0 0 1 40 142 L 100 142"),
+        "{svg}"
+    );
+    // The browser's close button takes its own colour, and the chrome another.
+    assert!(
+        svg.contains("M 675 125 A 10 10 0 1 0 695 125 A 10 10 0 1 0 675 125 Z\" fill-rule=\"nonzero\" transform=\"matrix(1 0 0 1 0 0)\" fill=\"none\" stroke=\"#008CFF\""),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 200 150 L 230 150 L 230 125 A 5 5 0 0 1 235 120 L 370 120"),
+        "{svg}"
+    );
+    // Back and forward point opposite ways, and the page icon is drawn twice.
+    assert!(
+        svg.contains("M 212 184 L 222 174 L 222 180 L 232 180"),
+        "{svg}"
+    );
+    assert!(
+        svg.contains("M 262 184 L 252 174 L 252 180 L 242 180"),
+        "{svg}"
+    );
+    assert_eq!(
+        svg.matches("L 252 131 L 252 145 L 237 145 Z").count(),
+        1,
+        "{svg}"
+    );
+}
