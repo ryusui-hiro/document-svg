@@ -354,6 +354,70 @@ fn fills_a_path_with_a_function_based_shading_pattern() {
 }
 
 #[test]
+fn fills_a_path_with_a_mesh_shading_pattern() {
+    // A mesh shading pattern (PatternType 2, ShadingType 4-7) has no SVG
+    // gradient equivalent either: the fill silently disappeared. Tessellate
+    // it into an SVG <pattern> the same way the sh operator already does,
+    // clipped to the mesh's own vertex bounds so the pattern's necessary
+    // tiling does not repeat visibly beyond the shape the mesh actually
+    // covers.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("mesh-pattern.pdf");
+    let mut document = Document::with_version("1.7");
+    // ShadingType 4: free-form Gouraud-shaded triangle mesh. Each vertex is
+    // flag(8 bits) + x,y(16 bits each) + r,g,b(8 bits each), decoded through
+    // /Decode into a 0..200 coordinate range and 0..1 color range.
+    fn vertex(flag: u8, x: u16, y: u16, r: u8, g: u8, b: u8) -> [u8; 8] {
+        let xb = x.to_be_bytes();
+        let yb = y.to_be_bytes();
+        [flag, xb[0], xb[1], yb[0], yb[1], r, g, b]
+    }
+    let scale = |value: f64| -> u16 { (value / 200.0 * 65535.0) as u16 };
+    let mut data = Vec::new();
+    data.extend(vertex(0, scale(20.0), scale(20.0), 255, 0, 0));
+    data.extend(vertex(0, scale(180.0), scale(20.0), 0, 255, 0));
+    data.extend(vertex(0, scale(100.0), scale(180.0), 0, 0, 255));
+    let shading = document.add_object(Stream::new(
+        dictionary! {
+            "ShadingType" => 4, "ColorSpace" => "DeviceRGB",
+            "BitsPerCoordinate" => 16, "BitsPerComponent" => 8, "BitsPerFlag" => 8,
+            "Decode" => vec![0.into(), 200.into(), 0.into(), 200.into(), 0.into(), 1.into(), 0.into(), 1.into(), 0.into(), 1.into()],
+        },
+        data,
+    ));
+    let pattern = document.add_object(dictionary! {
+        "Type" => "Pattern", "PatternType" => 2, "Shading" => shading,
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"/Pattern cs /P0 scn 10 10 180 180 re f\n".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 200.into()],
+        "Resources" => dictionary! { "Pattern" => dictionary! { "P0" => pattern } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("<pattern"), "{svg}");
+    assert!(svg.contains("data-content-kind=\"mesh-triangle\""), "{svg}");
+    assert!(svg.contains("fill=\"url(#"), "{svg}");
+}
+
+#[test]
 fn keeps_invisible_text_selectable_instead_of_dropping_it() {
     // Rendering mode 3 (invisible) is how a searchable scanned PDF hides its
     // OCR text layer behind the scanned image: nothing should paint, but

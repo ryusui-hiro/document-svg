@@ -2043,6 +2043,16 @@ impl Interpreter<'_, '_> {
                 opacity,
             );
         }
+        if matches!(shading_type, 4..=7) {
+            return self.mesh_shading_pattern_paint(
+                pattern_name,
+                pattern_dictionary,
+                shading_object,
+                shading_dictionary,
+                shading_type,
+                opacity,
+            );
+        }
         if !matches!(shading_type, 2 | 3) {
             self.page.warn(format!(
                 "PDF shading PatternType 2 uses unsupported shading type {shading_type}"
@@ -2257,8 +2267,16 @@ impl Interpreter<'_, '_> {
                 .collect::<String>()
         );
         let opacity = opacity.clamp(0.0, 1.0);
+        // A tessellated pattern's tile only ever covers the shading's own
+        // domain; unlike a real PDF shading pattern, an SVG <pattern> tiles
+        // to cover whatever it fills, so without this clip a fill path
+        // larger than the domain would show repeated copies of it.
+        let pattern_clip = Some(PatternClip {
+            bbox: [domain[0], domain[2], domain[1], domain[3]],
+            matrix: pattern_matrix,
+        });
         if self.page.patterns.iter().any(|pattern| pattern.id == id) {
-            return Some((Paint::PatternRef { id, opacity }, None));
+            return Some((Paint::PatternRef { id, opacity }, pattern_clip));
         }
         let nodes = match build_function_shading_cell_nodes(
             self.document,
@@ -2291,16 +2309,139 @@ impl Interpreter<'_, '_> {
                 return None;
             }
         };
+        let width = (domain[1] - domain[0]).abs().max(1e-6);
+        let height = (domain[3] - domain[2]).abs().max(1e-6);
         self.page.patterns.push(TilingPatternDefinition {
             id: id.clone(),
             x: domain[0],
             y: domain[2],
-            width: (domain[1] - domain[0]).abs().max(1e-6),
-            height: (domain[3] - domain[2]).abs().max(1e-6),
+            width: width + pattern_tile_margin(width),
+            height: height + pattern_tile_margin(height),
             transform: pattern_matrix,
             nodes,
         });
-        Some((Paint::PatternRef { id, opacity }, None))
+        Some((Paint::PatternRef { id, opacity }, pattern_clip))
+    }
+
+    /// Paints a PDF shading pattern (`PatternType 2`) whose `ShadingType` is
+    /// 4-7 (a free-form, lattice-form, Coons-patch or tensor-patch mesh) --
+    /// another case with no SVG gradient equivalent. The mesh's own
+    /// triangles (the same tessellation the `sh` operator uses) are
+    /// captured into a [`TilingPatternDefinition`] sized to their actual
+    /// vertex bounds, becoming an SVG `<pattern>` any path can reference.
+    fn mesh_shading_pattern_paint(
+        &mut self,
+        pattern_name: &[u8],
+        pattern_dictionary: &Dictionary,
+        shading_object: &Object,
+        shading_dictionary: &Dictionary,
+        shading_type: i64,
+        opacity: f64,
+    ) -> Option<(Paint, Option<PatternClip>)> {
+        let pattern_matrix = pattern_dictionary
+            .get(b"Matrix")
+            .and_then(Object::as_array)
+            .ok()
+            .and_then(|values| matrix_operands(values))
+            .unwrap_or(IDENTITY);
+        let pattern_matrix = inverse_matrix(self.state.ctm)
+            .map(|inverse| compose(inverse, compose(self.content_base_ctm, pattern_matrix)))
+            .unwrap_or(pattern_matrix);
+        let transform_key = pattern_matrix
+            .iter()
+            .map(|value| format!("{:x}", value.to_bits()))
+            .collect::<Vec<_>>()
+            .join("-");
+        let id = format!(
+            "pdf-shading-pattern-{}-{transform_key}",
+            pattern_name
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        );
+        let opacity = opacity.clamp(0.0, 1.0);
+        // Unlike the other pattern kinds, a mesh pattern is not cached by
+        // id and re-skipped on a repeat fill: its bounding box (needed for
+        // the clip below) only falls out of parsing the mesh data, so a
+        // second reference just re-tessellates rather than tracking bounds
+        // on the side for what is, in practice, a rare pattern to reuse.
+        let parsed = parse_mesh_shading_triangles(
+            self.document,
+            shading_object,
+            shading_dictionary,
+            shading_type,
+            self.content_limit,
+            self.mesh_output_count.get(),
+            pattern_name,
+            self.page,
+        );
+        let (triangles, subdivisions, color_space) = match parsed {
+            Ok(Some(parsed)) => parsed,
+            Ok(None) => return None,
+            Err(error) => {
+                self.page.warn(format!(
+                    "PDF shading pattern {} was skipped: {error}",
+                    String::from_utf8_lossy(pattern_name)
+                ));
+                return None;
+            }
+        };
+        let mut min_x = f64::INFINITY;
+        let mut max_x = f64::NEG_INFINITY;
+        let mut min_y = f64::INFINITY;
+        let mut max_y = f64::NEG_INFINITY;
+        for triangle in &triangles {
+            for vertex in &triangle.0 {
+                min_x = min_x.min(vertex.x);
+                max_x = max_x.max(vertex.x);
+                min_y = min_y.min(vertex.y);
+                max_y = max_y.max(vertex.y);
+            }
+        }
+        if !min_x.is_finite() || !max_x.is_finite() || !min_y.is_finite() || !max_y.is_finite() {
+            return None;
+        }
+        let nodes = build_mesh_triangle_nodes(
+            self.document,
+            &triangles,
+            subdivisions,
+            color_space.as_ref(),
+            IDENTITY,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            None,
+            self.page.number,
+            "pdf-mesh-pattern-cell",
+            &String::from_utf8_lossy(pattern_name),
+            &self.mesh_output_count,
+        );
+        if nodes.is_empty() {
+            return None;
+        }
+        // A tessellated pattern's tile only ever covers the mesh's own
+        // vertex bounds; unlike a real PDF shading pattern, an SVG
+        // <pattern> tiles to cover whatever it fills, so without this clip
+        // a fill path larger than those bounds would show repeated copies.
+        let pattern_clip = Some(PatternClip {
+            bbox: [min_x, min_y, max_x, max_y],
+            matrix: pattern_matrix,
+        });
+        if !self.page.patterns.iter().any(|pattern| pattern.id == id) {
+            let width = (max_x - min_x).max(1e-6);
+            let height = (max_y - min_y).max(1e-6);
+            self.page.patterns.push(TilingPatternDefinition {
+                id: id.clone(),
+                x: min_x,
+                y: min_y,
+                width: width + pattern_tile_margin(width),
+                height: height + pattern_tile_margin(height),
+                transform: pattern_matrix,
+                nodes,
+            });
+        }
+        Some((Paint::PatternRef { id, opacity }, pattern_clip))
     }
 
     fn tiling_pattern_paint(
@@ -4529,153 +4670,38 @@ impl Interpreter<'_, '_> {
         shading_type: i64,
         name: &[u8],
     ) -> Result<()> {
-        let Object::Stream(stream) = shading else {
-            self.page.warn(format!(
-                "PDF mesh shading {} has no stream data",
-                String::from_utf8_lossy(name)
-            ));
+        let Some((triangles, subdivisions, color_space)) = parse_mesh_shading_triangles(
+            self.document,
+            shading,
+            dictionary,
+            shading_type,
+            self.content_limit,
+            self.mesh_output_count.get(),
+            name,
+            self.page,
+        )?
+        else {
             return Ok(());
         };
-        let data = stream.decompressed_content_with_limit(self.content_limit)?;
-        let bits_per_coordinate = dictionary
-            .get(b"BitsPerCoordinate")
-            .and_then(Object::as_i64)
-            .unwrap_or(0);
-        let bits_per_component = dictionary
-            .get(b"BitsPerComponent")
-            .and_then(Object::as_i64)
-            .unwrap_or(0);
-        let bits_per_flag = dictionary
-            .get(b"BitsPerFlag")
-            .and_then(Object::as_i64)
-            .unwrap_or(0);
-        if bits_per_coordinate <= 0
-            || bits_per_component <= 0
-            || bits_per_coordinate > 32
-            || bits_per_component > 16
-        {
-            self.page.warn("PDF mesh shading has invalid bit widths");
-            return Ok(());
-        }
-        let color_space = dictionary.get(b"ColorSpace").ok();
-        let component_count = pdf_color_component_count(self.document, color_space);
-        let decode = dictionary
-            .get(b"Decode")
-            .and_then(Object::as_array)
-            .ok()
-            .map(|values| numbers(values, usize::MAX))
-            .unwrap_or_default();
-        let Some(decode) = complete_mesh_decode_ranges(&decode, component_count) else {
-            self.page
-                .warn("PDF mesh shading /Decode array is incomplete");
-            return Ok(());
-        };
-        let vertices_per_row = dictionary
-            .get(b"VerticesPerRow")
-            .and_then(Object::as_i64)
-            .unwrap_or(0)
-            .max(0) as usize;
-        let remaining_page_budget =
-            MAX_PAGE_MESH_TRIANGLES.saturating_sub(self.mesh_output_count.get());
-        if remaining_page_budget == 0 {
-            return Ok(());
-        }
-        let max_output_triangles = remaining_page_budget.min(3_000);
-        let (triangles, subdivisions) = if matches!(shading_type, 6 | 7) {
-            let (patches, has_reused_patch) = parse_patch_meshes(
-                &data,
-                shading_type,
-                bits_per_coordinate as usize,
-                bits_per_component as usize,
-                bits_per_flag.max(0) as usize,
-                component_count,
-                &decode,
-            );
-            if has_reused_patch {
-                self.page.warn(
-                    "PDF patch mesh reuse flags 1-3 are detected; only independent flag-0 patches are rendered",
-                );
-            }
-            let divisions = ((max_output_triangles / (patches.len().max(1) * 2)) as f64)
-                .sqrt()
-                .floor()
-                .clamp(1.0, 64.0) as usize;
-            (
-                patches
-                    .iter()
-                    .flat_map(|patch| tessellate_patch(patch, divisions))
-                    .collect(),
-                1,
-            )
-        } else {
-            let triangles = parse_mesh_triangles(
-                &data,
-                shading_type,
-                bits_per_coordinate as usize,
-                bits_per_component as usize,
-                bits_per_flag.max(0) as usize,
-                component_count,
-                &decode,
-                vertices_per_row,
-            );
-            let divisions = ((max_output_triangles / triangles.len().max(1)) as f64)
-                .sqrt()
-                .floor()
-                .clamp(1.0, 64.0) as usize;
-            (triangles, divisions)
-        };
-        if triangles.is_empty() {
-            self.page.warn(format!(
-                "PDF mesh shading {} produced no triangles",
-                String::from_utf8_lossy(name)
-            ));
-            return Ok(());
-        }
         let transform = compose(self.page_matrix, self.state.ctm);
-        let mut output_count = 0usize;
-        'triangles: for (triangle_index, triangle) in triangles.iter().enumerate() {
-            for micro in subdivide_mesh_triangle(triangle, subdivisions) {
-                if output_count >= max_output_triangles
-                    || self.mesh_output_count.get() >= MAX_PAGE_MESH_TRIANGLES
-                {
-                    break 'triangles;
-                }
-                output_count += 1;
-                self.mesh_output_count
-                    .set(self.mesh_output_count.get().saturating_add(1));
-                let color =
-                    components_to_color(self.document, color_space, &micro.average_components());
-                self.node_counter += 1;
-                self.page.nodes.push(Node::Path {
-                    id: format!(
-                        "pdf-mesh-{}-{}-{}",
-                        self.page.number, triangle_index, output_count
-                    ),
-                    d: micro.path_data(),
-                    fill_rule: "nonzero".into(),
-                    fill: Paint::Solid {
-                        color: color.clone(),
-                        opacity: self.state.fill_alpha,
-                    },
-                    stroke: Stroke::default(),
-                    transform,
-                    clip_id: self.state.clip_id.clone(),
-                    meta: SourceMeta {
-                        kind: "mesh-triangle".into(),
-                        source_id: format!(
-                            "page:{}:shading:{}",
-                            self.page.number,
-                            String::from_utf8_lossy(name)
-                        ),
-                        blend_mode: self.state.blend_mode.clone(),
-                        mask_id: self.state.mask_id.clone().unwrap_or_default(),
-                        alpha_is_shape: self.state.alpha_is_shape,
-                        shape_rendering: "crispEdges".into(),
-                        ..SourceMeta::default()
-                    },
-                });
-            }
-        }
+        let nodes = build_mesh_triangle_nodes(
+            self.document,
+            &triangles,
+            subdivisions,
+            color_space.as_ref(),
+            transform,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            self.state.clip_id.clone(),
+            self.page.number,
+            "pdf-mesh",
+            &String::from_utf8_lossy(name),
+            &self.mesh_output_count,
+        );
+        self.node_counter += nodes.len();
+        self.page.nodes.extend(nodes);
         Ok(())
     }
 
@@ -6449,6 +6475,194 @@ fn build_function_shading_cell_nodes(
     ))
 }
 
+/// Parses a PDF mesh shading (ShadingType 4-7) stream into triangles ready
+/// for [`build_mesh_triangle_nodes`], applying the same page-wide triangle
+/// budget the `sh` operator already enforces via `mesh_output_count`.
+///
+/// `Ok(None)` means nothing should be drawn and a warning (if any) has
+/// already been recorded on `page`; the reason varies (malformed data, an
+/// exhausted page budget, or a genuinely empty mesh) so the caller cannot
+/// usefully add its own message on top.
+#[allow(clippy::too_many_arguments)]
+fn parse_mesh_shading_triangles(
+    document: &Document,
+    shading: &Object,
+    dictionary: &Dictionary,
+    shading_type: i64,
+    content_limit: usize,
+    mesh_output_so_far: usize,
+    name: &[u8],
+    page: &mut Page,
+) -> Result<Option<(Vec<MeshTriangle>, usize, Option<Object>)>> {
+    let Object::Stream(stream) = shading else {
+        page.warn(format!(
+            "PDF mesh shading {} has no stream data",
+            String::from_utf8_lossy(name)
+        ));
+        return Ok(None);
+    };
+    let data = stream.decompressed_content_with_limit(content_limit)?;
+    let bits_per_coordinate = dictionary
+        .get(b"BitsPerCoordinate")
+        .and_then(Object::as_i64)
+        .unwrap_or(0);
+    let bits_per_component = dictionary
+        .get(b"BitsPerComponent")
+        .and_then(Object::as_i64)
+        .unwrap_or(0);
+    let bits_per_flag = dictionary
+        .get(b"BitsPerFlag")
+        .and_then(Object::as_i64)
+        .unwrap_or(0);
+    if bits_per_coordinate <= 0
+        || bits_per_component <= 0
+        || bits_per_coordinate > 32
+        || bits_per_component > 16
+    {
+        page.warn("PDF mesh shading has invalid bit widths");
+        return Ok(None);
+    }
+    let color_space = dictionary.get(b"ColorSpace").ok().cloned();
+    let component_count = pdf_color_component_count(document, color_space.as_ref());
+    let decode = dictionary
+        .get(b"Decode")
+        .and_then(Object::as_array)
+        .ok()
+        .map(|values| numbers(values, usize::MAX))
+        .unwrap_or_default();
+    let Some(decode) = complete_mesh_decode_ranges(&decode, component_count) else {
+        page.warn("PDF mesh shading /Decode array is incomplete");
+        return Ok(None);
+    };
+    let vertices_per_row = dictionary
+        .get(b"VerticesPerRow")
+        .and_then(Object::as_i64)
+        .unwrap_or(0)
+        .max(0) as usize;
+    let remaining_page_budget = MAX_PAGE_MESH_TRIANGLES.saturating_sub(mesh_output_so_far);
+    if remaining_page_budget == 0 {
+        return Ok(None);
+    }
+    let max_output_triangles = remaining_page_budget.min(3_000);
+    let (triangles, subdivisions) = if matches!(shading_type, 6 | 7) {
+        let (patches, has_reused_patch) = parse_patch_meshes(
+            &data,
+            shading_type,
+            bits_per_coordinate as usize,
+            bits_per_component as usize,
+            bits_per_flag.max(0) as usize,
+            component_count,
+            &decode,
+        );
+        if has_reused_patch {
+            page.warn(
+                "PDF patch mesh reuse flags 1-3 are detected; only independent flag-0 patches are rendered",
+            );
+        }
+        let divisions = ((max_output_triangles / (patches.len().max(1) * 2)) as f64)
+            .sqrt()
+            .floor()
+            .clamp(1.0, 64.0) as usize;
+        (
+            patches
+                .iter()
+                .flat_map(|patch| tessellate_patch(patch, divisions))
+                .collect(),
+            1,
+        )
+    } else {
+        let triangles = parse_mesh_triangles(
+            &data,
+            shading_type,
+            bits_per_coordinate as usize,
+            bits_per_component as usize,
+            bits_per_flag.max(0) as usize,
+            component_count,
+            &decode,
+            vertices_per_row,
+        );
+        let divisions = ((max_output_triangles / triangles.len().max(1)) as f64)
+            .sqrt()
+            .floor()
+            .clamp(1.0, 64.0) as usize;
+        (triangles, divisions)
+    };
+    if triangles.is_empty() {
+        page.warn(format!(
+            "PDF mesh shading {} produced no triangles",
+            String::from_utf8_lossy(name)
+        ));
+        return Ok(None);
+    }
+    Ok(Some((triangles, subdivisions, color_space)))
+}
+
+/// Builds flat-color mesh-triangle nodes, positioned by `transform`, from
+/// triangles [`parse_mesh_shading_triangles`] already tessellated.
+///
+/// Shared by the `sh` operator (`transform` bakes in the full device
+/// transform, and nodes land directly on the page) and a mesh shading
+/// *pattern* filling a path (`transform` is identity, so nodes stay in
+/// their raw mesh-space coordinates for a
+/// [`crate::ir::TilingPatternDefinition`] to position later).
+#[allow(clippy::too_many_arguments)]
+fn build_mesh_triangle_nodes(
+    document: &Document,
+    triangles: &[MeshTriangle],
+    subdivisions: usize,
+    color_space: Option<&Object>,
+    transform: Matrix,
+    fill_alpha: f64,
+    blend_mode: &str,
+    mask_id: &str,
+    alpha_is_shape: bool,
+    clip_id: Option<String>,
+    page_number: usize,
+    id_prefix: &str,
+    source_name: &str,
+    mesh_output_count: &Cell<usize>,
+) -> Vec<Node> {
+    let max_output_triangles = MAX_PAGE_MESH_TRIANGLES
+        .saturating_sub(mesh_output_count.get())
+        .min(3_000);
+    let mut nodes = Vec::new();
+    let mut output_count = 0usize;
+    'triangles: for (triangle_index, triangle) in triangles.iter().enumerate() {
+        for micro in subdivide_mesh_triangle(triangle, subdivisions) {
+            if output_count >= max_output_triangles
+                || mesh_output_count.get() >= MAX_PAGE_MESH_TRIANGLES
+            {
+                break 'triangles;
+            }
+            output_count += 1;
+            mesh_output_count.set(mesh_output_count.get().saturating_add(1));
+            let color = components_to_color(document, color_space, &micro.average_components());
+            nodes.push(Node::Path {
+                id: format!("{id_prefix}-{page_number}-{triangle_index}-{output_count}"),
+                d: micro.path_data(),
+                fill_rule: "nonzero".into(),
+                fill: Paint::Solid {
+                    color,
+                    opacity: fill_alpha,
+                },
+                stroke: Stroke::default(),
+                transform,
+                clip_id: clip_id.clone(),
+                meta: SourceMeta {
+                    kind: "mesh-triangle".into(),
+                    source_id: format!("page:{page_number}:shading:{source_name}"),
+                    blend_mode: blend_mode.into(),
+                    mask_id: mask_id.into(),
+                    alpha_is_shape,
+                    shape_rendering: "crispEdges".into(),
+                    ..SourceMeta::default()
+                },
+            });
+        }
+    }
+    nodes
+}
+
 fn adaptive_function_shading_cells(
     field: &FunctionShadingField<'_>,
     bounds: FunctionShadingBounds,
@@ -7955,6 +8169,16 @@ fn page_matrix(bounds: [f64; 4], rotation: i32) -> Matrix {
         270 => [0.0, -1.0, -1.0, 0.0, top, right],
         _ => [1.0, 0.0, 0.0, -1.0, -left, top],
     }
+}
+
+/// A small margin added to a tessellated shading pattern's tile size (but
+/// not to its clip, which stays exact), so the tile's own repeat boundary
+/// falls just outside the visibly clipped area. Without it, anti-aliasing
+/// at the clip edge can let a sliver of the adjacent repeated tile bleed
+/// through, since patterns unlike a real PDF shading pattern are shown by
+/// tiling rather than painted once.
+fn pattern_tile_margin(span: f64) -> f64 {
+    span.abs().max(1.0) * 0.002
 }
 
 fn matrix_operands(operands: &[Object]) -> Option<Matrix> {
