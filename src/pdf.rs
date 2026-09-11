@@ -166,6 +166,7 @@ fn render_page(
             .page
             .warn("PDF graphics-state stack was not balanced at end of page");
     }
+    interpreter.render_annotations()?;
     // A page that consumed a content stream yet drew nothing is indistinguishable
     // from a genuinely empty page in the SVG, so say which one it was. The most
     // common cause is a stream that survived loading still encrypted: lopdf
@@ -1183,17 +1184,35 @@ impl FontDecoder {
             builder.x_offset = x_offset;
             for character in decoded.chars() {
                 has_visible_character |= !character.is_whitespace();
-                let glyph_id = charmap
-                    .map(character)
-                    .or_else(|| {
-                        cmap.as_ref()
-                            .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
-                    })
-                    .or_else(|| {
-                        cmap.as_ref()
-                            .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
-                    })
-                    .ok_or("Unicode character has no glyph in the embedded font")?;
+                // A font with no /Encoding is symbolic by the PDF spec's own
+                // default (9.6.6.4), and a symbolic simple font selects
+                // glyphs by raw character code through the font's own cmap,
+                // never through Unicode. Subsetters commonly key that cmap
+                // by sequential code (1, 2, 3, ...) rather than true
+                // Unicode, so mapping through the ToUnicode-decoded
+                // character first can land on an unrelated glyph whose raw
+                // code happens to equal that character's own codepoint.
+                let glyph_id = if self.glyph_names.is_empty() {
+                    cmap.as_ref()
+                        .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
+                        .or_else(|| charmap.map(character))
+                        .or_else(|| {
+                            cmap.as_ref()
+                                .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+                        })
+                } else {
+                    charmap
+                        .map(character)
+                        .or_else(|| {
+                            cmap.as_ref()
+                                .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+                        })
+                        .or_else(|| {
+                            cmap.as_ref()
+                                .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
+                        })
+                }
+                .ok_or("Unicode character has no glyph in the embedded font")?;
                 let glyph = outlines
                     .get(glyph_id)
                     .ok_or("embedded font glyph outline is unavailable")?;
@@ -2568,11 +2587,15 @@ impl Interpreter<'_, '_> {
                 String::from_utf8_lossy(&self.text.font_name)
             ));
         }
-        if self.text.rendering_mode == 3 {
-            self.advance_text_bytes(bytes, &text);
-            return;
-        }
         if let Some(type3) = decoder.and_then(|decoder| decoder.type3.clone()) {
+            // A CharProc always paints, so mode 3 (invisible) is the one
+            // mode this glyph program cannot approximate: draw nothing
+            // rather than a visible glyph an invisible-text mode promised
+            // would not appear.
+            if self.text.rendering_mode == 3 {
+                self.advance_text_bytes(bytes, &text);
+                return;
+            }
             if self.text.rendering_mode != 0 {
                 self.page.warn(format!(
                     "PDF Type3 text rendering mode {} is approximated by its CharProc paint operators",
@@ -2605,36 +2628,41 @@ impl Interpreter<'_, '_> {
             compose(self.state.ctm, compose(self.text.text_matrix, compensation)),
         );
         let mut outline_failure = None;
-        let explicit_fidelity_outline = decoder.is_some_and(|decoder| {
-            !decoder.requires_outline
-                && should_outline_pdf_text(
-                    decoder.requires_outline,
-                    decoder.font_data.is_some(),
-                    self.outline_embedded_pdf_text,
-                )
-                && stable_symbol.is_none()
-        });
-        let outline_path = decoder
-            .filter(|decoder| {
-                should_outline_pdf_text(
-                    decoder.requires_outline,
-                    decoder.font_data.is_some(),
-                    self.outline_embedded_pdf_text,
-                ) && stable_symbol.is_none()
-            })
-            .and_then(|decoder| {
-                match decoder.outline_path(
-                    bytes,
-                    self.text.character_spacing / self.text.font_size.max(1e-12),
-                    self.text.word_spacing / self.text.font_size.max(1e-12),
-                ) {
-                    Ok(path) => Some(path),
-                    Err(reason) => {
-                        outline_failure = Some(reason);
-                        None
-                    }
-                }
+        let explicit_fidelity_outline = self.text.rendering_mode != 3
+            && decoder.is_some_and(|decoder| {
+                !decoder.requires_outline
+                    && should_outline_pdf_text(
+                        decoder.requires_outline,
+                        decoder.font_data.is_some(),
+                        self.outline_embedded_pdf_text,
+                    )
+                    && stable_symbol.is_none()
             });
+        let outline_path = if self.text.rendering_mode == 3 {
+            None
+        } else {
+            decoder
+                .filter(|decoder| {
+                    should_outline_pdf_text(
+                        decoder.requires_outline,
+                        decoder.font_data.is_some(),
+                        self.outline_embedded_pdf_text,
+                    ) && stable_symbol.is_none()
+                })
+                .and_then(|decoder| {
+                    match decoder.outline_path(
+                        bytes,
+                        self.text.character_spacing / self.text.font_size.max(1e-12),
+                        self.text.word_spacing / self.text.font_size.max(1e-12),
+                    ) {
+                        Ok(path) => Some(path),
+                        Err(reason) => {
+                            outline_failure = Some(reason);
+                            None
+                        }
+                    }
+                })
+        };
         if let Some(path_data) = outline_path {
             if path_data.is_empty() {
                 self.advance_text_bytes(bytes, &text);
@@ -2720,7 +2748,10 @@ impl Interpreter<'_, '_> {
             self.advance_text_bytes(bytes, &text);
             return;
         }
-        if decoder.is_some_and(|decoder| decoder.requires_outline) && stable_symbol.is_none() {
+        if self.text.rendering_mode != 3
+            && decoder.is_some_and(|decoder| decoder.requires_outline)
+            && stable_symbol.is_none()
+        {
             self.page.warn(format!(
                 "embedded custom font {} is emitted as editable fallback text: {}",
                 decoder.map_or("unknown", |decoder| decoder.family.as_str()),
@@ -3174,6 +3205,159 @@ impl Interpreter<'_, '_> {
                 String::from_utf8_lossy(subtype)
             ));
         }
+        Ok(())
+    }
+
+    fn render_annotations(&mut self) -> Result<()> {
+        let Ok(page_dict) = self.document.get_dictionary(self.page_id) else {
+            return Ok(());
+        };
+        let Ok(annots_obj) = page_dict.get_deref(b"Annots", self.document) else {
+            return Ok(());
+        };
+        let Ok(annots) = annots_obj.as_array() else {
+            return Ok(());
+        };
+        for annot_ref in annots {
+            let Ok((_, annot_obj)) = self.document.dereference(annot_ref) else {
+                continue;
+            };
+            let Ok(annot_dict) = annot_obj.as_dict() else {
+                continue;
+            };
+            let subtype = annot_dict
+                .get_deref(b"Subtype", self.document)
+                .ok()
+                .and_then(|o| o.as_name().ok())
+                .unwrap_or_default();
+            if matches!(subtype, b"Link" | b"Popup") {
+                continue;
+            }
+            let flags = annot_dict
+                .get(b"F")
+                .ok()
+                .and_then(|o| o.as_i64().ok())
+                .unwrap_or(0);
+            if flags & 1 != 0 || flags & 2 != 0 || flags & 32 != 0 {
+                continue;
+            }
+            let Ok(ap_obj) = annot_dict.get_deref(b"AP", self.document) else {
+                continue;
+            };
+            let Ok(ap_dict) = ap_obj.as_dict() else {
+                continue;
+            };
+            let Ok(normal_ap) = ap_dict.get_deref(b"N", self.document) else {
+                continue;
+            };
+            let rect = annot_dict
+                .get_deref(b"Rect", self.document)
+                .ok()
+                .and_then(|o| o.as_array().ok())
+                .map(|arr| numbers(arr, 4))
+                .unwrap_or_default();
+            if rect.len() != 4 {
+                continue;
+            }
+            let stream = match normal_ap {
+                Object::Stream(stream) => Some(stream.clone()),
+                Object::Dictionary(subdict) => {
+                    let as_state = annot_dict.get(b"AS").ok().and_then(|o| o.as_name().ok());
+                    let state_obj = as_state
+                        .and_then(|key| subdict.get_deref(key, self.document).ok())
+                        .or_else(|| {
+                            subdict.iter().find_map(|(_, v)| {
+                                self.document.dereference(v).ok().map(|(_, val)| val)
+                            })
+                        });
+                    match state_obj {
+                        Some(Object::Stream(s)) => Some(s.clone()),
+                        _ => None,
+                    }
+                }
+                _ => None,
+            };
+            let Some(stream) = stream else {
+                continue;
+            };
+            self.draw_annotation_appearance(&stream, &rect)?;
+        }
+        Ok(())
+    }
+
+    fn draw_annotation_appearance(&mut self, stream: &Stream, rect: &[f64]) -> Result<()> {
+        let bbox = stream
+            .dict
+            .get(b"BBox")
+            .and_then(Object::as_array)
+            .ok()
+            .map(|arr| numbers(arr, 4))
+            .unwrap_or_default();
+        let map_matrix = if bbox.len() == 4 {
+            let bw = (bbox[2] - bbox[0]).abs();
+            let bh = (bbox[3] - bbox[1]).abs();
+            let rw = (rect[2] - rect[0]).abs();
+            let rh = (rect[3] - rect[1]).abs();
+            let sx = if bw > 1e-6 { rw / bw } else { 1.0 };
+            let sy = if bh > 1e-6 { rh / bh } else { 1.0 };
+            let tx = rect[0].min(rect[2]) - sx * bbox[0].min(bbox[2]);
+            let ty = rect[1].min(rect[3]) - sy * bbox[1].min(bbox[3]);
+            [sx, 0.0, 0.0, sy, tx, ty]
+        } else {
+            [1.0, 0.0, 0.0, 1.0, rect[0], rect[1]]
+        };
+
+        let previous_state = self.state.clone();
+        let previous_content_base_ctm = self.content_base_ctm;
+        self.state = GraphicsState::default();
+        let form_matrix = stream
+            .dict
+            .get(b"Matrix")
+            .and_then(Object::as_array)
+            .ok()
+            .and_then(|matrix| matrix_operands(matrix))
+            .unwrap_or(IDENTITY);
+        self.state.ctm = compose(map_matrix, form_matrix);
+        self.content_base_ctm = self.state.ctm;
+
+        let form_resources = stream
+            .dict
+            .get_deref(b"Resources", self.document)
+            .and_then(Object::as_dict)
+            .ok()
+            .cloned();
+        let form_fonts = build_resource_font_decoders(
+            self.document,
+            form_resources.as_ref(),
+            self.content_limit,
+            self.page,
+        );
+        let mut previous_fonts = Vec::with_capacity(form_fonts.len());
+        for (font_name, decoder) in form_fonts {
+            let previous = self.fonts.insert(font_name.clone(), decoder);
+            previous_fonts.push((font_name, previous));
+        }
+        let mut pushed_resources = false;
+        if let Some(resources) = form_resources {
+            self.resources.push(resources.clone());
+            pushed_resources = true;
+        }
+        let content = stream.decompressed_content_with_limit(self.content_limit)?;
+        let decoded = Content::decode(&content)?;
+        let interpret_result = self.interpret(&decoded.operations, 0);
+        if pushed_resources {
+            self.resources.pop();
+        }
+        for (font_name, previous) in previous_fonts {
+            if let Some(previous) = previous {
+                self.fonts.insert(font_name, previous);
+            } else {
+                self.fonts.remove(&font_name);
+            }
+        }
+        self.content_base_ctm = previous_content_base_ctm;
+        self.state = previous_state;
+        interpret_result?;
         Ok(())
     }
 
@@ -3695,14 +3879,13 @@ impl Interpreter<'_, '_> {
                 .get(b"BitsPerComponent")
                 .and_then(Object::as_i64)
                 .unwrap_or(8);
-            let alpha =
-                decode_soft_mask_content(
-                    self.document,
-                    mask,
-                    mask_width,
-                    mask_height,
-                    self.content_limit,
-                )?;
+            let alpha = decode_soft_mask_content(
+                self.document,
+                mask,
+                mask_width,
+                mask_height,
+                self.content_limit,
+            )?;
             let alpha = if matches!(mask_bits, 1 | 2 | 4 | 8 | 16) {
                 normalize_image_samples(
                     mask,
@@ -4876,6 +5059,24 @@ fn build_font_decoder(
             "Type0 font {} has no usable ToUnicode map; text may require replacement glyphs",
             String::from_utf8_lossy(name)
         ));
+    }
+    if subtype == b"Type0"
+        && let Ok(encoding_obj) = dictionary.get_deref(b"Encoding", document)
+    {
+        let encoding_name = match encoding_obj {
+            Object::Name(bytes) => Some(String::from_utf8_lossy(bytes).into_owned()),
+            Object::String(bytes, _) => Some(String::from_utf8_lossy(bytes).into_owned()),
+            _ => None,
+        };
+        if let Some(encoding_name) = encoding_name
+            && encoding_name != "Identity-H"
+            && encoding_name != "Identity-V"
+        {
+            page.warn(format!(
+                "Type0 font {} uses non-Identity encoding {encoding_name}; text positioning may be compromised",
+                String::from_utf8_lossy(name)
+            ));
+        }
     }
     FontDecoder {
         family,
@@ -6839,14 +7040,23 @@ impl<'a> MeshBitReader<'a> {
 /// every PDF viewer applies when an image is reduced, which speckles a scan
 /// placed at a fraction of its pixel size. So `pixelated` is used only where it
 /// means what the PDF meant — an image drawn larger than its own pixel grid.
-fn image_rendering_hint(interpolate: bool, width: usize, height: usize, placement: Matrix) -> String {
+fn image_rendering_hint(
+    interpolate: bool,
+    width: usize,
+    height: usize,
+    placement: Matrix,
+) -> String {
     if interpolate {
         return "auto".into();
     }
     let drawn_width = placement[0].hypot(placement[1]);
     let drawn_height = placement[2].hypot(placement[3]);
     let magnified = drawn_width > width as f64 || drawn_height > height as f64;
-    if magnified { "pixelated".into() } else { "auto".into() }
+    if magnified {
+        "pixelated".into()
+    } else {
+        "auto".into()
+    }
 }
 
 fn png_predictor_of(document: &Document, stream: &Stream) -> Option<PngPredictor> {
@@ -8046,6 +8256,15 @@ fn pdf_font_stack(family: &str) -> String {
 
 fn is_browser_font_family(family: &str) -> bool {
     let family = family.to_ascii_lowercase();
+    // "symbol" and "zapfdingbats" are deliberately absent: this list only
+    // ever matters for an *embedded* font (`requires_outline` is already
+    // false for a non-embedded reference), and an embedded font merely
+    // named "Symbol" or "ZapfDingbats" gives no guarantee it matches any
+    // system font glyph-for-glyph. A word processor's own subsetted
+    // "Symbol"-named font commonly encodes its glyphs at Private Use Area
+    // code points that mean nothing outside that specific embedded font,
+    // and trusting the name renders as a missing-glyph box everywhere the
+    // literal PUA text is not backed by that exact font.
     [
         "arial",
         "helvetica",
@@ -8057,8 +8276,6 @@ fn is_browser_font_family(family: &str) -> bool {
         "georgia",
         "tahoma",
         "trebuchet",
-        "symbol",
-        "zapfdingbats",
         "meiryo",
         "yu gothic",
         "yugothic",
@@ -8395,6 +8612,24 @@ mod tests {
                 .unwrap()
                 .contains("L 0.5 0")
         );
+    }
+
+    #[test]
+    fn prefers_raw_pdf_code_over_to_unicode_value_for_symbolic_font_glyph_selection() {
+        // No /Encoding: glyph_names stays empty, matching a symbolic simple
+        // font per the PDF spec's own default. ToUnicode (used for text
+        // extraction, not glyph selection) claims code 66 is really "A" --
+        // exactly what a subsetter that keys its embedded cmap by
+        // sequential code rather than true Unicode can produce, since the
+        // synthetic cmap here also happens to carry a real entry at
+        // Unicode 'A' (65). Glyph selection must still follow the raw code
+        // and draw the composite glyph the cmap keys at 66, not the
+        // triangle it keys at 65.
+        let mut decoder = test_font_decoder(font_test_data::font(None, false, false));
+        decoder.unicode_map.insert(vec![66], "A".into());
+        let path = decoder.outline_path(b"B", 0.0, 0.0).unwrap();
+        assert!(path.contains("M 0.1 0.2"), "{path}");
+        assert!(!path.contains("L 0.5 0"), "{path}");
     }
 
     #[test]

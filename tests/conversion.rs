@@ -14,6 +14,285 @@ use zip::write::SimpleFileOptions;
 mod font_test_data;
 
 #[test]
+fn outlines_an_embedded_symbol_font_instead_of_trusting_a_system_symbol_font() {
+    // A word processor's own subsetted font named "Symbol" is common for
+    // dingbat-style bullets, and its ToUnicode map commonly points at
+    // Private Use Area code points that mean nothing outside that specific
+    // embedded font. Treating the family name as a sign that any system's
+    // real Symbol font would render it left such text as a missing-glyph
+    // box wherever the literal PUA text was not backed by that exact font.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("embedded-symbol-font.pdf");
+    let mut document = Document::with_version("1.7");
+    let bytes = font_test_data::font(None, false, false);
+    let font_file = document.add_object(Stream::new(
+        dictionary! { "Length1" => bytes.len() as i64 },
+        bytes,
+    ));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "Symbol", "Flags" => 4,
+        "FontBBox" => vec![0.into(), 0.into(), 600.into(), 900.into()],
+        "Ascent" => 800, "Descent" => -200, "CapHeight" => 700, "StemV" => 80,
+        "FontFile2" => font_file,
+    });
+    let to_unicode = document.add_object(Stream::new(
+        dictionary! {},
+        b"/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CMapType 2 def\n1 begincodespacerange\n<00> <FF>\nendcodespacerange\n1 beginbfchar\n<41> <F0B7>\nendbfchar\nendcmap\nend\nend".to_vec(),
+    ));
+    let font = document.add_object(dictionary! {
+        // No /Encoding: this is a symbolic simple font per the PDF spec's
+        // own default, matching a real embedded "Symbol" subset.
+        "Type" => "Font", "Subtype" => "TrueType", "BaseFont" => "Symbol",
+        "FirstChar" => 32, "LastChar" => 66,
+        "Widths" => (32..=66).map(|code| Object::Integer(if code == 32 { 250 } else { 500 })).collect::<Vec<_>>(),
+        "FontDescriptor" => descriptor, "ToUnicode" => to_unicode,
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 20 Tf 20 80 Td (A) Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
+    assert!(svg.contains("L 0.5 0"), "{svg}");
+}
+
+fn build_type0_pdf(input: &Path, encoding: &str) {
+    let mut document = Document::with_version("1.7");
+    let bytes = font_test_data::font(None, false, false);
+    let font_file = document.add_object(Stream::new(
+        dictionary! { "Length1" => bytes.len() as i64 },
+        bytes,
+    ));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "TestCID", "Flags" => 4,
+        "FontBBox" => vec![0.into(), 0.into(), 600.into(), 900.into()],
+        "Ascent" => 800, "Descent" => -200, "CapHeight" => 700, "StemV" => 80,
+        "FontFile2" => font_file,
+    });
+    let descendant = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "CIDFontType2", "BaseFont" => "TestCID",
+        "CIDSystemInfo" => dictionary! { "Registry" => Object::string_literal("Adobe"), "Ordering" => Object::string_literal("Identity"), "Supplement" => 0 },
+        "FontDescriptor" => descriptor, "DW" => 1000,
+    });
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type0", "BaseFont" => "TestCID",
+        "Encoding" => Object::Name(encoding.as_bytes().to_vec()),
+        "DescendantFonts" => vec![descendant.into()],
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 20 Tf 20 80 Td <0041> Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(input).unwrap();
+}
+
+#[test]
+fn warns_about_a_type0_font_that_uses_a_non_identity_encoding() {
+    // Character code only equals CID under Identity-H/V. A predefined
+    // CMap such as UniJIS-UCS2-H (common for non-embedded standard Asian
+    // fonts) maps code to CID through a table this converter does not
+    // resolve, silently giving every /W width lookup and glyph selection
+    // the wrong key -- which showed up as visibly wrong letter spacing in
+    // Latin runs mixed into CJK text. Say so in a warning instead of
+    // shipping mispositioned text with no diagnostic.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("non-identity.pdf");
+    build_type0_pdf(&input, "UniJIS-UCS2-H");
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let warnings = &report.pages[0].warnings;
+    assert!(
+        warnings
+            .iter()
+            .any(|warning| warning.contains("non-Identity encoding UniJIS-UCS2-H")),
+        "{warnings:?}"
+    );
+}
+
+#[test]
+fn does_not_warn_about_a_type0_font_that_uses_identity_h_encoding() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("identity.pdf");
+    build_type0_pdf(&input, "Identity-H");
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let warnings = &report.pages[0].warnings;
+    assert!(
+        !warnings.iter().any(|warning| warning.contains("non-Identity")),
+        "{warnings:?}"
+    );
+}
+
+fn add_appearance_annotation(
+    document: &mut Document,
+    subtype: &str,
+    rect: [i64; 4],
+    fill_rgb: [f64; 3],
+    flags: Option<i64>,
+) -> Object {
+    let appearance_content = format!(
+        "{} {} {} rg 0 0 50 20 re f",
+        fill_rgb[0], fill_rgb[1], fill_rgb[2]
+    );
+    let appearance = document.add_object(Stream::new(
+        dictionary! { "Type" => "XObject", "Subtype" => "Form", "BBox" => vec![0.into(), 0.into(), 50.into(), 20.into()] },
+        appearance_content.into_bytes(),
+    ));
+    let mut annotation = dictionary! {
+        "Type" => "Annot", "Subtype" => subtype,
+        "Rect" => rect.into_iter().map(Object::Integer).collect::<Vec<_>>(),
+        "AP" => dictionary! { "N" => appearance },
+    };
+    if let Some(flags) = flags {
+        annotation.set("F", flags);
+    }
+    document.add_object(annotation).into()
+}
+
+#[test]
+fn renders_annotation_appearance_streams_but_skips_link_and_hidden() {
+    // A filled-in form field's value, and a sticky note's icon, live only
+    // in an annotation's /AP appearance stream -- not in the page content
+    // stream -- so a converter that reads only page content silently drops
+    // them. Link annotations are conventionally just an invisible active
+    // area (never rendered even when they happen to carry an /AP), and
+    // anything flagged Hidden must stay invisible either way.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("annotations.pdf");
+    let mut document = Document::with_version("1.7");
+    let visible_widget =
+        add_appearance_annotation(&mut document, "Widget", [100, 100, 150, 120], [0.0, 0.0, 1.0], None);
+    let visible_text =
+        add_appearance_annotation(&mut document, "Text", [100, 200, 150, 220], [0.0, 1.0, 0.0], None);
+    let hidden_widget = add_appearance_annotation(
+        &mut document,
+        "Widget",
+        [100, 300, 150, 320],
+        [1.0, 0.0, 0.0],
+        Some(2),
+    );
+    let link = add_appearance_annotation(
+        &mut document,
+        "Link",
+        [100, 400, 150, 420],
+        [1.0, 1.0, 0.0],
+        None,
+    );
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 400.into(), 500.into()],
+        "Resources" => dictionary! {},
+        "Contents" => content,
+        "Annots" => vec![visible_widget, visible_text, hidden_widget, link],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("#0000FF"), "{svg}");
+    assert!(svg.contains("#00FF00"), "{svg}");
+    assert!(!svg.contains("#FF0000"), "{svg}");
+    assert!(!svg.contains("#FFFF00"), "{svg}");
+}
+
+#[test]
+fn keeps_invisible_text_selectable_instead_of_dropping_it() {
+    // Rendering mode 3 (invisible) is how a searchable scanned PDF hides its
+    // OCR text layer behind the scanned image: nothing should paint, but
+    // the text itself is the entire point of that layer, and dropping it
+    // turned a searchable document into one that is not.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("invisible-text.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type1",
+        "BaseFont" => "Helvetica",
+        "Encoding" => "WinAnsiEncoding",
+    });
+    let resources_id = document.add_object(dictionary! {
+        "Font" => dictionary! { "F1" => Object::Reference(font_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("BT", vec![]),
+            Operation::new("Tf", vec![Object::Name(b"F1".to_vec()), 12.into()]),
+            Operation::new("Tr", vec![3.into()]),
+            Operation::new(
+                "Tm",
+                vec![1.into(), 0.into(), 0.into(), 1.into(), 20.into(), 60.into()],
+            ),
+            Operation::new(
+                "Tj",
+                vec![Object::String(
+                    b"Hidden OCR text".to_vec(),
+                    lopdf::StringFormat::Literal,
+                )],
+            ),
+            Operation::new("ET", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("aria-label=\"Hidden OCR text\""), "{svg}");
+    assert!(svg.contains("Hidden"), "{svg}");
+    let hidden = svg.split("aria-label=\"Hidden OCR text\"").next().unwrap();
+    let text_tag = hidden.rsplit("<text").next().unwrap();
+    assert!(text_tag.contains("stroke=\"none\""), "{svg}");
+    let tspan = svg.split_once("aria-label=\"Hidden OCR text\"").unwrap().1;
+    assert!(tspan.contains("fill=\"none\""), "{svg}");
+}
+
+#[test]
 fn converts_embedded_true_type_to_outlines_through_public_api() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("embedded-font.pdf");
@@ -7143,4 +7422,884 @@ fn draws_every_coded_shape_the_example_diagrams_reach_for() {
     }
     // The gradients the painter grew to support reach the output as gradients.
     assert!(svg.contains("linearGradient"), "{svg}");
+}
+
+#[test]
+fn converts_dxf_file_with_lines_circles_and_layers_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("drawing.dxf");
+    let output = temporary.path().join("output");
+
+    let dxf_data = r#"  0
+SECTION
+  2
+TABLES
+  0
+TABLE
+  2
+LAYER
+  0
+LAYER
+  2
+Walls
+ 70
+0
+ 62
+1
+  0
+LAYER
+  2
+Columns
+ 70
+0
+ 62
+5
+  0
+LAYER
+  2
+HiddenLayer
+ 70
+1
+ 62
+2
+  0
+ENDTAB
+  0
+ENDSEC
+  0
+SECTION
+  2
+ENTITIES
+  0
+LINE
+  8
+Walls
+ 10
+0.0
+ 20
+0.0
+ 11
+400.0
+ 21
+300.0
+  0
+CIRCLE
+  8
+Columns
+ 10
+200.0
+ 20
+150.0
+ 40
+50.0
+  0
+TEXT
+  8
+Walls
+  1
+Room 101
+ 10
+50.0
+ 20
+50.0
+ 40
+12.0
+  0
+LINE
+  8
+HiddenLayer
+ 10
+10.0
+ 20
+10.0
+ 11
+20.0
+ 21
+20.0
+  0
+ENDSEC
+  0
+EOF
+"#;
+    fs::write(&input, dxf_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dxf);
+    assert_eq!(report.page_count, 1);
+
+    let svg_path = output.join("page-0001.svg");
+    assert!(svg_path.exists());
+    let svg = fs::read_to_string(svg_path).unwrap();
+
+    // Verify layer groups
+    assert!(svg.contains("id=\"layer-Walls\""));
+    assert!(svg.contains("id=\"layer-Columns\""));
+    // Frozen layer should NOT be rendered
+    assert!(!svg.contains("id=\"layer-HiddenLayer\""));
+
+    // Verify text presence
+    assert!(svg.contains("Room 101"));
+
+    // Verify manifest
+    let manifest = fs::read_to_string(output.join("conversion.json")).unwrap();
+    assert!(manifest.contains("\"source_format\": \"dxf\""));
+}
+
+#[test]
+fn converts_dxf_blocks_and_lwpolyline_with_bulge() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("blocks_and_polylines.dxf");
+    let output = temporary.path().join("output");
+
+    let dxf_data = r#"  0
+SECTION
+  2
+BLOCKS
+  0
+BLOCK
+  2
+CHAIR
+ 10
+0.0
+ 20
+0.0
+  0
+LINE
+  8
+Furniture
+ 10
+-10.0
+ 20
+-10.0
+ 11
+10.0
+ 21
+-10.0
+  0
+ENDBLK
+  0
+ENDSEC
+  0
+SECTION
+  2
+ENTITIES
+  0
+LWPOLYLINE
+  8
+Outline
+ 70
+1
+ 90
+2
+ 10
+0.0
+ 20
+0.0
+ 42
+1.0
+ 10
+100.0
+ 20
+0.0
+  0
+INSERT
+  8
+Furniture
+  2
+CHAIR
+ 10
+50.0
+ 20
+50.0
+ 41
+2.0
+ 42
+2.0
+ 50
+45.0
+  0
+ENDSEC
+  0
+EOF
+"#;
+    fs::write(&input, dxf_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dxf);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Arc path command from bulge
+    assert!(svg.contains(" A "), "SVG should contain arc command: {svg}");
+    // Layer for outline and furniture
+    assert!(svg.contains("id=\"layer-Outline\""));
+    assert!(svg.contains("id=\"layer-Furniture\""));
+}
+
+#[test]
+fn converts_gerber_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("board.gbr");
+    let output = temporary.path().join("output");
+
+    let gerber_data = r#"%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,0.8000*%
+%ADD11R,1.5000X1.5000*%
+D10*
+X000000Y000000D02*
+X020000Y020000D01*
+D11*
+X030000Y030000D03*
+M02*
+"#;
+    fs::write(&input, gerber_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Gerber);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("id=\"pcb-substrate\""));
+    assert!(svg.contains("id=\"pcb-copper-layer\""));
+}
+
+#[test]
+fn converts_hpgl_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("plot.plt");
+    let output = temporary.path().join("output");
+
+    let hpgl_data = "IN;SP1;PU0,0;PD500,0,500,500,0,500,0,0;PU;SP2;CI250;SP0;";
+    fs::write(&input, hpgl_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Hpgl);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("id=\"pen-1\""));
+    assert!(svg.contains("M "));
+}
+
+#[test]
+fn converts_ansi_windows1252_dxf_file_with_degree_symbol() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("drawing_ansi.dxf");
+    let output = temporary.path().join("output");
+
+    // DXF file encoded in Windows-1252 with degree symbol (0xB0)
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(
+        b"0\nSECTION\n2\nENTITIES\n0\nTEXT\n8\n0\n10\n0.0\n20\n0.0\n40\n10.0\n1\nANGLE 45",
+    );
+    bytes.push(0xB0); // degree sign in Windows-1252 / ISO-8859-1
+    bytes.extend_from_slice(b"\n0\nENDSEC\n0\nEOF\n");
+
+    fs::write(&input, bytes).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dxf);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains("ANGLE 45°"),
+        "SVG should contain decoded degree symbol: {svg}"
+    );
+}
+
+#[test]
+fn converts_dxf_dimension_leader_and_negative_layer() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("dim_leader.dxf");
+    let output = temporary.path().join("output");
+
+    let dxf_data = r#"  0
+SECTION
+  2
+TABLES
+  0
+TABLE
+  2
+LAYER
+  0
+LAYER
+  2
+VisibleLayer
+ 70
+0
+ 62
+3
+  6
+CONTINUOUS
+  0
+LAYER
+  2
+HiddenLayer
+ 70
+0
+ 62
+-1
+  6
+CONTINUOUS
+  0
+ENDTAB
+  0
+ENDSEC
+  0
+SECTION
+  2
+BLOCKS
+  0
+BLOCK
+  8
+VisibleLayer
+  2
+*D0
+ 70
+1
+ 10
+0.0
+ 20
+0.0
+  0
+LINE
+  8
+VisibleLayer
+ 10
+10.0
+ 20
+10.0
+ 11
+100.0
+ 21
+10.0
+  0
+MTEXT
+  8
+VisibleLayer
+ 10
+50.0
+ 20
+15.0
+ 40
+5.0
+  1
+90.00mm
+  0
+ENDBLK
+  0
+ENDSEC
+  0
+SECTION
+  2
+ENTITIES
+  0
+DIMENSION
+  8
+VisibleLayer
+  2
+*D0
+ 10
+0.0
+ 20
+0.0
+ 11
+50.0
+ 21
+15.0
+  0
+LEADER
+  8
+VisibleLayer
+ 76
+3
+ 10
+20.0
+ 20
+20.0
+ 10
+30.0
+ 20
+35.0
+ 10
+50.0
+ 20
+35.0
+  0
+LINE
+  8
+HiddenLayer
+ 10
+999.0
+ 20
+999.0
+ 11
+1999.0
+ 21
+1999.0
+  0
+ENDSEC
+  0
+EOF
+"#;
+    fs::write(&input, dxf_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dxf);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Block *D0 expanded from DIMENSION
+    assert!(svg.contains("90.00mm"));
+    // Leader line rendered
+    assert!(svg.contains("id=\"layer-VisibleLayer\""));
+    // HiddenLayer must not be rendered
+    assert!(!svg.contains("id=\"layer-HiddenLayer\""));
+}
+
+#[test]
+fn converts_gerber_arc_interpolation_and_plated_holes() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("circuit.gbr");
+    let output = temporary.path().join("output");
+
+    let gbr_data = r#"%FSLAX25Y25*%
+%MOMM*%
+%ADD10C,0.20000*%
+%ADD12C,1.50000X0.70000*%
+D10*
+X0000000Y0000000D02*
+G02*
+X0050000Y0050000I0050000J0000000D01*
+G01*
+D12*
+X0100000Y0100000D03*
+%LPC*%
+X0080000Y0080000D03*
+%LPD*%
+M02*
+"#;
+    fs::write(&input, gbr_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Gerber);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Gerber arc uses SVG A command
+    assert!(svg.contains(" A "));
+    // Plated hole pad renders hole cutout in background substrate color #143d22
+    assert!(svg.contains("#143d22"));
+    // Copper color is present
+    assert!(svg.contains("#e8be38"));
+}
+
+#[test]
+fn converts_hpgl_labels_and_rectangles_through_cli() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("plot.plt");
+    let output = temporary.path().join("output");
+
+    let plt_data = "IN;SP1;PU100,100;PD1000,100;EA2000,1500;PU500,500;RA1200,800;LBENGINEERING DRAWING REV 2\x03;SP0;";
+    fs::write(&input, plt_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Hpgl);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ENGINEERING DRAWING REV 2"));
+    assert!(svg.contains("pen-1"));
+}
+
+#[test]
+fn converts_gcode_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("mill.nc");
+    let output = temporary.path().join("output");
+
+    let gcode_data = r#"G21 G90
+G00 X10.0 Y10.0 Z5.0
+M03 S1500
+G01 Z-2.0 F250
+G01 X50.0 Y10.0 F800
+G02 X70.0 Y30.0 R20.0
+G01 X70.0 Y60.0
+M05
+G00 Z10.0
+M02
+"#;
+    fs::write(&input, gcode_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Gcode);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"cam:workspace\""));
+    assert!(svg.contains("data-semantic-role=\"gcode:rapid\""));
+    assert!(svg.contains("data-semantic-role=\"gcode:cut\""));
+}
+
+#[test]
+fn converts_excellon_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("board.drl");
+    let output = temporary.path().join("output");
+
+    let excellon_data = r#"M48
+METRIC
+T01C0.8
+T02C1.2
+%
+T01
+X10.0Y15.0
+X30.0Y15.0
+T02
+X20.0Y35.0
+M30
+"#;
+    fs::write(&input, excellon_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Excellon);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"pcb:substrate\""));
+    assert!(svg.contains("data-semantic-role=\"pcb:drill-holes\""));
+}
+
+#[test]
+fn converts_stl_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("bracket.stl");
+    let output = temporary.path().join("output");
+
+    let stl_data = r#"solid bracket
+  facet normal 0 0 1
+    outer loop
+      vertex 0 0 5
+      vertex 40 0 5
+      vertex 40 30 5
+    endloop
+  endfacet
+  facet normal 0 -1 0
+    outer loop
+      vertex 0 0 0
+      vertex 40 0 0
+      vertex 40 0 10
+    endloop
+  endfacet
+endsolid bracket
+"#;
+    fs::write(&input, stl_data).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Stl);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("STL Slicer"));
+    assert!(svg.contains("data-semantic-role=\"stl:background\""));
+}
+
+#[test]
+fn converts_simulation_msh_and_vtk_files_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let msh_input = temporary.path().join("fem.msh");
+    let vtk_input = temporary.path().join("thermal.vtk");
+    let msh_out = temporary.path().join("out_msh");
+    let vtk_out = temporary.path().join("out_vtk");
+
+    let msh_data = r#"$MeshFormat
+2.2 0 8
+$EndMeshFormat
+$Nodes
+3
+1 0.0 0.0 0.0
+2 100.0 0.0 0.0
+3 50.0 80.0 0.0
+$EndNodes
+$Elements
+1
+1 2 2 0 1 1 2 3
+$EndElements
+"#;
+    fs::write(&msh_input, msh_data).unwrap();
+
+    let report = convert_path(&msh_input, &msh_out, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Simulation);
+    let msh_svg = fs::read_to_string(msh_out.join("page-0001.svg")).unwrap();
+    assert!(msh_svg.contains("data-semantic-role=\"simulation:mesh\""));
+
+    let vtk_data = r#"# vtk DataFile Version 3.0
+Thermal Simulation
+ASCII
+DATASET UNSTRUCTURED_GRID
+POINTS 3 float
+0.0 0.0 0.0
+100.0 0.0 0.0
+50.0 80.0 0.0
+CELLS 1 4
+3 0 1 2
+POINT_DATA 3
+SCALARS temperature float 1
+LOOKUP_TABLE default
+20.0 85.0 150.0
+"#;
+    fs::write(&vtk_input, vtk_data).unwrap();
+
+    let vtk_report = convert_path(&vtk_input, &vtk_out, &ConvertOptions::default()).unwrap();
+    assert_eq!(vtk_report.source_format, SourceFormat::Simulation);
+    let vtk_svg = fs::read_to_string(vtk_out.join("page-0001.svg")).unwrap();
+    assert!(vtk_svg.contains("colorbar-max"));
+}
+
+#[test]
+fn converts_step_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let step_input = temporary.path().join("model.step");
+    let out_dir = temporary.path().join("step_out");
+
+    let step_data = r#"
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('STEP test'),'2;1');
+FILE_NAME('test.step','2026-09-10',('Engineer'),('Testing'),'','','');
+FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));
+ENDSEC;
+DATA;
+#1 = CARTESIAN_POINT('', (0.0, 0.0, 0.0));
+#2 = CARTESIAN_POINT('', (100.0, 0.0, 0.0));
+#3 = CARTESIAN_POINT('', (50.0, 100.0, 50.0));
+#10 = VERTEX_POINT('', #1);
+#11 = VERTEX_POINT('', #2);
+#12 = VERTEX_POINT('', #3);
+#20 = EDGE_CURVE('', #10, #11, #0, .T.);
+#21 = EDGE_CURVE('', #11, #12, #0, .T.);
+#22 = EDGE_CURVE('', #12, #10, #0, .T.);
+ENDSEC;
+END-ISO-10303-21;
+"#;
+    fs::write(&step_input, step_data).unwrap();
+
+    let report = convert_path(&step_input, &out_dir, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Step);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"step:wireframe\""));
+    assert!(svg.contains("STEP ISO 10303-21"));
+}
+
+#[test]
+fn converts_obj_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let obj_input = temporary.path().join("model.obj");
+    let out_dir = temporary.path().join("obj_out");
+
+    let obj_data = r#"
+# Cube OBJ
+v 0 0 0
+v 10 0 0
+v 10 10 0
+v 0 10 0
+v 0 0 10
+v 10 0 10
+v 10 10 10
+v 0 10 10
+
+f 1 2 3 4
+f 5 6 7 8
+f 1 2 6 5
+f 2 3 7 6
+f 3 4 8 7
+f 4 1 5 8
+"#;
+    fs::write(&obj_input, obj_data).unwrap();
+
+    let report = convert_path(&obj_input, &out_dir, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Obj);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"obj:mesh\""));
+    assert!(svg.contains("data-semantic-role=\"obj:background\""));
+}
+
+#[test]
+fn converts_ply_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let ply_input = temporary.path().join("cube.ply");
+    let out_dir = temporary.path().join("ply_out");
+
+    let ply_data = r#"ply
+format ascii 1.0
+element vertex 8
+property float x
+property float y
+property float z
+element face 6
+property list uchar int vertex_indices
+end_header
+0 0 0
+10 0 0
+10 10 0
+0 10 0
+0 0 10
+10 0 10
+10 10 10
+0 10 10
+4 0 1 2 3
+4 7 6 5 4
+4 0 4 5 1
+4 1 5 6 2
+4 2 6 7 3
+4 3 7 4 0
+"#;
+    fs::write(&ply_input, ply_data).unwrap();
+
+    let report = convert_path(&ply_input, &out_dir, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ply);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("<path id=\"face_"));
+}
+
+#[test]
+fn converts_gerber_layer_extension_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let gtl_input = temporary.path().join("board_top.gtl");
+    let out_dir = temporary.path().join("gtl_out");
+
+    let gerber_data =
+        "%FSLAX24Y24*%\n%MOIN*%\n%ADD10C,0.050*%\nD10*\nX0000Y0000D03*\nX1000Y1000D03*\nM02*\n";
+    fs::write(&gtl_input, gerber_data).unwrap();
+
+    let report = convert_path(&gtl_input, &out_dir, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Gerber);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("id=\"pcb-copper-layer\""));
+}
+
+#[test]
+fn converts_bmp_raster_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let bmp_input = temporary.path().join("test.bmp");
+    let out_dir = temporary.path().join("bmp_out");
+
+    // 2x2 24-bit uncompressed BMP: 1 black pixel, 3 white pixels
+    let mut bmp_bytes = Vec::new();
+    // File header (14 bytes)
+    bmp_bytes.extend_from_slice(b"BM");
+    let file_size: u32 = 14 + 40 + 8; // 2 rows of 2 pixels (3 bytes each + 2 bytes padding = 4 bytes per row)
+    bmp_bytes.extend_from_slice(&file_size.to_le_bytes());
+    bmp_bytes.extend_from_slice(&[0, 0, 0, 0]); // reserved
+    let offset: u32 = 54;
+    bmp_bytes.extend_from_slice(&offset.to_le_bytes());
+    // DIB header (40 bytes)
+    let dib_size: u32 = 40;
+    bmp_bytes.extend_from_slice(&dib_size.to_le_bytes());
+    let width: i32 = 2;
+    let height: i32 = 2;
+    bmp_bytes.extend_from_slice(&width.to_le_bytes());
+    bmp_bytes.extend_from_slice(&height.to_le_bytes());
+    let planes: u16 = 1;
+    let bpp: u16 = 24;
+    bmp_bytes.extend_from_slice(&planes.to_le_bytes());
+    bmp_bytes.extend_from_slice(&bpp.to_le_bytes());
+    let comp: u32 = 0; // BI_RGB
+    bmp_bytes.extend_from_slice(&comp.to_le_bytes());
+    let img_size: u32 = 8;
+    bmp_bytes.extend_from_slice(&img_size.to_le_bytes());
+    bmp_bytes.extend_from_slice(&[0; 16]); // ppm & colors
+
+    // Pixel data (bottom-up):
+    // Row 0 (bottom): (0,0,0) black, (255,255,255) white, 2 padding bytes
+    bmp_bytes.extend_from_slice(&[0, 0, 0, 255, 255, 255, 0, 0]);
+    // Row 1 (top): (255,255,255) white, (255,255,255) white, 2 padding bytes
+    bmp_bytes.extend_from_slice(&[255, 255, 255, 255, 255, 255, 0, 0]);
+
+    fs::write(&bmp_input, &bmp_bytes).unwrap();
+
+    let report = convert_path(&bmp_input, &out_dir, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Raster);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("id=\"vectorized_path\""));
+}
+
+#[test]
+fn converts_iges_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let iges_input = temporary.path().join("model.iges");
+    let out_dir = temporary.path().join("iges_out");
+
+    let iges_content = format!(
+        "{:72}S{:07}\n{:72}G{:07}\n{:72}D{:07}\n{:72}D{:07}\n{:72}P{:07}\n{:72}T{:07}\n",
+        "Sample IGES Start Section",
+        1,
+        "1H,,1H;,4HSTEP,4HFILE,16,38,6,38,15,4HSTEP,1.,1,4HINCH,1,0.01;",
+        1,
+        "     110       1       0       0       0       0       0       000000000",
+        1,
+        "     110       0       0       1       0                               0",
+        2,
+        "110,0.,0.,0.,10.,20.,30.;",
+        1,
+        "S      1G      1D      2P      1",
+        1
+    );
+    fs::write(&iges_input, iges_content).unwrap();
+
+    let report = convert_path(&iges_input, &out_dir, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Iges);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("id=\"iges_0\""));
+}
+
+#[test]
+fn converts_threemf_file_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let threemf_input = temporary.path().join("model.3mf");
+    let out_dir = temporary.path().join("threemf_out");
+
+    let file = File::create(&threemf_input).unwrap();
+    let mut zip = ZipWriter::new(file);
+    zip.start_file("3D/3dmodel.model", SimpleFileOptions::default())
+        .unwrap();
+    let model_xml = r#"<?xml version="1.0" encoding="UTF-8"?>
+<model unit="millimeter" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+  <resources>
+    <object id="1" type="model">
+      <mesh>
+        <vertices>
+          <vertex x="0" y="0" z="0" />
+          <vertex x="10" y="0" z="0" />
+          <vertex x="0" y="10" z="0" />
+        </vertices>
+        <triangles>
+          <triangle v1="0" v2="1" v3="2" />
+        </triangles>
+      </mesh>
+    </object>
+  </resources>
+</model>"#;
+    zip.write_all(model_xml.as_bytes()).unwrap();
+    zip.finish().unwrap();
+
+    let report = convert_path(&threemf_input, &out_dir, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::ThreeMf);
+    assert_eq!(report.page_count, 1);
+
+    let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("id=\"face_0\""));
 }
