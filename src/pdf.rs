@@ -2035,6 +2035,14 @@ impl Interpreter<'_, '_> {
             .get(b"ShadingType")
             .and_then(Object::as_i64)
             .unwrap_or(0);
+        if shading_type == 1 {
+            return self.function_shading_pattern_paint(
+                pattern_name,
+                pattern_dictionary,
+                shading_dictionary,
+                opacity,
+            );
+        }
         if !matches!(shading_type, 2 | 3) {
             self.page.warn(format!(
                 "PDF shading PatternType 2 uses unsupported shading type {shading_type}"
@@ -2203,6 +2211,96 @@ impl Interpreter<'_, '_> {
             })),
             pattern_clip,
         ))
+    }
+
+    /// Paints a PDF shading pattern (`PatternType 2`) whose `ShadingType` is
+    /// 1 (function-based) -- a case with no SVG gradient equivalent, unlike
+    /// the axial/radial types above. The tessellated cells (same
+    /// tessellation as the `sh` operator uses) are captured into a
+    /// [`TilingPatternDefinition`] sized to the shading's own `/Domain`,
+    /// which becomes an SVG `<pattern>` any path can reference as a fill.
+    fn function_shading_pattern_paint(
+        &mut self,
+        pattern_name: &[u8],
+        pattern_dictionary: &Dictionary,
+        shading_dictionary: &Dictionary,
+        opacity: f64,
+    ) -> Option<(Paint, Option<PatternClip>)> {
+        let function = shading_dictionary.get(b"Function").ok()?;
+        let domain = shading_dictionary
+            .get(b"Domain")
+            .and_then(Object::as_array)
+            .ok()
+            .map(|values| numbers(values, 4))
+            .filter(|values| values.len() == 4)
+            .unwrap_or_else(|| vec![0.0, 1.0, 0.0, 1.0]);
+        let color_space = shading_dictionary.get(b"ColorSpace").ok();
+        let pattern_matrix = pattern_dictionary
+            .get(b"Matrix")
+            .and_then(Object::as_array)
+            .ok()
+            .and_then(|values| matrix_operands(values))
+            .unwrap_or(IDENTITY);
+        let pattern_matrix = inverse_matrix(self.state.ctm)
+            .map(|inverse| compose(inverse, compose(self.content_base_ctm, pattern_matrix)))
+            .unwrap_or(pattern_matrix);
+        let transform_key = pattern_matrix
+            .iter()
+            .map(|value| format!("{:x}", value.to_bits()))
+            .collect::<Vec<_>>()
+            .join("-");
+        let id = format!(
+            "pdf-shading-pattern-{}-{transform_key}",
+            pattern_name
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        );
+        let opacity = opacity.clamp(0.0, 1.0);
+        if self.page.patterns.iter().any(|pattern| pattern.id == id) {
+            return Some((Paint::PatternRef { id, opacity }, None));
+        }
+        let nodes = match build_function_shading_cell_nodes(
+            self.document,
+            function,
+            &domain,
+            IDENTITY,
+            color_space,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            None,
+            self.page.number,
+            "pdf-function-pattern-cell",
+            &String::from_utf8_lossy(pattern_name),
+        ) {
+            Ok(Some(nodes)) => nodes,
+            Ok(None) => {
+                self.page.warn(format!(
+                    "PDF shading pattern {} uses an unsupported function",
+                    String::from_utf8_lossy(pattern_name)
+                ));
+                return None;
+            }
+            Err(error) => {
+                self.page.warn(format!(
+                    "PDF shading pattern {} was skipped: {error}",
+                    String::from_utf8_lossy(pattern_name)
+                ));
+                return None;
+            }
+        };
+        self.page.patterns.push(TilingPatternDefinition {
+            id: id.clone(),
+            x: domain[0],
+            y: domain[2],
+            width: (domain[1] - domain[0]).abs().max(1e-6),
+            height: (domain[3] - domain[2]).abs().max(1e-6),
+            transform: pattern_matrix,
+            nodes,
+        });
+        Some((Paint::PatternRef { id, opacity }, None))
     }
 
     fn tiling_pattern_paint(
@@ -4022,12 +4120,9 @@ impl Interpreter<'_, '_> {
             let states = members
                 .iter()
                 .filter_map(|member| {
-                    self.document
-                        .dereference(member)
-                        .ok()
-                        .map(|(_, resolved)| {
-                            self.is_oc_visible(member.as_reference().ok(), &resolved)
-                        })
+                    self.document.dereference(member).ok().map(|(_, resolved)| {
+                        self.is_oc_visible(member.as_reference().ok(), resolved)
+                    })
                 })
                 .collect::<Vec<_>>();
             return match policy {
@@ -4048,7 +4143,7 @@ impl Interpreter<'_, '_> {
             return true;
         };
         match self.document.dereference(reference) {
-            Ok((_, resolved)) => self.is_oc_visible(reference.as_reference().ok(), &resolved),
+            Ok((_, resolved)) => self.is_oc_visible(reference.as_reference().ok(), resolved),
             Err(_) => true,
         }
     }
@@ -4288,31 +4383,6 @@ impl Interpreter<'_, '_> {
             .and_then(|values| matrix_operands(values))
             .unwrap_or(IDENTITY);
         let transform = compose(compose(self.page_matrix, self.state.ctm), shading_matrix);
-        let field = FunctionShadingField {
-            document: self.document,
-            function,
-            transform,
-        };
-        let root = FunctionShadingBounds {
-            x0: domain[0],
-            x1: domain[1],
-            y0: domain[2],
-            y1: domain[3],
-        };
-        const MAX_CELLS: usize = 100_000;
-        let mut cells = Vec::new();
-        if !adaptive_function_shading_cells(&field, root, 0, &mut cells, MAX_CELLS) {
-            self.page.warn(format!(
-                "PDF function shading {} uses an unsupported function",
-                String::from_utf8_lossy(name)
-            ));
-            return Ok(());
-        }
-        if cells.len() >= MAX_CELLS {
-            return Err(Error::LimitExceeded(format!(
-                "PDF function shading exceeds {MAX_CELLS} vector cells"
-            )));
-        }
         let color_space = dictionary.get(b"ColorSpace").ok();
         let mut clip_id = self.state.clip_id.clone();
         if let Ok(bbox) = dictionary.get(b"BBox").and_then(Object::as_array) {
@@ -4331,34 +4401,30 @@ impl Interpreter<'_, '_> {
                 clip_id = Some(id);
             }
         }
-        for (index, cell) in cells.into_iter().enumerate() {
-            self.node_counter += 1;
-            self.page.nodes.push(Node::Path {
-                id: format!("pdf-function-cell-{}-{}", self.page.number, index + 1),
-                d: quadrilateral_path(cell.points),
-                fill_rule: "nonzero".into(),
-                fill: Paint::Solid {
-                    color: components_to_color(self.document, color_space, &cell.components),
-                    opacity: self.state.fill_alpha,
-                },
-                stroke: Stroke::default(),
-                transform: IDENTITY,
-                clip_id: clip_id.clone(),
-                meta: SourceMeta {
-                    kind: "function-shading-cell".into(),
-                    source_id: format!(
-                        "page:{}:shading:{}",
-                        self.page.number,
-                        String::from_utf8_lossy(name)
-                    ),
-                    blend_mode: self.state.blend_mode.clone(),
-                    mask_id: self.state.mask_id.clone().unwrap_or_default(),
-                    alpha_is_shape: self.state.alpha_is_shape,
-                    shape_rendering: "crispEdges".into(),
-                    ..SourceMeta::default()
-                },
-            });
-        }
+        let nodes = build_function_shading_cell_nodes(
+            self.document,
+            function,
+            &domain,
+            transform,
+            color_space,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            clip_id,
+            self.page.number,
+            "pdf-function-cell",
+            &String::from_utf8_lossy(name),
+        )?;
+        let Some(nodes) = nodes else {
+            self.page.warn(format!(
+                "PDF function shading {} uses an unsupported function",
+                String::from_utf8_lossy(name)
+            ));
+            return Ok(());
+        };
+        self.node_counter += nodes.len();
+        self.page.nodes.extend(nodes);
         Ok(())
     }
 
@@ -6304,6 +6370,83 @@ impl FunctionShadingField<'_> {
     fn point(&self, x: f64, y: f64) -> (f64, f64) {
         transform_point(self.transform, x, y)
     }
+}
+
+/// Tessellates a PDF ShadingType 1 (function-based) shading into flat-color
+/// quadrilateral cells, positioned by `transform`.
+///
+/// Shared by the `sh` operator (`transform` bakes in the full device
+/// transform, and cells land directly on the page) and a shading *pattern*
+/// filling a path (`transform` covers only the shading's own space, so the
+/// cells stay in pattern-content space for a [`crate::ir::TilingPatternDefinition`]
+/// to position later).
+///
+/// `Ok(None)` means the function could not be evaluated (the caller warns
+/// with call-site-specific wording); `Err` is a genuine resource limit.
+#[allow(clippy::too_many_arguments)]
+fn build_function_shading_cell_nodes(
+    document: &Document,
+    function: &Object,
+    domain: &[f64],
+    transform: Matrix,
+    color_space: Option<&Object>,
+    fill_alpha: f64,
+    blend_mode: &str,
+    mask_id: &str,
+    alpha_is_shape: bool,
+    clip_id: Option<String>,
+    page_number: usize,
+    id_prefix: &str,
+    source_name: &str,
+) -> Result<Option<Vec<Node>>> {
+    let field = FunctionShadingField {
+        document,
+        function,
+        transform,
+    };
+    let root = FunctionShadingBounds {
+        x0: domain[0],
+        x1: domain[1],
+        y0: domain[2],
+        y1: domain[3],
+    };
+    const MAX_CELLS: usize = 100_000;
+    let mut cells = Vec::new();
+    if !adaptive_function_shading_cells(&field, root, 0, &mut cells, MAX_CELLS) {
+        return Ok(None);
+    }
+    if cells.len() >= MAX_CELLS {
+        return Err(Error::LimitExceeded(format!(
+            "PDF function shading exceeds {MAX_CELLS} vector cells"
+        )));
+    }
+    Ok(Some(
+        cells
+            .into_iter()
+            .enumerate()
+            .map(|(index, cell)| Node::Path {
+                id: format!("{id_prefix}-{page_number}-{}", index + 1),
+                d: quadrilateral_path(cell.points),
+                fill_rule: "nonzero".into(),
+                fill: Paint::Solid {
+                    color: components_to_color(document, color_space, &cell.components),
+                    opacity: fill_alpha,
+                },
+                stroke: Stroke::default(),
+                transform: IDENTITY,
+                clip_id: clip_id.clone(),
+                meta: SourceMeta {
+                    kind: "function-shading-cell".into(),
+                    source_id: format!("page:{page_number}:shading:{source_name}"),
+                    blend_mode: blend_mode.into(),
+                    mask_id: mask_id.into(),
+                    alpha_is_shape,
+                    shape_rendering: "crispEdges".into(),
+                    ..SourceMeta::default()
+                },
+            })
+            .collect(),
+    ))
 }
 
 fn adaptive_function_shading_cells(

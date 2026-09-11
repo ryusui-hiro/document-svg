@@ -152,7 +152,9 @@ fn does_not_warn_about_a_type0_font_that_uses_identity_h_encoding() {
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
     let warnings = &report.pages[0].warnings;
     assert!(
-        !warnings.iter().any(|warning| warning.contains("non-Identity")),
+        !warnings
+            .iter()
+            .any(|warning| warning.contains("non-Identity")),
         "{warnings:?}"
     );
 }
@@ -194,10 +196,20 @@ fn renders_annotation_appearance_streams_but_skips_link_and_hidden() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("annotations.pdf");
     let mut document = Document::with_version("1.7");
-    let visible_widget =
-        add_appearance_annotation(&mut document, "Widget", [100, 100, 150, 120], [0.0, 0.0, 1.0], None);
-    let visible_text =
-        add_appearance_annotation(&mut document, "Text", [100, 200, 150, 220], [0.0, 1.0, 0.0], None);
+    let visible_widget = add_appearance_annotation(
+        &mut document,
+        "Widget",
+        [100, 100, 150, 120],
+        [0.0, 0.0, 1.0],
+        None,
+    );
+    let visible_text = add_appearance_annotation(
+        &mut document,
+        "Text",
+        [100, 200, 150, 220],
+        [0.0, 1.0, 0.0],
+        None,
+    );
     let hidden_widget = add_appearance_annotation(
         &mut document,
         "Widget",
@@ -248,8 +260,10 @@ fn hides_content_in_an_optional_content_group_that_is_off_by_default() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("ocg.pdf");
     let mut document = Document::with_version("1.7");
-    let visible_ocg = document.add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Visible") });
-    let hidden_ocg = document.add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Hidden") });
+    let visible_ocg = document
+        .add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Visible") });
+    let hidden_ocg = document
+        .add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Hidden") });
     let content = document.add_object(Stream::new(
         dictionary! {},
         b"q /OC /VisG BDC 0 1 0 rg 20 20 100 100 re f EMC Q\nq /OC /HidG BDC 1 0 0 rg 150 20 100 100 re f EMC Q\n".to_vec(),
@@ -283,6 +297,60 @@ fn hides_content_in_an_optional_content_group_that_is_off_by_default() {
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("#00FF00"), "{svg}");
     assert!(!svg.contains("#FF0000"), "{svg}");
+}
+
+#[test]
+fn fills_a_path_with_a_function_based_shading_pattern() {
+    // A shading pattern (PatternType 2) has no SVG gradient equivalent once
+    // its ShadingType is 1 (function-based) rather than 2/3 (axial/radial):
+    // the fill silently disappeared. Tessellate it into an SVG <pattern>
+    // instead, the same way the sh operator already tessellates one.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("function-pattern.pdf");
+    let mut document = Document::with_version("1.7");
+    let function = document.add_object(Stream::new(
+        dictionary! {
+            "FunctionType" => 4,
+            "Domain" => vec![0.into(), 200.into(), 0.into(), 200.into()],
+            "Range" => vec![0.into(), 1.into(), 0.into(), 1.into(), 0.into(), 1.into()],
+        },
+        b"{ 200 div exch 200 div exch 0.5 }".to_vec(),
+    ));
+    let shading = dictionary! {
+        "ShadingType" => 1, "ColorSpace" => "DeviceRGB",
+        "Domain" => vec![0.into(), 200.into(), 0.into(), 200.into()],
+        "Function" => function,
+    };
+    let pattern = document.add_object(dictionary! {
+        "Type" => "Pattern", "PatternType" => 2, "Shading" => shading,
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"/Pattern cs /P0 scn 20 20 160 160 re f\n".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 200.into()],
+        "Resources" => dictionary! { "Pattern" => dictionary! { "P0" => pattern } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("<pattern"), "{svg}");
+    assert!(svg.contains("data-content-kind=\"function-shading-cell\""), "{svg}");
+    assert!(svg.contains("fill=\"url(#"), "{svg}");
 }
 
 #[test]
