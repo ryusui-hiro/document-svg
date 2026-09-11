@@ -240,6 +240,52 @@ fn renders_annotation_appearance_streams_but_skips_link_and_hidden() {
 }
 
 #[test]
+fn hides_content_in_an_optional_content_group_that_is_off_by_default() {
+    // A PDF layer (Optional Content Group) that the document's own default
+    // configuration turns off must not appear, the same way no viewer would
+    // show it -- CAD- and GIS-exported PDFs commonly ship several such
+    // layers, on by default or not.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("ocg.pdf");
+    let mut document = Document::with_version("1.7");
+    let visible_ocg = document.add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Visible") });
+    let hidden_ocg = document.add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Hidden") });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"q /OC /VisG BDC 0 1 0 rg 20 20 100 100 re f EMC Q\nq /OC /HidG BDC 1 0 0 rg 150 20 100 100 re f EMC Q\n".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 300.into(), 200.into()],
+        "Resources" => dictionary! {
+            "Properties" => dictionary! { "VisG" => visible_ocg, "HidG" => hidden_ocg },
+        },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! {
+        "Type" => "Catalog", "Pages" => pages,
+        "OCProperties" => dictionary! {
+            "OCGs" => vec![Object::Reference(visible_ocg), Object::Reference(hidden_ocg)],
+            "D" => dictionary! { "OFF" => vec![Object::Reference(hidden_ocg)] },
+        },
+    });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("#00FF00"), "{svg}");
+    assert!(!svg.contains("#FF0000"), "{svg}");
+}
+
+#[test]
 fn keeps_invisible_text_selectable_instead_of_dropping_it() {
     // Rendering mode 3 (invisible) is how a searchable scanned PDF hides its
     // OCR text layer behind the scanned image: nothing should paint, but

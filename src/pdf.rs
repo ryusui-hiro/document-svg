@@ -157,6 +157,9 @@ fn render_page(
         visited_forms: HashSet::new(),
         visited_patterns: HashSet::new(),
         mesh_output_count: Rc::new(Cell::new(0)),
+        hidden_ocgs: hidden_optional_content_groups(document),
+        marked_content_hidden: false,
+        marked_content_stack: Vec::new(),
         content_limit,
         outline_embedded_pdf_text,
     };
@@ -1566,6 +1569,9 @@ struct Interpreter<'a, 'page> {
     visited_forms: HashSet<ObjectId>,
     visited_patterns: HashSet<ObjectId>,
     mesh_output_count: Rc<Cell<usize>>,
+    hidden_ocgs: HashSet<ObjectId>,
+    marked_content_hidden: bool,
+    marked_content_stack: Vec<bool>,
     content_limit: usize,
     outline_embedded_pdf_text: bool,
 }
@@ -1814,12 +1820,38 @@ impl Interpreter<'_, '_> {
             "ID" | "EI" => {}
             "ET" => self.apply_pending_text_clips(),
             "T_s" | "T_w" | "T_L" | "T_c" => {}
+            "BDC" => {
+                let tag = name(operands.first()).unwrap_or_default();
+                let hidden_here = if tag == b"OC" {
+                    match operands.get(1) {
+                        Some(Object::Name(property_name)) => self
+                            .lookup_named_resource_with_id(b"Properties", property_name)
+                            .is_some_and(|(object_id, object)| {
+                                !self.is_oc_visible(object_id, &object)
+                            }),
+                        Some(dictionary_operand @ Object::Dictionary(_)) => {
+                            !self.is_oc_visible(None, dictionary_operand)
+                        }
+                        _ => false,
+                    }
+                } else {
+                    false
+                };
+                let now_hidden = self.marked_content_hidden || hidden_here;
+                self.marked_content_stack.push(now_hidden);
+                self.marked_content_hidden = now_hidden;
+            }
+            "BMC" => {
+                self.marked_content_stack.push(self.marked_content_hidden);
+            }
+            "EMC" => {
+                self.marked_content_stack.pop();
+                self.marked_content_hidden =
+                    self.marked_content_stack.last().copied().unwrap_or(false);
+            }
             unsupported
                 if self.compatibility_depth == 0
-                    && !matches!(
-                        unsupported,
-                        "ri" | "i" | "d0" | "d1" | "BMC" | "BDC" | "EMC" | "MP" | "DP"
-                    ) =>
+                    && !matches!(unsupported, "ri" | "i" | "d0" | "d1" | "MP" | "DP") =>
             {
                 self.page
                     .warn(format!("PDF operator {unsupported} is not yet implemented"));
@@ -2357,6 +2389,9 @@ impl Interpreter<'_, '_> {
             visited_forms: self.visited_forms.clone(),
             visited_patterns: self.visited_patterns.clone(),
             mesh_output_count: Rc::clone(&self.mesh_output_count),
+            hidden_ocgs: self.hidden_ocgs.clone(),
+            marked_content_hidden: false,
+            marked_content_stack: Vec::new(),
             content_limit: self.content_limit,
             outline_embedded_pdf_text: self.outline_embedded_pdf_text,
         };
@@ -2475,6 +2510,9 @@ impl Interpreter<'_, '_> {
         }
         let d = self.path.take();
         self.install_clip(&d);
+        if self.marked_content_hidden {
+            return;
+        }
         let pattern_clip = self.selected_pattern_clip(fill, stroke);
         let clip_id = self.install_pattern_bbox_clip(pattern_clip);
         self.node_counter += 1;
@@ -2586,6 +2624,10 @@ impl Interpreter<'_, '_> {
                 "font {} required replacement glyphs while decoding text",
                 String::from_utf8_lossy(&self.text.font_name)
             ));
+        }
+        if self.marked_content_hidden {
+            self.advance_text_bytes(bytes, &text);
+            return;
         }
         if let Some(type3) = decoder.and_then(|decoder| decoder.type3.clone()) {
             // A CharProc always paints, so mode 3 (invisible) is the one
@@ -2951,6 +2993,9 @@ impl Interpreter<'_, '_> {
                 visited_forms: self.visited_forms.clone(),
                 visited_patterns: self.visited_patterns.clone(),
                 mesh_output_count: Rc::clone(&self.mesh_output_count),
+                hidden_ocgs: self.hidden_ocgs.clone(),
+                marked_content_hidden: false,
+                marked_content_stack: Vec::new(),
                 content_limit: self.content_limit,
                 outline_embedded_pdf_text: self.outline_embedded_pdf_text,
             };
@@ -3052,6 +3097,9 @@ impl Interpreter<'_, '_> {
             ));
             return Ok(());
         };
+        if self.marked_content_hidden || !self.xobject_oc_visible(&stream.dict) {
+            return Ok(());
+        }
         let subtype = stream
             .dict
             .get(b"Subtype")
@@ -3367,6 +3415,9 @@ impl Interpreter<'_, '_> {
     /// renderable, so decoding problems are recorded as page warnings and the
     /// image is skipped. See [`Self::draw_image_inner`] for the decode itself.
     fn draw_image(&mut self, stream: &Stream, name: &[u8]) -> Result<()> {
+        if self.marked_content_hidden {
+            return Ok(());
+        }
         match self.draw_image_inner(stream, name) {
             Ok(()) => Ok(()),
             // Every failure below is local to this image's bytes: the stream is
@@ -3942,7 +3993,70 @@ impl Interpreter<'_, '_> {
         None
     }
 
+    /// Whether an already-resolved optional content group or membership
+    /// dictionary is visible under this document's default configuration.
+    fn is_oc_visible(&self, object_id: Option<ObjectId>, object: &Object) -> bool {
+        let Ok(dictionary) = object.as_dict() else {
+            return true;
+        };
+        let type_name = dictionary
+            .get(b"Type")
+            .and_then(Object::as_name)
+            .unwrap_or_default();
+        if type_name == b"OCMD" {
+            let policy = dictionary
+                .get(b"P")
+                .and_then(Object::as_name)
+                .unwrap_or(b"AnyOn");
+            let members = dictionary
+                .get(b"OCGs")
+                .ok()
+                .map(|value| match value {
+                    Object::Array(items) => items.clone(),
+                    other => vec![other.clone()],
+                })
+                .unwrap_or_default();
+            if members.is_empty() {
+                return true;
+            }
+            let states = members
+                .iter()
+                .filter_map(|member| {
+                    self.document
+                        .dereference(member)
+                        .ok()
+                        .map(|(_, resolved)| {
+                            self.is_oc_visible(member.as_reference().ok(), &resolved)
+                        })
+                })
+                .collect::<Vec<_>>();
+            return match policy {
+                b"AllOn" => states.iter().all(|visible| *visible),
+                b"AnyOff" => states.iter().any(|visible| !*visible),
+                b"AllOff" => states.iter().all(|visible| !*visible),
+                _ => states.iter().any(|visible| *visible),
+            };
+        }
+        object_id.is_none_or(|id| !self.hidden_ocgs.contains(&id))
+    }
+
+    /// Whether an XObject's own `/OC` entry (as opposed to a `BDC /OC`
+    /// marked-content wrapper around the `Do` that draws it) keeps it
+    /// visible.
+    fn xobject_oc_visible(&self, dictionary: &Dictionary) -> bool {
+        let Ok(reference) = dictionary.get(b"OC") else {
+            return true;
+        };
+        match self.document.dereference(reference) {
+            Ok((_, resolved)) => self.is_oc_visible(reference.as_reference().ok(), &resolved),
+            Err(_) => true,
+        }
+    }
+
     fn draw_shading(&mut self, name: &[u8]) -> Result<()> {
+        if self.marked_content_hidden {
+            return Ok(());
+        }
         let Some(shading) = self.lookup_named_resource(b"Shading", name) else {
             self.page.warn(format!(
                 "PDF shading {} was not found",
@@ -4713,6 +4827,9 @@ impl Interpreter<'_, '_> {
             visited_forms: self.visited_forms.clone(),
             visited_patterns: self.visited_patterns.clone(),
             mesh_output_count: Rc::clone(&self.mesh_output_count),
+            hidden_ocgs: self.hidden_ocgs.clone(),
+            marked_content_hidden: false,
+            marked_content_stack: Vec::new(),
             content_limit: self.content_limit,
             outline_embedded_pdf_text: self.outline_embedded_pdf_text,
         };
@@ -7558,6 +7675,57 @@ fn quadrilateral_path(points: [(f64, f64); 4]) -> String {
         fmt(points[3].0),
         fmt(points[3].1),
     )
+}
+
+/// The optional content groups a document's default configuration hides.
+///
+/// Per PDF 32000-1:2008 8.11.4.3, `/OCProperties /D /BaseState` (default
+/// `/ON`) sets every group's starting state, and `/ON`/`/OFF` name the
+/// exceptions to it -- so under the (overwhelmingly common) default
+/// `BaseState`, only `/OFF` matters, while a `BaseState` of `/OFF` hides
+/// every group except those `/ON` names.
+fn hidden_optional_content_groups(document: &Document) -> HashSet<ObjectId> {
+    let Some(configuration) = document
+        .catalog()
+        .ok()
+        .and_then(|catalog| catalog.get_deref(b"OCProperties", document).ok())
+        .and_then(|value| value.as_dict().ok())
+        .and_then(|properties| properties.get_deref(b"D", document).ok())
+        .and_then(|value| value.as_dict().ok())
+    else {
+        return HashSet::new();
+    };
+    let object_ids = |key: &[u8]| -> HashSet<ObjectId> {
+        configuration
+            .get(key)
+            .and_then(Object::as_array)
+            .ok()
+            .into_iter()
+            .flatten()
+            .filter_map(|value| value.as_reference().ok())
+            .collect()
+    };
+    let all_off = configuration
+        .get(b"BaseState")
+        .and_then(Object::as_name)
+        .ok()
+        == Some(b"OFF");
+    if all_off {
+        let all_groups = document
+            .catalog()
+            .ok()
+            .and_then(|catalog| catalog.get_deref(b"OCProperties", document).ok())
+            .and_then(|value| value.as_dict().ok())
+            .and_then(|properties| properties.get(b"OCGs").and_then(Object::as_array).ok())
+            .into_iter()
+            .flatten()
+            .filter_map(|value| value.as_reference().ok())
+            .collect::<HashSet<_>>();
+        let visible = object_ids(b"ON");
+        all_groups.difference(&visible).copied().collect()
+    } else {
+        object_ids(b"OFF")
+    }
 }
 
 fn inherited_page_array(
