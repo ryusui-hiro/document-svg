@@ -1351,10 +1351,15 @@ impl FontDecoder {
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
         for code in bytes {
-            let (decoded, replacement) = self.decode(&[*code]);
-            if replacement {
-                return Err("font code could not be mapped to text");
-            }
+            // A ToUnicode CMap that has no entry for this code (`replacement`)
+            // only means text extraction can't recover its Unicode value --
+            // it says nothing about whether the glyph itself exists. Many
+            // Type1 fonts (TeX math fonts, ligature glyphs) have codes with
+            // a real, drawable glyph but no sensible Unicode equivalent, so
+            // glyph selection is attempted via the font's own encoding
+            // below regardless, and only reported as unresolvable if that
+            // also fails.
+            let (decoded, _replacement) = self.decode(&[*code]);
             has_visible_character |= decoded.chars().any(|character| !character.is_whitespace());
             let glyph_name = self
                 .glyph_names
@@ -1412,10 +1417,13 @@ impl FontDecoder {
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
         for code in bytes {
-            let (decoded, replacement) = self.decode(&[*code]);
-            if replacement {
-                return Err("CFF character code could not be mapped to text");
-            }
+            // A ToUnicode CMap gap (`replacement`) means text extraction
+            // can't recover this code's Unicode value, not that the glyph
+            // is missing: math and symbol CFF fonts routinely carry glyphs
+            // with no sensible Unicode equivalent. Glyph selection below
+            // uses the font's own charset/encoding first regardless, and
+            // this is only reported as unresolvable if that also fails.
+            let (decoded, _replacement) = self.decode(&[*code]);
             has_visible_character |= decoded.chars().any(|character| !character.is_whitespace());
             let glyph_id = self
                 .glyph_names
@@ -9505,6 +9513,39 @@ mod tests {
             font_data: None,
             glyph_names: HashMap::from([(65, "A".into())]),
             unicode_map: HashMap::from([(vec![65], "A".into())]),
+            code_lengths: vec![1],
+            fallback_kind: FontFallback::OneByte,
+            widths: HashMap::from([(65, 500.0)]),
+            default_width: 500.0,
+            type3: None,
+            type1: Type1Cache::default(),
+        };
+        let path = decoder
+            .outline_cff(&minimal_test_cff(), b"A", 0.0, 0.0)
+            .unwrap();
+        assert!(path.contains("M 0 0"));
+        assert!(path.matches('L').count() >= 3);
+    }
+
+    #[test]
+    fn outlines_a_cff_glyph_whose_code_has_no_tounicode_entry() {
+        // Real-world regression: math/symbol CFF fonts (pdf.js's
+        // font_ascent_descent.pdf, cid_cff.pdf) commonly carry codes with a
+        // real, drawable glyph but no sensible Unicode equivalent, so their
+        // ToUnicode CMap simply omits them. A code missing from ToUnicode
+        // only means text extraction can't recover its Unicode value -- it
+        // says nothing about whether the glyph exists, and the font's own
+        // /Differences encoding (`glyph_names`) still resolves it directly.
+        let decoder = FontDecoder {
+            family: "Test CFF Gap".into(),
+            bold: false,
+            italic: false,
+            requires_outline: true,
+            font_data: None,
+            glyph_names: HashMap::from([(65, "A".into())]),
+            // Unicode_map is non-empty (so decode() actually consults it)
+            // but has no entry for code 65 -- the gap this test exercises.
+            unicode_map: HashMap::from([(vec![66], "B".into())]),
             code_lengths: vec![1],
             fallback_kind: FontFallback::OneByte,
             widths: HashMap::from([(65, 500.0)]),
