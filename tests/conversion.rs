@@ -868,6 +868,76 @@ fn normalizes_inverted_pdf_cmyk_jpeg_to_rgb() {
 }
 
 #[test]
+fn draws_a_jpeg_image_whose_filter_chain_wraps_it_in_an_outer_flate_layer() {
+    // Real-world regression (pdf.js's own comments.pdf): a stream's
+    // /Filter can be an array that wraps an image codec filter in an
+    // outer, ordinary compression filter -- /Filter [/FlateDecode
+    // /DCTDecode] is legal and appears in real files, using Flate for a
+    // little extra compression on top of the JPEG. The still-Flate-
+    // compressed bytes are not a JPEG stream themselves, so handing them
+    // directly to the JPEG decoder failed immediately with "first two
+    // bytes are not an SOI marker" and the image (here, with an SMask)
+    // was skipped entirely.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("flate-wrapped-jpeg.pdf");
+    let output = temporary.path().join("out");
+    let mut jpeg = Vec::new();
+    jpeg_encoder::Encoder::new(&mut jpeg, 100)
+        .encode(&[200, 40, 40], 1, 1, jpeg_encoder::ColorType::Rgb)
+        .unwrap();
+    let mut flate_encoder =
+        flate2::write::ZlibEncoder::new(Vec::new(), flate2::Compression::default());
+    flate_encoder.write_all(&jpeg).unwrap();
+    let flate_wrapped_jpeg = flate_encoder.finish().unwrap();
+    let mut document = Document::with_version("1.7");
+    let mask_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Image",
+            "Width" => 1, "Height" => 1,
+            "ColorSpace" => "DeviceGray", "BitsPerComponent" => 8,
+        },
+        vec![255],
+    ));
+    let image_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Image",
+            "Width" => 1, "Height" => 1,
+            "ColorSpace" => "DeviceRGB", "BitsPerComponent" => 8,
+            "Filter" => vec![Object::Name(b"FlateDecode".to_vec()), Object::Name(b"DCTDecode".to_vec())],
+            "SMask" => Object::Reference(mask_id),
+        },
+        flate_wrapped_jpeg,
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "Im0" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![Operation::new("Do", vec![Object::Name(b"Im0".to_vec())])],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split("data:image/png;base64,")
+        .nth(1)
+        .and_then(|value| value.split('"').next())
+        .unwrap();
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let decoder = png::Decoder::new(std::io::Cursor::new(png));
+    let mut reader = decoder.read_info().unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgba);
+    assert!(pixels[0] > 150 && pixels[1] < 100 && pixels[2] < 100, "{pixels:?}");
+    assert!(pixels[3] > 240, "alpha={}", pixels[3]);
+}
+
+#[test]
 fn rejects_pdf_image_dimension_bombs_before_allocation() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("image-bomb.pdf");

@@ -3826,9 +3826,9 @@ impl Interpreter<'_, '_> {
                 )
             });
         let (mime, bytes) = if jpeg_passthrough {
-            ("image/jpeg", stream.content.clone())
+            ("image/jpeg", image_codec_content(stream, self.content_limit)?)
         } else if filters.iter().any(|filter| *filter == b"JPXDecode") {
-            ("image/jp2", stream.content.clone())
+            ("image/jp2", image_codec_content(stream, self.content_limit)?)
         } else {
             let ccitt = filters.iter().any(|filter| *filter == b"CCITTFaxDecode");
             // Report the filter by name rather than letting the decoder's
@@ -3851,7 +3851,7 @@ impl Interpreter<'_, '_> {
                 decode_pdf_jpeg_content(stream, width, height, self.content_limit)?
             } else if ccitt {
                 ccitt_spec_from_stream(stream, width, height)
-                    .decode_ccitt(&stream.content)
+                    .decode_ccitt(&image_codec_content(stream, self.content_limit)?)
                     .ok_or_else(|| {
                         Error::InvalidInput(format!(
                             "PDF CCITT image {} could not be decoded",
@@ -5112,18 +5112,45 @@ impl Interpreter<'_, '_> {
     }
 }
 
+/// Decodes the generic compression filters preceding a stream's own image
+/// codec filter (`DCTDecode`, `JPXDecode`, or `CCITTFaxDecode`), leaving
+/// that codec's own bytes untouched for its own decoder to consume.
+/// `/Filter [/FlateDecode /DCTDecode]` -- an outer Flate layer wrapped
+/// around a JPEG purely for a little extra compression -- is legal and
+/// appears in real files (pdf.js's own `comments.pdf`); `stream.content`
+/// alone is still that outer layer's compressed bytes, not the image
+/// codec's own, whenever more than one filter is present.
+fn image_codec_content(stream: &Stream, content_limit: usize) -> Result<Vec<u8>> {
+    let filters = stream.filters().unwrap_or_default();
+    if filters.len() <= 1 {
+        return Ok(stream.content.clone());
+    }
+    let mut leading = stream.clone();
+    leading.dict.set(
+        "Filter",
+        Object::Array(
+            filters[..filters.len() - 1]
+                .iter()
+                .map(|filter| Object::Name(filter.to_vec()))
+                .collect(),
+        ),
+    );
+    Ok(leading.decompressed_content_with_limit(content_limit)?)
+}
+
 fn decode_pdf_jpeg_content(
     stream: &Stream,
     expected_width: usize,
     expected_height: usize,
     content_limit: usize,
 ) -> Result<Vec<u8>> {
-    if stream.content.len() > content_limit {
+    let content = image_codec_content(stream, content_limit)?;
+    if content.len() > content_limit {
         return Err(Error::LimitExceeded(format!(
             "PDF JPEG stream exceeds {content_limit} bytes"
         )));
     }
-    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(stream.content.as_slice()));
+    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(content.as_slice()));
     decoder
         .read_info()
         .map_err(|error| Error::InvalidInput(format!("cannot read PDF JPEG metadata: {error}")))?;
@@ -5172,12 +5199,13 @@ fn decode_soft_mask_content(
     if !filters.iter().any(|filter| *filter == b"DCTDecode") {
         return decode_predicted_content(document, mask, content_limit);
     }
-    if mask.content.len() > content_limit {
+    let content = image_codec_content(mask, content_limit)?;
+    if content.len() > content_limit {
         return Err(Error::LimitExceeded(format!(
             "PDF JPEG soft mask stream exceeds {content_limit} bytes"
         )));
     }
-    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(mask.content.as_slice()));
+    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(content.as_slice()));
     decoder.read_info().map_err(|error| {
         Error::InvalidInput(format!("cannot read PDF JPEG soft mask metadata: {error}"))
     })?;
