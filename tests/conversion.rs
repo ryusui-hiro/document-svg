@@ -8624,3 +8624,54 @@ fn degrades_gracefully_instead_of_failing_a_page_with_a_high_frequency_function_
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("data-content-kind=\"function-shading-cell\""), "{svg}");
 }
+
+#[test]
+fn draws_content_after_a_comment_trailing_an_operator_on_the_same_line() {
+    // Real-world regression (pdf.js's own calgray.pdf/calrgb.pdf test
+    // files): the exact bytes of that file's content stream, byte for
+    // byte. Its `%` comments, used purely for column alignment, made the
+    // content stream parser drop every single operation with no error and
+    // no warning, turning an ordinary page into a silently blank one --
+    // but only with this precise formatting: a smaller, hand-written
+    // reproduction of "a comment trails an operator" was not enough to
+    // reproduce it, so this test uses the real file's own bytes rather
+    // than risk exercising a different, merely similar-looking case.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("trailing-comment.pdf");
+    let mut document = Document::with_version("1.7");
+    let color_space = document.add_object(vec![
+        Object::Name(b"CalGray".to_vec()),
+        dictionary! {
+            "WhitePoint" => vec![Object::Integer(1), Object::Integer(1), Object::Integer(1)],
+            "Gamma" => Object::Integer(1),
+        }
+        .into(),
+    ]);
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"\n /Cs5 cs               %\n  0.00 sc              %\n   25   25  200  200 re%\n f                     %\n"
+            .to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 250.into(), 250.into()],
+        "Resources" => dictionary! { "ColorSpace" => dictionary! { "Cs5" => color_space } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert_eq!(report.pages[0].node_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("#000000"), "{svg}");
+}

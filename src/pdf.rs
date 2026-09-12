@@ -203,7 +203,7 @@ fn decode_content_operations(
     let mut position = 0usize;
     while let Some(inline_start) = find_pdf_syntax_token(data, position, b"BI") {
         if inline_start > position {
-            operations.extend(Content::decode(&data[position..inline_start])?.operations);
+            operations.extend(decode_pdf_content(&data[position..inline_start])?.operations);
         }
         let dictionary_start = inline_start + 2;
         let Some(id_position) = find_pdf_syntax_token(data, dictionary_start, b"ID") else {
@@ -239,9 +239,89 @@ fn decode_content_operations(
         }
     }
     if position < data.len() {
-        operations.extend(Content::decode(&data[position..])?.operations);
+        operations.extend(decode_pdf_content(&data[position..])?.operations);
     }
     Ok(operations)
+}
+
+/// Decodes a PDF content stream, first stripping `%` comments ourselves.
+///
+/// A `%` comment that trails a real operator on the same line -- rather
+/// than sitting alone on its own line -- made `lopdf::content::Content`'s
+/// own parser drop every operation in the stream silently, turning an
+/// otherwise ordinary page into a blank one with no warning anywhere: the
+/// content is well past "malformed" by any reasonable definition, it is
+/// just formatted with a trailing `%` per line for visual column
+/// alignment, which the PDF grammar allows (a comment runs to the next
+/// end of line; an empty one is legal). This is `Content::decode`'s only
+/// caller, so every caller of *this* function gets the same robustness.
+fn decode_pdf_content(data: &[u8]) -> Result<Content> {
+    Ok(Content::decode(&strip_pdf_content_comments(data))?)
+}
+
+/// Removes `%...` PDF comments (up to but excluding the next CR or LF)
+/// from a content stream, leaving literal strings `(...)` and hex strings
+/// `<...>` untouched even if a `%` happens to appear inside one -- there
+/// it is just a character, not a comment marker. `<<`, a dictionary
+/// delimiter rather than a hex string's `<`, is recognized and copied
+/// through without entering hex-string state.
+fn strip_pdf_content_comments(data: &[u8]) -> Vec<u8> {
+    let mut output = Vec::with_capacity(data.len());
+    let mut position = 0;
+    let mut literal_depth = 0usize;
+    let mut in_hex_string = false;
+    while position < data.len() {
+        let byte = data[position];
+        if in_hex_string {
+            output.push(byte);
+            in_hex_string = byte != b'>';
+            position += 1;
+            continue;
+        }
+        if literal_depth > 0 {
+            if byte == b'\\' && position + 1 < data.len() {
+                output.push(byte);
+                output.push(data[position + 1]);
+                position += 2;
+                continue;
+            }
+            output.push(byte);
+            match byte {
+                b'(' => literal_depth += 1,
+                b')' => literal_depth -= 1,
+                _ => {}
+            }
+            position += 1;
+            continue;
+        }
+        match byte {
+            b'(' => {
+                literal_depth = 1;
+                output.push(byte);
+                position += 1;
+            }
+            b'<' if data.get(position + 1) == Some(&b'<') => {
+                output.push(byte);
+                output.push(data[position + 1]);
+                position += 2;
+            }
+            b'<' => {
+                in_hex_string = true;
+                output.push(byte);
+                position += 1;
+            }
+            b'%' => {
+                while position < data.len() && !matches!(data[position], b'\r' | b'\n') {
+                    position += 1;
+                }
+            }
+            _ => {
+                output.push(byte);
+                position += 1;
+            }
+        }
+    }
+    output
 }
 
 fn find_pdf_syntax_token(data: &[u8], start: usize, token: &[u8]) -> Option<usize> {
@@ -2593,7 +2673,7 @@ impl Interpreter<'_, '_> {
                 return None;
             }
         };
-        let decoded = match Content::decode(&content) {
+        let decoded = match decode_pdf_content(&content) {
             Ok(decoded) => decoded,
             Err(error) => {
                 if let Some(object_id) = object_id {
@@ -3195,7 +3275,7 @@ impl Interpreter<'_, '_> {
                     continue;
                 }
             };
-            let decoded = match Content::decode(&content) {
+            let decoded = match decode_pdf_content(&content) {
                 Ok(decoded) => decoded,
                 Err(error) => {
                     self.page
@@ -3400,7 +3480,7 @@ impl Interpreter<'_, '_> {
                 pushed_resources = true;
             }
             let content = stream.decompressed_content_with_limit(self.content_limit)?;
-            let decoded = Content::decode(&content)?;
+            let decoded = decode_pdf_content(&content)?;
             let interpret_result = self.interpret(&decoded.operations, depth + 1);
             if pushed_resources {
                 self.resources.pop();
@@ -3626,7 +3706,7 @@ impl Interpreter<'_, '_> {
             pushed_resources = true;
         }
         let content = stream.decompressed_content_with_limit(self.content_limit)?;
-        let decoded = Content::decode(&content)?;
+        let decoded = decode_pdf_content(&content)?;
         let interpret_result = self.interpret(&decoded.operations, 0);
         if pushed_resources {
             self.resources.pop();
@@ -4895,7 +4975,7 @@ impl Interpreter<'_, '_> {
             .map(|values| numbers(values, 4))
             .filter(|values| values.len() == 4);
         let content = group_stream.decompressed_content_with_limit(self.content_limit)?;
-        let decoded = Content::decode(&content)?;
+        let decoded = decode_pdf_content(&content)?;
         let mut mask_page = Page::new(
             self.page.number,
             self.page.width,
