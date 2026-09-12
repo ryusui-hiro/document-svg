@@ -8481,3 +8481,146 @@ fn converts_threemf_file_through_public_api() {
     let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
     assert!(svg.contains("id=\"face_0\""));
 }
+
+#[test]
+fn covers_the_full_domain_for_a_radially_symmetric_function_shading() {
+    // Real-world regression: a function shading computing distance from
+    // its domain's center (sampled at y=0 and y=1, both equidistant from
+    // the center at y=0.5) always shows zero change along y at the two
+    // points the adaptive tessellator's root cell samples -- not by
+    // floating-point coincidence, but because both really do evaluate to
+    // the same value for every x. Once that made the tessellator commit
+    // to only ever splitting x, x's own change kept "winning" forever,
+    // starving y of ever being resampled at new points and leaving the
+    // whole shading but a sliver near x=0 completely blank. Also exercises
+    // a real PDF's non-standard placement of /Matrix directly on the
+    // shading dictionary (not just on a pattern wrapping it) together with
+    // /BBox, which a real producer's page-layout PDF used to lay out a
+    // grid of shadings and which a previous bug in the BBox clip's own
+    // transform separately hid entirely.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("symmetric-function-shading.pdf");
+    let mut document = Document::with_version("1.7");
+    let function = document.add_object(Stream::new(
+        dictionary! {
+            "FunctionType" => 4,
+            "Domain" => vec![0.into(), 1.into(), 0.into(), 1.into()],
+            "Range" => vec![0.into(), 1.into()],
+        },
+        b"{ 0.5 sub exch 0.5 sub dup mul exch dup mul add sqrt }".to_vec(),
+    ));
+    let shading = document.add_object(dictionary! {
+        "ShadingType" => 1, "ColorSpace" => "DeviceGray",
+        "Domain" => vec![0.into(), 1.into(), 0.into(), 1.into()],
+        "Matrix" => vec![170.into(), 0.into(), 0.into(), 170.into(), 30.into(), 30.into()],
+        "BBox" => vec![30.into(), 30.into(), 200.into(), 200.into()],
+        "Function" => function,
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, b"/SH1 sh\n".to_vec()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 250.into(), 250.into()],
+        "Resources" => dictionary! { "Shading" => dictionary! { "SH1" => shading } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let xs: Vec<f64> = svg
+        .split("<path ")
+        .skip(1)
+        .filter(|tag| tag.contains("data-content-kind=\"function-shading-cell\""))
+        .filter_map(|tag| {
+            // Search for " d=\"" (with the leading space): "id=\"" also
+            // contains the bare substring "d=\"", one character in.
+            let d_start = tag.find(" d=\"")? + 4;
+            let d_end = tag[d_start..].find('"')? + d_start;
+            tag[d_start..d_end]
+                .split_ascii_whitespace()
+                .nth(1)?
+                .parse::<f64>()
+                .ok()
+        })
+        .collect();
+    assert!(xs.len() > 100, "too few cells: {}", xs.len());
+    let min_x = xs.iter().cloned().fold(f64::INFINITY, f64::min);
+    let max_x = xs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+    // A starved tessellation collapses to a sliver near the domain's left
+    // edge (x=30); a healthy one spans close to the full 30..200 BBox.
+    assert!(
+        max_x - min_x > 100.0,
+        "cells span only {:.3} of the ~170-wide domain (min={min_x:.3}, max={max_x:.3}); \
+         the shading was starved to one edge instead of covering it",
+        max_x - min_x
+    );
+}
+
+#[test]
+fn degrades_gracefully_instead_of_failing_a_page_with_a_high_frequency_function_shading() {
+    // Real-world regression (pdf.js's own function_based_shading.pdf test
+    // file, SH8): a sin(1440 * distance-from-center) ripple oscillates
+    // roughly 229 times across its unit domain, so no cell wider than
+    // about 1/458th of that domain can ever land within tessellation
+    // tolerance -- exhausting the adaptive tessellator's cell budget is
+    // expected here, not just on a pathological input. That used to be a
+    // hard error that failed the whole page; it must instead degrade to a
+    // warning and a lower-resolution rendering of just that shading.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("high-frequency-function-shading.pdf");
+    let mut document = Document::with_version("1.7");
+    let function = document.add_object(Stream::new(
+        dictionary! {
+            "FunctionType" => 4,
+            "Domain" => vec![0.into(), 1.into(), 0.into(), 1.into()],
+            "Range" => vec![0.into(), 1.into()],
+        },
+        b"{ dup mul exch dup mul add sqrt 1440 mul sin 1 add 2 div }".to_vec(),
+    ));
+    let shading = document.add_object(dictionary! {
+        "ShadingType" => 1, "ColorSpace" => "DeviceGray",
+        "Domain" => vec![0.into(), 1.into(), 0.into(), 1.into()],
+        "Matrix" => vec![170.into(), 0.into(), 0.into(), 170.into(), 30.into(), 30.into()],
+        "Function" => function,
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, b"/SH1 sh\n".to_vec()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 250.into(), 250.into()],
+        "Resources" => dictionary! { "Shading" => dictionary! { "SH1" => shading } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("lower-resolution approximation")),
+        "{:?}",
+        report.pages[0].warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"function-shading-cell\""), "{svg}");
+}

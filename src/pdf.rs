@@ -2278,7 +2278,7 @@ impl Interpreter<'_, '_> {
         if self.page.patterns.iter().any(|pattern| pattern.id == id) {
             return Some((Paint::PatternRef { id, opacity }, pattern_clip));
         }
-        let nodes = match build_function_shading_cell_nodes(
+        let Some((nodes, truncated)) = build_function_shading_cell_nodes(
             self.document,
             function,
             &domain,
@@ -2292,23 +2292,19 @@ impl Interpreter<'_, '_> {
             self.page.number,
             "pdf-function-pattern-cell",
             &String::from_utf8_lossy(pattern_name),
-        ) {
-            Ok(Some(nodes)) => nodes,
-            Ok(None) => {
-                self.page.warn(format!(
-                    "PDF shading pattern {} uses an unsupported function",
-                    String::from_utf8_lossy(pattern_name)
-                ));
-                return None;
-            }
-            Err(error) => {
-                self.page.warn(format!(
-                    "PDF shading pattern {} was skipped: {error}",
-                    String::from_utf8_lossy(pattern_name)
-                ));
-                return None;
-            }
+        ) else {
+            self.page.warn(format!(
+                "PDF shading pattern {} uses an unsupported function",
+                String::from_utf8_lossy(pattern_name)
+            ));
+            return None;
         };
+        if truncated {
+            self.page.warn(format!(
+                "PDF shading pattern {} is too fine-grained to render exactly; showing a lower-resolution approximation",
+                String::from_utf8_lossy(pattern_name)
+            ));
+        }
         let width = (domain[1] - domain[0]).abs().max(1e-6);
         let height = (domain[3] - domain[2]).abs().max(1e-6);
         self.page.patterns.push(TilingPatternDefinition {
@@ -4534,7 +4530,19 @@ impl Interpreter<'_, '_> {
                 self.page.clips.push(crate::ir::ClipPath {
                     id: id.clone(),
                     d: rectangle_path(bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]),
-                    transform,
+                    // A shading's /BBox is defined in the current user space
+                    // at the time `sh` is invoked (PDF 32000-1:2008
+                    // 8.7.4.3) -- page_matrix composed with the CTM, not
+                    // additionally composed with this dictionary's own
+                    // /Matrix. /Matrix is not a standard key on a shading
+                    // dictionary at all (only on a shading *pattern*'s
+                    // dictionary); a producer that puts one there anyway,
+                    // as a real PDF does, is positioning the *function*
+                    // relative to that already-established user space, not
+                    // redefining what BBox means, and reusing the fuller
+                    // transform here shifted a BBox authored in plain page
+                    // coordinates far off the page.
+                    transform: compose(self.page_matrix, self.state.ctm),
                     fill_rule: "nonzero".into(),
                     parent_id: clip_id,
                     additional_paths: Vec::new(),
@@ -4542,7 +4550,7 @@ impl Interpreter<'_, '_> {
                 clip_id = Some(id);
             }
         }
-        let nodes = build_function_shading_cell_nodes(
+        let Some((nodes, truncated)) = build_function_shading_cell_nodes(
             self.document,
             function,
             &domain,
@@ -4556,14 +4564,19 @@ impl Interpreter<'_, '_> {
             self.page.number,
             "pdf-function-cell",
             &String::from_utf8_lossy(name),
-        )?;
-        let Some(nodes) = nodes else {
+        ) else {
             self.page.warn(format!(
                 "PDF function shading {} uses an unsupported function",
                 String::from_utf8_lossy(name)
             ));
             return Ok(());
         };
+        if truncated {
+            self.page.warn(format!(
+                "PDF function shading {} is too fine-grained to render exactly; showing a lower-resolution approximation",
+                String::from_utf8_lossy(name)
+            ));
+        }
         self.node_counter += nodes.len();
         self.page.nodes.extend(nodes);
         Ok(())
@@ -6424,7 +6437,7 @@ fn build_function_shading_cell_nodes(
     page_number: usize,
     id_prefix: &str,
     source_name: &str,
-) -> Result<Option<Vec<Node>>> {
+) -> Option<(Vec<Node>, bool)> {
     let field = FunctionShadingField {
         document,
         function,
@@ -6436,17 +6449,20 @@ fn build_function_shading_cell_nodes(
         y0: domain[2],
         y1: domain[3],
     };
+    // A genuinely discontinuous function (a checkerboard built from floor
+    // and mod, say) can never bring a cell straddling the jump within
+    // tolerance no matter how far it is subdivided, so hitting this budget
+    // is expected on some real shadings, not just a pathological input.
+    // Keep the cells already produced -- a lower-resolution rendering of
+    // one shading beats failing the whole page -- and let the caller warn
+    // that it is approximate.
     const MAX_CELLS: usize = 100_000;
     let mut cells = Vec::new();
-    if !adaptive_function_shading_cells(&field, root, 0, &mut cells, MAX_CELLS) {
-        return Ok(None);
+    if !adaptive_function_shading_cells(&field, root, &mut cells, MAX_CELLS) {
+        return None;
     }
-    if cells.len() >= MAX_CELLS {
-        return Err(Error::LimitExceeded(format!(
-            "PDF function shading exceeds {MAX_CELLS} vector cells"
-        )));
-    }
-    Ok(Some(
+    let truncated = cells.len() >= MAX_CELLS;
+    Some((
         cells
             .into_iter()
             .enumerate()
@@ -6472,6 +6488,7 @@ fn build_function_shading_cell_nodes(
                 },
             })
             .collect(),
+        truncated,
     ))
 }
 
@@ -6663,16 +6680,47 @@ fn build_mesh_triangle_nodes(
     nodes
 }
 
+/// Tessellates a function shading by splitting cells breadth-first rather
+/// than depth-first.
+///
+/// A genuinely discontinuous or cusped function (a checkerboard from floor
+/// and mod, or a radial distance function's center point) never brings a
+/// cell straddling it within tolerance, so that cell keeps splitting no
+/// matter how far down the tree it goes. Depth-first recursion visits one
+/// such cell's entire, effectively unbounded subtree before its sibling
+/// gets a turn -- so hitting the cell budget there starves every other,
+/// well-behaved region of the domain down to nothing, rather than costing
+/// only the one cusp its full resolution. Breadth-first order finishes
+/// every region that converges quickly before spending budget on regions
+/// that do not, so a budget cutoff costs only the hard regions their full
+/// resolution instead of erasing the whole shading.
 fn adaptive_function_shading_cells(
     field: &FunctionShadingField<'_>,
-    bounds: FunctionShadingBounds,
-    depth: usize,
+    root: FunctionShadingBounds,
     output: &mut Vec<FunctionShadingCell>,
     maximum: usize,
 ) -> bool {
-    if output.len() >= maximum {
-        return true;
+    let mut queue = std::collections::VecDeque::new();
+    queue.push_back((root, 0usize, None));
+    while let Some((bounds, depth, streak)) = queue.pop_front() {
+        if output.len() >= maximum {
+            return true;
+        }
+        if !adaptive_function_shading_cell(field, bounds, depth, streak, output, &mut queue) {
+            return false;
+        }
     }
+    true
+}
+
+fn adaptive_function_shading_cell(
+    field: &FunctionShadingField<'_>,
+    bounds: FunctionShadingBounds,
+    depth: usize,
+    streak: Option<(bool, u32)>,
+    output: &mut Vec<FunctionShadingCell>,
+    queue: &mut std::collections::VecDeque<(FunctionShadingBounds, usize, Option<(bool, u32)>)>,
+) -> bool {
     let middle_x = (bounds.x0 + bounds.x1) * 0.5;
     let middle_y = (bounds.y0 + bounds.y1) * 0.5;
     let coordinates = [
@@ -6763,52 +6811,69 @@ fn adaptive_function_shading_cells(
         });
         return true;
     }
-    let split_u = if u_change == v_change {
-        u_length >= v_length
+    let heuristic_split_u = if u_change != v_change {
+        u_change > v_change
     } else {
-        u_change >= v_change
+        u_length >= v_length
+    };
+    // Once an axis stops being split, resampling it always lands back on
+    // that same cell's own frozen endpoints -- and for a function that is
+    // symmetric about their midpoint (a distance-from-center function
+    // sampled at y=0 and y=1, both equidistant from the center at y=0.5,
+    // say), *every* value pair along that axis comes out identical by
+    // construction, not by floating-point coincidence, no matter how far
+    // the other axis is subdivided. The change heuristic above then always
+    // favors the other axis too, forever: it is not measuring "this axis
+    // doesn't vary", only "this axis doesn't vary *between these two
+    // specific, never-revisited points*". Cap how many consecutive splits
+    // may follow the heuristic before one is forced onto the neglected
+    // axis, so a symmetric function's other axis is still guaranteed to
+    // eventually get re-sampled at new points instead of being starved of
+    // the cell budget entirely.
+    const MAX_AXIS_STREAK: u32 = 4;
+    let forced_switch = matches!(streak, Some((last_was_u, count))
+        if last_was_u == heuristic_split_u && count >= MAX_AXIS_STREAK);
+    let split_u = heuristic_split_u ^ forced_switch;
+    let next_streak = match streak {
+        Some((last_was_u, count)) if last_was_u == split_u => Some((split_u, count + 1)),
+        _ => Some((split_u, 1)),
     };
     if split_u {
-        adaptive_function_shading_cells(
-            field,
+        queue.push_back((
             FunctionShadingBounds {
                 x1: middle_x,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        ) && adaptive_function_shading_cells(
-            field,
+            next_streak,
+        ));
+        queue.push_back((
             FunctionShadingBounds {
                 x0: middle_x,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        )
+            next_streak,
+        ));
     } else {
-        adaptive_function_shading_cells(
-            field,
+        queue.push_back((
             FunctionShadingBounds {
                 y1: middle_y,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        ) && adaptive_function_shading_cells(
-            field,
+            next_streak,
+        ));
+        queue.push_back((
             FunctionShadingBounds {
                 y0: middle_y,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        )
+            next_streak,
+        ));
     }
+    true
 }
 
 #[derive(Clone, Copy)]
