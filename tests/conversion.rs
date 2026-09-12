@@ -599,6 +599,116 @@ fn hides_a_form_xobject_whose_oc_entry_is_an_ocmd_naming_a_single_ocg() {
 }
 
 #[test]
+fn outlines_a_type3_glyph_whose_char_proc_contains_an_inline_image() {
+    // Real-world regression (pdf.js's own bug1245391_reduced.pdf): a Type3
+    // glyph's own CharProc content stream can itself contain a `BI...ID...EI`
+    // inline image, same as any other content stream. Every content stream
+    // except the page's top-level one was being handed to lopdf's own
+    // `Content::decode` directly, which has no notion of inline-image syntax
+    // at all and gets thrown off by the raw binary sample data between `ID`
+    // and `EI` -- unlike the page's own decoder, which pre-scans for
+    // `BI`/`ID`/`EI` before ever reaching that generic parser. The
+    // resulting parse failure discarded not just the inline image but the
+    // glyph's entire remaining paint program, so the whole page (just this
+    // one Type3 glyph) rendered as nothing.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("type3-inline-image.pdf");
+    let mut document = Document::with_version("1.7");
+    let glyph_id = document.add_object(Stream::new(
+        dictionary! {},
+        b"600 0 0 0 600 700 d1\nq 1 0 0 1 0 0 cm\nBI /W 1 /H 1 /BPC 8 /CS /G ID \x01 EI\nQ\n0 0 0 rg\n0 0 600 700 re f\n".to_vec(),
+    ));
+    let font_id = document.add_object(dictionary! {
+        "Type" => "Font",
+        "Subtype" => "Type3",
+        "Name" => "F3",
+        "FontBBox" => vec![0.into(), 0.into(), 600.into(), 700.into()],
+        "FontMatrix" => vec![Object::Real(0.001), 0.into(), 0.into(), Object::Real(0.001), 0.into(), 0.into()],
+        "CharProcs" => dictionary! { "A" => Object::Reference(glyph_id) },
+        "Encoding" => dictionary! { "Type" => "Encoding", "Differences" => vec![65.into(), Object::Name(b"A".to_vec())] },
+        "FirstChar" => 65,
+        "LastChar" => 65,
+        "Widths" => vec![600.into()],
+        "Resources" => dictionary! {},
+    });
+    let resources_id = document.add_object(dictionary! {
+        "Font" => dictionary! { "F3" => Object::Reference(font_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("BT", vec![]),
+            Operation::new("Tf", vec![Object::Name(b"F3".to_vec()), 100.into()]),
+            Operation::new(
+                "Tm",
+                vec![1.into(), 0.into(), 0.into(), 1.into(), 20.into(), 20.into()],
+            ),
+            Operation::new("Tj", vec![Object::string_literal("A")]),
+            Operation::new("ET", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .all(|warning| !warning.contains("syntax decoder")
+                && !warning.contains("drew nothing")
+                && !warning.contains("content is invalid")),
+        "{:?}",
+        report.pages[0].warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("M 0 0 L 600 0 L 600 700 L 0 700 Z"), "{svg}");
+}
+
+#[test]
+fn recovers_an_unfiltered_inline_image_whose_last_data_byte_is_not_a_pdf_delimiter() {
+    // Real-world regression (pdf.js's own bug1513120_reduced.pdf and
+    // issue10388_reduced.pdf): the PDF spec recommends, but does not
+    // require, a white-space byte between an inline image's last data byte
+    // and its closing `EI` operator. Both files ship unfiltered 1-bit
+    // images whose raw data happens to end on a byte that is not itself a
+    // PDF delimiter (whitespace or one of `[]<>()/`), with `EI` following
+    // immediately -- which defeated the token search's own delimiter check
+    // (it requires the byte *before* a candidate `EI` match to itself be a
+    // delimiter, to avoid matching stray "EI" bytes inside binary noise),
+    // so no `EI` was ever found and the whole content stream failed to
+    // decode instead of just this one image.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("inline-image-no-separator.pdf");
+    let mut document = Document::with_version("1.7");
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"q 20 0 0 20 0 0 cm\nBI /W 8 /H 1 /BPC 1 /CS /G ID \xffEI\nQ\n".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 100.into(), 100.into()],
+        "Resources" => dictionary! {},
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data:image/png;base64,"), "{svg}");
+}
+
+#[test]
 fn fills_a_path_with_a_function_based_shading_pattern() {
     // A shading pattern (PatternType 2) has no SVG gradient equivalent once
     // its ShadingType is 1 (function-based) rather than 2/3 (axial/radial):

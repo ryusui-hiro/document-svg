@@ -213,15 +213,43 @@ fn decode_content_operations(
         };
         let spec = InlineImageSpec::parse(&data[dictionary_start..id_position]);
         let data_start = skip_inline_separator(data, id_position + 2);
-        let mut search_position = data_start;
         let mut decoded = None::<(Stream, usize)>;
-        while let Some(ei_position) = find_pdf_token(data, search_position, b"EI") {
-            let raw_end = trim_inline_data_end(data, data_start, ei_position);
-            if let Some(stream) = spec.decode(&data[data_start..raw_end], content_limit) {
-                decoded = Some((stream, ei_position + 2));
-                break;
+        // An unfiltered inline image's byte length is fully determined by
+        // its own dictionary (row-padded, like any other raster image), so
+        // this checks that exact position before falling back to a generic
+        // scan for "EI". The PDF spec recommends, but does not require, a
+        // white-space byte between the last data byte and EI; real-world
+        // encoders sometimes omit it, which defeats the scan below whenever
+        // that last data byte does not itself happen to be a PDF delimiter
+        // (pdf.js's own bug1513120_reduced.pdf and issue10388_reduced.pdf
+        // both ship 1-bit image masks built exactly this way).
+        if spec.filter.is_none()
+            && let Some(length) = spec.unfiltered_byte_length()
+        {
+            let candidate_end = data_start.saturating_add(length);
+            if candidate_end <= data.len() {
+                let after_data = skip_inline_separator(data, candidate_end);
+                if data.get(after_data..after_data + 2) == Some(b"EI")
+                    && data
+                        .get(after_data + 2)
+                        .is_none_or(|byte| is_pdf_delimiter(*byte))
+                {
+                    decoded = spec
+                        .decode(&data[data_start..candidate_end], content_limit)
+                        .map(|stream| (stream, after_data + 2));
+                }
             }
-            search_position = ei_position + 2;
+        }
+        if decoded.is_none() {
+            let mut search_position = data_start;
+            while let Some(ei_position) = find_pdf_token(data, search_position, b"EI") {
+                let raw_end = trim_inline_data_end(data, data_start, ei_position);
+                if let Some(stream) = spec.decode(&data[data_start..raw_end], content_limit) {
+                    decoded = Some((stream, ei_position + 2));
+                    break;
+                }
+                search_position = ei_position + 2;
+            }
         }
         if let Some((stream, next_position)) = decoded {
             operations.push(Operation::new("BI", vec![Object::Stream(stream)]));
@@ -505,6 +533,30 @@ impl InlineImageSpec {
         }
     }
 
+    fn components(&self) -> usize {
+        match self.color_space.as_str() {
+            "/RGB" | "/DeviceRGB" => 3,
+            "/CMYK" | "/DeviceCMYK" => 4,
+            _ => 1,
+        }
+    }
+
+    /// The exact byte length of an *unfiltered* inline image's own raw data,
+    /// row-padded like any other raster image, or `None` if the width or
+    /// height is not yet known. Filtered data has no such fixed length here
+    /// (its compressed size does not follow from the pixel dimensions).
+    fn unfiltered_byte_length(&self) -> Option<usize> {
+        if self.width == 0 || self.height == 0 {
+            return None;
+        }
+        let row_bytes = self
+            .width
+            .saturating_mul(self.components())
+            .saturating_mul(self.bits)
+            .div_ceil(8);
+        Some(row_bytes.saturating_mul(self.height))
+    }
+
     fn decode(&self, raw: &[u8], content_limit: usize) -> Option<Stream> {
         if self.width == 0 || self.height == 0 {
             return None;
@@ -529,11 +581,7 @@ impl InlineImageSpec {
                 .decompressed_content_with_limit(content_limit)
                 .ok()?
         };
-        let components = match self.color_space.as_str() {
-            "/RGB" | "/DeviceRGB" => 3,
-            "/CMYK" | "/DeviceCMYK" => 4,
-            _ => 1,
-        };
+        let components = self.components();
         let expected = self
             .width
             .saturating_mul(self.height)
@@ -2784,17 +2832,18 @@ impl Interpreter<'_, '_> {
                 return None;
             }
         };
-        let decoded = match decode_pdf_content(&content) {
-            Ok(decoded) => decoded,
-            Err(error) => {
-                if let Some(object_id) = object_id {
-                    self.visited_patterns.remove(&object_id);
+        let decoded =
+            match decode_content_operations(&content, self.content_limit, &mut pattern_page) {
+                Ok(decoded) => decoded,
+                Err(error) => {
+                    if let Some(object_id) = object_id {
+                        self.visited_patterns.remove(&object_id);
+                    }
+                    self.page
+                        .warn(format!("PDF tiling pattern content is invalid: {error}"));
+                    return None;
                 }
-                self.page
-                    .warn(format!("PDF tiling pattern content is invalid: {error}"));
-                return None;
-            }
-        };
+            };
         let mut pattern_interpreter = Interpreter {
             document: self.document,
             page: &mut pattern_page,
@@ -2821,7 +2870,7 @@ impl Interpreter<'_, '_> {
             content_limit: self.content_limit,
             outline_embedded_pdf_text: self.outline_embedded_pdf_text,
         };
-        let interpretation = pattern_interpreter.interpret(&decoded.operations, 1);
+        let interpretation = pattern_interpreter.interpret(&decoded, 1);
         self.node_counter = pattern_interpreter.node_counter;
         self.clip_counter = pattern_interpreter.clip_counter;
         self.mask_counter = pattern_interpreter.mask_counter;
@@ -3425,14 +3474,15 @@ impl Interpreter<'_, '_> {
                     continue;
                 }
             };
-            let decoded = match decode_pdf_content(&content) {
-                Ok(decoded) => decoded,
-                Err(error) => {
-                    self.page
-                        .warn(format!("PDF Type3 glyph content is invalid: {error}"));
-                    continue;
-                }
-            };
+            let decoded =
+                match decode_content_operations(&content, self.content_limit, &mut glyph_page) {
+                    Ok(decoded) => decoded,
+                    Err(error) => {
+                        self.page
+                            .warn(format!("PDF Type3 glyph content is invalid: {error}"));
+                        continue;
+                    }
+                };
             let mut initial_state = self.state.clone();
             initial_state.ctm = IDENTITY;
             initial_state.clip_id = None;
@@ -3464,7 +3514,7 @@ impl Interpreter<'_, '_> {
                 content_limit: self.content_limit,
                 outline_embedded_pdf_text: self.outline_embedded_pdf_text,
             };
-            let interpretation = glyph_interpreter.interpret(&decoded.operations, 1);
+            let interpretation = glyph_interpreter.interpret(&decoded, 1);
             self.node_counter = glyph_interpreter.node_counter;
             self.clip_counter = glyph_interpreter.clip_counter;
             self.mask_counter = glyph_interpreter.mask_counter;
@@ -3630,8 +3680,8 @@ impl Interpreter<'_, '_> {
                 pushed_resources = true;
             }
             let content = stream.decompressed_content_with_limit(self.content_limit)?;
-            let decoded = decode_pdf_content(&content)?;
-            let interpret_result = self.interpret(&decoded.operations, depth + 1);
+            let decoded = decode_content_operations(&content, self.content_limit, self.page)?;
+            let interpret_result = self.interpret(&decoded, depth + 1);
             if pushed_resources {
                 self.resources.pop();
             }
@@ -3887,8 +3937,8 @@ impl Interpreter<'_, '_> {
             pushed_resources = true;
         }
         let content = stream.decompressed_content_with_limit(self.content_limit)?;
-        let decoded = decode_pdf_content(&content)?;
-        let interpret_result = self.interpret(&decoded.operations, 0);
+        let decoded = decode_content_operations(&content, self.content_limit, self.page)?;
+        let interpret_result = self.interpret(&decoded, 0);
         if pushed_resources {
             self.resources.pop();
         }
@@ -5173,7 +5223,7 @@ impl Interpreter<'_, '_> {
             .map(|values| numbers(values, 4))
             .filter(|values| values.len() == 4);
         let content = group_stream.decompressed_content_with_limit(self.content_limit)?;
-        let decoded = decode_pdf_content(&content)?;
+        let decoded = decode_content_operations(&content, self.content_limit, self.page)?;
         let mut mask_page = Page::new(
             self.page.number,
             self.page.width,
@@ -5219,7 +5269,7 @@ impl Interpreter<'_, '_> {
         if let Some(group_id) = group_id {
             mask_interpreter.visited_forms.insert(group_id);
         }
-        mask_interpreter.interpret(&decoded.operations, 1)?;
+        mask_interpreter.interpret(&decoded, 1)?;
         self.node_counter = mask_interpreter.node_counter;
         self.clip_counter = mask_interpreter.clip_counter;
         self.mask_counter = mask_interpreter.mask_counter;
