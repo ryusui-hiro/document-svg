@@ -8118,12 +8118,27 @@ fn components_to_rgb(
                         .and_then(|value| value.get(b"Gamma").ok())
                         .and_then(|value| number(Some(value)))
                         .unwrap_or(1.0);
-                    let gray = components
-                        .first()
-                        .copied()
-                        .unwrap_or(0.0)
-                        .clamp(0.0, 1.0)
-                        .powf(gamma);
+                    // CalGray is inherently achromatic -- X, Y and Z are
+                    // always the same WhitePoint-scaled luminance -- so
+                    // the correct sRGB rendering is always a neutral
+                    // R=G=B, gamma-encoding the luminance directly, not a
+                    // full XYZ -> sRGB matrix. Routing it through that
+                    // matrix (as CalRGB and Lab below correctly do, since
+                    // their X/Y/Z can differ) would introduce a spurious
+                    // color tint whenever the declared WhitePoint isn't
+                    // exactly D65 -- as in this file's own `[1 1 1]`
+                    // "equal energy" white point. Treating A^Gamma as a
+                    // direct sRGB gray, as this used to, skipped the
+                    // encoding curve entirely and rendered every midtone
+                    // too dark.
+                    let gray = srgb_encode(
+                        components
+                            .first()
+                            .copied()
+                            .unwrap_or(0.0)
+                            .clamp(0.0, 1.0)
+                            .powf(gamma),
+                    );
                     Some([gray, gray, gray])
                 }
                 b"CalRGB" => cal_rgb_to_srgb(array.get(1), components),
@@ -8245,13 +8260,18 @@ fn xyz_to_srgb(xyz: [f64; 3]) -> Option<[f64; 3]> {
         -0.9689 * xyz[0] + 1.8758 * xyz[1] + 0.0415 * xyz[2],
         0.0557 * xyz[0] - 0.2040 * xyz[1] + 1.0570 * xyz[2],
     ];
-    Some(linear.map(|value| {
-        if value <= 0.003_130_8 {
-            12.92 * value
-        } else {
-            1.055 * value.max(0.0).powf(1.0 / 2.4) - 0.055
-        }
-    }))
+    Some(linear.map(srgb_encode))
+}
+
+/// The sRGB opto-electronic transfer function: gamma-encodes a linear
+/// light value into the nonlinear value a display (or this SVG output)
+/// actually expects.
+fn srgb_encode(value: f64) -> f64 {
+    if value <= 0.003_130_8 {
+        12.92 * value
+    } else {
+        1.055 * value.max(0.0).powf(1.0 / 2.4) - 0.055
+    }
 }
 
 fn transformed_axial_axis(
@@ -9758,6 +9778,30 @@ mod tests {
     }
 
     #[test]
+    fn converts_calgray_to_a_neutral_gamma_encoded_srgb_value() {
+        // Real-world regression (pdf.js's own calgray.pdf): CalGray's A^Gamma
+        // is a linear luminance the CIE WhitePoint scales, not an
+        // already-encoded sRGB value ready to use as-is -- returning it
+        // directly, as this used to, rendered every midtone far too dark.
+        // Found via a visual diff against poppler's own rendering: 73% of
+        // sampled pixels differed before this fix, under 2% after.
+        let document = Document::with_version("1.7");
+        let color_space = Object::Array(vec![
+            Object::Name(b"CalGray".to_vec()),
+            dictionary! {
+                "WhitePoint" => vec![Object::Integer(1), Object::Integer(1), Object::Integer(1)],
+                "Gamma" => Object::Integer(1),
+            }
+            .into(),
+        ]);
+        let [r, g, b] = components_to_rgb(&document, Some(&color_space), &[0.5], 0).unwrap();
+        assert_eq!(r, g);
+        assert_eq!(g, b);
+        let expected = 1.055 * 0.5f64.powf(1.0 / 2.4) - 0.055;
+        assert!((r - expected).abs() < 1e-9, "r={r} expected={expected}");
+    }
+
+    #[test]
     fn repairs_allowed_damaged_group3_2d_row() {
         let spec = InlineImageSpec {
             width: 8,
@@ -9878,8 +9922,7 @@ mod tests {
             1, 0, 4, 4, // Header
             0, 1, 1, 1, 5, b'T', b'e', b's', b't', // Name INDEX
             // Top DICT INDEX: count=1, offSize=1, offsets=[1,24], data (23 bytes)
-            0, 1, 1, 1, 24,
-            139, 139, 139, 12, 30, // ROS 0 0 0
+            0, 1, 1, 1, 24, 139, 139, 139, 12, 30, // ROS 0 0 0
             28, 0, 63, 15, // charset @63
             28, 0, 45, 17, // CharStrings @45
             28, 0, 66, 12, 36, // FDArray @66
@@ -9887,14 +9930,12 @@ mod tests {
             0, 0, // String INDEX (empty)
             0, 0, // Global Subr INDEX (empty)
             // CharStrings INDEX @45: count=2, offSize=1, offsets=[1,2,13], data (12 bytes)
-            0, 2, 1, 1, 2, 13,
-            14, // GID0 .notdef: endchar
+            0, 2, 1, 1, 2, 13, 14, // GID0 .notdef: endchar
             139, 139, 21, 239, 139, 89, 239, 89, 39, 5, 14, // GID1: triangle
             // charset @63: format 0, CID for GID1 = 1
             0, 0, 1,
             // FDArray @66: count=1, offSize=1, offsets=[1,1] (empty FD Private dict)
-            0, 1, 1, 1, 1,
-            // FDSelect @71: format 0, FD index 0 for both GIDs
+            0, 1, 1, 1, 1, // FDSelect @71: format 0, FD index 0 for both GIDs
             0, 0, 0,
         ]
     }
