@@ -159,6 +159,81 @@ fn does_not_warn_about_a_type0_font_that_uses_identity_h_encoding() {
     );
 }
 
+#[test]
+fn outlines_an_identity_h_cid_glyph_the_embedded_cmap_cannot_resolve() {
+    // Real-world regression (pdf.js's own basicapi.pdf, an ordinary
+    // DejaVuSans-subsetted document): under Identity-H the raw character
+    // code already *is* the CID (PDF32000 9.7.5.2), and with no
+    // /CIDToGIDMap the CID *is* the GID directly -- no cmap lookup
+    // involved at all. A subsetted CID font's embedded cmap commonly
+    // lacks full Unicode coverage (or any useful coverage), and trying to
+    // resolve the glyph through it anyway, as if this were a simple font,
+    // failed for perfectly ordinary letters ('C', 'P') and fell back to
+    // incorrect placeholder text.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("identity-cid-no-cmap-entry.pdf");
+    let mut document = Document::with_version("1.7");
+    let bytes = font_test_data::font(None, false, false);
+    let font_file = document.add_object(Stream::new(
+        dictionary! { "Length1" => bytes.len() as i64 },
+        bytes,
+    ));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "TestCID", "Flags" => 4,
+        "FontBBox" => vec![0.into(), 0.into(), 600.into(), 900.into()],
+        "Ascent" => 800, "Descent" => -200, "CapHeight" => 700, "StemV" => 80,
+        "FontFile2" => font_file,
+    });
+    let descendant = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "CIDFontType2", "BaseFont" => "TestCID",
+        "CIDSystemInfo" => dictionary! { "Registry" => Object::string_literal("Adobe"), "Ordering" => Object::string_literal("Identity"), "Supplement" => 0 },
+        "FontDescriptor" => descriptor, "DW" => 1000,
+    });
+    // Maps CID 1 to 'X' (U+0058) -- a character the test font's own cmap
+    // does not carry (it covers only space, 'A', 'B' and 0xFFFF) -- so any
+    // lookup through the font's cmap, by code or by this Unicode value,
+    // is guaranteed to fail. CID 1 is real: it is GID 1, the same
+    // triangular outline used elsewhere in this font's own tests.
+    let to_unicode = document.add_object(Stream::new(
+        dictionary! {},
+        b"/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfchar\n<0001> <0058>\nendbfchar\nendcmap\nend\nend"
+            .to_vec(),
+    ));
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type0", "BaseFont" => "TestCID",
+        "Encoding" => "Identity-H",
+        "ToUnicode" => to_unicode,
+        "DescendantFonts" => vec![descendant.into()],
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 20 Tf 20 80 Td <0001> Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("text-outline"), "{svg}");
+}
+
 fn add_appearance_annotation(
     document: &mut Document,
     subtype: &str,

@@ -1099,6 +1099,16 @@ struct FontDecoder {
     default_width: f64,
     type3: Option<Arc<Type3Font>>,
     type1: Type1Cache,
+    /// `true` for a Type0 font using Identity-H/V encoding, where the raw
+    /// character code already *is* the CID (per PDF32000 9.7.5.2) rather
+    /// than a value that must go through the font's own cmap to find a
+    /// Unicode character first.
+    identity_cid: bool,
+    /// A CIDFontType2's own `/CIDToGIDMap` stream when present: CID `n`'s
+    /// glyph ID is the big-endian `u16` at byte offset `2 * n`. `None`
+    /// means the map is `/Identity` (the default, and by far the most
+    /// common case): CID and GID are the same value.
+    cid_to_gid_map: Option<Arc<[u8]>>,
 }
 
 #[derive(Clone, Debug)]
@@ -1261,43 +1271,27 @@ impl FontDecoder {
         let mut has_visible_character = false;
         for code in bytes.chunks(code_length) {
             let (decoded, replacement) = self.decode(code);
-            if replacement || decoded.is_empty() {
-                return Err("font code could not be mapped to Unicode");
-            }
             builder.x_offset = x_offset;
-            for character in decoded.chars() {
-                has_visible_character |= !character.is_whitespace();
-                // A font with no /Encoding is symbolic by the PDF spec's own
-                // default (9.6.6.4), and a symbolic simple font selects
-                // glyphs by raw character code through the font's own cmap,
-                // never through Unicode. Subsetters commonly key that cmap
-                // by sequential code (1, 2, 3, ...) rather than true
-                // Unicode, so mapping through the ToUnicode-decoded
-                // character first can land on an unrelated glyph whose raw
-                // code happens to equal that character's own codepoint.
-                let glyph_id = if self.glyph_names.is_empty() {
-                    cmap.as_ref()
-                        .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
-                        .or_else(|| charmap.map(character))
-                        .or_else(|| {
-                            cmap.as_ref()
-                                .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
-                        })
-                } else {
-                    charmap
-                        .map(character)
-                        .or_else(|| {
-                            cmap.as_ref()
-                                .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
-                        })
-                        .or_else(|| {
-                            cmap.as_ref()
-                                .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
-                        })
-                }
-                .ok_or("Unicode character has no glyph in the embedded font")?;
+            if self.identity_cid {
+                // Identity-H/V means the raw code already is the CID
+                // (PDF32000 9.7.5.2), and CIDFontType2's own /CIDToGIDMap
+                // (or its Identity default, when absent) is what names the
+                // glyph -- not the embedded font's cmap, which a subsetted
+                // CID font commonly ships without, or with one that has no
+                // usable Unicode coverage at all. A ToUnicode gap
+                // (`replacement`) is irrelevant here: it affects only
+                // text extraction, never this lookup.
+                has_visible_character |=
+                    replacement || decoded.chars().any(|character| !character.is_whitespace());
+                let cid = bytes_to_u32(code);
+                let gid = self.cid_to_gid_map.as_ref().map_or(cid, |map| {
+                    let offset = (cid as usize) * 2;
+                    map.get(offset..offset + 2)
+                        .map(|pair| u32::from(u16::from_be_bytes([pair[0], pair[1]])))
+                        .unwrap_or(0)
+                });
                 let glyph = outlines
-                    .get(glyph_id)
+                    .get(skrifa::GlyphId::new(gid))
                     .ok_or("embedded font glyph outline is unavailable")?;
                 glyph
                     .draw(
@@ -1305,6 +1299,52 @@ impl FontDecoder {
                         &mut builder,
                     )
                     .map_err(|_| "embedded font glyph outline could not be decoded")?;
+            } else {
+                if replacement || decoded.is_empty() {
+                    return Err("font code could not be mapped to Unicode");
+                }
+                for character in decoded.chars() {
+                    has_visible_character |= !character.is_whitespace();
+                    // A font with no /Encoding is symbolic by the PDF spec's
+                    // own default (9.6.6.4), and a symbolic simple font
+                    // selects glyphs by raw character code through the
+                    // font's own cmap, never through Unicode. Subsetters
+                    // commonly key that cmap by sequential code (1, 2, 3,
+                    // ...) rather than true Unicode, so mapping through the
+                    // ToUnicode-decoded character first can land on an
+                    // unrelated glyph whose raw code happens to equal that
+                    // character's own codepoint.
+                    let glyph_id = if self.glyph_names.is_empty() {
+                        cmap.as_ref()
+                            .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
+                            .or_else(|| charmap.map(character))
+                            .or_else(|| {
+                                cmap.as_ref()
+                                    .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+                            })
+                    } else {
+                        charmap
+                            .map(character)
+                            .or_else(|| {
+                                cmap.as_ref()
+                                    .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+                            })
+                            .or_else(|| {
+                                cmap.as_ref()
+                                    .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
+                            })
+                    }
+                    .ok_or("Unicode character has no glyph in the embedded font")?;
+                    let glyph = outlines
+                        .get(glyph_id)
+                        .ok_or("embedded font glyph outline is unavailable")?;
+                    glyph
+                        .draw(
+                            DrawSettings::unhinted(Size::unscaled(), LocationRef::default()),
+                            &mut builder,
+                        )
+                        .map_err(|_| "embedded font glyph outline could not be decoded")?;
+                }
             }
             let word_spacing = if decoded == " " { word_spacing_em } else { 0.0 };
             x_offset += self
@@ -5416,6 +5456,31 @@ fn build_font_decoder(
             ));
         }
     }
+    let identity_cid = subtype == b"Type0"
+        && dictionary
+            .get_deref(b"Encoding", document)
+            .ok()
+            .and_then(|encoding| Object::as_name(encoding).ok())
+            .is_some_and(|encoding_name| {
+                encoding_name == b"Identity-H" || encoding_name == b"Identity-V"
+            });
+    // CIDFontType2's own /CIDToGIDMap, when it is an embedded stream rather
+    // than the default /Identity, is what actually names a CID's glyph.
+    let cid_to_gid_map = (subtype == b"Type0")
+        .then(|| {
+            dictionary
+                .get_deref(b"DescendantFonts", document)
+                .and_then(Object::as_array)
+                .ok()
+                .and_then(|array| array.first())
+                .and_then(|object| document.dereference(object).ok().map(|(_, value)| value))
+                .and_then(|object| object.as_dict().ok())
+                .and_then(|descendant| descendant.get_deref(b"CIDToGIDMap", document).ok())
+                .and_then(|object| Object::as_stream(object).ok())
+                .and_then(|stream| stream.decompressed_content_with_limit(content_limit).ok())
+                .map(Arc::<[u8]>::from)
+        })
+        .flatten();
     FontDecoder {
         family,
         bold,
@@ -5430,6 +5495,8 @@ fn build_font_decoder(
         default_width,
         type3,
         type1: Type1Cache::default(),
+        identity_cid,
+        cid_to_gid_map,
     }
 }
 
@@ -9288,6 +9355,8 @@ mod tests {
             default_width: 500.0,
             type3: None,
             type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
         }
     }
 
@@ -9547,6 +9616,8 @@ mod tests {
             default_width: 500.0,
             type3: None,
             type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
         };
         let path = decoder
             .outline_cff(&minimal_test_cff(), b"A", 0.0, 0.0)
@@ -9580,6 +9651,8 @@ mod tests {
             default_width: 500.0,
             type3: None,
             type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
         };
         let path = decoder
             .outline_cff(&minimal_test_cff(), b"A", 0.0, 0.0)
