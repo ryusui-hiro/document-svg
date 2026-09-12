@@ -3747,15 +3747,53 @@ impl Interpreter<'_, '_> {
             .ok()
             .map(|arr| numbers(arr, 4))
             .unwrap_or_default();
+        let form_matrix = stream
+            .dict
+            .get(b"Matrix")
+            .and_then(Object::as_array)
+            .ok()
+            .and_then(|matrix| matrix_operands(matrix))
+            .unwrap_or(IDENTITY);
         let map_matrix = if bbox.len() == 4 {
-            let bw = (bbox[2] - bbox[0]).abs();
-            let bh = (bbox[3] - bbox[1]).abs();
+            // PDF32000 12.5.5: BBox is mapped to Rect only after first
+            // applying the appearance's own Matrix to its four corners --
+            // and since Matrix can rotate or skew, the transformed box is
+            // whatever axis-aligned box encloses those four transformed
+            // points, not just two of them. Mapping Rect from the raw,
+            // un-transformed BBox values instead left any translation in
+            // Matrix uncancelled, offsetting the whole appearance instead
+            // of drawing it inside Rect.
+            let corners = [
+                (bbox[0], bbox[1]),
+                (bbox[2], bbox[1]),
+                (bbox[2], bbox[3]),
+                (bbox[0], bbox[3]),
+            ]
+            .map(|(x, y)| transform_point(form_matrix, x, y));
+            let txmin = corners
+                .iter()
+                .map(|point| point.0)
+                .fold(f64::INFINITY, f64::min);
+            let txmax = corners
+                .iter()
+                .map(|point| point.0)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let tymin = corners
+                .iter()
+                .map(|point| point.1)
+                .fold(f64::INFINITY, f64::min);
+            let tymax = corners
+                .iter()
+                .map(|point| point.1)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let bw = txmax - txmin;
+            let bh = tymax - tymin;
             let rw = (rect[2] - rect[0]).abs();
             let rh = (rect[3] - rect[1]).abs();
             let sx = if bw > 1e-6 { rw / bw } else { 1.0 };
             let sy = if bh > 1e-6 { rh / bh } else { 1.0 };
-            let tx = rect[0].min(rect[2]) - sx * bbox[0].min(bbox[2]);
-            let ty = rect[1].min(rect[3]) - sy * bbox[1].min(bbox[3]);
+            let tx = rect[0].min(rect[2]) - sx * txmin;
+            let ty = rect[1].min(rect[3]) - sy * tymin;
             [sx, 0.0, 0.0, sy, tx, ty]
         } else {
             [1.0, 0.0, 0.0, 1.0, rect[0], rect[1]]
@@ -3764,13 +3802,6 @@ impl Interpreter<'_, '_> {
         let previous_state = self.state.clone();
         let previous_content_base_ctm = self.content_base_ctm;
         self.state = GraphicsState::default();
-        let form_matrix = stream
-            .dict
-            .get(b"Matrix")
-            .and_then(Object::as_array)
-            .ok()
-            .and_then(|matrix| matrix_operands(matrix))
-            .unwrap_or(IDENTITY);
         self.state.ctm = compose(map_matrix, form_matrix);
         self.content_base_ctm = self.state.ctm;
 

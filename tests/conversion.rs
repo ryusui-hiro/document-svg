@@ -331,6 +331,64 @@ fn renders_annotation_appearance_streams_but_skips_link_and_hidden() {
 }
 
 #[test]
+fn maps_an_annotation_appearance_through_its_own_matrix_before_fitting_to_rect() {
+    // Real-world regression (pdf.js's own file_pdfjs_test.pdf): PDF32000
+    // 12.5.5's algorithm maps BBox to Rect only *after* first applying the
+    // appearance's own Matrix to BBox's four corners -- so a Matrix with a
+    // real translation (common: it is exactly what lets a PDF producer
+    // normalize content near the origin while BBox and Rect are declared
+    // equal) must be cancelled out by that mapping, not left in place.
+    // Mapping straight from the untransformed BBox values instead left
+    // that translation doubled into the final position.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("annotation-matrix.pdf");
+    let mut document = Document::with_version("1.7");
+    let appearance = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Form",
+            "BBox" => vec![100.into(), 100.into(), 200.into(), 150.into()],
+            "Matrix" => vec![1.into(), 0.into(), 0.into(), 1.into(), (-100).into(), (-100).into()],
+        },
+        b"0 0 1 rg 100 100 100 50 re f".to_vec(),
+    ));
+    let annotation = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![100.into(), 100.into(), 200.into(), 150.into()],
+        "AP" => dictionary! { "N" => appearance },
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 300.into(), 300.into()],
+        "Resources" => dictionary! {},
+        "Contents" => content,
+        "Annots" => vec![Object::Reference(annotation)],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The path's `d` holds the appearance's own local content coordinates
+    // (100,100)-(200,150); the SVG `transform` carries the CTM. Correctly
+    // mapped, that CTM composes to the identity (the appearance's own
+    // Matrix translation cancelled by the BBox-to-Rect mapping) with only
+    // the page's Y-flip left: matrix(1 0 0 -1 0 300). Left doubled, as the
+    // bug did, the appearance's own Matrix translation survives into the
+    // CTM instead of cancelling: matrix(1 0 0 -1 -100 400).
+    assert!(svg.contains("matrix(1 0 0 -1 0 300)"), "{svg}");
+    assert!(!svg.contains("matrix(1 0 0 -1 -100 400)"), "{svg}");
+}
+
+#[test]
 fn hides_content_in_an_optional_content_group_that_is_off_by_default() {
     // A PDF layer (Optional Content Group) that the document's own default
     // configuration turns off must not appear, the same way no viewer would
@@ -490,7 +548,11 @@ fn hides_a_form_xobject_whose_oc_entry_is_an_ocmd_naming_a_single_ocg() {
     document.save(&input).unwrap();
     let output = temporary.path().join("out");
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
-    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("#00FF00"), "{svg}");
     assert!(!svg.contains("#FF0000"), "{svg}");
