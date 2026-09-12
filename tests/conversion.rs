@@ -389,6 +389,46 @@ fn maps_an_annotation_appearance_through_its_own_matrix_before_fitting_to_rect()
 }
 
 #[test]
+fn draws_a_zero_height_filled_rectangle_as_a_hairline() {
+    // Real-world regression (pdf.js's own issue4260_reduced.pdf): a filled
+    // rectangle with zero width or height has no area, literally nothing
+    // to fill in a correct vector renderer -- but CAD exports and ruled
+    // grids commonly draw a hairline this way instead of stroking it,
+    // relying on every mainstream PDF viewer's rasterizer to give a
+    // degenerate fill a sliver of coverage. A whole page of these (a grid
+    // of horizontal and vertical rule lines) rendered as a totally blank
+    // box.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("zero-height-rect.pdf");
+    let mut document = Document::with_version("1.7");
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"0 0 0 RG 0 0 0 rg 20 50 100 0 re f".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! {},
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("M 20 50 L 120 50"), "{svg}");
+    assert!(svg.contains("stroke=\"#000000\""), "{svg}");
+}
+
+#[test]
 fn hides_content_in_an_optional_content_group_that_is_off_by_default() {
     // A PDF layer (Optional Content Group) that the document's own default
     // configuration turns off must not appear, the same way no viewer would

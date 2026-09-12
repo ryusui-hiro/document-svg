@@ -1014,10 +1014,18 @@ struct PathBuilder {
     has_content: bool,
     current_point: Option<(f64, f64)>,
     subpath_start: Option<(f64, f64)>,
+    /// `Some([x, y, width, height])` exactly when the path so far consists
+    /// of nothing but a single `re` rectangle -- reset to `None` by any
+    /// other path-construction call. Lets a fill notice a degenerate
+    /// (zero-width or zero-height) rectangle specifically, without
+    /// misfiring on a complex path that coincidentally has a zero-area
+    /// bounding box for unrelated reasons (an even-odd "hole" fill, say).
+    bare_rect: Option<[f64; 4]>,
 }
 
 impl PathBuilder {
     fn command(&mut self, operator: &str, values: &[f64]) {
+        self.bare_rect = None;
         if self.has_content {
             self.data.push(' ');
         }
@@ -1044,10 +1052,25 @@ impl PathBuilder {
         }
     }
 
+    /// Adds a `re` rectangle, tracking it as a `bare_rect` when it is the
+    /// path's only content so far.
+    fn add_rect(&mut self, x: f64, y: f64, width: f64, height: f64) {
+        let is_first = !self.has_content;
+        self.command("M", &[x, y]);
+        self.command("L", &[x + width, y]);
+        self.command("L", &[x + width, y + height]);
+        self.command("L", &[x, y + height]);
+        self.command("Z", &[]);
+        if is_first {
+            self.bare_rect = Some([x, y, width, height]);
+        }
+    }
+
     fn take(&mut self) -> String {
         self.has_content = false;
         self.current_point = None;
         self.subpath_start = None;
+        self.bare_rect = None;
         std::mem::take(&mut self.data)
     }
 
@@ -1056,6 +1079,7 @@ impl PathBuilder {
         self.has_content = false;
         self.current_point = None;
         self.subpath_start = None;
+        self.bare_rect = None;
     }
 }
 
@@ -1844,11 +1868,7 @@ impl Interpreter<'_, '_> {
                 let values = numbers(operands, 4);
                 if values.len() == 4 {
                     let [x, y, width, height] = [values[0], values[1], values[2], values[3]];
-                    self.path.command("M", &[x, y]);
-                    self.path.command("L", &[x + width, y]);
-                    self.path.command("L", &[x + width, y + height]);
-                    self.path.command("L", &[x, y + height]);
-                    self.path.command("Z", &[]);
+                    self.path.add_rect(x, y, width, height);
                 }
             }
             "W" => self.pending_clip_rule = Some("nonzero".into()),
@@ -2914,6 +2934,36 @@ impl Interpreter<'_, '_> {
         if !self.path.has_content {
             return;
         }
+        // A filled rectangle with zero width or zero height has no area to
+        // fill -- literally invisible in any correct vector renderer --
+        // but real-world PDFs (CAD exports, ruled grids, table borders)
+        // commonly use exactly this to draw a hairline instead of a
+        // stroke, relying on every mainstream viewer's rasterizer to give
+        // a degenerate fill a sliver of coverage. Matching that
+        // expectation means drawing it as an actual thin stroke along the
+        // rectangle's degenerate axis instead of leaving it a true
+        // zero-area (and so invisible) fill. A path that is also stroked
+        // already gets its own visible outline, so this only applies to a
+        // bare fill.
+        let hairline = (fill && !stroke)
+            .then_some(self.path.bare_rect)
+            .flatten()
+            .and_then(|[x, y, width, height]| {
+                let zero_width = width == 0.0;
+                let zero_height = height == 0.0;
+                if zero_width == zero_height {
+                    return None; // an ordinary rect, or a zero-area point
+                }
+                let scale = matrix_maximum_scale(self.state.ctm).max(1e-12);
+                let stroke_width = 1.0 / scale;
+                let (x2, y2) = if zero_width {
+                    (x, y + height)
+                } else {
+                    (x + width, y)
+                };
+                let line = format!("M {} {} L {} {}", fmt(x), fmt(y), fmt(x2), fmt(y2));
+                Some((line, stroke_width))
+            });
         let d = self.path.take();
         self.install_clip(&d);
         if self.marked_content_hidden {
@@ -2922,22 +2972,31 @@ impl Interpreter<'_, '_> {
         let pattern_clip = self.selected_pattern_clip(fill, stroke);
         let clip_id = self.install_pattern_bbox_clip(pattern_clip);
         self.node_counter += 1;
-        self.page.nodes.push(Node::Path {
-            id: format!("pdf-path-{}-{}", self.page.number, self.node_counter),
-            d,
-            fill_rule: fill_rule.into(),
-            fill: if fill {
-                self.state.fill.clone()
-            } else {
-                Paint::None
-            },
-            stroke: Stroke {
-                paint: if stroke {
+        let (d, fill_paint, stroke_paint, stroke_width) = match hairline {
+            Some((line, width)) => (line, Paint::None, self.state.fill.clone(), width),
+            None => (
+                d,
+                if fill {
+                    self.state.fill.clone()
+                } else {
+                    Paint::None
+                },
+                if stroke {
                     self.state.stroke.clone()
                 } else {
                     Paint::None
                 },
-                width: self.state.line_width,
+                self.state.line_width,
+            ),
+        };
+        self.page.nodes.push(Node::Path {
+            id: format!("pdf-path-{}-{}", self.page.number, self.node_counter),
+            d,
+            fill_rule: fill_rule.into(),
+            fill: fill_paint,
+            stroke: Stroke {
+                paint: stroke_paint,
+                width: stroke_width,
                 line_cap: self.state.line_cap,
                 line_join: self.state.line_join,
                 miter_limit: self.state.miter_limit,
