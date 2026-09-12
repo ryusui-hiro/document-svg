@@ -4305,6 +4305,7 @@ impl Interpreter<'_, '_> {
             Some(Object::Array(array))
                 if array.first().and_then(|value| value.as_name().ok()) == Some(b"Indexed") =>
             {
+                let base = array.get(1);
                 let palette = array
                     .get(3)
                     .and_then(|value| {
@@ -4315,15 +4316,13 @@ impl Interpreter<'_, '_> {
                     })
                     .and_then(object_bytes)
                     .unwrap_or_default();
-                let components = array
-                    .get(1)
-                    .and_then(|value| {
-                        self.document
-                            .dereference(value)
-                            .ok()
-                            .map(|(_, value)| value)
-                    })
-                    .map_or(3, color_components);
+                // The base color space is not necessarily RGB/Gray/CMYK --
+                // Lab is common too, and any of Separation, DeviceN,
+                // CalGray, CalRGB or ICCBased are legal as well -- so each
+                // palette entry is resolved through the same conversion
+                // used for painted colors, rather than assumed to already
+                // be sRGB bytes.
+                let components = pdf_color_component_count(self.document, base);
                 if palette.is_empty() || components == 0 {
                     self.page.warn(format!(
                         "PDF indexed image {} has no usable palette",
@@ -4331,18 +4330,55 @@ impl Interpreter<'_, '_> {
                     ));
                     return Ok((png::ColorType::Grayscale, pixels, width, height));
                 }
+                let base_array = base
+                    .and_then(|value| self.document.dereference(value).ok())
+                    .and_then(|(_, value)| value.as_array().ok());
+                let is_lab = base_array
+                    .and_then(|array| array.first().and_then(|value| value.as_name().ok()))
+                    == Some(b"Lab");
+                // A palette byte's own 0..255 range maps directly onto
+                // [0, 1] for every base color space this converter
+                // supports except Lab, whose components each have their
+                // own much wider native range instead.
+                let lab_range = is_lab
+                    .then(|| {
+                        base_array
+                            .and_then(|array| array.get(1))
+                            .and_then(|value| self.document.dereference(value).ok())
+                            .and_then(|(_, value)| value.as_dict().ok())
+                            .and_then(|dictionary| {
+                                dictionary.get(b"Range").and_then(Object::as_array).ok()
+                            })
+                            .map(|values| numbers(values, 4))
+                            .filter(|values| values.len() == 4)
+                    })
+                    .flatten()
+                    .unwrap_or_else(|| vec![-100.0, 100.0, -100.0, 100.0]);
                 let mut rgb = Vec::with_capacity(pixel_count.saturating_mul(3));
                 for index in pixels {
                     let offset = usize::from(index).saturating_mul(components);
-                    let sample = palette.get(offset..offset.saturating_add(components));
-                    match (components, sample) {
-                        (1, Some(sample)) => {
-                            rgb.extend_from_slice(&[sample[0], sample[0], sample[0]]);
-                        }
-                        (3, Some(sample)) => rgb.extend_from_slice(sample),
-                        (4, Some(sample)) => rgb.extend_from_slice(&cmyk_samples_to_rgb(sample)),
-                        _ => rgb.extend_from_slice(&[0, 0, 0]),
-                    }
+                    let converted = palette
+                        .get(offset..offset.saturating_add(components))
+                        .map(|sample| {
+                            sample
+                                .iter()
+                                .enumerate()
+                                .map(|(component, value)| {
+                                    let normalized = f64::from(*value) / 255.0;
+                                    if !is_lab {
+                                        return normalized;
+                                    }
+                                    let (minimum, maximum) = match component {
+                                        0 => (0.0, 100.0),
+                                        1 => (lab_range[0], lab_range[1]),
+                                        _ => (lab_range[2], lab_range[3]),
+                                    };
+                                    minimum + normalized * (maximum - minimum)
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .and_then(|sample| components_to_rgb(self.document, base, &sample, 0));
+                    rgb.extend_from_slice(&converted.map(rgb_to_bytes).unwrap_or([0, 0, 0]));
                 }
                 (png::ColorType::Rgb, rgb)
             }
@@ -8603,7 +8639,7 @@ fn inherited_page_array(
 ) -> Option<[f64; 4]> {
     for _ in 0..64 {
         let page = document.get_dictionary(page_id).ok()?;
-        if let Ok(array) = page.get(key).and_then(Object::as_array) {
+        if let Ok(array) = page.get_deref(key, document).and_then(Object::as_array) {
             let values = array
                 .iter()
                 .filter_map(|object| number(Some(object)))
@@ -8620,7 +8656,7 @@ fn inherited_page_array(
 fn inherited_page_number(document: &Document, mut page_id: ObjectId, key: &[u8]) -> Option<f64> {
     for _ in 0..64 {
         let page = document.get_dictionary(page_id).ok()?;
-        if let Ok(value) = page.get(key)
+        if let Ok(value) = page.get_deref(key, document)
             && let Some(number) = number(Some(value))
         {
             return Some(number);
@@ -9041,20 +9077,6 @@ fn object_bytes(object: &Object) -> Option<Vec<u8>> {
             .ok()
             .or_else(|| Some(stream.content.clone())),
         _ => None,
-    }
-}
-
-fn color_components(object: &Object) -> usize {
-    match object {
-        Object::Name(name) if name == b"DeviceGray" || name == b"G" => 1,
-        Object::Name(name) if name == b"DeviceCMYK" => 4,
-        Object::Name(_) => 3,
-        Object::Array(array) => match array.first().and_then(|value| value.as_name().ok()) {
-            Some(b"DeviceGray") => 1,
-            Some(b"DeviceCMYK") => 4,
-            _ => 3,
-        },
-        _ => 3,
     }
 }
 

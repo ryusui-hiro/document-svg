@@ -709,6 +709,141 @@ fn recovers_an_unfiltered_inline_image_whose_last_data_byte_is_not_a_pdf_delimit
 }
 
 #[test]
+fn sizes_a_page_whose_media_box_is_an_indirect_reference() {
+    // Real-world regression (pdf.js's own bug852992_reduced.pdf): a page's
+    // own /MediaBox entry can legally be an indirect reference to an array,
+    // rather than the array inline -- this file's own producer shares one
+    // indirect array object as the /BBox of several Form XObjects and
+    // shadings too. Reading it with a non-dereferencing dictionary lookup
+    // before checking whether it was an array silently treated the whole
+    // /MediaBox as absent, falling back to a default US Letter page --
+    // 612x792 -- instead of this file's real, much smaller and
+    // negative-origin 540x190 page, squeezing all of its actual content
+    // into a small corner of a mostly blank canvas.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("indirect-mediabox.pdf");
+    let mut document = Document::with_version("1.7");
+    let media_box = document.add_object(vec![
+        Object::Real(-270.0),
+        Object::Real(-95.0),
+        Object::Real(270.0),
+        Object::Real(95.0),
+    ]);
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"0 1 0 rg -270 -95 540 190 re f".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => Object::Reference(media_box),
+        "Resources" => dictionary! {},
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("width=\"540pt\" height=\"190pt\""), "{svg}");
+}
+
+#[test]
+fn resolves_an_indexed_image_palette_through_its_own_base_color_space() {
+    // Real-world regression (pdf.js's own issue10339_reduced.pdf): an
+    // Indexed color space's base need not be DeviceRGB/Gray/CMYK -- Lab is
+    // legal too (as are CalGray, CalRGB, Separation, DeviceN and
+    // ICCBased). Each palette entry was instead assumed to already be raw
+    // sRGB bytes whenever it happened to have 3 components, which is true
+    // for an RGB base but not for a 3-component Lab one -- so an
+    // indexed-Lab image rendered with the palette's raw L*a*b* byte values
+    // reinterpreted directly as red/green/blue, producing a completely
+    // wrong (though structurally identical, since only the color channel
+    // is wrong) muddy brown/pink image instead of the intended blue tones.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("indexed-lab.pdf");
+    let mut document = Document::with_version("1.7");
+    // A single palette entry: L*=80, a*=0, b*=-88 (a strong blue), stored
+    // as the raw bytes a Lab-based Indexed image palette actually uses --
+    // L in [0, 100] mapped to [0, 255], a/b in this Lab space's own
+    // [-128, 127] range mapped to [0, 255].
+    let lookup = document.add_object(Stream::new(dictionary! {}, vec![204, 128, 40]));
+    let color_space = document.add_object(vec![
+        Object::Name(b"Indexed".to_vec()),
+        vec![
+            Object::Name(b"Lab".to_vec()),
+            Object::Dictionary(dictionary! {
+                "WhitePoint" => vec![0.9505.into(), 1.into(), 1.089.into()],
+                "Range" => vec![(-128).into(), 127.into(), (-128).into(), 127.into()],
+            }),
+        ]
+        .into(),
+        0.into(),
+        Object::Reference(lookup),
+    ]);
+    let image = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Image",
+            "Width" => 1, "Height" => 1,
+            "ColorSpace" => Object::Reference(color_space),
+            "BitsPerComponent" => 8,
+        },
+        vec![0],
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "Im0" => Object::Reference(image) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("q", vec![]),
+            Operation::new(
+                "cm",
+                vec![
+                    100.into(),
+                    0.into(),
+                    0.into(),
+                    100.into(),
+                    0.into(),
+                    0.into(),
+                ],
+            ),
+            Operation::new("Do", vec![Object::Name(b"Im0".to_vec())]),
+            Operation::new("Q", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split("data:image/png;base64,")
+        .nth(1)
+        .and_then(|value| value.split('"').next())
+        .unwrap();
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let decoder = png::Decoder::new(std::io::Cursor::new(png));
+    let mut reader = decoder.read_info().unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    reader.next_frame(&mut pixels).unwrap();
+    // Blue, not the muddy brown the raw Lab bytes would give read as RGB.
+    assert!(
+        pixels[2] > pixels[0] && pixels[2] > pixels[1],
+        "expected blue to dominate, got {pixels:?}"
+    );
+}
+
+#[test]
 fn fills_a_path_with_a_function_based_shading_pattern() {
     // A shading pattern (PatternType 2) has no SVG gradient equivalent once
     // its ShadingType is 1 (function-based) rather than 2/3 (axial/radial):
