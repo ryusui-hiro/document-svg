@@ -4122,7 +4122,7 @@ impl Interpreter<'_, '_> {
                 .get(b"ImageMask")
                 .and_then(Object::as_bool)
                 .unwrap_or(false);
-            let (color_type, output_pixels) = if image_mask {
+            let (color_type, output_pixels, width, height) = if image_mask {
                 let Some(decoded) = decode_stencil_image(
                     stream,
                     &pixels,
@@ -4137,7 +4137,7 @@ impl Interpreter<'_, '_> {
                     ));
                     return Ok(());
                 };
-                (png::ColorType::Rgba, decoded)
+                (png::ColorType::Rgba, decoded, width, height)
             } else {
                 let color_space = stream
                     .dict
@@ -4288,7 +4288,7 @@ impl Interpreter<'_, '_> {
         width: usize,
         height: usize,
         name: &[u8],
-    ) -> Result<(png::ColorType, Vec<u8>)> {
+    ) -> Result<(png::ColorType, Vec<u8>, usize, usize)> {
         let pixel_count = width.saturating_mul(height);
         let color_space = stream
             .dict
@@ -4329,7 +4329,7 @@ impl Interpreter<'_, '_> {
                         "PDF indexed image {} has no usable palette",
                         String::from_utf8_lossy(name)
                     ));
-                    return Ok((png::ColorType::Grayscale, pixels));
+                    return Ok((png::ColorType::Grayscale, pixels, width, height));
                 }
                 let mut rgb = Vec::with_capacity(pixel_count.saturating_mul(3));
                 for index in pixels {
@@ -4378,7 +4378,7 @@ impl Interpreter<'_, '_> {
                         "PDF image {} has incompatible color-space samples",
                         String::from_utf8_lossy(name)
                     ));
-                    return Ok((png::ColorType::Rgb, pixels));
+                    return Ok((png::ColorType::Rgb, pixels, width, height));
                 }
                 let mut rgb = Vec::with_capacity(pixel_count.saturating_mul(3));
                 let is_lab = array.first().and_then(|value| value.as_name().ok()) == Some(b"Lab");
@@ -4461,6 +4461,8 @@ impl Interpreter<'_, '_> {
                 output.len()
             )));
         }
+        let mut final_width = width;
+        let mut final_height = height;
         if let Ok(mask_object) = stream.dict.get(b"SMask")
             && let Ok((_, mask_object)) = self.document.dereference(mask_object)
             && let Ok(mask) = mask_object.as_stream()
@@ -4503,21 +4505,51 @@ impl Interpreter<'_, '_> {
             } else {
                 alpha
             };
-            if mask_width == width && mask_height == height && alpha.len() == pixel_count {
-                output = add_alpha(&output, components, &alpha);
+            if alpha.len() == mask_width.saturating_mul(mask_height) {
+                // A soft mask's own pixel dimensions need not match the base
+                // image's -- each is independently mapped onto the same unit
+                // image square, so a real renderer resamples both to
+                // whatever resolution it actually draws at. Combining them
+                // into one raster here means picking a common resolution
+                // up front instead; the larger of the two keeps whichever
+                // side carries the real detail, which in practice is often
+                // the mask -- e.g. a uniform highlight colour as a tiny
+                // solid-colour base image, with the highlighted region's
+                // actual shape carried entirely by a full-resolution mask.
+                let target_width = width.max(mask_width);
+                let target_height = height.max(mask_height);
+                let resampled_color = resample_nearest(
+                    &output,
+                    width,
+                    height,
+                    components,
+                    target_width,
+                    target_height,
+                );
+                let resampled_alpha = resample_nearest(
+                    &alpha,
+                    mask_width,
+                    mask_height,
+                    1,
+                    target_width,
+                    target_height,
+                );
+                output = add_alpha(&resampled_color, components, &resampled_alpha);
                 color_type = if components == 1 {
                     png::ColorType::GrayscaleAlpha
                 } else {
                     png::ColorType::Rgba
                 };
+                final_width = target_width;
+                final_height = target_height;
             } else {
                 self.page.warn(format!(
-                    "PDF image {} soft mask dimensions do not match the source image",
+                    "PDF image {} soft mask decoded to the wrong number of samples",
                     String::from_utf8_lossy(name)
                 ));
             }
         }
-        Ok((color_type, output))
+        Ok((color_type, output, final_width, final_height))
     }
 
     fn lookup_xobject(&self, name: &[u8]) -> Option<(Option<ObjectId>, Stream)> {
@@ -9184,6 +9216,40 @@ fn parse_pdf_hex_color(color: &str) -> Option<[u8; 3]> {
         u8::from_str_radix(&color[2..4], 16).ok()?,
         u8::from_str_radix(&color[4..6], 16).ok()?,
     ])
+}
+
+/// Nearest-neighbor resamples a packed `components`-per-pixel buffer from
+/// `src_width` x `src_height` to `dst_width` x `dst_height`.
+fn resample_nearest(
+    samples: &[u8],
+    src_width: usize,
+    src_height: usize,
+    components: usize,
+    dst_width: usize,
+    dst_height: usize,
+) -> Vec<u8> {
+    if src_width == dst_width && src_height == dst_height {
+        return samples.to_vec();
+    }
+    let src_width = src_width.max(1);
+    let src_height = src_height.max(1);
+    let mut output = Vec::with_capacity(
+        dst_width
+            .saturating_mul(dst_height)
+            .saturating_mul(components),
+    );
+    for y in 0..dst_height {
+        let src_y = (y.saturating_mul(src_height) / dst_height.max(1)).min(src_height - 1);
+        for x in 0..dst_width {
+            let src_x = (x.saturating_mul(src_width) / dst_width.max(1)).min(src_width - 1);
+            let start = (src_y.saturating_mul(src_width) + src_x).saturating_mul(components);
+            match samples.get(start..start + components) {
+                Some(pixel) => output.extend_from_slice(pixel),
+                None => output.extend(std::iter::repeat_n(0u8, components)),
+            }
+        }
+    }
+    output
 }
 
 fn add_alpha(samples: &[u8], components: usize, alpha: &[u8]) -> Vec<u8> {

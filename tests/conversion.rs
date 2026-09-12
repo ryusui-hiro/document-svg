@@ -1236,6 +1236,52 @@ fn converts_pdf_jpeg_soft_mask_to_png_alpha() {
 }
 
 #[test]
+fn resamples_a_soft_mask_whose_dimensions_do_not_match_its_base_image() {
+    // Real-world regression (pdf.js's own
+    // chrome-text-selection-markedContent.pdf): a soft mask's own pixel
+    // dimensions need not match the base image it applies to -- each is
+    // independently mapped onto the same unit image square, so a real
+    // renderer resamples both to whatever resolution it actually draws at.
+    // Chrome's own "print to PDF" renders a text-selection highlight
+    // exactly this way: a tiny, uniformly-coloured base image (here 1x1)
+    // stretched over the highlighted run, with the actual highlight shape
+    // -- fine per-glyph detail -- carried entirely by a full-resolution
+    // soft mask (here 2x1). Dropping the mask outright whenever its
+    // dimensions differed from the base image's, as a same-size check did,
+    // discarded that detail and left the highlight either solid or
+    // invisible instead of glyph-shaped; downsampling the mask down to the
+    // base image's own tiny resolution would have been just as wrong, so
+    // the two are resampled to their larger common resolution instead.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("mismatched-soft-mask.pdf");
+    let output = temporary.path().join("out");
+    make_mismatched_soft_mask_pdf(&input);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split("data:image/png;base64,")
+        .nth(1)
+        .and_then(|value| value.split('"').next())
+        .unwrap();
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let decoder = png::Decoder::new(std::io::Cursor::new(png));
+    let mut reader = decoder.read_info().unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgba);
+    assert_eq!((info.width, info.height), (2, 1));
+    assert_eq!(&pixels[0..3], &[255, 0, 0], "left pixel colour");
+    assert_eq!(&pixels[4..7], &[255, 0, 0], "right pixel colour");
+    assert!(pixels[3] < 16, "left alpha={}", pixels[3]);
+    assert!(pixels[7] > 239, "right alpha={}", pixels[7]);
+}
+
+#[test]
 fn normalizes_inverted_pdf_cmyk_jpeg_to_rgb() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("cmyk-jpeg.pdf");
@@ -4398,6 +4444,55 @@ fn make_jpeg_soft_mask_pdf(path: &Path) {
             "SMask" => Object::Reference(mask_id),
         },
         vec![255, 0, 0, 0, 0, 255],
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "Masked" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("q", vec![]),
+            Operation::new(
+                "cm",
+                vec![
+                    100.into(),
+                    0.into(),
+                    0.into(),
+                    50.into(),
+                    20.into(),
+                    20.into(),
+                ],
+            ),
+            Operation::new("Do", vec![Object::Name(b"Masked".to_vec())]),
+            Operation::new("Q", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, path, resources_id, content);
+}
+
+fn make_mismatched_soft_mask_pdf(path: &Path) {
+    let mut document = Document::with_version("1.7");
+    let mask_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 2,
+            "Height" => 1,
+            "ColorSpace" => "DeviceGray",
+            "BitsPerComponent" => 8,
+        },
+        vec![0, 255],
+    ));
+    let image_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 1,
+            "Height" => 1,
+            "ColorSpace" => "DeviceRGB",
+            "BitsPerComponent" => 8,
+            "SMask" => Object::Reference(mask_id),
+        },
+        vec![255, 0, 0],
     ));
     let resources_id = document.add_object(dictionary! {
         "XObject" => dictionary! { "Masked" => Object::Reference(image_id) },
