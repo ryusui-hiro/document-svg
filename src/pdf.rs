@@ -1317,9 +1317,16 @@ impl FontDecoder {
                     )
                     .map_err(|_| "embedded font glyph outline could not be decoded")?;
             } else {
-                if replacement || decoded.is_empty() {
-                    return Err("font code could not be mapped to Unicode");
-                }
+                // A ToUnicode gap (`replacement`) or the total absence of a
+                // /ToUnicode map only affects text extraction, not glyph
+                // selection: a symbolic font (`glyph_names` empty) resolves
+                // through its own cmap by raw code in the branch below,
+                // trying that before it ever looks at `character`, and a
+                // non-symbolic font can still fall back to its own
+                // /Differences-named glyph via the font's post table.
+                // Bailing out here unconditionally dropped every glyph
+                // whose code had no ToUnicode entry, even when the font's
+                // own encoding could resolve it directly.
                 for character in decoded.chars() {
                     has_visible_character |= !character.is_whitespace();
                     // A font with no /Encoding is symbolic by the PDF spec's
@@ -9505,6 +9512,22 @@ mod tests {
         let path = decoder.outline_path(b"B", 0.0, 0.0).unwrap();
         assert!(path.contains("M 0.1 0.2"), "{path}");
         assert!(!path.contains("L 0.5 0"), "{path}");
+    }
+
+    #[test]
+    fn outlines_a_symbolic_true_type_glyph_whose_code_has_no_tounicode_entry() {
+        // Real-world regression (pdf.js's own issue2017r.pdf): a symbolic
+        // simple TrueType font (no /Encoding) whose /ToUnicode CMap has no
+        // entry for a given code used to abort outlining that glyph
+        // entirely and fall back to incorrect placeholder text, even
+        // though a symbolic font resolves glyphs through its own cmap by
+        // raw code and never needed a Unicode value in the first place.
+        let mut decoder = test_font_decoder(font_test_data::font(None, false, false));
+        // unicode_map is non-empty (so decode() actually consults it) but
+        // has no entry for code 65 ('A') -- the gap this test exercises.
+        decoder.unicode_map.insert(vec![66], "B".into());
+        let path = decoder.outline_path(b"A", 0.0, 0.0).unwrap();
+        assert!(path.contains("L 0.5 0"), "{path}");
     }
 
     #[test]
