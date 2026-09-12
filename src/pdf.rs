@@ -4414,7 +4414,7 @@ impl Interpreter<'_, '_> {
                 .and_then(Object::as_name)
                 .unwrap_or(b"AnyOn");
             let members = dictionary
-                .get(b"OCGs")
+                .get_deref(b"OCGs", self.document)
                 .ok()
                 .map(|value| match value {
                     Object::Array(items) => items.clone(),
@@ -8363,9 +8363,14 @@ fn hidden_optional_content_groups(document: &Document) -> HashSet<ObjectId> {
     else {
         return HashSet::new();
     };
+    // `/ON`, `/OFF` and the top-level `/OCGs` array are each just as likely
+    // to be indirect references as inline arrays -- a non-dereferencing
+    // `get` silently (via `.ok()`) treats a reference here as "absent"
+    // rather than following it, which previously hid nothing at all on a
+    // document whose `/OFF` array happens to be its own indirect object.
     let object_ids = |key: &[u8]| -> HashSet<ObjectId> {
         configuration
-            .get(key)
+            .get_deref(key, document)
             .and_then(Object::as_array)
             .ok()
             .into_iter()
@@ -8384,7 +8389,12 @@ fn hidden_optional_content_groups(document: &Document) -> HashSet<ObjectId> {
             .ok()
             .and_then(|catalog| catalog.get_deref(b"OCProperties", document).ok())
             .and_then(|value| value.as_dict().ok())
-            .and_then(|properties| properties.get(b"OCGs").and_then(Object::as_array).ok())
+            .and_then(|properties| {
+                properties
+                    .get_deref(b"OCGs", document)
+                    .and_then(Object::as_array)
+                    .ok()
+            })
             .into_iter()
             .flatten()
             .filter_map(|value| value.as_reference().ok())

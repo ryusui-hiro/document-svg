@@ -229,7 +229,11 @@ fn outlines_an_identity_h_cid_glyph_the_embedded_cmap_cannot_resolve() {
 
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
 
-    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("text-outline"), "{svg}");
 }
@@ -375,6 +379,59 @@ fn hides_content_in_an_optional_content_group_that_is_off_by_default() {
 }
 
 #[test]
+fn hides_an_optional_content_group_whose_off_list_is_an_indirect_reference() {
+    // Real-world regression (pdf.js's own issue269_2.pdf): /OCProperties
+    // /D /OFF (and /ON, and the top-level /OCGs array) can each just as
+    // legally be an indirect reference to an array as an inline one --
+    // this file's own /OFF is its own separate object. Reading it with a
+    // non-dereferencing `dictionary.get` before checking `.as_array()`
+    // silently treated the reference as absent, hiding nothing at all: a
+    // document meant to show one of 49 layers instead showed all of them
+    // stacked on top of each other.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("ocg-indirect-off.pdf");
+    let mut document = Document::with_version("1.7");
+    let visible_ocg = document
+        .add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Visible") });
+    let hidden_ocg = document
+        .add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Hidden") });
+    let off_array = document.add_object(vec![Object::Reference(hidden_ocg)]);
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"q /OC /VisG BDC 0 1 0 rg 20 20 100 100 re f EMC Q\nq /OC /HidG BDC 1 0 0 rg 150 20 100 100 re f EMC Q\n".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 300.into(), 200.into()],
+        "Resources" => dictionary! {
+            "Properties" => dictionary! { "VisG" => visible_ocg, "HidG" => hidden_ocg },
+        },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! {
+        "Type" => "Catalog", "Pages" => pages,
+        "OCProperties" => dictionary! {
+            "OCGs" => vec![Object::Reference(visible_ocg), Object::Reference(hidden_ocg)],
+            "D" => dictionary! { "OFF" => Object::Reference(off_array) },
+        },
+    });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("#00FF00"), "{svg}");
+    assert!(!svg.contains("#FF0000"), "{svg}");
+}
+
+#[test]
 fn fills_a_path_with_a_function_based_shading_pattern() {
     // A shading pattern (PatternType 2) has no SVG gradient equivalent once
     // its ShadingType is 1 (function-based) rather than 2/3 (axial/radial):
@@ -421,10 +478,17 @@ fn fills_a_path_with_a_function_based_shading_pattern() {
     document.save(&input).unwrap();
     let output = temporary.path().join("out");
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
-    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("<pattern"), "{svg}");
-    assert!(svg.contains("data-content-kind=\"function-shading-cell\""), "{svg}");
+    assert!(
+        svg.contains("data-content-kind=\"function-shading-cell\""),
+        "{svg}"
+    );
     assert!(svg.contains("fill=\"url(#"), "{svg}");
 }
 
@@ -485,7 +549,11 @@ fn fills_a_path_with_a_mesh_shading_pattern() {
     document.save(&input).unwrap();
     let output = temporary.path().join("out");
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
-    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("<pattern"), "{svg}");
     assert!(svg.contains("data-content-kind=\"mesh-triangle\""), "{svg}");
@@ -993,7 +1061,11 @@ fn draws_a_jpeg_image_whose_filter_chain_wraps_it_in_an_outer_flate_layer() {
 
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
 
-    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     let encoded = svg
         .split("data:image/png;base64,")
@@ -1008,7 +1080,10 @@ fn draws_a_jpeg_image_whose_filter_chain_wraps_it_in_an_outer_flate_layer() {
     let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
     let info = reader.next_frame(&mut pixels).unwrap();
     assert_eq!(info.color_type, png::ColorType::Rgba);
-    assert!(pixels[0] > 150 && pixels[1] < 100 && pixels[2] < 100, "{pixels:?}");
+    assert!(
+        pixels[0] > 150 && pixels[1] < 100 && pixels[2] < 100,
+        "{pixels:?}"
+    );
     assert!(pixels[3] > 240, "alpha={}", pixels[3]);
 }
 
@@ -8680,7 +8755,11 @@ fn covers_the_full_domain_for_a_radially_symmetric_function_shading() {
     document.save(&input).unwrap();
     let output = temporary.path().join("out");
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
-    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     let xs: Vec<f64> = svg
         .split("<path ")
@@ -8767,7 +8846,10 @@ fn degrades_gracefully_instead_of_failing_a_page_with_a_high_frequency_function_
         report.pages[0].warnings
     );
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
-    assert!(svg.contains("data-content-kind=\"function-shading-cell\""), "{svg}");
+    assert!(
+        svg.contains("data-content-kind=\"function-shading-cell\""),
+        "{svg}"
+    );
 }
 
 #[test]
@@ -8815,7 +8897,11 @@ fn draws_content_after_a_comment_trailing_an_operator_on_the_same_line() {
     document.save(&input).unwrap();
     let output = temporary.path().join("out");
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
-    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
     assert_eq!(report.pages[0].node_count, 1);
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("#000000"), "{svg}");
