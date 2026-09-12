@@ -4420,14 +4420,25 @@ impl Interpreter<'_, '_> {
                 .get(b"P")
                 .and_then(Object::as_name)
                 .unwrap_or(b"AnyOn");
-            let members = dictionary
-                .get_deref(b"OCGs", self.document)
-                .ok()
-                .map(|value| match value {
-                    Object::Array(items) => items.clone(),
-                    other => vec![other.clone()],
-                })
-                .unwrap_or_default();
+            // /OCGs names either a single OCG or an array of them (PDF32000
+            // 8.11.2.3), and either form can itself be an indirect
+            // reference. The array's own elements (or the lone OCG) must
+            // stay references here rather than being resolved to their
+            // dictionaries early: each one is re-dereferenced below
+            // specifically to keep its object ID, which the hidden-group
+            // lookup needs and an already-resolved dictionary has lost.
+            let members = match dictionary.get(b"OCGs") {
+                Ok(Object::Array(items)) => items.clone(),
+                Ok(reference @ Object::Reference(_)) => {
+                    match self.document.dereference(reference) {
+                        Ok((_, Object::Array(items))) => items.clone(),
+                        Ok(_) => vec![reference.clone()],
+                        Err(_) => Vec::new(),
+                    }
+                }
+                Ok(other) => vec![other.clone()],
+                Err(_) => Vec::new(),
+            };
             if members.is_empty() {
                 return true;
             }

@@ -432,6 +432,71 @@ fn hides_an_optional_content_group_whose_off_list_is_an_indirect_reference() {
 }
 
 #[test]
+fn hides_a_form_xobject_whose_oc_entry_is_an_ocmd_naming_a_single_ocg() {
+    // Real-world regression (pdf.js's own issue12007_reduced.pdf): an
+    // OCMD's /OCGs can legally name a single OCG directly -- a bare
+    // indirect reference, not wrapped in an array -- rather than an array
+    // of them (PDF32000 8.11.2.3). The fix for a *different*
+    // /OCProperties dereferencing gap earlier this session dereferenced
+    // /OCGs before checking whether the result was an array, which for
+    // this single-reference form discarded the object ID the hidden-group
+    // lookup needs: a Form XObject's own /OC entry (as opposed to a
+    // content-stream BDC wrapper) pointing at an OCMD with a bare single
+    // OCG reference always rendered as visible regardless of that OCG's
+    // real default state.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("ocg-single-ocmd-reference.pdf");
+    let mut document = Document::with_version("1.7");
+    let hidden_ocg = document
+        .add_object(dictionary! { "Type" => "OCG", "Name" => Object::string_literal("Hidden") });
+    let ocmd = document.add_object(dictionary! {
+        "Type" => "OCMD", "OCGs" => Object::Reference(hidden_ocg),
+    });
+    let form = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject", "Subtype" => "Form",
+            "BBox" => vec![0.into(), 0.into(), 300.into(), 200.into()],
+            "OC" => Object::Reference(ocmd),
+        },
+        b"1 0 0 rg 20 20 100 100 re f".to_vec(),
+    ));
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"0 1 0 rg 150 20 100 100 re f\n/Fm0 Do".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 300.into(), 200.into()],
+        "Resources" => dictionary! {
+            "XObject" => dictionary! { "Fm0" => Object::Reference(form) },
+        },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! {
+        "Type" => "Catalog", "Pages" => pages,
+        "OCProperties" => dictionary! {
+            "OCGs" => vec![Object::Reference(hidden_ocg)],
+            "D" => dictionary! { "OFF" => vec![Object::Reference(hidden_ocg)] },
+        },
+    });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.pages[0].warnings.is_empty(), "{:?}", report.pages[0].warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("#00FF00"), "{svg}");
+    assert!(!svg.contains("#FF0000"), "{svg}");
+}
+
+#[test]
 fn fills_a_path_with_a_function_based_shading_pattern() {
     // A shading pattern (PatternType 2) has no SVG gradient equivalent once
     // its ShadingType is 1 (function-based) rather than 2/3 (axial/radial):
