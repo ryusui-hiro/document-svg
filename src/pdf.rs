@@ -1478,36 +1478,50 @@ impl FontDecoder {
         let mut path = String::new();
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
-        for code in bytes {
+        let code_length = if self.identity_cid { 2 } else { 1 };
+        for code in bytes.chunks(code_length) {
             // A ToUnicode CMap gap (`replacement`) means text extraction
             // can't recover this code's Unicode value, not that the glyph
             // is missing: math and symbol CFF fonts routinely carry glyphs
             // with no sensible Unicode equivalent. Glyph selection below
             // uses the font's own charset/encoding first regardless, and
             // this is only reported as unresolvable if that also fails.
-            let (decoded, _replacement) = self.decode(&[*code]);
+            let (decoded, _replacement) = self.decode(code);
             has_visible_character |= decoded.chars().any(|character| !character.is_whitespace());
-            let glyph_id = self
-                .glyph_names
-                .get(code)
-                .and_then(|name| font.charset.iter().position(|candidate| candidate == name))
-                .or_else(|| {
-                    let mut characters = decoded.chars();
-                    let character = characters.next()?;
-                    if characters.next().is_some() || u32::from(character) > u32::from(u16::MAX) {
-                        return None;
-                    }
-                    font.charset.iter().position(|name| {
-                        stet_fonts::agl::glyph_name_to_unicode(name) == Some(character as u16)
+            let glyph_id = if self.identity_cid {
+                // Identity-H/V: the code already is the CID (PDF32000
+                // 9.7.5.2). A CID-keyed CFF's own charset maps GID -> CID,
+                // not GID -> name, so the name-/Unicode-based lookup below
+                // has nothing to match against; font.cid_to_gid is the
+                // parser's own reverse of that map.
+                font.cid_to_gid
+                    .get(bytes_to_u32(code) as usize)
+                    .copied()
+                    .map(usize::from)
+                    .filter(|glyph_id| *glyph_id != 0)
+            } else {
+                self.glyph_names
+                    .get(&code[0])
+                    .and_then(|name| font.charset.iter().position(|candidate| candidate == name))
+                    .or_else(|| {
+                        let mut characters = decoded.chars();
+                        let character = characters.next()?;
+                        if characters.next().is_some() || u32::from(character) > u32::from(u16::MAX)
+                        {
+                            return None;
+                        }
+                        font.charset.iter().position(|name| {
+                            stet_fonts::agl::glyph_name_to_unicode(name) == Some(character as u16)
+                        })
                     })
-                })
-                .or_else(|| {
-                    font.encoding
-                        .get(usize::from(*code))
-                        .copied()
-                        .map(usize::from)
-                        .filter(|glyph_id| *glyph_id != 0)
-                });
+                    .or_else(|| {
+                        font.encoding
+                            .get(usize::from(code[0]))
+                            .copied()
+                            .map(usize::from)
+                            .filter(|glyph_id| *glyph_id != 0)
+                    })
+            };
             if let Some(glyph_id) = glyph_id {
                 let charstring = font
                     .char_strings
@@ -1554,7 +1568,7 @@ impl FontDecoder {
             let word_spacing = if decoded == " " { word_spacing_em } else { 0.0 };
             x_offset += self
                 .widths
-                .get(&u32::from(*code))
+                .get(&bytes_to_u32(code))
                 .copied()
                 .unwrap_or(self.default_width)
                 / 1_000.0
@@ -9708,6 +9722,42 @@ mod tests {
     }
 
     #[test]
+    fn outlines_a_cid_keyed_cff_glyph_under_identity_h() {
+        // Real-world regression (pdf.js's own bug1937438_mml_from_latex.pdf,
+        // cid_cff.pdf, and four other corpus files): a Type0 font backed by
+        // a bare CIDFontType0C (CID-keyed CFF) program under /Encoding
+        // /Identity-H, where each character code is two bytes. outline_cff
+        // iterated `bytes` one byte at a time regardless, so every high
+        // byte of a two-byte CID (0x00 for any CID under 256) showed up as
+        // its own spurious one-byte "code 0" lookup that always failed --
+        // and a CID-keyed CFF's charset maps GID to CID, not to a name, so
+        // even the real low byte could never resolve through the
+        // name-/Unicode-based lookup meant for simple fonts.
+        let decoder = FontDecoder {
+            family: "Test CID CFF".into(),
+            bold: false,
+            italic: false,
+            requires_outline: true,
+            font_data: None,
+            glyph_names: HashMap::new(),
+            unicode_map: HashMap::new(),
+            code_lengths: vec![2],
+            fallback_kind: FontFallback::Utf16Be,
+            widths: HashMap::from([(1, 500.0)]),
+            default_width: 500.0,
+            type3: None,
+            type1: Type1Cache::default(),
+            identity_cid: true,
+            cid_to_gid_map: None,
+        };
+        let path = decoder
+            .outline_cff(&minimal_test_cid_cff(), &[0x00, 0x01], 0.0, 0.0)
+            .unwrap();
+        assert!(path.contains("M 0 0"), "{path}");
+        assert!(path.matches('L').count() >= 2, "{path}");
+    }
+
+    #[test]
     fn repairs_allowed_damaged_group3_2d_row() {
         let spec = InlineImageSpec {
             width: 8,
@@ -9815,6 +9865,37 @@ mod tests {
             14, // endchar
             0, 0, 34, // custom charset: GID 1 = SID 34 (A)
             0, 1, 65, // custom encoding: code 65 = GID 1
+        ]
+    }
+
+    /// A minimal CID-keyed CFF font (ROS present, one FDArray entry with an
+    /// empty Private DICT, FDSelect format 0), the same triangular glyph as
+    /// `minimal_test_cff` but reached through the CID -> GID map a
+    /// CIDFontType0C program carries instead of a name-keyed charset. GID 1
+    /// is CID 1.
+    fn minimal_test_cid_cff() -> Vec<u8> {
+        vec![
+            1, 0, 4, 4, // Header
+            0, 1, 1, 1, 5, b'T', b'e', b's', b't', // Name INDEX
+            // Top DICT INDEX: count=1, offSize=1, offsets=[1,24], data (23 bytes)
+            0, 1, 1, 1, 24,
+            139, 139, 139, 12, 30, // ROS 0 0 0
+            28, 0, 63, 15, // charset @63
+            28, 0, 45, 17, // CharStrings @45
+            28, 0, 66, 12, 36, // FDArray @66
+            28, 0, 71, 12, 37, // FDSelect @71
+            0, 0, // String INDEX (empty)
+            0, 0, // Global Subr INDEX (empty)
+            // CharStrings INDEX @45: count=2, offSize=1, offsets=[1,2,13], data (12 bytes)
+            0, 2, 1, 1, 2, 13,
+            14, // GID0 .notdef: endchar
+            139, 139, 21, 239, 139, 89, 239, 89, 39, 5, 14, // GID1: triangle
+            // charset @63: format 0, CID for GID1 = 1
+            0, 0, 1,
+            // FDArray @66: count=1, offSize=1, offsets=[1,1] (empty FD Private dict)
+            0, 1, 1, 1, 1,
+            // FDSelect @71: format 0, FD index 0 for both GIDs
+            0, 0, 0,
         ]
     }
 }
