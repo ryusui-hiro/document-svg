@@ -1261,6 +1261,23 @@ impl FontDecoder {
         let charmap = face.charmap();
         let cmap = face.cmap().ok();
         let outlines = face.outline_glyphs();
+        // A simple TrueType font with no cmap table at all -- legal, and
+        // not even unusual for a subsetted font used only through a PDF
+        // /Differences encoding -- leaves every cmap-based lookup above
+        // with nothing to search. The font's own `post` table (when it
+        // carries real glyph names, version 1.0 or 2.0) is the spec's own
+        // fallback (PDF32000 9.6.6.2): look the PDF encoding's glyph name
+        // up there directly, the same way CFF/Type1 already resolve a
+        // glyph through their own name tables regardless of cmap.
+        let post_glyph_ids: Option<HashMap<String, skrifa::GlyphId>> =
+            face.post().ok().map(|post| {
+                (0..post.num_names() as u16)
+                    .filter_map(|gid| {
+                        post.glyph_name(skrifa::raw::types::GlyphId16::new(gid))
+                            .map(|name| (name.to_string(), skrifa::GlyphId::from(gid)))
+                    })
+                    .collect()
+            });
         let code_length = if matches!(self.fallback_kind, FontFallback::Utf16Be) {
             self.code_lengths.first().copied().unwrap_or(2).max(1)
         } else {
@@ -1334,6 +1351,11 @@ impl FontDecoder {
                                     .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
                             })
                     }
+                    .or_else(|| {
+                        code.first()
+                            .and_then(|code| self.glyph_names.get(code))
+                            .and_then(|name| post_glyph_ids.as_ref()?.get(name.as_str()).copied())
+                    })
                     .ok_or("Unicode character has no glyph in the embedded font")?;
                     let glyph = outlines
                         .get(glyph_id)
@@ -3866,9 +3888,15 @@ impl Interpreter<'_, '_> {
                 )
             });
         let (mime, bytes) = if jpeg_passthrough {
-            ("image/jpeg", image_codec_content(stream, self.content_limit)?)
+            (
+                "image/jpeg",
+                image_codec_content(stream, self.content_limit)?,
+            )
         } else if filters.iter().any(|filter| *filter == b"JPXDecode") {
-            ("image/jp2", image_codec_content(stream, self.content_limit)?)
+            (
+                "image/jp2",
+                image_codec_content(stream, self.content_limit)?,
+            )
         } else {
             let ccitt = filters.iter().any(|filter| *filter == b"CCITTFaxDecode");
             // Report the filter by name rather than letting the decoder's
@@ -6683,7 +6711,7 @@ fn build_function_shading_cell_nodes(
 /// already been recorded on `page`; the reason varies (malformed data, an
 /// exhausted page budget, or a genuinely empty mesh) so the caller cannot
 /// usefully add its own message on top.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
 fn parse_mesh_shading_triangles(
     document: &Document,
     shading: &Object,
@@ -6896,6 +6924,7 @@ fn adaptive_function_shading_cells(
     true
 }
 
+#[allow(clippy::type_complexity)]
 fn adaptive_function_shading_cell(
     field: &FunctionShadingField<'_>,
     bounds: FunctionShadingBounds,
@@ -9377,6 +9406,23 @@ mod tests {
         assert!(decoder.outline_path(b"A", 0.0, 0.0).unwrap().contains('Q'));
         let path = decoder.outline_path(b"B", 0.0, 0.0).unwrap();
         assert!(path.contains("M 0.1 0.2"), "{path}");
+    }
+
+    #[test]
+    fn outlines_a_glyph_by_post_table_name_when_the_font_has_no_cmap() {
+        // Real-world regression (pdf.js's own TrueType_without_cmap.pdf): a
+        // simple, non-symbolic TrueType font with an embedded FontFile2 that
+        // has no `cmap` table at all -- legal, and unremarkable for a
+        // subsetted font meant to be looked up only through the PDF's own
+        // /Differences (or base) encoding -- but does carry a `post` table
+        // with real glyph names. Every cmap-based lookup has nothing to
+        // search in that case, and previously that meant every glyph in
+        // the font failed outright and fell back to placeholder text.
+        let mut decoder = test_font_decoder(font_test_data::font_without_cmap());
+        decoder.glyph_names.insert(65, "TestGlyph".into());
+        let path = decoder.outline_path(b"A", 0.0, 0.0).unwrap();
+        assert!(path.contains("M 0 0"), "{path}");
+        assert!(path.matches('L').count() >= 2, "{path}");
     }
 
     #[test]
