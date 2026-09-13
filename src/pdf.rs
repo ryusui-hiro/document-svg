@@ -1646,7 +1646,47 @@ impl FontDecoder {
                     false,
                 )
                 .map_err(|_| "CFF Type2 glyph outline could not be decoded")?;
-                append_stet_path(&mut path, &outline.path, font_matrix, x_offset);
+                if let Some((adx, ady, base_code, accent_code)) = outline.seac {
+                    // Deprecated Type 1/2 "seac" composition (Adobe TN#5177
+                    // Appendix C): this glyph's own charstring is nothing
+                    // but `adx ady bchar achar endchar`, composing it from
+                    // two other glyphs of this same font -- named by
+                    // StandardEncoding code, never by this PDF's own
+                    // /Differences encoding -- placed at the glyph origin
+                    // and at (adx, ady) respectively. Common in older
+                    // CFF/Type 1 fonts for accented Latin letters (an
+                    // accent mark glyph composed onto a base letter), and
+                    // without this, such a glyph has no outline at all.
+                    for (code, dx, dy) in [(base_code, 0.0, 0.0), (accent_code, adx, ady)] {
+                        let Some(name) = stet_fonts::encoding::standard_encoding_name(code) else {
+                            continue;
+                        };
+                        let Some(component_id) = font
+                            .charset
+                            .iter()
+                            .position(|candidate| candidate.as_str() == name)
+                        else {
+                            continue;
+                        };
+                        let Some(component_charstring) = font.char_strings.get(component_id) else {
+                            continue;
+                        };
+                        let Ok(component) = stet_fonts::type2_charstring::execute_type2_charstring(
+                            component_charstring,
+                            local_subrs,
+                            &font.global_subrs,
+                            default_width,
+                            nominal_width,
+                            false,
+                        ) else {
+                            continue;
+                        };
+                        let component_matrix = compose(font_matrix, [1.0, 0.0, 0.0, 1.0, dx, dy]);
+                        append_stet_path(&mut path, &component.path, component_matrix, x_offset);
+                    }
+                } else {
+                    append_stet_path(&mut path, &outline.path, font_matrix, x_offset);
+                }
             } else if !decoded.chars().all(char::is_whitespace) {
                 return Err("CFF character code has no glyph");
             }
@@ -10150,6 +10190,49 @@ mod tests {
     }
 
     #[test]
+    fn outlines_a_cff_glyph_composed_via_the_deprecated_seac_mechanism() {
+        // Real-world regression (pdf.js's own endchar.pdf): a Type 1/2
+        // charstring can compose an accented glyph from two other glyphs of
+        // the same font -- named by StandardEncoding code, not by this
+        // font's own charset SID or the PDF's /Differences encoding --
+        // instead of drawing its own outline: `adx ady bchar achar
+        // endchar`, the deprecated "seac" form (Adobe TN#5177 Appendix C).
+        // `execute_type2_charstring` already parses this into its own
+        // `seac` field, but outline_cff ignored it and just used the
+        // (necessarily empty, since a pure-seac glyph has no moveto/lineto
+        // operators of its own) outline that charstring alone produced --
+        // an accented Latin letter built this way had no outline at all.
+        // `endchar.pdf` -- named for this exact charstring operator -- is a
+        // single É in a font built this way; the whole page rendered blank.
+        let decoder = FontDecoder {
+            family: "Test Seac CFF".into(),
+            bold: false,
+            italic: false,
+            requires_outline: true,
+            font_data: None,
+            glyph_names: HashMap::from([(69, "Eacute".into())]),
+            unicode_map: HashMap::from([(vec![69], "Eacute".into())]),
+            code_lengths: vec![1],
+            fallback_kind: FontFallback::OneByte,
+            widths: HashMap::from([(69, 500.0)]),
+            default_width: 500.0,
+            type3: None,
+            type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
+        };
+        let path = decoder
+            .outline_cff(&minimal_test_seac_cff(), b"E", 0.0, 0.0)
+            .unwrap();
+        // The base "E" (GID1's own rmoveto 0,0, unaffected by composition).
+        assert!(path.contains("M 0 0"), "{path}");
+        // The accent "acute" (GID2's own rmoveto 50,50), placed at the
+        // charstring's own (adx, ady) = (100, 100) and then scaled by the
+        // font's default 0.001 FontMatrix: (50+100, 50+100) * 0.001.
+        assert!(path.contains("M 0.15 0.15"), "{path}");
+    }
+
+    #[test]
     fn converts_calgray_to_a_neutral_gamma_encoded_srgb_value() {
         // Real-world regression (pdf.js's own calgray.pdf): CalGray's A^Gamma
         // is a linear luminance the CIE WhitePoint scales, not an
@@ -10310,6 +10393,33 @@ mod tests {
             // FDArray @66: count=1, offSize=1, offsets=[1,1] (empty FD Private dict)
             0, 1, 1, 1, 1, // FDSelect @71: format 0, FD index 0 for both GIDs
             0, 0, 0,
+        ]
+    }
+
+    /// A minimal name-keyed CFF font with three named glyphs -- "E" (a
+    /// triangle, GID1), "acute" (a single moveto at (50, 50), GID2), and
+    /// "Eacute" (GID3), whose own charstring is nothing but `adx ady bchar
+    /// achar endchar` (the deprecated Type 1/2 "seac" composition: PDF32000
+    /// via Adobe TN#5177 Appendix C), placing "acute" at (100, 100) onto
+    /// "E". `bchar`/`achar` are StandardEncoding codes 69 ('E') and 194
+    /// ('acute'), not GIDs or this font's own charset SIDs.
+    fn minimal_test_seac_cff() -> Vec<u8> {
+        vec![
+            1, 0, 4, 4, // Header
+            0, 1, 1, 1, 5, b'T', b'e', b's', b't', // Name INDEX
+            // Top DICT INDEX: count=1, offSize=1, offsets=[1,5], data (4 bytes)
+            0, 1, 1, 1, 5, 212, 15, 182, 17, // charset @73, CharStrings @43
+            // String INDEX @22: count=3, offSize=1, offsets=[1,2,7,13]
+            0, 3, 1, 1, 2, 7, 13, b'E', b'a', b'c', b'u', b't', b'e', b'E', b'a', b'c', b'u', b't',
+            b'e', // "E", "acute", "Eacute"
+            0, 0, // Global Subr INDEX (empty)
+            // CharStrings INDEX @43: count=4, offSize=1, offsets=[1,2,13,17,23]
+            0, 4, 1, 1, 2, 13, 17, 23, 14, // GID0 .notdef: endchar
+            139, 139, 21, 239, 139, 89, 239, 89, 39, 5, 14, // GID1 "E": triangle
+            189, 189, 21, 14, // GID2 "acute": 50 50 rmoveto, endchar
+            239, 239, 208, 247, 86, 14, // GID3 "Eacute": 100 100 69 194 endchar (seac)
+            // charset @73: format 0, SID 391 ("E"), 392 ("acute"), 393 ("Eacute")
+            0, 1, 135, 1, 136, 1, 137,
         ]
     }
 }
