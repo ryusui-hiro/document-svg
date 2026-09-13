@@ -3158,8 +3158,20 @@ impl Interpreter<'_, '_> {
         }
         self.page.patterns.push(TilingPatternDefinition {
             id: id.clone(),
-            x: 0.0,
-            y: 0.0,
+            // The pattern's own content stream draws in absolute BBox-space
+            // coordinates (PDF32000 8.7.3.1), which need not start at the
+            // origin at all -- a producer is free to declare e.g. `/BBox
+            // [35.4 396.6 287.4 588]`, matching wherever on the page the
+            // pattern's own designer happened to lay it out. The SVG
+            // `<pattern>` element's own x/y set where THAT content lands
+            // within the tile it repeats, so leaving it hardcoded at (0, 0)
+            // shifted every BBox with a nonzero origin clean out of its own
+            // tile: content clipped correctly to the BBox rectangle, drawn
+            // at its own real coordinates, but that rectangle no longer
+            // overlapped the pattern's assumed [0, width] x [0, height]
+            // viewport at all.
+            x: bbox[0],
+            y: bbox[1],
             width: x_step.abs(),
             height: y_step.abs(),
             transform: pattern_matrix,

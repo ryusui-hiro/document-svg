@@ -2230,6 +2230,71 @@ fn converts_pdf_colored_and_uncolored_tiling_patterns() {
 }
 
 #[test]
+fn positions_a_tiling_pattern_at_its_own_nonzero_bbox_origin() {
+    // Real-world regression (pdf.js's own 22060_A1_01_Plans.pdf): a tiling
+    // pattern's own content stream draws in absolute BBox-space coordinates
+    // (PDF32000 8.7.3.1), which need not start at the origin at all -- a
+    // producer is free to declare e.g. `/BBox [20 30 30 40]`, matching
+    // wherever on the page the pattern's own designer happened to lay it
+    // out (this real file's patterns all have BBoxes with origins in the
+    // thousands, not zero). The generated SVG `<pattern>` element's own x/y
+    // set where that content lands within the tile it repeats, but was
+    // hardcoded to (0, 0) regardless of the real BBox origin, so content
+    // drawn at its own genuine BBox-space coordinates no longer overlapped
+    // the pattern's assumed [0, width] x [0, height] viewport at all --
+    // this file's evacuation-route highlight bands, filled with exactly
+    // this kind of pattern, rendered as wrong-sized fragments scattered
+    // near the top of the page instead of matching poppler's own,
+    // correctly-sized and positioned bands.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("tiling-pattern-bbox-origin.pdf");
+    let mut document = Document::with_version("1.7");
+    let pattern_content = Content {
+        operations: vec![
+            Operation::new("rg", vec![1.into(), 0.into(), 0.into()]),
+            Operation::new("re", vec![20.into(), 30.into(), 10.into(), 10.into()]),
+            Operation::new("f", vec![]),
+        ],
+    };
+    let pattern_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "Pattern",
+            "PatternType" => 1,
+            "PaintType" => 1,
+            "TilingType" => 1,
+            "BBox" => vec![20.into(), 30.into(), 30.into(), 40.into()],
+            "XStep" => 10,
+            "YStep" => 10,
+            "Matrix" => vec![1.into(), 0.into(), 0.into(), 1.into(), 0.into(), 0.into()],
+            "Resources" => dictionary! {},
+        },
+        pattern_content.encode().unwrap(),
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "Pattern" => dictionary! { "P1" => Object::Reference(pattern_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("cs", vec![Object::Name(b"Pattern".to_vec())]),
+            Operation::new("scn", vec![Object::Name(b"P1".to_vec())]),
+            Operation::new("re", vec![0.into(), 0.into(), 100.into(), 100.into()]),
+            Operation::new("f", vec![]),
+        ],
+    };
+    let output = temporary.path().join("out");
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(
+        svg.contains("<pattern id=\"pdf-pattern-") && svg.contains("x=\"20\" y=\"30\""),
+        "{svg}"
+    );
+}
+
+#[test]
 fn converts_minimal_pptx() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("sample.pptx");
