@@ -331,6 +331,63 @@ fn renders_annotation_appearance_streams_but_skips_link_and_hidden() {
 }
 
 #[test]
+fn draws_a_link_annotations_fallback_border_when_it_has_no_appearance() {
+    // Real-world regression (pdf.js's own file_url_link.pdf): PDF32000
+    // 12.5.4 leaves how to render a Link annotation with no appearance
+    // stream of its own entirely up to the reader; poppler draws a border
+    // rectangle from the annotation's own /Border (or /BS) width and its
+    // /C colour whenever both are given, which this now mirrors. A Link
+    // with neither -- the overwhelmingly common case -- still draws
+    // nothing, matching the established, deliberate choice (see
+    // `renders_annotation_appearance_streams_but_skips_link_and_hidden`)
+    // that a Link is conventionally just an invisible active area; this
+    // narrow fallback only ever applies when a document goes out of its
+    // way to declare a real border and colour with no appearance to match.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("link-border.pdf");
+    let mut document = Document::with_version("1.7");
+    let link = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Link",
+        "Rect" => vec![10.into(), 20.into(), 190.into(), 60.into()],
+        "Border" => vec![0.into(), 0.into(), 2.into()],
+        "C" => vec![0.into(), 1.into(), 0.into()],
+        "A" => dictionary! { "Type" => "Action", "S" => "URI", "URI" => Object::string_literal("https://example.com") },
+    });
+    let plain_link = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Link",
+        "Rect" => vec![10.into(), 80.into(), 190.into(), 120.into()],
+        "A" => dictionary! { "Type" => "Action", "S" => "URI", "URI" => Object::string_literal("https://example.com") },
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 130.into()],
+        "Resources" => dictionary! {},
+        "Contents" => content,
+        "Annots" => vec![Object::Reference(link), Object::Reference(plain_link)],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("stroke=\"#00FF00\""), "{svg}");
+    assert!(svg.contains("fill=\"none\""), "{svg}");
+    assert_eq!(svg.matches("data-role=\"page-background\"").count() + 1, {
+        let paths = svg.matches("<path").count();
+        paths + 1
+    });
+}
+
+#[test]
 fn maps_an_annotation_appearance_through_its_own_matrix_before_fitting_to_rect() {
     // Real-world regression (pdf.js's own file_pdfjs_test.pdf): PDF32000
     // 12.5.5's algorithm maps BBox to Rect only *after* first applying the
@@ -706,6 +763,63 @@ fn recovers_an_unfiltered_inline_image_whose_last_data_byte_is_not_a_pdf_delimit
     assert!(report.warnings.is_empty(), "{:?}", report.warnings);
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("data:image/png;base64,"), "{svg}");
+}
+
+#[test]
+fn paints_an_inline_image_mask_with_the_current_fill_color() {
+    // Real-world regression (pdf.js's own images_1bit_grayscale.pdf): an
+    // inline image's `/IM true` (`/ImageMask`) flag was never recognized at
+    // all. Every inline `BI...ID...EI` block is fully decoded up front by
+    // `InlineImageSpec`, which builds a plain `Stream` carrying only
+    // `Width`/`Height`/`BitsPerComponent`/`ColorSpace`/`Interpolate` -- with
+    // no `ImageMask` field to parse it into, an inline stencil mask always
+    // looked like an ordinary grayscale image instead, painted in its own
+    // black/white sample values rather than stenciled through the current
+    // fill color. The file's own "Inline Image Mask" test box rendered in
+    // plain black instead of the magenta the page sets immediately before
+    // it, the one inline-image box out of eight that differed from
+    // poppler's own rendering.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("inline-image-mask.pdf");
+    let mut document = Document::with_version("1.7");
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"q\n1 0 1 rg\n20 0 0 20 0 0 cm\nBI /W 8 /H 1 /BPC 1 /IM true ID \x00 EI\nQ\n".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 100.into(), 100.into()],
+        "Resources" => dictionary! {},
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split("data:image/png;base64,")
+        .nth(1)
+        .and_then(|value| value.split('"').next())
+        .unwrap();
+    let png = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let decoder = png::Decoder::new(std::io::Cursor::new(png));
+    let mut reader = decoder.read_info().unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgba);
+    assert_eq!(&pixels[0..4], &[255, 0, 255, 255], "{pixels:?}");
 }
 
 #[test]

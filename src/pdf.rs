@@ -493,6 +493,7 @@ struct InlineImageSpec {
     black_is_one: bool,
     damaged_rows_before_error: usize,
     interpolate: bool,
+    image_mask: bool,
 }
 
 impl InlineImageSpec {
@@ -530,6 +531,7 @@ impl InlineImageSpec {
             black_is_one: boolean(&["/BlackIs1"], false),
             damaged_rows_before_error: integer(&["/DamagedRowsBeforeError"], 0).max(0) as usize,
             interpolate: boolean(&["/I", "/Interpolate"], false),
+            image_mask: boolean(&["/IM", "/ImageMask"], false),
         }
     }
 
@@ -612,6 +614,9 @@ impl InlineImageSpec {
             }),
         );
         dictionary.set("Interpolate", self.interpolate);
+        if self.image_mask {
+            dictionary.set("ImageMask", true);
+        }
         Some(Stream::new(dictionary, pixels))
     }
 
@@ -706,6 +711,7 @@ fn ccitt_spec_from_stream(stream: &Stream, width: usize, height: usize) -> Inlin
             .get(b"Interpolate")
             .and_then(Object::as_bool)
             .unwrap_or(false),
+        image_mask: false,
     }
 }
 
@@ -3793,7 +3799,7 @@ impl Interpreter<'_, '_> {
                 .ok()
                 .and_then(|o| o.as_name().ok())
                 .unwrap_or_default();
-            if matches!(subtype, b"Link" | b"Popup") {
+            if subtype == b"Popup" {
                 continue;
             }
             let flags = annot_dict
@@ -3802,6 +3808,21 @@ impl Interpreter<'_, '_> {
                 .and_then(|o| o.as_i64().ok())
                 .unwrap_or(0);
             if flags & 1 != 0 || flags & 2 != 0 || flags & 32 != 0 {
+                continue;
+            }
+            if subtype == b"Link" {
+                // A Link's own /AP, when it has one, is still never drawn --
+                // a Link is conventionally just an invisible active area --
+                // but one with no appearance at all may still fall back to
+                // a synthesized border below.
+                let has_appearance = annot_dict
+                    .get_deref(b"AP", self.document)
+                    .ok()
+                    .and_then(|o| o.as_dict().ok())
+                    .is_some();
+                if !has_appearance {
+                    self.draw_link_annotation_border(annot_dict);
+                }
                 continue;
             }
             let Ok(ap_obj) = annot_dict.get_deref(b"AP", self.document) else {
@@ -3846,6 +3867,85 @@ impl Interpreter<'_, '_> {
             self.draw_annotation_appearance(&stream, &rect)?;
         }
         Ok(())
+    }
+
+    /// Draws a Link annotation's own fallback border when it has no
+    /// appearance stream of its own. PDF32000 12.5.4 leaves this entirely to
+    /// the reader's discretion; poppler draws one whenever the annotation
+    /// declares both a positive border width and an explicit `/C` colour,
+    /// which this mirrors -- narrowly, since the overwhelmingly common case
+    /// is a Link with neither set at all (most real documents rely on the
+    /// *absence* of a visible border here), and drawing one regardless would
+    /// put a spurious box around ordinary hyperlinks everywhere.
+    fn draw_link_annotation_border(&mut self, annot_dict: &Dictionary) {
+        let Ok(rect) = annot_dict
+            .get_deref(b"Rect", self.document)
+            .and_then(Object::as_array)
+        else {
+            return;
+        };
+        let rect = numbers(rect, 4);
+        if rect.len() != 4 {
+            return;
+        }
+        let width = annot_dict
+            .get_deref(b"BS", self.document)
+            .and_then(Object::as_dict)
+            .ok()
+            .and_then(|bs| number(bs.get(b"W").ok()))
+            .or_else(|| {
+                annot_dict
+                    .get_deref(b"Border", self.document)
+                    .and_then(Object::as_array)
+                    .ok()
+                    .and_then(|border| numbers(border, 3).get(2).copied())
+            });
+        let Some(width) = width.filter(|width| *width > 0.0) else {
+            return;
+        };
+        let Ok(color) = annot_dict
+            .get_deref(b"C", self.document)
+            .and_then(Object::as_array)
+        else {
+            return;
+        };
+        let components = numbers(color, usize::MAX);
+        if components.is_empty() {
+            return;
+        }
+        let color_space = match components.len() {
+            1 => Object::Name(b"DeviceGray".to_vec()),
+            4 => Object::Name(b"DeviceCMYK".to_vec()),
+            _ => Object::Name(b"DeviceRGB".to_vec()),
+        };
+        let color = components_to_color(self.document, Some(&color_space), &components);
+        let x = rect[0].min(rect[2]);
+        let y = rect[1].min(rect[3]);
+        let box_width = (rect[2] - rect[0]).abs();
+        let box_height = (rect[3] - rect[1]).abs();
+        self.node_counter += 1;
+        self.page.nodes.push(Node::Path {
+            id: format!("pdf-link-border-{}-{}", self.page.number, self.node_counter),
+            d: rectangle_path(x, y, box_width, box_height),
+            fill_rule: "nonzero".into(),
+            fill: Paint::None,
+            stroke: Stroke {
+                paint: Paint::solid(color),
+                width,
+                line_cap: LineCap::Butt,
+                line_join: LineJoin::Miter,
+                miter_limit: 10.0,
+                dash_array: Vec::new(),
+                dash_offset: 0.0,
+            },
+            transform: self.page_matrix,
+            clip_id: None,
+            meta: SourceMeta {
+                kind: "annotation-border".into(),
+                source_id: format!("page:{}:annotation:link", self.page.number),
+                ..SourceMeta::default()
+            },
+        });
     }
 
     fn draw_annotation_appearance(&mut self, stream: &Stream, rect: &[f64]) -> Result<()> {
@@ -10090,6 +10190,7 @@ mod tests {
             black_is_one: false,
             damaged_rows_before_error: 1,
             interpolate: false,
+            image_mask: false,
         };
         let encoded = [
             0x00, 0x1d, 0xb0, 0x01, 0x60, 0x02, 0x00, 0x00, 0x00, 0xe6, 0x00, 0x20, 0x02, 0x00,
