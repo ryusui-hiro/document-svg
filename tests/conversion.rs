@@ -220,6 +220,88 @@ fn strips_pfb_segment_headers_from_an_embedded_type1_font() {
     assert!(svg.contains("aria-label=\"Issue\""), "{svg}");
 }
 
+#[test]
+fn chunks_identity_h_codes_by_two_bytes_for_a_type1_program_on_a_cid_font() {
+    // Real-world regression (pdf.js's own issue11740_reduced.pdf): a
+    // CIDFontType0 descendant is only ever supposed to carry a bare CFF
+    // (CIDFontType0C) or OpenType program (PDF32000 Table 126), but this
+    // producer instead embeds a plain Type1 program through the
+    // simple-font-only `/FontFile` key. Identity-H still means each
+    // character code is two bytes regardless of what program type backs
+    // it (PDF32000 9.7.5.2), but outline_type1 iterated `bytes` one byte
+    // at a time unconditionally -- the same class of bug already fixed
+    // for the bare-CFF case in outline_cff (see
+    // outlines_a_cid_keyed_cff_glyph_under_identity_h), just never
+    // applied to this sibling code path. Every high zero byte of a CID
+    // under 256 showed up as its own spurious one-byte lookup, and the
+    // real low byte could never resolve either once its position shifted
+    // by one. This font's own built-in Encoding array names CID 1 as
+    // `afii10032`, CID 2 as `afii10068`, CID 3 as `afii10077` -- ordinary
+    // Cyrillic letters -- directly by that same numeric code, which is
+    // what the fix now looks up for a Type1 program on an Identity-H CID
+    // font.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("cid-keyed-type1.pdf");
+    let mut document = Document::with_version("1.7");
+    let bytes = fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/cid_keyed_type1_program.pfa"),
+    )
+    .unwrap();
+    let font_file = document.add_object(Stream::new(dictionary! {}, bytes));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "acAura-Bold+FPEF", "Flags" => 32,
+        "FontBBox" => vec![(-487).into(), (-229).into(), 1098.into(), 920.into()],
+        "Ascent" => 770, "Descent" => (-229), "StemV" => 140,
+        "FontFile" => font_file,
+    });
+    let cid_system_info = document.add_object(dictionary! {
+        "Registry" => Object::string_literal("Adobe"),
+        "Ordering" => Object::string_literal("Identity"),
+        "Supplement" => 0,
+    });
+    let descendant = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "CIDFontType0", "BaseFont" => "acAura-Bold+FPEF",
+        "CIDSystemInfo" => cid_system_info, "FontDescriptor" => descriptor,
+        "CIDToGIDMap" => "Identity",
+        "W" => vec![0.into(), Object::Array(vec![500.into(), 500.into(), 500.into()])],
+    });
+    let to_unicode = document.add_object(Stream::new(
+        dictionary! {},
+        b"/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n3 beginbfchar\n<0001> <041E>\n<0002> <0433>\n<0003> <043B>\nendbfchar\nendcmap\nend\nend".to_vec(),
+    ));
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type0", "BaseFont" => "acAura-Bold+FPEF",
+        "Encoding" => "Identity-H", "DescendantFonts" => vec![Object::Reference(descendant)],
+        "ToUnicode" => to_unicode,
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 20 Tf 10 20 TD <000100020003> Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 50.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
+}
+
 fn build_type0_pdf(input: &Path, encoding: &str) {
     let mut document = Document::with_version("1.7");
     let bytes = font_test_data::font(None, false, false);

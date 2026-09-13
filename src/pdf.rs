@@ -1664,7 +1664,16 @@ impl FontDecoder {
         let mut path = String::new();
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
-        for code in bytes {
+        // A CIDFontType0 descendant is only ever supposed to carry a bare
+        // CFF (CIDFontType0C) or OpenType program, never a plain Type1
+        // `/FontFile` -- but real-world producers sometimes embed one
+        // anyway. Identity-H/V still means the raw code is two bytes per
+        // PDF32000 9.7.5.2 regardless of what program type backs it, so
+        // this must chunk the same way `outline_cff` already does for the
+        // analogous bare-CFF case, or every high zero byte of a CID under
+        // 256 shows up as its own spurious one-byte lookup.
+        let code_length = if self.identity_cid { 2 } else { 1 };
+        for code in bytes.chunks(code_length) {
             // A ToUnicode CMap that has no entry for this code (`replacement`)
             // only means text extraction can't recover its Unicode value --
             // it says nothing about whether the glyph itself exists. Many
@@ -1673,16 +1682,26 @@ impl FontDecoder {
             // glyph selection is attempted via the font's own encoding
             // below regardless, and only reported as unresolvable if that
             // also fails.
-            let (decoded, _replacement) = self.decode(&[*code]);
+            let (decoded, _replacement) = self.decode(code);
             has_visible_character |= decoded.chars().any(|character| !character.is_whitespace());
-            let glyph_name = self
-                .glyph_names
-                .get(code)
-                .map(String::as_str)
-                .or_else(|| font.encoding.get(usize::from(*code)).map(String::as_str))
-                .filter(|name| !name.is_empty() && *name != ".notdef")
-                .or_else(|| (!decoded.is_empty()).then_some(decoded.as_str()))
-                .ok_or("Type1 character code has no glyph name")?;
+            let glyph_name = if self.identity_cid {
+                // No CID-keyed charset exists in a Type1 program at all;
+                // the only workable interpretation of a Type1 font pressed
+                // into service this way is that its own built-in Encoding
+                // was built to name each CID's glyph directly by that same
+                // numeric code, mirroring the non-CID lookup just below.
+                font.encoding
+                    .get(bytes_to_u32(code) as usize)
+                    .map(String::as_str)
+            } else {
+                self.glyph_names
+                    .get(&code[0])
+                    .map(String::as_str)
+                    .or_else(|| font.encoding.get(usize::from(code[0])).map(String::as_str))
+            }
+            .filter(|name| !name.is_empty() && *name != ".notdef")
+            .or_else(|| (!decoded.is_empty()).then_some(decoded.as_str()))
+            .ok_or("Type1 character code has no glyph name")?;
             if let Some(charstring) = font.charstrings.get(glyph_name) {
                 let outline = stet_fonts::charstring::execute_charstring_ex(
                     charstring,
@@ -1699,7 +1718,7 @@ impl FontDecoder {
             let word_spacing = if decoded == " " { word_spacing_em } else { 0.0 };
             x_offset += self
                 .widths
-                .get(&u32::from(*code))
+                .get(&bytes_to_u32(code))
                 .copied()
                 .unwrap_or(self.default_width)
                 / 1_000.0
