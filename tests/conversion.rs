@@ -75,6 +75,86 @@ fn outlines_an_embedded_symbol_font_instead_of_trusting_a_system_symbol_font() {
     assert!(svg.contains("L 0.5 0"), "{svg}");
 }
 
+#[test]
+fn resolves_a_cid_keyed_opentype_cff_glyph_through_its_own_cff_charset() {
+    // Real-world regression (pdf.js's own Embedded_font.pdf): a CIDFontType0
+    // (CFF-keyed CID font) can legally be embedded as a full OpenType
+    // wrapper (`/FontFile3 /Subtype /OpenType`) rather than a bare
+    // CIDFontType0C table. Since that sfnt container parses successfully as
+    // a font, glyph lookup took the ordinary Identity-H path that treats the
+    // raw CID as a glyph index directly -- correct for CIDFontType2
+    // (TrueType-based) CID fonts, but never for a CFF-keyed one, whose own
+    // `charset` table maps GID -> CID through a font-specific, non-identity
+    // table. This fixture's single glyph is CID 0xA911 (43281) but lives at
+    // GID 1 -- looking it up as GID 43281 in a 2-glyph font failed outright,
+    // falling back to incorrect editable placeholder text instead of the
+    // real "除" glyph outline.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("cid-cff-opentype.pdf");
+    let mut document = Document::with_version("1.7");
+    let bytes = fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/notosans_tc_cid_cff_opentype.otf"),
+    )
+    .unwrap();
+    let font_file = document.add_object(Stream::new(
+        dictionary! { "Subtype" => "OpenType" },
+        bytes,
+    ));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "AAAAAA+NotoSansTC-DemiLight", "Flags" => 32,
+        "FontBBox" => vec![(-1000).into(), (-1048).into(), 2928.into(), 1808.into()],
+        "Ascent" => 1808, "Descent" => (-1048), "StemV" => 0,
+        "FontFile3" => font_file,
+    });
+    let cid_system_info = document.add_object(dictionary! {
+        "Registry" => Object::string_literal("Adobe"),
+        "Ordering" => Object::string_literal("Identity"),
+        "Supplement" => 0,
+    });
+    let descendant = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "CIDFontType0", "BaseFont" => "AAAAAA+NotoSansTC-DemiLight",
+        "CIDSystemInfo" => cid_system_info, "FontDescriptor" => descriptor,
+        "W" => vec![43281.into(), Object::Array(vec![1000.into()])],
+    });
+    let to_unicode = document.add_object(Stream::new(
+        dictionary! {},
+        b"/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfchar\n<A911> <9664>\nendbfchar\nendcmap\nend\nend".to_vec(),
+    ));
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type0", "BaseFont" => "AAAAAA+NotoSansTC-DemiLight",
+        "Encoding" => "Identity-H", "DescendantFonts" => vec![Object::Reference(descendant)],
+        "ToUnicode" => to_unicode,
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 100 Tf 20 80 Td <A911> Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 200.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
+    assert!(svg.contains("aria-label=\"除\""), "{svg}");
+}
+
 fn build_type0_pdf(input: &Path, encoding: &str) {
     let mut document = Document::with_version("1.7");
     let bytes = font_test_data::font(None, false, false);

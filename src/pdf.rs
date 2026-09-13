@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use skrifa::instance::{LocationRef, Size};
 use skrifa::outline::DrawSettings;
 use skrifa::raw::TableProvider;
-use skrifa::{FontRef, MetadataProvider};
+use skrifa::{FontRef, MetadataProvider, Tag};
 
 use crate::convert::{ConvertOptions, PageConsumer};
 use crate::error::{Error, Result};
@@ -1467,6 +1467,23 @@ impl FontDecoder {
         } else {
             1
         };
+        // A CIDFontType0 (CFF-keyed CID font) can legally be embedded as a
+        // full OpenType wrapper (`/FontFile3 /Subtype /OpenType`) rather
+        // than a bare CIDFontType0C table -- and unlike CIDFontType2
+        // (TrueType-based), its CID is never the same as its internal glyph
+        // index: a CID-keyed CFF's own `charset` table is what actually maps
+        // GID -> CID, and that mapping is font-specific, not identity, for
+        // real-world CJK subsets. Treating the CID as a GID directly (as is
+        // correct for CIDFontType2's raw code) resolves to an unrelated --
+        // often out-of-range -- glyph. Detect this by the presence of the
+        // sfnt's own `CFF ` table and resolve through the same CFF-charset
+        // reverse map (`cid_to_gid`) the bare-CFF path below already uses.
+        let cff_cid_to_gid = self.identity_cid.then(|| {
+            face.data_for_tag(Tag::new(b"CFF "))
+                .and_then(|table| stet_fonts::cff_parser::parse_cff(table.as_bytes()).ok())
+                .and_then(|fonts| fonts.into_iter().next())
+                .map(|font| font.cid_to_gid)
+        }).flatten();
         let mut builder = SvgGlyphOutline::new(units_per_em);
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
@@ -1485,12 +1502,20 @@ impl FontDecoder {
                 has_visible_character |=
                     replacement || decoded.chars().any(|character| !character.is_whitespace());
                 let cid = bytes_to_u32(code);
-                let gid = self.cid_to_gid_map.as_ref().map_or(cid, |map| {
-                    let offset = (cid as usize) * 2;
-                    map.get(offset..offset + 2)
-                        .map(|pair| u32::from(u16::from_be_bytes([pair[0], pair[1]])))
+                let gid = if let Some(cid_to_gid) = cff_cid_to_gid.as_ref() {
+                    cid_to_gid
+                        .get(cid as usize)
+                        .copied()
+                        .map(u32::from)
                         .unwrap_or(0)
-                });
+                } else {
+                    self.cid_to_gid_map.as_ref().map_or(cid, |map| {
+                        let offset = (cid as usize) * 2;
+                        map.get(offset..offset + 2)
+                            .map(|pair| u32::from(u16::from_be_bytes([pair[0], pair[1]])))
+                            .unwrap_or(0)
+                    })
+                };
                 let glyph = outlines
                     .get(skrifa::GlyphId::new(gid))
                     .ok_or("embedded font glyph outline is unavailable")?;
