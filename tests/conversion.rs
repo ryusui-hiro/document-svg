@@ -388,6 +388,51 @@ fn draws_a_link_annotations_fallback_border_when_it_has_no_appearance() {
 }
 
 #[test]
+fn decodes_a_page_content_stream_filtered_with_asciihexdecode() {
+    // Real-world regression (pdf.js's own asciihexdecode.pdf): lopdf's own
+    // stream decoder only implements FlateDecode/LZWDecode/ASCII85Decode for
+    // page content, and on any other filter it silently substitutes the RAW,
+    // still-encoded stream bytes rather than reporting an error. Fed straight
+    // into the content-operator tokenizer, this file's literal hex-digit text
+    // produced a spurious bare "A" operator and lost the entire page instead
+    // of drawing its actual "Hello world" text.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("asciihexdecode.pdf");
+    let mut document = Document::with_version("1.7");
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "Helvetica",
+    });
+    let hex_content =
+        b"42540A2F46312033302054660A32302038302054640A2848656C6C6F20776F726C642920546A0A4554>"
+            .to_vec();
+    let content = document.add_object(Stream::new(
+        dictionary! { "Filter" => "ASCIIHexDecode" },
+        hex_content,
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Hello world"), "{svg}");
+}
+
+#[test]
 fn maps_an_annotation_appearance_through_its_own_matrix_before_fitting_to_rect() {
     // Real-world regression (pdf.js's own file_pdfjs_test.pdf): PDF32000
     // 12.5.5's algorithm maps BBox to Rect only *after* first applying the

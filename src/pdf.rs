@@ -105,6 +105,112 @@ pub(crate) fn convert(
     Ok(deduplicate(warnings))
 }
 
+/// Decodes an `ASCIIHexDecode`-filtered byte stream (PDF32000 §7.4.2): pairs
+/// of ASCII hex digits, with any other whitespace/formatting bytes ignored,
+/// terminated by an `>` (a missing terminator just means "read to the end");
+/// a trailing unpaired digit is padded with an implicit trailing zero.
+fn decode_ascii_hex(input: &[u8]) -> Vec<u8> {
+    let mut nibbles = Vec::with_capacity(input.len());
+    for &byte in input {
+        if byte == b'>' {
+            break;
+        }
+        if let Some(value) = (byte as char).to_digit(16) {
+            nibbles.push(value as u8);
+        }
+    }
+    if nibbles.len() % 2 == 1 {
+        nibbles.push(0);
+    }
+    nibbles
+        .chunks_exact(2)
+        .map(|pair| (pair[0] << 4) | pair[1])
+        .collect()
+}
+
+/// Decodes a stream the same way `Document::get_page_content_with_limit`
+/// does: on any decode error other than exceeding `remaining`, fall back to
+/// the stream's raw (still-encoded) bytes -- still bounded by `remaining` --
+/// rather than propagating the error. lopdf itself relies on this leniency
+/// for content streams using a filter it has no decoder for at all (some
+/// real-world files declare a filter like `JBIG2Decode` on what is, in
+/// effect, throwaway/junk page content); losing that leniency here would
+/// turn an already-tolerated oddity into a hard conversion failure.
+fn decode_stream_leniently(
+    stream: &Stream,
+    remaining: usize,
+    content_limit: usize,
+) -> Result<Vec<u8>> {
+    match stream.decompressed_content_with_limit(remaining) {
+        Ok(data) => Ok(data),
+        Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })) => {
+            Err(Error::LimitExceeded(format!(
+                "PDF page content stream exceeds {content_limit} bytes"
+            )))
+        }
+        Err(_) => {
+            if stream.content.len() > remaining {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF page content stream exceeds {content_limit} bytes"
+                )));
+            }
+            Ok(stream.content.clone())
+        }
+    }
+}
+
+/// Like `Document::get_page_content_with_limit`, but also decodes an
+/// `ASCIIHexDecode`-filtered content stream ourselves. lopdf's own stream
+/// decoder only implements `FlateDecode`/`LZWDecode`/`ASCII85Decode`, and on
+/// any other filter it silently falls back to the RAW, still-encoded stream
+/// bytes rather than propagating an error -- so an ASCIIHexDecode content
+/// stream's literal hex-digit text would otherwise be fed straight into the
+/// content-operator tokenizer as garbage. We peel a leading ASCIIHexDecode
+/// layer off ourselves and let lopdf decode whatever filters remain.
+fn page_content_with_limit(
+    document: &Document,
+    page_id: ObjectId,
+    content_limit: usize,
+) -> Result<Vec<u8>> {
+    let mut content = Vec::new();
+    for object_id in document.get_page_contents(page_id) {
+        let Ok(stream) = document.get_object(object_id).and_then(Object::as_stream) else {
+            continue;
+        };
+        let remaining = content_limit.saturating_sub(content.len());
+        let filters = stream.filters().unwrap_or_default();
+        let data = if filters.first() == Some(&b"ASCIIHexDecode".as_slice()) {
+            let decoded = decode_ascii_hex(&stream.content);
+            if filters.len() == 1 {
+                if decoded.len() > remaining {
+                    return Err(Error::LimitExceeded(format!(
+                        "PDF page content stream exceeds {content_limit} bytes"
+                    )));
+                }
+                decoded
+            } else {
+                let mut rest = stream.clone();
+                rest.dict.set(
+                    "Filter",
+                    Object::Array(
+                        filters[1..]
+                            .iter()
+                            .map(|filter| Object::Name(filter.to_vec()))
+                            .collect(),
+                    ),
+                );
+                rest.content = decoded;
+                decode_stream_leniently(&rest, remaining, content_limit)?
+            }
+        } else {
+            decode_stream_leniently(stream, remaining, content_limit)?
+        };
+        content.extend_from_slice(&data);
+        content.push(b'\n');
+    }
+    Ok(content)
+}
+
 fn render_page(
     document: &Document,
     page_number: usize,
@@ -134,7 +240,7 @@ fn render_page(
     );
     let mut page = Page::new(page_number, width, height, "pdf");
     page.description = format!("PDF page {page_number} converted from content operators");
-    let content_bytes = document.get_page_content_with_limit(page_id, content_limit)?;
+    let content_bytes = page_content_with_limit(document, page_id, content_limit)?;
     let operations = decode_content_operations(&content_bytes, content_limit, &mut page)?;
     let fonts = build_font_decoders(document, page_id, content_limit, &mut page)?;
     let mut interpreter = Interpreter {
