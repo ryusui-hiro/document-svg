@@ -1764,12 +1764,19 @@ impl FontDecoder {
                 // 9.7.5.2). A CID-keyed CFF's own charset maps GID -> CID,
                 // not GID -> name, so the name-/Unicode-based lookup below
                 // has nothing to match against; font.cid_to_gid is the
-                // parser's own reverse of that map.
+                // parser's own reverse of that map, using 0xFFFF (not 0) as
+                // its own sentinel for "this CID has no entry" -- GID 0 is
+                // conventionally .notdef, but nothing stops a real
+                // subsetter from storing an actually-used glyph's outline
+                // there while leaving the charset's own placeholder name
+                // for it as ".notdef" regardless; treating a resolved GID
+                // of exactly 0 as "not found" then discarded that glyph
+                // outright even though its charstring draws real content.
                 font.cid_to_gid
                     .get(bytes_to_u32(code) as usize)
                     .copied()
                     .map(usize::from)
-                    .filter(|glyph_id| *glyph_id != 0)
+                    .filter(|glyph_id| *glyph_id != 0xFFFF)
             } else {
                 self.glyph_names
                     .get(&code[0])

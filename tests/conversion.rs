@@ -302,6 +302,87 @@ fn chunks_identity_h_codes_by_two_bytes_for_a_type1_program_on_a_cid_font() {
     assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
 }
 
+#[test]
+fn resolves_a_cid_keyed_cff_glyph_whose_reverse_map_lands_on_gid_zero() {
+    // Real-world regression (pdf.js's own issue11718_reduced.pdf): a
+    // CID-keyed CFF's charset conventionally names GID 0 ".notdef", and
+    // outline_cff treated any CID that resolved to GID 0 as "not found" on
+    // that assumption -- but nothing in the CFF format actually requires
+    // GID 0's charstring to be empty, and this real-world subsetted TeX
+    // Computer Modern font (CMR9) stores a genuine, fully-drawn "ff"
+    // ligature there while its charset still labels it ".notdef" as a
+    // formality. Treating a resolved GID of 0 as "not found" discarded
+    // that glyph outright, even though its own charstring draws real
+    // content -- confirmed directly by decompiling this exact font's CFF
+    // charstring for GID 0 with fontTools: real hstem/vstem/curve
+    // operators, not an empty program. The font parser's own sentinel for
+    // "this CID has no reverse-map entry at all" is 0xFFFF, not 0, so this
+    // is what outline_cff must check against instead.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("cid-cff-gid-zero.pdf");
+    let mut document = Document::with_version("1.7");
+    let bytes = fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/cid_cff_with_glyph_at_gid_zero.cff"),
+    )
+    .unwrap();
+    let font_file = document.add_object(Stream::new(
+        dictionary! { "Subtype" => "CIDFontType0C" },
+        bytes,
+    ));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "PTKAHE+CMR9", "Flags" => 4,
+        "FontBBox" => vec![(-39).into(), (-250).into(), 1036.into(), 750.into()],
+        "Ascent" => 750, "Descent" => (-250), "StemV" => 74,
+        "FontFile3" => font_file,
+    });
+    let cid_system_info = document.add_object(dictionary! {
+        "Registry" => Object::string_literal("Adobe"),
+        "Ordering" => Object::string_literal("Identity"),
+        "Supplement" => 0,
+    });
+    let descendant = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "CIDFontType0", "BaseFont" => "PTKAHE+CMR9",
+        "CIDSystemInfo" => cid_system_info, "FontDescriptor" => descriptor,
+        "W" => vec![0.into(), Object::Array(vec![600.into()])],
+    });
+    let to_unicode = document.add_object(Stream::new(
+        dictionary! {},
+        b"/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfchar\n<0000> <FB00>\nendbfchar\nendcmap\nend\nend".to_vec(),
+    ));
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type0", "BaseFont" => "PTKAHE+CMR9",
+        "Encoding" => "Identity-H", "DescendantFonts" => vec![Object::Reference(descendant)],
+        "ToUnicode" => to_unicode,
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT /F1 20 Tf 10 20 TD <0000> Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 100.into(), 50.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
+}
+
 fn build_type0_pdf(input: &Path, encoding: &str) {
     let mut document = Document::with_version("1.7");
     let bytes = font_test_data::font(None, false, false);
