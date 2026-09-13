@@ -1308,6 +1308,39 @@ enum FontFallback {
     Utf16Be,
 }
 
+/// Strips PFB (Printer Font Binary) segment framing from a Type1 font
+/// program, when present. PDF32000 9.9's own `/FontFile` format is a plain
+/// concatenation of the font's cleartext header, its encrypted binary
+/// portion, and a zero-padding trailer -- no segment framing at all -- but
+/// some producers instead embed the raw PFB container format verbatim. Its
+/// interleaved 6-byte `0x80 <type> <u32 length>` segment headers land
+/// squarely inside the encrypted portion, corrupting eexec decryption's
+/// running cipher state (which carries across the whole ciphertext) from
+/// that point on, and every glyph after it decrypts to garbage.
+fn strip_pfb_segments(data: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+    if data.first() != Some(&0x80) {
+        return std::borrow::Cow::Borrowed(data);
+    }
+    let mut out = Vec::with_capacity(data.len());
+    let mut offset = 0;
+    while data.get(offset) == Some(&0x80) {
+        match data.get(offset + 1) {
+            Some(1 | 2) => {
+                let Some(length_bytes) = data.get(offset + 2..offset + 6) else {
+                    break;
+                };
+                let length = u32::from_le_bytes(length_bytes.try_into().unwrap()) as usize;
+                let start = offset + 6;
+                let end = start.saturating_add(length).min(data.len());
+                out.extend_from_slice(&data[start..end]);
+                offset = end;
+            }
+            _ => break,
+        }
+    }
+    std::borrow::Cow::Owned(out)
+}
+
 impl FontDecoder {
     fn decode(&self, bytes: &[u8]) -> (String, bool) {
         if !self.unicode_map.is_empty() {
@@ -1478,12 +1511,15 @@ impl FontDecoder {
         // often out-of-range -- glyph. Detect this by the presence of the
         // sfnt's own `CFF ` table and resolve through the same CFF-charset
         // reverse map (`cid_to_gid`) the bare-CFF path below already uses.
-        let cff_cid_to_gid = self.identity_cid.then(|| {
-            face.data_for_tag(Tag::new(b"CFF "))
-                .and_then(|table| stet_fonts::cff_parser::parse_cff(table.as_bytes()).ok())
-                .and_then(|fonts| fonts.into_iter().next())
-                .map(|font| font.cid_to_gid)
-        }).flatten();
+        let cff_cid_to_gid = self
+            .identity_cid
+            .then(|| {
+                face.data_for_tag(Tag::new(b"CFF "))
+                    .and_then(|table| stet_fonts::cff_parser::parse_cff(table.as_bytes()).ok())
+                    .and_then(|fonts| fonts.into_iter().next())
+                    .map(|font| font.cid_to_gid)
+            })
+            .flatten();
         let mut builder = SvgGlyphOutline::new(units_per_em);
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
@@ -1616,7 +1652,7 @@ impl FontDecoder {
             .type1
             .0
             .get_or_init(|| {
-                stet_fonts::type1_parser::parse_type1(data)
+                stet_fonts::type1_parser::parse_type1(&strip_pfb_segments(data))
                     .ok()
                     .map(Box::new)
             })

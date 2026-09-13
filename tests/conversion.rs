@@ -97,10 +97,8 @@ fn resolves_a_cid_keyed_opentype_cff_glyph_through_its_own_cff_charset() {
             .join("tests/fixtures/notosans_tc_cid_cff_opentype.otf"),
     )
     .unwrap();
-    let font_file = document.add_object(Stream::new(
-        dictionary! { "Subtype" => "OpenType" },
-        bytes,
-    ));
+    let font_file =
+        document.add_object(Stream::new(dictionary! { "Subtype" => "OpenType" }, bytes));
     let descriptor = document.add_object(dictionary! {
         "Type" => "FontDescriptor", "FontName" => "AAAAAA+NotoSansTC-DemiLight", "Flags" => 32,
         "FontBBox" => vec![(-1000).into(), (-1048).into(), 2928.into(), 1808.into()],
@@ -153,6 +151,73 @@ fn resolves_a_cid_keyed_opentype_cff_glyph_through_its_own_cff_charset() {
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
     assert!(svg.contains("aria-label=\"除\""), "{svg}");
+}
+
+#[test]
+fn strips_pfb_segment_headers_from_an_embedded_type1_font() {
+    // Real-world regression (pdf.js's own issue14462_reduced.pdf): PDF32000
+    // 9.9's own /FontFile format is a plain concatenation of a Type1 font's
+    // cleartext header, its eexec-encrypted binary portion, and a
+    // zero-padding trailer -- no segment framing at all -- but this font is
+    // instead embedded as a raw PFB (Printer Font Binary) container
+    // verbatim, complete with its 6-byte `0x80 <type> <length>` segment
+    // headers. One such header lands squarely inside the encrypted portion,
+    // right after the `eexec` keyword, corrupting eexec decryption's
+    // running cipher state (which carries across the whole ciphertext) from
+    // that point on -- every glyph's CharStrings entry decrypts to garbage,
+    // so parsing found none of them at all, falling back to incorrect
+    // editable placeholder text instead of the real glyph outlines.
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("pfb-wrapped-type1.pdf");
+    let mut document = Document::with_version("1.7");
+    let bytes = fs::read(
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/pfb_wrapped_type1_dejavusansmono.pfb"),
+    )
+    .unwrap();
+    let font_file = document.add_object(Stream::new(
+        dictionary! { "Length1" => 2608, "Length2" => 10684, "Length3" => 0 },
+        bytes,
+    ));
+    let descriptor = document.add_object(dictionary! {
+        "Type" => "FontDescriptor", "FontName" => "MPDFAA+DejaVuSansMono", "Flags" => 33,
+        "FontBBox" => vec![(-558).into(), (-375).into(), 718.into(), 1042.into()],
+        "Ascent" => 928, "Descent" => (-236), "CapHeight" => 928, "StemV" => 70,
+        "FontFile" => font_file,
+    });
+    let font = document.add_object(dictionary! {
+        "Type" => "Font", "Subtype" => "Type1", "BaseFont" => "MPDFAA+DejaVuSansMono",
+        "FirstChar" => 32, "LastChar" => 117,
+        "Widths" => (32..=117).map(|_| Object::Integer(500)).collect::<Vec<_>>(),
+        "FontDescriptor" => descriptor, "Encoding" => "WinAnsiEncoding",
+    });
+    let content = document.add_object(Stream::new(
+        dictionary! {},
+        b"BT 10 20 TD /F1 20 Tf (Issue) Tj ET".to_vec(),
+    ));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 50.into()],
+        "Resources" => dictionary! { "Font" => dictionary! { "F1" => font } },
+        "Contents" => content,
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-content-kind=\"text-outline\""), "{svg}");
+    assert!(svg.contains("aria-label=\"Issue\""), "{svg}");
 }
 
 fn build_type0_pdf(input: &Path, encoding: &str) {
