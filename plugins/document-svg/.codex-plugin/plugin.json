@@ -1,6 +1,6 @@
 {
   "name": "document-svg",
-  "version": "0.1.1",
+  "version": "2.0.0",
   "description": "Convert 60+ document, diagram, CAD, 3D, mesh, chart, geospatial, math, and data formats to SVG pages, transform SVG, and package SVG into Office, draw.io, HTML, or WebP.",
   "author": {
     "name": "document-svg contributors"

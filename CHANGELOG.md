@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 2.0.0 - 2026-09-20
 - Add a bounded ISO 19115/19139 geographic metadata preview for `.iso19115`, `.iso19115.xml`, `.iso19139`, `.gmd.xml` and content-sniffed XML. Identification title/date/topic, hierarchy/language, CRS codes, geographic bounding boxes and quality/distribution counts render while abstract/lineage text, contact payloads, identifiers and online-resource URLs remain inert; no network retrieval or CRS transformation runs.
 - Add a bounded Siemens JT (`.jt`) header preview. The fixed Version and byte-order fields are inspected while TOC/LSG segments, tessellation, Parasolid geometry, PMI and external resources remain inert.
 - Add bounded IPC-2581 PCB exchange previews for `.ipc2581`, `.ipc-2581`, and `.cvg`. Content/BOM/ECAD/AVL and board-manufacturing structure counts render while coordinates, toolpaths, inspection payloads, external references and operations remain inert.

@@ -11,7 +11,7 @@ requires a second repository.
 ```yaml
 - uses: ryusui-hiro/document-svg/.github/actions/setup-docsvg@main
   with:
-    version: latest          # or a released version such as 0.1.1
+    version: latest          # or a released version such as 2.0.0
 - run: docsvg report.pdf --output preview/report
 ```
 

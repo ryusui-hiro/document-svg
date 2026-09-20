@@ -1,14 +1,9 @@
 name: GitHub Pages
 
-# Publishes site/ (the project website: use-case guide, trilingual format
-# support map, and the sample gallery) to GitHub Pages. site/ is fully static;
-# there is no build step, only a checkout and an upload of the directory.
+# Manually publishes site/ (the project website: use-case guide, trilingual
+# format support map, and the sample gallery) after GitHub Pages has been
+# explicitly enabled. site/ is fully static; there is no build step.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'site/**'
-      - '.github/workflows/pages.yml'
   workflow_dispatch: {}
 
 permissions:

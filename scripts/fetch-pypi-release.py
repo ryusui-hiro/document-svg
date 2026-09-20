@@ -11,7 +11,7 @@ import zipfile
 repo = 'ryusui-hiro/document-svg'
 tag = os.environ['RELEASE_TAG']
 if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
-    raise SystemExit('expected a version tag such as v0.1.1')
+    raise SystemExit('expected a version tag such as v2.0.0')
 version = tag[1:]
 destination = Path('dist/pypi')
 destination.mkdir(parents=True, exist_ok=False)
