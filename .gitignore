@@ -10,6 +10,7 @@
 !.env.example
 *.pem
 *.key
+!tests/fixtures/sample.key
 *.p12
 *.pfx
 *.crate
