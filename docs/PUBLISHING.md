@@ -22,8 +22,9 @@ archives remain supported, and Python users on Alpine can build the sdist.
 
 ## Authentication setup
 
-References: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/)
-and [PyPI trusted publishers](https://docs.pypi.org/trusted-publishers/).
+References: [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/),
+[PyPI trusted publishers](https://docs.pypi.org/trusted-publishers/) and
+[crates.io trusted publishing](https://crates.io/docs/trusted-publishing).
 
 - PyPI: register `document-svg` with GitHub owner `ryusui-hiro`, repository
   `document-svg`, workflow `publish-pypi.yml`, environment `pypi`. A pending
@@ -36,8 +37,10 @@ and [PyPI trusted publishers](https://docs.pypi.org/trusted-publishers/).
 - GitHub Packages: `publish-github.yml` uses the job's short-lived
   `GITHUB_TOKEN` with `packages: write`, in environment `github-packages`.
   Review package visibility and repository access after the first publish.
-- crates.io: use a maintainer's local Cargo authentication for the first
-  release. Do not put credentials in the repository or release assets.
+- crates.io: register `document-svg` with GitHub owner `ryusui-hiro`, repository
+  `document-svg`, workflow `publish-crates.yml`, environment `crates-io`.
+  `publish-crates.yml` obtains a short-lived crates.io token through OIDC; do
+  not put Cargo tokens in the repository or release assets.
 
 Create the named GitHub environments and restrict publishing to the protected
 `main` branch. Configure required reviewers where available. Publishing jobs
@@ -65,19 +68,20 @@ building a branch must not publish its packages.
    from `dist/release`, including `release-manifest.json` and `SHA256SUMS`.
    Do not upload staging directories. Review notes, assets and checksums, then
    publish the release. Do not move an existing published tag.
-5. Dispatch **Publish PyPI**, **Publish npm**, and **Publish GitHub Packages**
-   from `main`, providing the verified release tag. These jobs download release
-   assets and check their checksums, version and tagged source commit before
-   publishing. Complete npm's first-publish bootstrap before using its OIDC job.
-6. Publish the matching Rust source with `cargo publish -p document-svg --locked`
-   from the clean tagged checkout. Verify registry versions and test clean
-   installations of npm, pip and Cargo packages.
+5. Dispatch **Publish PyPI**, **Publish npm**, **Publish GitHub Packages**, and
+   **Publish crates.io** from `main`, providing the verified release tag. These
+   jobs verify the release assets, version and tagged source before publishing.
+   Complete npm's first-publish bootstrap before using its OIDC job.
+6. Verify registry versions, checksums and clean installations of npm, pip and
+   Cargo packages.
 
 Native npm dependencies are published before the root package. npm retries skip
 only existing versions with identical integrity. PyPI skips existing files;
-always verify registry hashes after a partial retry. A failed publication is
-not a reason to replace release assets or overwrite a version: investigate,
-then resume the same verified release or make a new patch release.
+crates.io retries skip an existing version only when its checksum matches the
+GitHub Release crate exactly. Always verify registry hashes after a partial
+retry. A failed publication is not a reason to replace release assets or
+overwrite a version: investigate, then resume the same verified release or make
+a new patch release.
 
 ## Installing the GitHub Packages mirror
 
