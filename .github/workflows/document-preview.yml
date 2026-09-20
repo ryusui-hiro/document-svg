@@ -51,15 +51,23 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Check out document-svg actions
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name || 'ryusui-hiro/document-svg' }}
+          ref: ${{ github.event.pull_request.head.sha || 'main' }}
+          path: .document-svg-actions
+          persist-credentials: false
+
       - name: Install docsvg
-        uses: ryusui-hiro/document-svg/.github/actions/setup-docsvg@main
+        uses: ./.document-svg-actions/.github/actions/setup-docsvg
         with:
           version: ${{ inputs.docsvg-version || 'latest' }}
 
       - name: Convert changed documents
         id: convert
         continue-on-error: true
-        uses: ryusui-hiro/document-svg/.github/actions/document-preview@main
+        uses: ./.document-svg-actions/.github/actions/document-preview
         with:
           base: ${{ github.event.pull_request.base.sha }}
           head: ${{ github.event.pull_request.head.sha }}
