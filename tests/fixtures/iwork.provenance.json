@@ -1,0 +1,9 @@
+{
+  "description": "Synthetic minimal Apple Pages, Numbers, and Keynote ZIP packages for bounded iWork package preview tests.",
+  "license": "MIT OR Apache-2.0",
+  "sha256": {
+    "tests/fixtures/sample.key": "b1e6914dd82d2f44df9a32a63e462ff4b35d45a7f15cdb8bb5b281b9a283df47",
+    "tests/fixtures/sample.numbers": "a25f599893476cb9f40c7b4844bfcc19ed64b0678b8102a2dda5ce35d300363a",
+    "tests/fixtures/sample.pages": "f36be1836a70193f4ef51445139d6f44a3c580b1d0ebf76d638dbc11e70d4852"
+  }
+}

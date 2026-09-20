@@ -61,6 +61,10 @@ e57_fixture_manifest = ROOT / 'tests/fixtures/e57_bunny.provenance.json'
 e57_fixture_hashes = (json.loads(e57_fixture_manifest.read_text()).get('sha256', {})
                       if e57_fixture_manifest.is_file() else {})
 e57_fixture_paths = {'tests/fixtures/sample_e57_bunny.e57'}
+iwork_fixture_manifest = ROOT / 'tests/fixtures/iwork.provenance.json'
+iwork_fixture_hashes = (json.loads(iwork_fixture_manifest.read_text()).get('sha256', {})
+                        if iwork_fixture_manifest.is_file() else {})
+iwork_fixture_paths = {'tests/fixtures/sample.key'}
 for relative in sorted(set(filter(None, paths))):
     path = ROOT / relative
     parts = pathlib.PurePosixPath(relative).parts
@@ -91,7 +95,9 @@ for relative in sorted(set(filter(None, paths))):
                                           and hashlib.sha256(path.read_bytes()).hexdigest() == browser_smoke_hashes.get(relative))
         approved_e57_fixture = (relative in e57_fixture_paths and path.stat().st_size <= 2 * 1024 * 1024
                                 and hashlib.sha256(path.read_bytes()).hexdigest() == e57_fixture_hashes.get(relative))
-        if not approved_sample and not approved_strict_fixture and not approved_pdf_fixture and not approved_legacy_doc_fixture and not approved_legacy_ppt_fixture and not approved_dicom_pdf_fixture and not approved_browser_smoke_fixture and not approved_e57_fixture:
+        approved_iwork_fixture = (relative in iwork_fixture_paths and path.stat().st_size <= 2 * 1024 * 1024
+                                  and hashlib.sha256(path.read_bytes()).hexdigest() == iwork_fixture_hashes.get(relative))
+        if not approved_sample and not approved_strict_fixture and not approved_pdf_fixture and not approved_legacy_doc_fixture and not approved_legacy_ppt_fixture and not approved_dicom_pdf_fixture and not approved_browser_smoke_fixture and not approved_e57_fixture and not approved_iwork_fixture:
             errors.append((relative, "credential or unverified binary artifact"))
     if path.stat().st_size > 2 * 1024 * 1024:
         errors.append((relative, "file larger than 2 MiB"))
