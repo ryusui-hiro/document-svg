@@ -1,0 +1,50 @@
+# document-svg
+
+> Rust library and CLI (`docsvg`), with Node.js and Python bindings, that converts
+> documents (including text-only legacy PowerPoint Binary PPT presentations, legacy Excel XLS/XLSB and SYLK SLK and DIF spreadsheets, plus FASTA/FASTQ sequence files and GFF3/GTF, BED/BEDGraph and VCF annotations and Office Open XML Transitional/Strict Word/Excel/PowerPoint packages, Microsoft Project XML schedules, iCalendar and legacy vCalendar events, vCard contacts, MIME e-mail, Apple Mail EMLX messages, Outlook MSG messages, MBOX mailbox and MHTML web archives, FictionBook 2 XML e-books (`.fb2`/`.fb2.zip`), DocBook 4/5 XML (`.dbk`/`.docbook`), DITA topics/maps (`.dita`/`.ditamap`), PDB coordinate models (`.pdb`/`.ent`), HWPX (`.hwpx`), COLLADA (`.dae`), X3D (`.x3d`), XMind (`.xmind`), NIfTI (`.nii`, `.nii.gz`), FITS (`.fits`, `.fit`, `.fts`, `.fits.gz`), MRC (`.mrc`, `.map`, `.mrc.gz`), SQLite (`.sqlite`, `.sqlite3`, `.db`), mmCIF/PDBx (`.cif`, `.mmcif`), MOL2 (`.mol2`), RDF Turtle (`.ttl`, `.nt`, `.nq`), EPS/PostScript (`.eps`, `.ps`), Visio Open XML and legacy VDX XML drawings, CBZ comic archives, XPS/OpenXPS, standalone JPEG 2000 (`.jp2`, `.j2k`, `.j2c`, `.jpc`, `.jpx`), multi-page TIFF, DICOM images including JPEG 2000 Part 1 compression, DICOM Structured Reports, plus DICOMDIR file sets, SubRip/WebVTT/TTML subtitles, XLIFF localization files, Jupyter notebooks, Quarto/R Markdown, Markdown, AsciiDoc block image macros, reStructuredText, Org-mode, GNU gettext PO/POT catalogs, BibTeX bibliographies, and RFC 7464 JSON Text Sequences, Newick phylogenetic trees (`.nwk`, `.newick`, `.tree`), Stockholm alignments (`.sto`, `.stockholm`), CLUSTAL alignments (`.aln`, `.clustal`, `.clustalw`), NEXUS trees (`.nex`, `.nexus`), GenBank flat files (`.gb`, `.gbk`, `.genbank`), EMBL-Bank flat files (`.embl`, `.emb`), UniProtKB/Swiss-Prot protein flat files (`.dat`, `.uniprot`, `.swissprot`), RIS bibliography (`.ris`), SPICE/ngspice netlists (`.cir`, `.sp`, `.spice`, `.ckt`, `.net`), KiCad legacy Eeschema schematics (`.sch`), KiCad 6+ S-expression schematics (`.kicad_sch`), LTspice schematics (`.asc` Version signature), Autodesk EAGLE XML schematics (`.sch` eagle signature), TOML/YAML 1.2/Java Properties configuration and generic XML files), BPMN 2.0 process diagrams, CMMN case plans, DMN decision tables, ReqIF requirements and XMI models, diagrams, CAD/CAM/3D files including IFC4 tessellated BIM/IFCXML with bounded extruded profiles and mapped instances plus IFCZIP archives, OFF meshes, XYZ ASCII point-cloud text, PCL PCD, ASTM E57, Leica PTS/PTX and ASPRS LAS/LAZ point clouds, Abaqus/LS-DYNA/MEDIT/Nastran/SU2/OpenFOAM/Tecplot/EnSight/PLOT3D/VRML/UNV/Gmsh/VTK simulation meshes and KiCad PCB S-expression board previews, ESRI ASCII Grid rasters, dBASE III/III+ attribute tables, bounded ARFF datasets (`.arff`), JSON-LD 1.1 linked-data documents (`.jsonld`, `.json-ld`), OpenAPI/Swagger descriptions (`.openapi.json`, `.swagger.json`, `.openapi.yaml`, `.swagger.yaml`), AsyncAPI message-driven API descriptions (`.asyncapi.json`, `.asyncapi.yaml`, `.asyncapi.yml`), JSON Schema definitions (`.schema.json`, `.jsonschema`, `.schema.yaml`, `.schema.yml`), HAR HTTP Archive logs (`.har`), WARC web archives (`.warc`, `.warc.gz`), WACZ web archive packages (`.wacz`), Postman Collection v2.1 files (`.postman_collection.json`), GraphQL SDL schemas (`.graphql`, `.graphqls`, `.gql`), Protocol Buffers schemas (`.proto`), Kubernetes manifests (`.k8s.yaml`, `.k8s.yml`, `.kubernetes.yaml`, `.kube.yaml`), Docker Compose files (`compose.yaml`, `compose.yml`, `docker-compose.yaml`, `docker-compose.yml`, `.compose.yaml`, `.compose.yml`), GitHub Actions workflows (`.github/workflows/*.yaml`, `.github/workflows/*.yml`), JUnit XML reports (`junit.xml`, `test-results.xml`, `TEST-*.xml`), SARIF 2.1.0 reports (`.sarif`, `.sarif.json`), Terraform JSON plans (`tfplan.json`, `.tfplan.json`), CycloneDX BOMs (`bom.json`, `bom.xml`, `*.cdx.json`, `*.cdx.xml`), SPDX JSON/tag:value (`spdx.json`, `sbom.spdx.json`, `*.spdx.json`, `.spdx`, `.spdx.txt`), JaCoCo/Cobertura coverage XML (`jacoco.xml`, `cobertura.xml`, `coverage.xml`), LCOV tracefiles (`.info`, `lcov.info`, `coverage.info`), JSON Patch (`.jsonpatch`, `.json-patch`, `.patch.json`), JSON Merge Patch (`.mergepatch`, `.json-merge-patch`, `.merge-patch.json`), CSL-JSON (`.csl.json`, `.csl-json`, `.cite.json`), JSON Feed (`.jsonfeed`, `.json-feed`, `.feed.json`) and CloudEvents JSON (`.cloudevent.json`, `.cloud-event.json`, `.cloudevents.json`, `.ce.json`, `.cloudevent`, `.cloudevents`) and FHIR JSON (`.fhir.json`, `.fhirjson`, `.fhir`, `.bundle.fhir.json`, `.fhir-bundle.json`) and Avro JSON schemas (`.avsc`, `.avpr`, `.avro.json`, `.avro-schema.json`), NetCDF classic (`.nc`, `.nc3`, `.cdf`), GraphML (`.graphml`), GEXF (`.gexf`), XGMML (`.xgmml`), Graph Modeling Language (`.gml`), CSV/TSV tables, GeoPackage vector layers and raster tile pyramids, RFC 8142 GeoJSON Text Sequences, TopoJSON, GeoJSON/RSS/Atom/GeoRSS/GML/GPX/KML/KMZ, ESRI Shapefile and WKT maps and data , OASIS STIX/TAXII 2.1 threat intelligence, WSDL 1.1/2.0 service descriptions, OPML 1.0/2.0 outlines, Apple Property Lists, TEI P5 scholarly XML, ALTO OCR/layout XML, METS archive XML, MARCXML, MODS, MARC21 ISO 2709, PREMIS preservation XML, IIIF Presentation JSON, EAD finding-aid XML, EAC-CPF authority XML, Dublin Core XML, ISO 19115/19139 geographic metadata XML, OASIS UBL 2.x business XML, XBRL 2.1 instances, LandXML 1.2 civil models, MathML 3 formulas, Adobe XMP metadata, Adobe XDP/XFA packages, Excel 2003 XML SpreadsheetML, Chemical Markup Language XML, RDF/XML graphs, S1000D Data Module XML, ASAM OpenDRIVE/OpenCRG/OpenSCENARIO/OpenLABEL and OGC CityGML/CityJSON modelsinto one SVG per page, plus a
+> JSON report of exactly what converted, what was approximated, and what warnings
+> apply. Runs fully locally: no network calls, no telemetry, no upload.
+
+## What this is for
+
+Give an agent or a script a file path and an output directory. It returns
+`page-0001.svg`, `page-0002.svg`, ... and a `conversion.json` report. There is
+also a reverse path: package an SVG (or a directory of them) back into PPTX,
+DOCX, XLSX, draw.io, DXF, G-code, STL, and several other native formats.
+
+## Entry points, by task
+
+- Convert a file with no code: `docsvg <input> --output <dir>`
+- Convert from Node.js/TypeScript: `convert()` or `preview()` from the `document-svg` npm package
+- Convert from Python: `convert()` from the `document_svg` package
+- Convert from Rust: `document_svg::convert_path()`
+- Build an SVG from your own shapes/text/images: `document_svg::ir::Page` + `document_svg::svg::write_page()`
+- Reverse an SVG back to a native format: `docsvg reverse <dir> --output <file>`, or `reverse()` in Node/Python
+
+## Rules an agent should follow
+
+1. Input format is selected by extension, with content sniffing for extensionless or generic inputs. See https://ryusui-hiro.github.io/document-svg/assets/data/formats.json for the full, structured list of every supported extension, its fidelity tier, and whether reverse export exists.
+2. One SVG per output page. A single `conversion.json` covers the whole job (all pages).
+3. Judge success from both the error result AND the warnings. No error does not mean "converted perfectly" — check `conversion.json` warnings (document-level) and each page's warnings (page-level). Present accordingly: `failed` / `needs_review` / `converted`.
+4. Only the crate root API is public: `convert_path`, `ConvertOptions`, `ConversionReport`/`PageReport`, `Error`/`Result`, plus the `ir` and `svg` modules for building custom SVG. Do not call internal `pdf`, `ooxml`, or `convert` modules directly.
+5. Do not raise the built-in safety limits (`max_input_bytes`, `max_zip_entry_bytes`, `max_pages`, `max_xml_events`) just to force a conversion to succeed on untrusted input — they bound memory and CPU use.
+6. Use a fresh, empty output directory per conversion. The converter does not delete pre-existing or stale `page-*.svg` files in a directory you reuse.
+7. Reversing SVG into Office/CAD/draw.io preserves the visual result as an embedded vector image (or heuristic reconstruction), not the original semantic structure (paragraphs, cells, formulas) — unless the SVG carries embedded diagram source (draw.io's own "include a copy of my diagram", or this tool's `--embed-drawio-source`).
+
+## Structured data for machines
+
+- https://ryusui-hiro.github.io/document-svg/assets/data/formats.json — every supported extension, forward/reverse support, fidelity tier (A/B/C), and a short note, in English/Japanese/Chinese.
+- https://ryusui-hiro.github.io/document-svg/assets/data/content.json — this site's own use-case descriptions and UI copy, in English/Japanese/Chinese, if you need the prose in a structured form instead of scraping HTML.
+
+## Human documentation
+
+- Project README: https://github.com/ryusui-hiro/document-svg/blob/main/README.md
+- Full AI/agent usage guide (module boundaries, options, examples): https://github.com/ryusui-hiro/document-svg/blob/main/docs/AI_USAGE_GUIDE.md
+- Supported features and known limitations, per format: https://github.com/ryusui-hiro/document-svg/blob/main/docs/SUPPORT.md
+- Internal architecture (adding a new input/output format): https://github.com/ryusui-hiro/document-svg/blob/main/docs/ARCHITECTURE.md
+- Packages: npm `document-svg`, PyPI `document-svg`, crates.io `document-svg`
+- License: MIT OR Apache-2.0
+
+## Optional
+
+- Sample gallery (real SVGs produced by this repository's own generated sample files, not third-party content): https://ryusui-hiro.github.io/document-svg/#samples

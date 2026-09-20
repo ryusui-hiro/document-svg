@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title data-i18n="meta.title">document-svg</title>
+<meta name="description" data-i18n-attr="content:meta.description" content="Convert PDF, Office, CAD and diagram files into inspectable SVG pages." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%233454d1'/%3E%3Ctext x='50' y='62' font-size='46' text-anchor='middle' fill='white' font-family='sans-serif'%3ES%3C/text%3E%3C/svg%3E" />
+<link rel="stylesheet" href="assets/style.css" />
+<link rel="alternate" type="text/plain" href="llms.txt" title="llms.txt" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <a class="brand plain" href="#top">document-svg</a>
+    <nav class="topnav">
+      <a href="#usecases" data-i18n="nav.useCases">Use cases</a>
+      <a href="#for-ai" data-i18n="nav.forAI">For AI agents</a>
+      <a href="#formats" data-i18n="nav.formats">Format map</a>
+      <a href="#samples" data-i18n="nav.samples">Samples</a>
+      <a href="#install" data-i18n="nav.install">Install</a>
+      <a href="#usage" data-i18n="nav.usage">Module usage</a>
+      <a href="https://github.com/ryusui-hiro/document-svg" data-i18n="nav.github">GitHub</a>
+    </nav>
+    <div class="langswitch" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="ja">日本語</button>
+      <button type="button" data-lang="zh">中文</button>
+    </div>
+  </div>
+</div>
+
+<div id="top"></div>
+<header class="wrap hero">
+  <span class="eyebrow" data-i18n="hero.eyebrow">Rust · Node.js · Python · CLI</span>
+  <h1 data-i18n="hero.title">Turn any document into SVG pages.</h1>
+  <p data-i18n="hero.description">document-svg converts documents into SVG.</p>
+  <div class="hero-ctas">
+    <a class="btn primary" href="#install" data-i18n="hero.ctaPrimary">Read the install guide</a>
+    <a class="btn" href="#formats" data-i18n="hero.ctaSecondary">See the format map</a>
+    <a class="btn" href="#samples" data-i18n="hero.ctaTertiary">Browse the samples</a>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>60+</b><span data-i18n="stats.formats">input formats</span></div>
+    <div class="stat"><b>20+</b><span data-i18n="stats.reverse">reversible formats</span></div>
+    <div class="stat"><b>3</b><span data-i18n="stats.languages">language bindings</span></div>
+    <div class="stat"><b>A / B / C</b><span data-i18n="stats.tiers">fidelity tiers</span></div>
+  </div>
+</header>
+
+<section id="usecases" class="wrap">
+  <div class="section-head">
+    <h2 data-i18n="useCasesSection.title">What people build with it</h2>
+    <p data-i18n="useCasesSection.description">document-svg is a conversion engine.</p>
+  </div>
+  <div class="usecases" id="usecases-grid"></div>
+</section>
+
+<section id="for-ai" class="wrap">
+  <div class="section-head">
+    <h2 data-i18n="forAISection.title">Built to be read by machines too</h2>
+    <p data-i18n="forAISection.description">Backed by plain JSON data.</p>
+  </div>
+  <div class="ai-grid">
+    <div>
+      <h3 data-i18n="forAISection.contractTitle" style="margin-top:0;">The agent contract, in short</h3>
+      <ul class="contract-list" id="contract-list"></ul>
+      <p style="margin-top:1rem;">
+        <a href="https://github.com/ryusui-hiro/document-svg/blob/main/docs/AI_USAGE_GUIDE.md" data-i18n="forAISection.guideLink">Full AI usage guide</a>
+      </p>
+    </div>
+    <div class="llms-card">
+      <h3 data-i18n="forAISection.llmsTitle">llms.txt</h3>
+      <p data-i18n="forAISection.llmsDescription">A concise summary for LLMs.</p>
+      <a class="btn primary" href="llms.txt" data-i18n="forAISection.llmsLink">Open llms.txt</a>
+    </div>
+  </div>
+</section>
+
+<section id="formats" class="wrap">
+  <div class="section-head">
+    <h2 data-i18n="formatsSection.title">Format support map</h2>
+    <p data-i18n="formatsSection.description">Every supported extension.</p>
+  </div>
+  <div class="tier-legend" id="tier-legend"></div>
+  <div class="category-filter" id="category-filter"></div>
+  <div class="table-scroll">
+    <table class="formats">
+      <thead>
+        <tr>
+          <th data-i18n="formatsSection.colExt">Extensions</th>
+          <th data-i18n="formatsSection.colForward">To SVG</th>
+          <th data-i18n="formatsSection.colReverse">From SVG</th>
+          <th data-i18n="formatsSection.colNotes">Notes</th>
+        </tr>
+      </thead>
+      <tbody id="formats-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<section id="samples" class="wrap">
+  <div class="section-head">
+    <h2 data-i18n="gallerySection.title">Samples</h2>
+    <p data-i18n="gallerySection.description">Real SVGs produced by docsvg.</p>
+  </div>
+  <div class="gallery" id="gallery-grid"></div>
+</section>
+
+<section id="install" class="wrap">
+  <div class="section-head">
+    <h2 data-i18n="installSection.title">Install</h2>
+    <p data-i18n="installSection.description">Pick one path.</p>
+  </div>
+  <div class="install-grid">
+    <div class="install-card">
+      <h3 data-i18n="installSection.node">Node.js / TypeScript</h3>
+      <pre><code>npm install document-svg</code></pre>
+    </div>
+    <div class="install-card">
+      <h3 data-i18n="installSection.python">Python</h3>
+      <pre><code>python -m pip install document-svg</code></pre>
+    </div>
+    <div class="install-card">
+      <h3 data-i18n="installSection.rust">Rust / CLI</h3>
+      <pre><code>cargo install document-svg --locked</code></pre>
+    </div>
+  </div>
+</section>
+
+<section id="usage" class="wrap">
+  <div class="section-head">
+    <h2 data-i18n="usageSection.title">Module usage</h2>
+    <p data-i18n="usageSection.description">The same conversion, called from wherever you're standing.</p>
+  </div>
+  <div class="usage-tabs" id="usage-tabs" role="tablist"></div>
+  <div class="usage-panels" id="usage-panels"></div>
+</section>
+
+<footer class="wrap">
+  <div class="footer-links">
+    <a href="https://github.com/ryusui-hiro/document-svg" data-i18n="footer.repo">Repository</a>
+    <a href="https://github.com/ryusui-hiro/document-svg/releases" data-i18n="footer.releases">Releases</a>
+    <a href="https://github.com/ryusui-hiro/document-svg/tree/main/docs" data-i18n="footer.docs">Documentation</a>
+    <a href="https://github.com/ryusui-hiro/document-svg/blob/main/docs/SUPPORT.md" data-i18n="footer.support">Supported features & limitations</a>
+    <a href="https://github.com/ryusui-hiro/document-svg/blob/main/docs/ARCHITECTURE.md" data-i18n="footer.architecture">Architecture</a>
+  </div>
+  <p data-i18n="footer.tagline">MIT OR Apache-2.0 licensed.</p>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<iso_10303_28 xmlns="urn:iso:std:iso:10303:-28:ed-2:tech:XMLschema:document" version="3">
+  <product id="p1"><id>private-product-id</id><name>Private assembly</name></product>
+  <product_definition id="pd1"/>
+  <product_definition_formation id="pdf1"/>
+  <next_assembly_usage_occurrence id="occ1" related_product_definition="#pd1"/>
+  <product_definition_relationship id="rel1"/>
+  <shape_representation id="shape1"><geometric_representation_item id="item1"/></shape_representation>
+  <cartesian_point id="pt1"><coordinates>0 0 0</coordinates></cartesian_point>
+  <direction id="dir1"><direction_ratios>1 0 0</direction_ratios></direction>
+  <property_definition id="prop1"><name>Private property</name></property_definition>
+  <external_reference id="ext1" href="https://private.example.invalid/shape.x_t"/>
+</iso_10303_28>

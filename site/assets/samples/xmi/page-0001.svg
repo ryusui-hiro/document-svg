@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="595pt" height="842pt" viewBox="0 0 595 842" data-source-format="xmi" data-source-page="1">
+  <title>XMI model</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":57,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="595" height="842" fill="#FFFFFF" data-role="page-background"/>
+  <path id="page_bg_1" d="M 0,0 h 595.00 v 842.00 h -595.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="none"/>
+  <text id="heading_1_1" x="54" y="96.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">XMI model (version 2.1)</tspan>
+  </text>
+  <path id="tbl_hdr_bg_1_2" d="M 54.00,126.00 h 487.00 v 26.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#cbd5e1" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_hdr_txt_1_3" x="62" y="142.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Depth</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_4" x="109.7451" y="142.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Identifier</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_5" x="262.52941" y="142.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Type</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_6" x="405.76471" y="142.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Name</tspan>
+  </text>
+  <path id="tbl_row_bg_1_7" d="M 54.00,152.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_8" x="62" y="167.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">1</tspan>
+  </text>
+  <text id="tbl_cell_1_9" x="109.7451" y="167.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">model-vehicle</tspan>
+  </text>
+  <text id="tbl_cell_1_10" x="262.52941" y="167.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Model</tspan>
+  </text>
+  <text id="tbl_cell_1_11" x="405.76471" y="167.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Vehicle control</tspan>
+  </text>
+  <path id="tbl_row_bg_1_12" d="M 54.00,176.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_13" x="62" y="191.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">2</tspan>
+  </text>
+  <text id="tbl_cell_1_14" x="109.7451" y="191.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">pkg-brakes</tspan>
+  </text>
+  <text id="tbl_cell_1_15" x="262.52941" y="191.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Package</tspan>
+  </text>
+  <text id="tbl_cell_1_16" x="405.76471" y="191.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Braking</tspan>
+  </text>
+  <path id="tbl_row_bg_1_17" d="M 54.00,200.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_18" x="62" y="215.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">3</tspan>
+  </text>
+  <text id="tbl_cell_1_19" x="109.7451" y="215.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">class-controller</tspan>
+  </text>
+  <text id="tbl_cell_1_20" x="262.52941" y="215.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Class</tspan>
+  </text>
+  <text id="tbl_cell_1_21" x="405.76471" y="215.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">BrakeController</tspan>
+  </text>
+  <path id="tbl_row_bg_1_22" d="M 54.00,224.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_23" x="62" y="239.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">4</tspan>
+  </text>
+  <text id="tbl_cell_1_24" x="109.7451" y="239.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">attr-pressure</tspan>
+  </text>
+  <text id="tbl_cell_1_25" x="262.52941" y="239.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Property</tspan>
+  </text>
+  <text id="tbl_cell_1_26" x="405.76471" y="239.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">pressure</tspan>
+  </text>
+  <path id="tbl_row_bg_1_27" d="M 54.00,248.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_28" x="62" y="263.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">4</tspan>
+  </text>
+  <text id="tbl_cell_1_29" x="109.7451" y="263.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">op-apply</tspan>
+  </text>
+  <text id="tbl_cell_1_30" x="262.52941" y="263.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Operation</tspan>
+  </text>
+  <text id="tbl_cell_1_31" x="405.76471" y="263.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">applyBrake</tspan>
+  </text>
+  <path id="tbl_row_bg_1_32" d="M 54.00,272.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_33" x="62" y="287.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">3</tspan>
+  </text>
+  <text id="tbl_cell_1_34" x="109.7451" y="287.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">class-sensor</tspan>
+  </text>
+  <text id="tbl_cell_1_35" x="262.52941" y="287.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Class</tspan>
+  </text>
+  <text id="tbl_cell_1_36" x="405.76471" y="287.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">WheelSensor</tspan>
+  </text>
+  <path id="tbl_row_bg_1_37" d="M 54.00,296.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_38" x="62" y="311.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">4</tspan>
+  </text>
+  <text id="tbl_cell_1_39" x="109.7451" y="311.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">attr-speed</tspan>
+  </text>
+  <text id="tbl_cell_1_40" x="262.52941" y="311.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Property</tspan>
+  </text>
+  <text id="tbl_cell_1_41" x="405.76471" y="311.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">wheelSpeed</tspan>
+  </text>
+  <path id="tbl_row_bg_1_42" d="M 54.00,320.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_43" x="62" y="335.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">3</tspan>
+  </text>
+  <text id="tbl_cell_1_44" x="109.7451" y="335.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">assoc-measures</tspan>
+  </text>
+  <text id="tbl_cell_1_45" x="262.52941" y="335.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">uml:Association</tspan>
+  </text>
+  <text id="tbl_cell_1_46" x="405.76471" y="335.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">measures</tspan>
+  </text>
+  <text id="heading_1_47" x="54" y="390.45" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-2">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="17" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Model element details</tspan>
+  </text>
+  <text id="p_1_48" x="54" y="417.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">model-vehicle — Vehicle control [uml:Model]</tspan>
+  </text>
+  <text id="p_1_49" x="54" y="443.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">pkg-brakes — Braking [uml:Package]</tspan>
+  </text>
+  <text id="p_1_50" x="54" y="469.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">class-controller — BrakeController [uml:Class]: visibility=public</tspan>
+  </text>
+  <text id="p_1_51" x="54" y="495.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">attr-pressure — pressure [uml:Property]: type=double; visibility=private</tspan>
+  </text>
+  <text id="p_1_52" x="54" y="521.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">op-apply — applyBrake [uml:Operation]</tspan>
+  </text>
+  <text id="p_1_53" x="54" y="547.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">class-sensor — WheelSensor [uml:Class]</tspan>
+  </text>
+  <text id="p_1_54" x="54" y="573.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">attr-speed — wheelSpeed [uml:Property]: type=double</tspan>
+  </text>
+  <text id="p_1_55" x="54" y="599.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">assoc-measures — measures [uml:Association]: memberEnd=attr-pressure</tspan>
+  </text>
+  <text id="p_1_56" x="54" y="615.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">attr-speed</tspan>
+  </text>
+</svg>

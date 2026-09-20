@@ -1,0 +1,9 @@
+@startuml
+interface AuthGateway
+database Storage
+class AuthController
+
+Storage <|-- AuthController
+AuthGateway <|.. AuthController
+AuthController ..> Storage : read user
+@enduml

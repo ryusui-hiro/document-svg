@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="1200pt" viewBox="0 0 1200 1200" data-source-format="su2" data-source-page="1">
+  <title>SU2 CFD mesh</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":3,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="1200" fill="#FFFFFF" data-role="page-background"/>
+  <path id="sim-background" d="M 0 0 L 1200 0 L 1200 1200 L 0 1200 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#090d16" fill-opacity="1" stroke="none" data-semantic-role="simulation:background"/>
+  <g id="mesh-cells" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="simulation:mesh">
+    <path id="" d="M 24 1176 L 1176 1176 L 600 600 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#1e293b" fill-opacity="1" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1176 1176 L 1176 24 L 600 600 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#1e293b" fill-opacity="1" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1176 24 L 24 24 L 600 600 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#1e293b" fill-opacity="1" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 24 24 L 24 1176 L 600 600 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#1e293b" fill-opacity="1" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 24 1176 L 1176 1176" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1176 1176 L 1176 24" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1176 24 L 24 24" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 24 24 L 24 1176" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <path id="su2-marker-boundaries" d="M 24.000 1176.000 L 1176.000 1176.000 M 24.000 1176.000 L 24.000 24.000 M 1176.000 1176.000 L 1176.000 24.000 M 1176.000 24.000 L 24.000 24.000 " fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0" data-content-kind="su2:boundary-marker-edges" data-semantic-role="simulation:marker-boundary" aria-label="SU2 boundary marker edges"/>
+</svg>

@@ -1,0 +1,3 @@
+##description: GTF example
+chr1	HAVANA	gene	1	900	.	+	.	gene_id "gene00001"; transcript_id "tx00001";
+chr1	HAVANA	exon	1	100	12.5	+	0	gene_id "gene00001"; transcript_id "tx00001"; exon_number "1";

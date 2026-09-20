@@ -23,14 +23,20 @@ SVGファイルまたはSVGディレクトリ
           ↓
 SVG image partとしてOOXMLへ格納 ／ mxfileへ格納
           ↓
-PPTX（1 slide/ SVG）、DOCX（1 page/SVG）、XLSX（1 sheet/SVG）、
+PPTX（1 slide/ SVG）、legacy PowerPoint Binary `.ppt`（text-only A4 preview）、DOCX（1 page/SVG）、XLSX（1 sheet/SVG）、
 drawio（1 diagram/SVG。sourceを持つSVGは元の図面を復元）
 ```
 
 重要な事実は次のとおりです。
 
-- 変換元の形式はファイル拡張子で判定します。対応拡張子は`.pdf`、`.pptx`、
-  `.xlsx`、`.docx`です。
+- 変換元の形式は通常はファイル拡張子で判定し、拡張子なし/汎用形式は内容も検査します。PDF・Office Open XML Transitional/Strict・Microsoft Project XML Gantt schedule・OpenDocument・HTML・
+  EPUB・FictionBook 2 FB2/FB2.ZIP・CBZ・EML/Apple Mail EMLX/Outlook MSG email・MBOX archive・MHTML archive・DICOM/DICOMDIR medical images (including JPEG 2000 Part 1 compression)・iCalendar ICS/vCalendar VCS・vCard contact files・XPS/OpenXPS・Visio VSDX/VSDM/VSTX/VSTM/VDX・multi-page TIFF・SubRip/WebVTT/TTML subtitles・XLIFF localization catalogs・Jupyter notebook・Quarto/R Markdown・Markdown・AsciiDoc（`imagesdir` 内の検証済み `image::target[attrs]` PNG/JPEG ブロックを含む）・reStructuredText・Org-mode・gettext PO/POT translation catalogs・BibTeX bibliography・draw.io・BPMN 2.0・CMMN 1.1・DMN 1.5・ReqIF・XMI・Mermaid・PlantUML・D2・DOT・Excalidraw・
+  Legacy Excel XLS/XLSB・Abaqus INP・LS-DYNA K/KEY・MEDIT MESH/MESHB・OFF・IFC/IFCXML/IFCZIP・Nastran BDF/NAS・SU2 CFD mesh `.su2`・OpenFOAM `.foam`・UNV/UFF・PCL PCD/LAS/LAZ point clouds・DXF・Gerber・HP-GL・G-code・Excellon・STL/OBJ/PLY・STEP・IGES・3MF・EMF/WMF・
+  Gmsh MSH・VTK・ASCII XYZ/PCL PCD/Leica PTS/PTX/ASTM E57/LAS/LAZ point clouds・ESRI ASCII Grid・dBASE III/III+ DBF・ARFF dataset（`.arff`）・JSON-LD 1.1（`.jsonld` / `.json-ld`）・NetCDF classic（`.nc` / `.nc3` / `.cdf`）・GraphML（`.graphml`）・GEXF（`.gexf`）・XGMML（`.xgmml`）・Graph Modeling Language（`.gml`）・CSV/TSV・TOML/YAML/Java Properties configuration・generic XML・GeoPackage・TopoJSON・GeoJSON Text Sequences・GeoJSON/GeoRSS/GML/GPX/KML/KMZ/ESRI Shapefile/WKT・CSV・chart JSON・LaTeX（数式と安全な完全文書preview、ローカル`\\includegraphics`を含む）・QR・standalone JPEG 2000（`.jp2` / `.j2k` / `.j2c` / `.jpc` / `.jpx`）・ラスター画像など幅広い拡張子に
+  対応しています。全リストと形式ごとの忠実度ティア（A/B/C）は
+  [`../site/assets/data/formats.json`](../site/assets/data/formats.json)
+  （プロジェクトサイトの「対応形式マップ」の元データ）と、ルートの
+  [`../README.md`](../README.md) の対応形式表を参照してください。
 - 文書全体を1個のSVGにするのではなく、ページ、スライド、またはシートの出力ページ
   ごとにSVGを1個生成します。
 - 通常の利用者は`convert_path`だけを呼びます。PDF/Officeのparserを選ぶ処理は
@@ -136,7 +142,7 @@ fn main() -> Result<(), Error> {
 | フィールド | 既定値 | 意味 |
 |---|---:|---|
 | `max_input_bytes` | 512 MiB | 入力ファイル全体の最大サイズ |
-| `max_zip_entry_bytes` | 128 MiB | OOXMLの展開済みpartまたはPDFページstreamの上限 |
+| `max_zip_entry_bytes` | 128 MiB | ZIP形式の展開済みpart/画像、またはPDFページstreamの上限。ZIP-based document packageのcentral directoryは100,000 entriesまで |
 | `max_pages` | 10,000 | 出力できる最大ページ数 |
 | `max_xml_events` | 5,000,000 | XML解析イベント数の安全上限 |
 | `include_metadata` | `true` | SVG内へ由来情報と警告metadataを含めるか |
@@ -342,7 +348,7 @@ warningがない                   → converted
 生成AIへの依頼やagent実装では、次の情報を明示すると安定します。
 
 ```text
-目的: PDF/PPTX/XLSX/DOCX/drawioをページ単位のSVGへ変換する
+目的: PDF/Office/CAD/CAM/3D/図表/データなど60以上の形式をページ単位のSVGへ変換する
 推奨入口: document_svg::convert_path（言語bindingではconvert）
 入力判定: 拡張子
 出力: page-NNNN.svg + conversion.json

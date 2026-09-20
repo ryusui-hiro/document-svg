@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve">
+  <f href="https://private.example.invalid/forms/application.pdf"/>
+  <ids original="private-original-id" modified="private-modified-id"/>
+  <fields>
+    <field name="Applicant">
+      <value>Alice Example</value>
+      <field name="Email"><value>alice@example.invalid</value></field>
+      <field name="Password"><value>secret-xfdf</value></field>
+    </field>
+    <field name="Options">
+      <value>Blue</value>
+      <value>Green</value>
+      <value-richtext><body><p>private rich text</p></body></value-richtext>
+    </field>
+  </fields>
+  <annots>
+    <freetext page="0"><contents>Private annotation text</contents></freetext>
+    <highlight page="0" rect="0,0,10,10"/>
+  </annots>
+</xfdf>

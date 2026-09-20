@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:private"><xs:include schemaLocation="private-common.xsd"/><xs:import namespace="urn:secret" schemaLocation="https://example.invalid/secret.xsd"/><xs:element name="PrivateRoot" type="PrivateType"/><xs:complexType name="PrivateType"><xs:sequence><xs:element name="secret"/></xs:sequence><xs:attribute name="privateAttribute"/></xs:complexType><xs:simpleType name="Code"><xs:restriction base="xs:string"><xs:pattern value="private"/></xs:restriction></xs:simpleType></xs:schema>
+

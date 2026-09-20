@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1084.5pt" height="760pt" viewBox="0 0 1084.5 760" data-source-format="sequence_diagram" data-source-page="1" content="sequenceDiagram&#10;  autonumber&#10;  actor User as End User&#10;  participant Browser as Web Browser (SPA)&#10;  participant AuthServer as OAuth 2.0 Auth Server&#10;  participant Gateway as API Gateway&#10;  participant ResourceAPI as Protected Resource API&#10;&#10;  User-&gt;&gt;Browser: Navigate to Login Page&#10;  Browser-&gt;&gt;AuthServer: GET /oauth/authorize?client_id=web&amp;scope=openid&#10;  AuthServer--&gt;&gt;Browser: 302 Redirect with Auth Code&#10;  Browser-&gt;&gt;Gateway: POST /api/auth/callback (code, state)&#10;  Gateway-&gt;&gt;AuthServer: POST /oauth/token (code, client_secret)&#10;  AuthServer--&gt;&gt;Gateway: 200 OK (access_token, id_token, refresh_token)&#10;  Gateway--&gt;&gt;Browser: Set-Cookie: session_jwt (HttpOnly, Secure)&#10;  Browser-&gt;&gt;Gateway: GET /api/v1/user/profile (Cookie: session_jwt)&#10;  Gateway-&gt;&gt;ResourceAPI: Forward Request (X-User-Id: 42)&#10;  ResourceAPI--&gt;&gt;Gateway: 200 OK { id: 42, name: &quot;Alice&quot;, role: &quot;admin&quot; }&#10;  Gateway--&gt;&gt;Browser: JSON User Profile Response&#10;">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":60,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1084.5" height="760" fill="#FFFFFF" data-role="page-background"/>
+  <path id="" d="M 100.0,92.0 L 100.0,668.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+  <path id="" d="M 93.5,39.0 a 6.5 6.5 0 1 0 13 0 a 6.5 6.5 0 1 0 -13 0 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 100.0,45.5 L 100.0,57.0 M 88.0,49.0 L 112.0,49.0 M 100.0,57.0 L 91.0,70.0 M 100.0,57.0 L 109.0,70.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="1.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="100" y="84" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">End User</tspan>
+  </text>
+  <path id="" d="M 93.5,679.0 a 6.5 6.5 0 1 0 13 0 a 6.5 6.5 0 1 0 -13 0 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 100.0,685.5 L 100.0,697.0 M 88.0,689.0 L 112.0,689.0 M 100.0,697.0 L 91.0,710.0 M 100.0,697.0 L 109.0,710.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#2563eb" stroke-opacity="1" stroke-width="1.6" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="100" y="724" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">End User</tspan>
+  </text>
+  <path id="" d="M 287.8,92.0 L 287.8,668.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+  <path id="" d="M 212.0,42.0 h 151.5 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -151.5 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="287.75" y="64" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Web Browser (SPA)</tspan>
+  </text>
+  <path id="" d="M 212.0,682.0 h 151.5 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -151.5 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="287.75" y="704" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Web Browser (SPA)</tspan>
+  </text>
+  <path id="" d="M 518.2,92.0 L 518.2,668.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+  <path id="" d="M 427.5,42.0 h 181.5 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -181.5 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="518.25" y="64" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">OAuth 2.0 Auth Server</tspan>
+  </text>
+  <path id="" d="M 427.5,682.0 h 181.5 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -181.5 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="518.25" y="704" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">OAuth 2.0 Auth Server</tspan>
+  </text>
+  <path id="" d="M 726.2,92.0 L 726.2,668.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+  <path id="" d="M 673.0,42.0 h 106.5 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -106.5 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="726.25" y="64" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">API Gateway</tspan>
+  </text>
+  <path id="" d="M 673.0,682.0 h 106.5 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -106.5 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="726.25" y="704" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">API Gateway</tspan>
+  </text>
+  <path id="" d="M 938.0,92.0 L 938.0,668.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+  <path id="" d="M 843.5,42.0 h 189.0 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -189.0 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="938" y="64" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Protected Resource API</tspan>
+  </text>
+  <path id="" d="M 843.5,682.0 h 189.0 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -189.0 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="938" y="704" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Protected Resource API</tspan>
+  </text>
+  <path id="" d="M 100.0,140.0 L 285.8,140.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 285.8,140.0 L 279.8,136.5 L 279.8,143.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="193.875" y="134" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">1: Navigate to Login Page</tspan>
+  </text>
+  <path id="" d="M 287.8,188.0 L 516.2,188.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 516.2,188.0 L 510.2,184.5 L 510.2,191.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="403" y="182" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">2: GET /oauth/authorize?client_id=web&amp;scope=openid</tspan>
+  </text>
+  <path id="" d="M 518.2,236.0 L 289.8,236.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 3" stroke-dashoffset="0"/>
+  <path id="" d="M 289.8,236.0 L 295.8,232.5 L 295.8,239.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="403" y="230" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">3: 302 Redirect with Auth Code</tspan>
+  </text>
+  <path id="" d="M 287.8,284.0 L 724.2,284.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 724.2,284.0 L 718.2,280.5 L 718.2,287.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="507" y="278" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">4: POST /api/auth/callback (code, state)</tspan>
+  </text>
+  <path id="" d="M 726.2,332.0 L 520.2,332.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 520.2,332.0 L 526.2,328.5 L 526.2,335.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="622.25" y="326" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">5: POST /oauth/token (code, client_secret)</tspan>
+  </text>
+  <path id="" d="M 518.2,380.0 L 724.2,380.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 3" stroke-dashoffset="0"/>
+  <path id="" d="M 724.2,380.0 L 718.2,376.5 L 718.2,383.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="622.25" y="374" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">6: 200 OK (access_token, id_token, refresh_token)</tspan>
+  </text>
+  <path id="" d="M 726.2,428.0 L 289.8,428.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 3" stroke-dashoffset="0"/>
+  <path id="" d="M 289.8,428.0 L 295.8,424.5 L 295.8,431.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="507" y="422" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">7: Set-Cookie: session_jwt (HttpOnly, Secure)</tspan>
+  </text>
+  <path id="" d="M 287.8,476.0 L 724.2,476.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 724.2,476.0 L 718.2,472.5 L 718.2,479.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="507" y="470" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">8: GET /api/v1/user/profile (Cookie: session_jwt)</tspan>
+  </text>
+  <path id="" d="M 726.2,524.0 L 936.0,524.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <path id="" d="M 936.0,524.0 L 930.0,520.5 L 930.0,527.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="832.125" y="518" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">9: Forward Request (X-User-Id: 42)</tspan>
+  </text>
+  <path id="" d="M 938.0,572.0 L 728.2,572.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 3" stroke-dashoffset="0"/>
+  <path id="" d="M 728.2,572.0 L 734.2,568.5 L 734.2,575.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="832.125" y="566" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">10: 200 OK { id: 42, name: "Alice", role: "admin" }</tspan>
+  </text>
+  <path id="" d="M 726.2,620.0 L 289.8,620.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 3" stroke-dashoffset="0"/>
+  <path id="" d="M 289.8,620.0 L 295.8,616.5 L 295.8,623.5 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#334155" fill-opacity="1" stroke="none"/>
+  <text id="" x="507" y="614" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">11: JSON User Profile Response</tspan>
+  </text>
+</svg>

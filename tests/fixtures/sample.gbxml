@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gbXML xmlns="http://www.gbxml.org/schema" useSIUnits="true" version="8.01">
+  <Campus id="campus-1"><Location><Name>Private site</Name></Location>
+    <Building id="building-1"><Area>999</Area></Building>
+  </Campus>
+  <Zone id="zone-1"><Name>Office</Name></Zone>
+  <Space id="space-1"><Name>Room A</Name><ShellGeometry><ClosedShell><Surface ref="surface-1"/></ClosedShell></ShellGeometry></Space>
+  <Surface id="surface-1" surfaceType="ExteriorWall"><Opening id="opening-1"/></Surface>
+  <Construction id="construction-1"><MaterialId materialIdRef="material-1"/></Construction>
+  <Material id="material-1"><Name>Private material</Name></Material>
+  <Schedule id="schedule-1"><Name>Work hours</Name></Schedule>
+  <AirLoop id="airloop-1"/>
+  <People id="people-1"/>
+</gbXML>
+

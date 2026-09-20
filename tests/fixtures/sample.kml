@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+  <Document>
+    <name>Harbor preview</name>
+    <Style id="ignored-style"><LineStyle><color>ff0000ff</color></LineStyle></Style>
+    <Placemark>
+      <name>Harbor point</name>
+      <Point><coordinates>-122.0822035425683,37.42228990140251,12.5</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Coastal route</name>
+      <LineString><tessellate>1</tessellate><coordinates>-122.09,37.41,1 -122.08,37.42,2 -122.07,37.415,3</coordinates></LineString>
+    </Placemark>
+    <Placemark>
+      <name>Park polygon</name>
+      <Polygon>
+        <outerBoundaryIs><LinearRing><coordinates>-122.10,37.40 -122.06,37.40 -122.06,37.44 -122.10,37.44 -122.10,37.40</coordinates></LinearRing></outerBoundaryIs>
+        <innerBoundaryIs><LinearRing><coordinates>-122.09,37.41 -122.08,37.41 -122.08,37.42 -122.09,37.42 -122.09,37.41</coordinates></LinearRing></innerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    <Placemark>
+      <gx:Track>
+        <when>2026-01-01T00:00:00Z</when><gx:coord>-122.08 37.42 8</gx:coord>
+        <when>2026-01-01T00:00:01Z</when><gx:coord>-122.075 37.425 9</gx:coord>
+      </gx:Track>
+    </Placemark>
+    <NetworkLink><Link><href>https://example.invalid/live.kml</href></Link></NetworkLink>
+  </Document>
+</kml>

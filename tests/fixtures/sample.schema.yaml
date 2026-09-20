@@ -1,0 +1,13 @@
+$schema: https://json-schema.org/draft/2020-12/schema
+$id: https://example.invalid/schemas/catalog.yaml
+title: Catalog YAML schema
+description: YAML schema preview
+type: object
+properties:
+  name:
+    type: string
+    minLength: 1
+  enabled:
+    type: boolean
+required:
+  - name

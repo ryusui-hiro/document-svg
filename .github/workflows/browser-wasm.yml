@@ -1,0 +1,41 @@
+name: Browser WebAssembly
+
+on:
+  push:
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - src/**
+      - bindings/wasm/**
+      - examples/static-viewer/**
+      - .github/workflows/browser-wasm.yml
+  pull_request:
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - src/**
+      - bindings/wasm/**
+      - examples/static-viewer/**
+      - .github/workflows/browser-wasm.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          target: wasm32-unknown-unknown
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install matching wasm-bindgen CLI
+        run: cargo install wasm-bindgen-cli --version 0.2.128 --locked
+      - name: Build browser package
+        run: npm run build:wasm --prefix bindings/wasm
+      - name: Test memory-based document conversion
+        run: cargo test --test in_memory_conversion

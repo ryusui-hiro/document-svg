@@ -1,0 +1,24 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.png",
+  "source_format": "raster",
+  "output_directory": "samples/svg/png",
+  "elapsed_ms": 0,
+  "input_bytes": 360,
+  "page_count": 1,
+  "largest_page_ir_bytes": 2322,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 120.0,
+      "height_points": 60.0,
+      "node_count": 1,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 2322
+    }
+  ],
+  "warnings": []
+}

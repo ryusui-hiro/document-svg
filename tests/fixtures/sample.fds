@@ -1,0 +1,8 @@
+&HEAD CHID='private-fire', TITLE='Private scenario' /
+&MESH IJK=10,10,10, XB=0.0,1.0,0.0,1.0,0.0,1.0 /
+&SURF ID='private-surface', COLOR='RED' /
+&OBST XB=0.0,0.5,0.0,0.5,0.0,1.0 /
+&VENT SURF_ID='private-surface', XB=0.0,0.0,0.0,1.0,0.0,1.0 /
+&DEVC ID='private-device', XYZ=0.5,0.5,0.5 /
+&TAIL /
+

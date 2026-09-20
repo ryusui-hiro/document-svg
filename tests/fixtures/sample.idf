@@ -1,0 +1,7 @@
+! EnergyPlus fixture
+Version, 24.1;
+Building, Private Building, 0.0, City, 0.04, 0.4, FullExterior, 25, 6;
+Zone, Private Zone, 0, 0, 0, 1, 1, 1;
+Material, Private Material, Rough, 0.1, 0.2, 1000, 900;
+Schedule:Compact, Private Schedule, Any Number, Through: 12/31, For: AllDays, 1.0;
+

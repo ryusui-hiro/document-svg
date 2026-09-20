@@ -1,0 +1,12 @@
+WEBVTT - English captions
+Kind: captions
+
+NOTE maintained by the editor
+This comment must not appear in the preview.
+
+STYLE
+::cue { color: red; }
+
+chapter-one
+00:01.000 --> 00:03.000 align:start position:10%
+<v Narrator>Welcome <b>aboard</b>.</v>

@@ -1,0 +1,11 @@
+##maf version=1 scoring=demo
+# bounded multiple-alignment example
+a score=42.0
+s hg38.chr1 100 12 + 1000 ACGTACGTACGT
+s panTro6.chr1 104 12 + 1000 ACGTTCGTGGAA
+i hg38.chr1 C 0 C 0
+q hg38.chr1 999999999999
+
+a score=10.5 pass=2
+s hg38.chr1 300 8 - 1000 TTGGAACG
+s panTro6.chr1 302 8 - 1000 TTGGAAAG

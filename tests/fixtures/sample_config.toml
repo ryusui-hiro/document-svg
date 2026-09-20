@@ -1,0 +1,24 @@
+title = "Catalog deployment"
+enabled = true
+created_at = 2026-08-03T17:20:00Z
+retry_delays = [1, 5, 30]
+description = """Deploy the catalog API.
+Configuration is shown as data and never executed."""
+
+[service]
+name = "catalog-api"
+listen = "127.0.0.1:8080"
+public = false
+
+[service.limits]
+requests_per_minute = 1200
+burst = 50
+error_rate = 0.25
+
+[[targets]]
+name = "staging"
+regions = ["us-west-2", "eu-central-1"]
+
+[[targets]]
+name = "production"
+regions = ["us-east-1", "ap-northeast-1"]

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<article article-type="research-article" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://jats.nlm.nih.gov">
+  <front>
+    <article-meta>
+      <title-group><article-title>JATS Article Preview</article-title></title-group>
+      <contrib-group><contrib><name><surname>Example</surname><given-names>Author</given-names></name></contrib></contrib-group>
+      <abstract><p>A safe abstract with no active content.</p></abstract>
+    </article-meta>
+  </front>
+  <body>
+    <sec><title>Introduction</title><p>JATS paragraph with <italic>emphasis</italic>.</p>
+      <fig id="fig1"><label>Figure 1</label><caption><p>Local figure</p></caption><graphic xlink:href="assets/red-blue.png"/></fig>
+      <table-wrap><label>Table 1</label><table><tr><th>Name</th><th>State</th></tr><tr><td>Preview</td><td>Ready</td></tr></table></table-wrap>
+    </sec>
+  </body>
+</article>

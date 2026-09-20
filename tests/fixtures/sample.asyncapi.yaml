@@ -1,0 +1,26 @@
+asyncapi: 3.0.0
+info:
+  title: Event Catalog YAML
+  version: '2.0.0'
+servers:
+  kafka:
+    host: broker.example.invalid:9092
+    protocol: kafka
+channels:
+  user/signedup:
+    address: user.signedup
+    messages:
+      UserSignedUp:
+        $ref: '#/components/messages/UserSignedUp'
+    publish:
+      operationId: onUserSignedUp
+      summary: Receive signup event
+operations:
+  publishInvoice:
+    action: send
+    channel:
+      $ref: '#/channels/billing~1invoice'
+    summary: Publish invoice
+components:
+  messages:
+    UserSignedUp: {}

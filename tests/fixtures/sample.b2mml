@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ProductionSchedule xmlns="http://www.mesa.org/xml/B2MML-V0600">
+  <ProductionRequest><ID>PRIVATE-REQUEST</ID><ProductDefinition>Private product</ProductDefinition></ProductionRequest>
+  <ProductionPerformance><Response>PRIVATE-PERFORMANCE-VALUE</Response></ProductionPerformance>
+  <MaterialDefinition><ID>PRIVATE-MATERIAL</ID></MaterialDefinition>
+  <MaterialLot><ID>PRIVATE-LOT</ID></MaterialLot>
+  <Equipment><ID>PRIVATE-EQUIPMENT</ID></Equipment>
+  <Person><ID>PRIVATE-PERSON</ID></Person>
+  <ProcessSegment><ID>PRIVATE-SEGMENT</ID></ProcessSegment>
+  <ProductionCapability><ID>PRIVATE-CAPABILITY</ID></ProductionCapability>
+  <ExternalReference>https://private.example.invalid/resource.xml</ExternalReference>
+</ProductionSchedule>

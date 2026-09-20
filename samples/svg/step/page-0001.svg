@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="1137.41793pt" viewBox="0 0 1200 1137.41793" data-source-format="step" data-source-page="1">
+  <title>STEP 3D Isometric View</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":3,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="1137.41793" fill="#FFFFFF" data-role="page-background"/>
+  <path id="step-background" d="M 0 0 L 1200.000 0 L 1200.000 1137.418 L 0 1137.418 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#0c1322" fill-opacity="1" stroke="none" data-semantic-role="step:background"/>
+  <g id="step-edges" transform="matrix(1 0 0 1 0 0)" opacity="0.95" data-semantic-role="step:wireframe">
+    <path id="" d="M 682.086 947.848 L 682.086 663.494" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 189.570 663.494 L 189.570 379.139" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 189.570 663.494 L 517.914 473.924" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 682.086 947.848 L 189.570 663.494" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 517.914 473.924 L 1010.430 758.279" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1010.430 473.924 L 682.086 663.494" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 682.086 663.494 L 189.570 379.139" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 189.570 379.139 L 517.914 189.570" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1010.430 758.279 L 682.086 947.848" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 517.914 473.924 L 517.914 189.570" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 517.914 189.570 L 1010.430 473.924" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1010.430 758.279 L 1010.430 473.924" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <text id="step-label" x="20" y="1117.41793" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="monospace, monospace" font-size="13" font-weight="700" font-style="normal" baseline-shift="0" fill="#94a3b8" fill-opacity="1">STEP ISO 10303-21 | Isometric Wireframe | Edges: 12</tspan>
+  </text>
+</svg>

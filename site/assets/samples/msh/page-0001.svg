@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="1015.38462pt" viewBox="0 0 1200 1015.38462" data-source-format="simulation" data-source-page="1">
+  <title>Gmsh FEA Mesh</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":2,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="1015.38462" fill="#FFFFFF" data-role="page-background"/>
+  <path id="sim-background" d="M 0 0 L 1200 0 L 1200 1015.385 L 0 1015.385 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#090d16" fill-opacity="1" stroke="none" data-semantic-role="simulation:background"/>
+  <g id="mesh-cells" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="simulation:mesh">
+    <path id="" d="M 138.462 876.923 L 1061.538 876.923 L 1061.538 138.462 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#1e293b" fill-opacity="1" stroke="#334155" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 138.462 876.923 L 1061.538 138.462 L 138.462 138.462 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#1e293b" fill-opacity="1" stroke="#334155" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+</svg>

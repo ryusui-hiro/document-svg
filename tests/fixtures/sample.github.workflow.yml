@@ -1,0 +1,29 @@
+name: Preview CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lint:
+    name: Lint source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm run lint -- --token very-secret
+  test:
+    runs-on: [ubuntu-latest, x64]
+    needs: [lint]
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - name: Run tests
+        run: |
+          npm test
+          echo super-secret

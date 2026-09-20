@@ -1,0 +1,29 @@
+SPDXVersion: SPDX-2.3
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: Preview tag-value SBOM
+DocumentNamespace: https://private.example/spdx/tag-value
+Creator: Tool: Example
+Created: 2026-09-16T00:00:00Z
+
+##### Package: serde
+PackageName: serde
+SPDXID: SPDXRef-Package-Serde
+PackageVersion: 1.0.210
+PackageDownloadLocation: https://private.example/serde
+PackageLicenseConcluded: MIT
+PackageLicenseDeclared: MIT
+PackageSupplier: Organization: Private
+PackageChecksum: SHA256: very-secret
+ExternalRef: PACKAGE-MANAGER purl pkg:cargo/serde@1.0.210
+
+##### File: source
+FileName: src/lib.rs
+SPDXID: SPDXRef-File-Lib
+FileChecksum: SHA256: private-file
+LicenseConcluded: NOASSERTION
+
+Relationship: SPDXRef-Package-Serde DEPENDS_ON SPDXRef-Other
+Annotator: Person: Private Reviewer
+AnnotationDate: 2026-09-16T00:00:00Z
+SnippetSPDXID: SPDXRef-Snippet

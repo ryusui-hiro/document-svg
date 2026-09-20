@@ -1,0 +1,4 @@
+track name="annotation demo" description="bounded BED preview"
+browser position chr1:1-300
+chr1	0	100	gene1	900	+	0	100	255,0,0	2	40,60,	0,40,
+chr1	200	250	peak2	500	-	200	250	0,0,255

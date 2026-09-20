@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1007.26346pt" height="1200pt" viewBox="0 0 1007.26346 1200" data-source-format="ply-model" data-source-page="1">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":1,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1007.26346" height="1200" fill="#FFFFFF" data-role="page-background"/>
+  <path id="face_0" d="M 50.000,1150.000 L 957.263,626.196 L 503.632,50.000 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#75828F" fill-opacity="1" stroke="#334155" stroke-opacity="1" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0" data-content-kind="ply-face"/>
+</svg>

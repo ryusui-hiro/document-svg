@@ -1,0 +1,30 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.jsons",
+  "source_format": "jsonseq",
+  "output_directory": "samples/svg/jsons",
+  "elapsed_ms": 0,
+  "input_bytes": 163,
+  "page_count": 1,
+  "largest_page_ir_bytes": 11344,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 595.0,
+      "height_points": 842.0,
+      "node_count": 16,
+      "warning_count": 2,
+      "warnings": [
+        "2 JSON decimal/exponent number(s) were normalized for display; original number spelling is not retained",
+        "4 JSON sequence record(s) were laid out in order as inert content"
+      ],
+      "estimated_ir_bytes": 11344
+    }
+  ],
+  "warnings": [
+    "2 JSON decimal/exponent number(s) were normalized for display; original number spelling is not retained",
+    "4 JSON sequence record(s) were laid out in order as inert content"
+  ]
+}

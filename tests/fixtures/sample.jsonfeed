@@ -1,0 +1,24 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Preview updates",
+  "home_page_url": "https://private.example/",
+  "feed_url": "https://private.example/feed.json",
+  "items": [
+    {
+      "id": "post-1",
+      "url": "https://private.example/posts/1?token=very-secret",
+      "title": "A safe update",
+      "content_html": "<p>visible content</p><script>very-secret</script>",
+      "date_published": "2024-05-12T10:00:00Z",
+      "author": {"name": "Alice"},
+      "tags": ["release", "preview"],
+      "attachments": [{"url": "https://private.example/file.bin", "mime_type": "application/octet-stream", "size_in_bytes": 42}]
+    },
+    {
+      "id": "post-2",
+      "title": "Text note",
+      "content_text": "private body should be omitted",
+      "date_modified": "2024-06-01T12:00:00Z"
+    }
+  ]
+}

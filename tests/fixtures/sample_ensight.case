@@ -1,0 +1,8 @@
+FORMAT
+type: ensight gold
+
+GEOMETRY
+model: sample_ensight.geo
+
+VARIABLE
+scalar per node: 1 temperature temperature

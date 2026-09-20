@@ -23,6 +23,20 @@ class SampleGenerationTests(unittest.TestCase):
                     published = (ROOT / 'samples/source' / name).read_bytes()
                     self.assertEqual(output.read_bytes(), published)
                     self.assertEqual(hashlib.sha256(published).hexdigest(), manifest['sha256'][f'source/{name}'])
+                    fixture = {
+                        'sample-parcels.dbf': 'sample_attributes.dbf',
+                        'sample.toml': 'sample_config.toml',
+                        'sample.yaml': 'sample_config.yaml',
+                        'sample-config.xml': 'sample_config.xml',
+                        'sample.properties': 'sample_properties.properties',
+                        'sample.bpmn': 'sample_bpmn.bpmn',
+                        'sample.dmn': 'sample_dmn.dmn',
+                        'sample.cmmn': 'sample_cmmn.cmmn',
+                        'sample.reqif': 'sample_requirements.reqif',
+                        'sample.xmi': 'sample_model.xmi',
+                    }.get(name)
+                    if fixture:
+                        self.assertEqual(output.read_bytes(), (ROOT / 'tests/fixtures' / fixture).read_bytes())
 
 
 if __name__ == '__main__':

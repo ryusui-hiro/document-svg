@@ -17,6 +17,7 @@ use std::path::{Path, PathBuf};
 use quick_xml::Reader;
 use quick_xml::events::Event;
 
+use crate::convert::read_limited_file;
 use crate::error::{Error, Result};
 use crate::ooxml::{attribute, local_name};
 
@@ -147,7 +148,7 @@ impl Library {
                         metadata.len()
                     )));
                 }
-                let bytes = std::fs::read(&file)?;
+                let bytes = read_limited_file(&file, MAX_LIBRARY_BYTES, "stencil library")?;
                 self.read_set(&bytes, &outstanding, max_events)?;
                 // A whole shape set runs to megabytes, and a diagram usually
                 // draws from one of them; there is no reason to read the rest.

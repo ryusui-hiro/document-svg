@@ -4,9 +4,23 @@
 //! [`write_page`] directly only when an application already has an
 //! [`crate::ir::Page`] that it wants to serialize.
 
+pub mod color;
+pub mod geometry;
+pub mod reader;
+
+pub use color::{ParsedStyle, parse_color, parse_color_hex, parse_style};
+pub use geometry::{
+    Point2D, Transform2D, parse_transform, sample_cubic_bezier, sample_elliptical_arc,
+    sample_quad_bezier,
+};
+pub use reader::{
+    PathToken, SvgDocument, SvgElement, SvgPathTokenizer, SvgVectorDocument, decompose_svg_path,
+    extract_embedded_source, parse_svg_elements,
+};
+
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::io::Write;
+use std::io::{Read, Write};
 
 use crate::error::Result;
 use crate::ir::{
@@ -534,7 +548,7 @@ fn write_image_color_effects<W: Write>(
 
 fn svg_hex_rgb(color: &str) -> Option<[f64; 3]> {
     let color = color.trim_start_matches('#');
-    if color.len() != 6 {
+    if color.len() != 6 || !color.is_ascii() {
         return None;
     }
     Some([
@@ -769,11 +783,13 @@ fn write_node<W: Write>(
                 {
                     write!(output, ">")?;
                     for (character, x) in characters.iter().zip(&run.glyph_x_offsets) {
+                        let mut buf = [0u8; 4];
+                        let char_str = character.encode_utf8(&mut buf);
                         write!(
                             output,
                             "<tspan x=\"{}\" y=\"0\">{}</tspan>",
                             number(*x, precision),
-                            escape_text(&character.to_string())
+                            escape_text(char_str)
                         )?;
                     }
                     writeln!(output, "</tspan>")?;
@@ -1046,15 +1062,25 @@ fn number(value: f64, precision: usize) -> String {
     if !value.is_finite() || value.abs() < 0.5 * 10f64.powi(-(precision as i32)) {
         return "0".into();
     }
-    let formatted = format!("{value:.precision$}");
+    // Use a stack buffer to avoid heap allocation for the format step.
+    let mut buf = [0u8; 32];
+    let len = {
+        use std::io::Write as _;
+        let mut cursor = std::io::Cursor::new(&mut buf[..]);
+        write!(cursor, "{value:.precision$}").unwrap();
+        cursor.position() as usize
+    };
+    let formatted = std::str::from_utf8(&buf[..len]).unwrap();
     // With integer precision, trailing zeroes are significant (100 != 1).
     if precision == 0 {
-        return formatted;
+        return formatted.to_owned();
     }
-    formatted
-        .trim_end_matches('0')
-        .trim_end_matches('.')
-        .to_owned()
+    let trimmed = formatted.trim_end_matches('0').trim_end_matches('.');
+    if trimmed.is_empty() || trimmed == "-0" {
+        "0".into()
+    } else {
+        trimmed.to_owned()
+    }
 }
 
 fn escape_text(value: &str) -> Cow<'_, str> {
@@ -1096,6 +1122,215 @@ fn escape_xml(value: &str, attribute: bool) -> Cow<'_, str> {
         }
     }
     Cow::Owned(escaped)
+}
+
+pub(crate) fn convert(
+    path: &std::path::Path,
+    options: &crate::convert::ConvertOptions,
+    sink: &mut dyn crate::convert::PageConsumer,
+) -> Result<Vec<String>> {
+    let mut file = std::fs::File::open(path)?;
+    let mut source_bytes = Vec::new();
+    Read::take(&mut file, options.max_input_bytes.saturating_add(1))
+        .read_to_end(&mut source_bytes)?;
+    if source_bytes.len() as u64 > options.max_input_bytes {
+        return Err(crate::error::Error::LimitExceeded(format!(
+            "SVG input exceeds maximum bytes ({})",
+            options.max_input_bytes
+        )));
+    }
+    let bytes = if source_bytes.starts_with(&[0x1f, 0x8b]) {
+        let mut decoder = flate2::read::MultiGzDecoder::new(source_bytes.as_slice());
+        let mut decompressed = Vec::new();
+        Read::take(&mut decoder, options.max_input_bytes.saturating_add(1))
+            .read_to_end(&mut decompressed)?;
+        if decompressed.len() as u64 > options.max_input_bytes {
+            return Err(crate::error::Error::LimitExceeded(format!(
+                "decompressed SVGZ input exceeds maximum bytes ({})",
+                options.max_input_bytes
+            )));
+        }
+        decompressed
+    } else {
+        source_bytes
+    };
+    crate::reverse::validate_svg_document(&bytes, 0)?;
+    let svg_str = std::str::from_utf8(&bytes)
+        .map_err(|e| crate::error::Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+
+    let doc = parse_svg_elements(svg_str)?;
+    let mut page = Page::new(1, doc.width, doc.height, "SVG");
+    page.embedded_source = Some(svg_str.to_string());
+
+    for (i, elem) in doc.elements.into_iter().enumerate() {
+        match elem {
+            SvgElement::Line {
+                p1,
+                p2,
+                stroke_color,
+                stroke_width,
+                ..
+            } => {
+                page.nodes.push(Node::Path {
+                    id: format!("svg-line-{}", i + 1),
+                    d: format!("M {} {} L {} {}", p1.x, p1.y, p2.x, p2.y),
+                    fill_rule: "nonzero".into(),
+                    fill: Paint::None,
+                    stroke: Stroke {
+                        paint: stroke_color
+                            .map(|c| Paint::solid(format!("#{c:06x}")))
+                            .unwrap_or_else(|| Paint::solid("#000000")),
+                        width: stroke_width.max(0.1),
+                        ..Stroke::default()
+                    },
+                    transform: crate::ir::IDENTITY,
+                    clip_id: None,
+                    meta: crate::ir::SourceMeta::default(),
+                });
+            }
+            SvgElement::Rect {
+                x,
+                y,
+                width,
+                height,
+                stroke_color,
+                fill_color,
+                ..
+            } => {
+                let fill = fill_color
+                    .map(|c| Paint::solid(format!("#{c:06x}")))
+                    .unwrap_or(Paint::None);
+                let stroke = stroke_color
+                    .map(|c| Stroke {
+                        paint: Paint::solid(format!("#{c:06x}")),
+                        width: 1.0,
+                        ..Stroke::default()
+                    })
+                    .unwrap_or_default();
+                page.nodes.push(Node::Path {
+                    id: format!("svg-rect-{}", i + 1),
+                    d: format!("M {x} {y} h {width} v {height} h -{width} Z"),
+                    fill_rule: "nonzero".into(),
+                    fill,
+                    stroke,
+                    transform: crate::ir::IDENTITY,
+                    clip_id: None,
+                    meta: crate::ir::SourceMeta::default(),
+                });
+            }
+            SvgElement::Circle {
+                center,
+                radius,
+                stroke_color,
+                fill_color,
+                ..
+            } => {
+                let fill = fill_color
+                    .map(|c| Paint::solid(format!("#{c:06x}")))
+                    .unwrap_or(Paint::None);
+                let stroke = stroke_color
+                    .map(|c| Stroke {
+                        paint: Paint::solid(format!("#{c:06x}")),
+                        width: 1.0,
+                        ..Stroke::default()
+                    })
+                    .unwrap_or_default();
+                let r = radius;
+                let cx = center.x;
+                let cy = center.y;
+                page.nodes.push(Node::Path {
+                    id: format!("svg-circle-{}", i + 1),
+                    d: format!(
+                        "M {} {} m -{}, 0 a {},{} 0 1,0 {},0 a {},{} 0 1,0 -{},0",
+                        cx,
+                        cy,
+                        r,
+                        r,
+                        r,
+                        r * 2.0,
+                        r,
+                        r,
+                        r * 2.0
+                    ),
+                    fill_rule: "nonzero".into(),
+                    fill,
+                    stroke,
+                    transform: crate::ir::IDENTITY,
+                    clip_id: None,
+                    meta: crate::ir::SourceMeta::default(),
+                });
+            }
+            SvgElement::Polyline {
+                points,
+                is_closed,
+                stroke_color,
+                fill_color,
+                ..
+            } => {
+                if points.is_empty() {
+                    continue;
+                }
+                let mut d = format!("M {} {}", points[0].x, points[0].y);
+                for pt in &points[1..] {
+                    d.push_str(&format!(" L {} {}", pt.x, pt.y));
+                }
+                if is_closed {
+                    d.push_str(" Z");
+                }
+                let fill = fill_color
+                    .map(|c| Paint::solid(format!("#{c:06x}")))
+                    .unwrap_or(Paint::None);
+                let stroke = stroke_color
+                    .map(|c| Stroke {
+                        paint: Paint::solid(format!("#{c:06x}")),
+                        width: 1.0,
+                        ..Stroke::default()
+                    })
+                    .unwrap_or_default();
+                page.nodes.push(Node::Path {
+                    id: format!("svg-poly-{}", i + 1),
+                    d,
+                    fill_rule: "nonzero".into(),
+                    fill,
+                    stroke,
+                    transform: crate::ir::IDENTITY,
+                    clip_id: None,
+                    meta: crate::ir::SourceMeta::default(),
+                });
+            }
+            SvgElement::Text {
+                pos,
+                font_size,
+                color,
+                content,
+                ..
+            } => {
+                let fill = color
+                    .map(|c| Paint::solid(format!("#{c:06x}")))
+                    .unwrap_or_else(|| Paint::solid("#000000"));
+                page.nodes.push(Node::Text {
+                    id: format!("svg-text-{}", i + 1),
+                    x: pos.x,
+                    y: pos.y,
+                    runs: vec![crate::ir::TextRun {
+                        text: content,
+                        font_size,
+                        fill,
+                        ..crate::ir::TextRun::default()
+                    }],
+                    anchor: TextAnchor::Start,
+                    transform: crate::ir::IDENTITY,
+                    opacity: 1.0,
+                    stroke: Stroke::default(),
+                    clip_id: None,
+                    meta: crate::ir::SourceMeta::default(),
+                });
+            }
+        }
+    }
+
+    sink.consume(page)?;
+    Ok(Vec::new())
 }
 
 #[cfg(test)]

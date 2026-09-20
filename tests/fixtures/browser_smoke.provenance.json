@@ -1,0 +1,7 @@
+{
+  "generator": "scripts/generate-browser-smoke-pdf.py",
+  "description": "Synthetic one-page PDF with a single text line for browser and WASM conversion smoke tests.",
+  "sha256": {
+    "tests/fixtures/sample_browser.pdf": "d293540f3271fa6137d517ecbe5e991ec81eaf40d41570f7843a8b7f2b5eddfd"
+  }
+}

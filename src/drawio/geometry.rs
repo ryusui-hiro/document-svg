@@ -59,8 +59,20 @@ pub(super) fn n(value: f64) -> String {
         return "0".into();
     }
     let rounded = (value * 1000.0).round() / 1000.0;
-    let text = format!("{rounded}");
-    if text == "-0" { "0".into() } else { text }
+    // Use stack buffer instead of format!
+    let mut buf = [0u8; 32];
+    let len = {
+        use std::io::Write as _;
+        let mut cursor = std::io::Cursor::new(&mut buf[..]);
+        write!(cursor, "{rounded}").unwrap();
+        cursor.position() as usize
+    };
+    let text = std::str::from_utf8(&buf[..len]).unwrap();
+    if text == "-0" {
+        "0".into()
+    } else {
+        text.to_owned()
+    }
 }
 
 pub(super) fn rectangle_path(rect: Rect) -> String {

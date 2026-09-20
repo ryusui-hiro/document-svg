@@ -1,0 +1,13 @@
+BEGIN:VCALENDAR
+VERSION:1.0
+BEGIN:VEVENT
+UID:legacy-event-1
+DTSTART:20261002T090000Z
+DTEND:20261002T100000Z
+SUMMARY:Legacy vCalendar meeting
+DESCRIPTION:Old-format calendar export with a readable summary.
+LOCATION:Conference room
+URL:https://example.test/meeting
+DALARM:20261002T083000Z
+END:VEVENT
+END:VCALENDAR

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="800pt" viewBox="0 0 1200 800" data-source-format="geojsonseq" data-source-page="1">
+  <title>GeoJSON Text Sequence Map Preview</title>
+  <desc>GeoJSON Text Sequence Map Preview map with 3 features, 3 geometries, and 9 positions</desc>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":3,"warnings":["3 GeoJSON sequence record(s) were merged into one bounded map preview; feature properties and identifiers are omitted","GeoJSON Text Sequence longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"]}</metadata>
+  <rect x="0" y="0" width="1200" height="800" fill="#FFFFFF" data-role="page-background"/>
+  <path id="geojsonseq-polygons" d="M 429.255 640.745 L 770.745 640.745 L 770.745 281.204 L 429.255 281.204 L 429.255 640.745 Z " fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#BFDBFE" fill-opacity="1" stroke="#2563EB" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-content-kind="geojsonseq-polygon" data-semantic-role="geojsonseq:polygon"/>
+  <path id="geojsonseq-lines" d="M 282.902 760.000 L 624.392 401.350 L 917.098 40.000 " fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#1D4ED8" stroke-opacity="1" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-content-kind="geojsonseq-line" data-semantic-role="geojsonseq:line"/>
+  <path id="geojsonseq-points" d="M 620.392 401.350 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0 " fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#DC2626" fill-opacity="1" stroke="#FFFFFF" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-content-kind="geojsonseq-point" data-semantic-role="geojsonseq:point"/>
+</svg>

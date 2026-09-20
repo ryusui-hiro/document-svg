@@ -1,0 +1,11 @@
+// Sample D2 Architecture
+client: "Web Client" {
+  shape: circle
+}
+gateway: "API Gateway"
+db: "Relational DB" {
+  shape: cylinder
+}
+
+client -> gateway: "HTTP/3"
+gateway <-> db: "Connection Pool"

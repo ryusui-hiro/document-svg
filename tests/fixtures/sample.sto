@@ -1,0 +1,14 @@
+# STOCKHOLM 1.0
+#=GF ID demo_alignment
+#=GS seq1 DE alpha chain
+seq1 AC-G
+seq2 ACGG
+#=GC SS_cons ....
+#=GR seq1 SS HHHH
+seq1 TT..
+seq2 TT--
+//
+# STOCKHOLM 1.0
+seqA AAA
+seqB A-A
+//

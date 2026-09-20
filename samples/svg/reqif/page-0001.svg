@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="595pt" height="842pt" viewBox="0 0 595 842" data-source-format="reqif" data-source-page="1">
+  <title>ReqIF requirements</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":46,"warnings":["ReqIF XHTML attribute values are flattened to inert text"]}</metadata>
+  <rect x="0" y="0" width="595" height="842" fill="#FFFFFF" data-role="page-background"/>
+  <path id="page_bg_1" d="M 0,0 h 595.00 v 842.00 h -595.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="none"/>
+  <text id="heading_1_1" x="54" y="96.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Vehicle braking requirements</tspan>
+  </text>
+  <text id="p_1_2" x="54" y="127.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">ReqIF exchange version: 1.0.1</tspan>
+  </text>
+  <text id="heading_1_3" x="54" y="178.45" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-2">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="17" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Brake system requirements</tspan>
+  </text>
+  <path id="tbl_hdr_bg_1_4" d="M 54.00,204.00 h 487.00 v 26.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#cbd5e1" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_hdr_txt_1_5" x="62" y="220.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Lv</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_6" x="101.57626" y="220.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Identifier</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_7" x="213.43219" y="220.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Requirement</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_8" x="359.70534" y="220.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Type</tspan>
+  </text>
+  <path id="tbl_row_bg_1_9" d="M 54.00,230.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_10" x="62" y="245.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">0</tspan>
+  </text>
+  <text id="tbl_cell_1_11" x="101.57626" y="245.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-001</tspan>
+  </text>
+  <text id="tbl_cell_1_12" x="213.43219" y="245.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Stopping distance</tspan>
+  </text>
+  <text id="tbl_cell_1_13" x="359.70534" y="245.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Functional requirement</tspan>
+  </text>
+  <path id="tbl_row_bg_1_14" d="M 54.00,254.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_15" x="62" y="269.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">1</tspan>
+  </text>
+  <text id="tbl_cell_1_16" x="101.57626" y="269.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-002</tspan>
+  </text>
+  <text id="tbl_cell_1_17" x="213.43219" y="269.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Wear warning</tspan>
+  </text>
+  <text id="tbl_cell_1_18" x="359.70534" y="269.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Functional requirement</tspan>
+  </text>
+  <path id="tbl_row_bg_1_19" d="M 54.00,278.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_20" x="62" y="293.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">1</tspan>
+  </text>
+  <text id="tbl_cell_1_21" x="101.57626" y="293.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-003</tspan>
+  </text>
+  <text id="tbl_cell_1_22" x="213.43219" y="293.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Brake diagnostics</tspan>
+  </text>
+  <text id="tbl_cell_1_23" x="359.70534" y="293.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Functional requirement</tspan>
+  </text>
+  <text id="heading_1_24" x="54" y="348.45" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-2">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="17" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Requirement details</tspan>
+  </text>
+  <text id="p_1_25" x="54" y="375.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-001 — Stopping distance: The service brake shall stop the vehicle</tspan>
+  </text>
+  <text id="p_1_26" x="54" y="391.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">within the target distance.</tspan>
+  </text>
+  <text id="p_1_27" x="54" y="417.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-001 attributes: Requirement text: Stop within 40 m at 100 km/h;</tspan>
+  </text>
+  <text id="p_1_28" x="54" y="433.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Status: Approved</tspan>
+  </text>
+  <text id="p_1_29" x="54" y="459.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-002 — Wear warning: The system shall warn the driver before the</tspan>
+  </text>
+  <text id="p_1_30" x="54" y="475.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">brake pad wear limit.</tspan>
+  </text>
+  <text id="p_1_31" x="54" y="501.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-002 attributes: Requirement text: Warn before pad wear limit</tspan>
+  </text>
+  <text id="p_1_32" x="54" y="527.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-003 — Brake diagnostics: Diagnostic information shall be available</tspan>
+  </text>
+  <text id="p_1_33" x="54" y="543.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">to service tools.</tspan>
+  </text>
+  <text id="p_1_34" x="54" y="569.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-003 attributes: Requirement text: Provide status. diagnostic</tspan>
+  </text>
+  <text id="heading_1_35" x="54" y="620.45" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-2">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="17" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Relations</tspan>
+  </text>
+  <path id="tbl_hdr_bg_1_36" d="M 54.00,646.00 h 487.00 v 26.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#cbd5e1" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_hdr_txt_1_37" x="62" y="662.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Identifier</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_38" x="199.63043" y="662.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Type</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_39" x="273.73913" y="662.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Source</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_40" x="411.36957" y="662.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Target</tspan>
+  </text>
+  <path id="tbl_row_bg_1_41" d="M 54.00,672.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_42" x="62" y="687.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REL-BRAKE-001</tspan>
+  </text>
+  <text id="tbl_cell_1_43" x="199.63043" y="687.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Derives</tspan>
+  </text>
+  <text id="tbl_cell_1_44" x="273.73913" y="687.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-001</tspan>
+  </text>
+  <text id="tbl_cell_1_45" x="411.36957" y="687.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">REQ-BRAKE-002</tspan>
+  </text>
+</svg>

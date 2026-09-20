@@ -1,0 +1,8 @@
+##gff-version 3
+##sequence-region chr1 1 1000
+chr1	maker	gene	1	900	.	+	.	ID=gene00001;Name=Example%20gene
+chr1	maker	mRNA	1	900	.	+	.	ID=mrna00001;Parent=gene00001;Note=bounded%20preview
+chr1	maker	exon	1	100	42.5	+	.	Parent=mrna00001
+##FASTA
+>chr1
+ACGTACGT

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="859.09091pt" viewBox="0 0 1200 859.09091" data-source-format="hpgl" data-source-page="1">
+  <title>HP-GL Plot</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":3,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="859.09091" fill="#FFFFFF" data-role="page-background"/>
+  <g id="pen-1" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="hpgl:pen:1">
+    <path id="" d="M 54.54545 804.54545 L 1145.45455 804.54545 L 1145.45455 54.54545 L 54.54545 54.54545 L 54.54545 804.54545" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1.35288" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <g id="pen-3" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="hpgl:pen:3">
+    <path id="" d="M 327.27273 429.54545 L 872.72727 429.54545" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#20a020" stroke-opacity="1" stroke-width="0.96634" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 600 702.27273 L 600 156.81818" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#20a020" stroke-opacity="1" stroke-width="0.96634" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <path id="" d="M 327.27273 429.54545 A 272.72727 272.72727 0 1 0 872.72727 429.54545 A 272.72727 272.72727 0 1 0 327.27273 429.54545 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#e02020" stroke-opacity="1" stroke-width="1.93268" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+</svg>

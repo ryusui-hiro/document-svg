@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map id="guide" xmlns="http://dita.oasis-open.org/architecture/1.3/">
+  <title>DITA Guide Map</title>
+  <topicref href="sample.dita#intro" navtitle="Introduction"/>
+  <topicref href="second.dita"/>
+</map>

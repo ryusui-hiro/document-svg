@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::io::{Read, Seek};
 use std::path::Path;
 
 use base64::Engine;
@@ -9,8 +10,8 @@ use crate::convert::{ConvertOptions, PageConsumer};
 use crate::error::{Error, Result};
 use crate::ir::{IDENTITY, Node, Page, Paint, SourceMeta, Stroke, TextAnchor, TextRun};
 use crate::ooxml::{
-    Relationships, ZipPackage, attribute, color_from_hex, local_name, parse_f64, parse_i64,
-    decode_xml_reference, qualified_attribute, sniff_image_mime, text_advance_factor,
+    Relationships, ZipPackage, attribute, color_from_hex, decode_xml_reference, local_name,
+    parse_f64, parse_i64, qualified_attribute, sniff_image_mime, text_advance_factor,
 };
 
 const TWIPS_PER_POINT: f64 = 20.0;
@@ -27,7 +28,24 @@ pub(crate) fn convert(
     options: &ConvertOptions,
     sink: &mut dyn PageConsumer,
 ) -> Result<Vec<String>> {
-    let mut package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    let package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+pub(crate) fn convert_bytes(
+    bytes: &[u8],
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
+    let package = ZipPackage::from_bytes(bytes, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+fn convert_package<R: Read + Seek>(
+    mut package: ZipPackage<R>,
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
     let document_part = "word/document.xml";
     if !package.contains(document_part) {
         return Err(Error::InvalidInput(
@@ -899,7 +917,7 @@ fn parse_document(
     numbering: &Numbering,
     relationships: &Relationships,
     document_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
 ) -> Result<DocumentModel> {
     let mut reader = Reader::from_reader(xml);
@@ -1115,10 +1133,9 @@ fn parse_document(
                             }
                         }
                     }
-                    "ln"
-                        if text_box.is_some()
-                            && stack.iter().any(|item| item == "spPr")
-                            && !is_compatibility_extension(&stack) =>
+                    "ln" if text_box.is_some()
+                        && stack.iter().any(|item| item == "spPr")
+                        && !is_compatibility_extension(&stack) =>
                     {
                         if let Some(text_box) = text_box.as_mut() {
                             text_box.stroke.width =
@@ -1826,10 +1843,7 @@ fn apply_field_character(
             // `separate` is optional: a field Word has never calculated runs
             // begin -> instrText -> end with no cached result. Without this the
             // page number in such a footer is simply missing.
-            if *active
-                && !*separated
-                && instruction.split_whitespace().any(|item| item == "PAGE")
-            {
+            if *active && !*separated && instruction.split_whitespace().any(|item| item == "PAGE") {
                 run.get_or_insert_with(|| default_text_run(styles))
                     .text
                     .push_str(PAGE_FIELD_MARKER);

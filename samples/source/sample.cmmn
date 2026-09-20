@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/CMMN/20151109/MODEL"
+ xmlns:cmmndi="http://www.omg.org/spec/CMMN/20151109/CMMNDI"
+ xmlns:dc="http://www.omg.org/spec/CMMN/20151109/DC"
+ xmlns:di="http://www.omg.org/spec/CMMN/20151109/DI"
+ targetNamespace="https://example.invalid/claims">
+  <case id="ClaimCase" name="Claim review">
+    <casePlanModel id="ClaimPlan" name="Claims file">
+      <planItem id="ReviewPlan" name="Review documents" definitionRef="ReviewTask" />
+      <planItem id="DecisionPlan" name="Decide eligibility" definitionRef="DecisionTask">
+        <entryCriterion id="DecisionEntry" sentryRef="ReviewComplete" />
+      </planItem>
+      <planItem id="NotifyPlan" name="Notify case owner" definitionRef="NotifyTask" />
+      <sentry id="ReviewComplete" name="Review complete">
+        <planItemOnPart id="ReviewOnPart" sourceRef="ReviewPlan">
+          <standardEvent>complete</standardEvent>
+        </planItemOnPart>
+      </sentry>
+      <sentry id="DecisionComplete" name="Decision complete">
+        <planItemOnPart id="DecisionOnPart" sourceRef="DecisionPlan">
+          <standardEvent>complete</standardEvent>
+        </planItemOnPart>
+      </sentry>
+      <humanTask id="ReviewTask" name="Human review" />
+      <decisionTask id="DecisionTask" name="Eligibility decision" />
+      <humanTask id="NotifyTask" name="Send notification" />
+      <milestone id="ClaimClosed" name="Claim closed" />
+    </casePlanModel>
+  </case>
+  <cmmndi:CMMNDI>
+    <cmmndi:CMMNDiagram id="ClaimDiagram" name="Claim review" cmmnElementRef="ClaimPlan">
+      <cmmndi:CMMNShape id="Shape_Case" cmmnElementRef="ClaimPlan"><dc:Bounds x="30" y="30" width="620" height="280" /></cmmndi:CMMNShape>
+      <cmmndi:CMMNShape id="Shape_Review" cmmnElementRef="ReviewPlan"><dc:Bounds x="80" y="120" width="140" height="70" /></cmmndi:CMMNShape>
+      <cmmndi:CMMNShape id="Shape_Decision" cmmnElementRef="DecisionPlan"><dc:Bounds x="275" y="120" width="150" height="70" /></cmmndi:CMMNShape>
+      <cmmndi:CMMNShape id="Shape_Notify" cmmnElementRef="NotifyPlan"><dc:Bounds x="490" y="120" width="130" height="70" /></cmmndi:CMMNShape>
+      <cmmndi:CMMNEdge id="Edge_Review_Decision" cmmnElementRef="ReviewOnPart" sourceCMMNElementRef="ReviewPlan" targetCMMNElementRef="DecisionPlan">
+        <di:waypoint x="220" y="155" /><di:waypoint x="275" y="155" />
+      </cmmndi:CMMNEdge>
+      <cmmndi:CMMNEdge id="Edge_Decision_Notify" cmmnElementRef="DecisionOnPart" sourceCMMNElementRef="DecisionPlan" targetCMMNElementRef="NotifyPlan">
+        <di:waypoint x="425" y="155" /><di:waypoint x="490" y="155" />
+      </cmmndi:CMMNEdge>
+    </cmmndi:CMMNDiagram>
+  </cmmndi:CMMNDI>
+</definitions>

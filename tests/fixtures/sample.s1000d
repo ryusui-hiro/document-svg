@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dmodule xmlns="http://www.s1000d.org/S1000D_4-2" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <identAndStatusSection>
+    <dmAddress><dmIdent><dmCode modelIdentCode="EXAMPLE" systemDiffCode="A" systemCode="12" subSystemCode="3" assyCode="45" infoCode="040" infoCodeVariant="A" itemLocationCode="A"/><dmTitle><techName>Hydraulic Pump</techName><infoName>Removal procedure</infoName></dmTitle></dmIdent><dmAddressItems><issueDate year="2026" month="09" day="16"/></dmAddressItems></dmAddress>
+    <dmStatus issueType="new"><security securityClassification="01-unclassified"/><qualityAssurance><firstVerification verificationType="full"/></qualityAssurance><issueInfo issueNumber="001" inWork="00"/></dmStatus>
+  </identAndStatusSection>
+  <content>
+    <description><levelledPara><title>Overview</title><para>This module describes a safe maintenance task.</para><para>Use approved tooling and observe all cautions.</para></levelledPara></description>
+    <procedure><commonInfo><para>Isolate the private test system before beginning.</para></commonInfo><mainProcedure><proceduralStep><para>Remove the access panel.</para><note>Wear protective equipment.</note></proceduralStep><proceduralStep><para>Disconnect the pump.</para><warning>Verify zero pressure.</warning></proceduralStep></mainProcedure></procedure>
+    <figure><graphic infoEntityIdent="private-image" /></figure><dmRef><dmRefIdent><dmCode modelIdentCode="PRIVATE" /></dmRefIdent></dmRef><internalRef target="private-target" />
+  </content>
+</dmodule>

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ex="http://example.org/vocab#">
+  <rdf:Description rdf:about="https://private.example.invalid/resource/1" rdf:nodeID="blank1">
+    <dc:title>Safe RDF document</dc:title>
+    <dc:creator>Example Author</dc:creator>
+    <ex:related rdf:resource="https://private.example.invalid/related"/>
+    <ex:note><rdf:Description><ex:value>private nested payload</ex:value></rdf:Description></ex:note>
+  </rdf:Description>
+</rdf:RDF>

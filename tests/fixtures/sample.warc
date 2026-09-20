@@ -1,0 +1,33 @@
+WARC/1.1
+WARC-Type: response
+WARC-Target-URI: https://example.invalid/index?token=secret-value&lang=en
+WARC-Date: 2026-09-16T00:00:00Z
+WARC-Record-ID: <urn:uuid:demo-response>
+Content-Type: application/http; msgtype=response
+Content-Length: 69
+
+HTTP/1.1 200 OK
+Content-Type: text/html
+
+<html>private body</html>
+WARC/1.1
+WARC-Type: metadata
+WARC-Target-URI: https://example.invalid/index
+WARC-Date: 2026-09-16T00:00:01Z
+WARC-Record-ID: <urn:uuid:demo-metadata>
+Content-Type: application/http; msgtype=response
+Content-Length: 37
+
+WARC metadata body with private notes
+WARC/1.1
+WARC-Type: response
+WARC-Target-URI: https://example.invalid/missing
+WARC-Date: 2026-09-16T00:00:02Z
+WARC-Record-ID: <urn:uuid:demo-response>
+Content-Type: application/http; msgtype=response
+Content-Length: 59
+
+HTTP/1.1 404 Not Found
+Content-Type: text/plain
+
+missing

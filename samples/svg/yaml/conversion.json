@@ -1,0 +1,43 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.yaml",
+  "source_format": "yaml",
+  "output_directory": "samples/svg/yaml",
+  "elapsed_ms": 0,
+  "input_bytes": 590,
+  "page_count": 2,
+  "largest_page_ir_bytes": 18638,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 595.0,
+      "height_points": 842.0,
+      "node_count": 26,
+      "warning_count": 2,
+      "warnings": [
+        "1 YAML alias reference(s) are shown as placeholders and were not expanded",
+        "1 YAML custom-tagged node(s) are displayed as inert data; tag semantics were not applied"
+      ],
+      "estimated_ir_bytes": 18638
+    },
+    {
+      "number": 2,
+      "svg": "page-0002.svg",
+      "width_points": 595.0,
+      "height_points": 842.0,
+      "node_count": 4,
+      "warning_count": 2,
+      "warnings": [
+        "1 YAML alias reference(s) are shown as placeholders and were not expanded",
+        "1 YAML custom-tagged node(s) are displayed as inert data; tag semantics were not applied"
+      ],
+      "estimated_ir_bytes": 2931
+    }
+  ],
+  "warnings": [
+    "1 YAML alias reference(s) are shown as placeholders and were not expanded",
+    "1 YAML custom-tagged node(s) are displayed as inert data; tag semantics were not applied"
+  ]
+}

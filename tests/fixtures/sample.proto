@@ -1,0 +1,26 @@
+syntax = "proto3";
+package catalog.v1;
+import "google/protobuf/empty.proto";
+option java_package = "com.example.catalog";
+
+message Pet {
+  string name = 1 [(validate.rules).string.min_len = 1];
+  repeated string tags = 2;
+  oneof contact {
+    string email = 3;
+  }
+}
+
+message GetPetRequest {
+  int64 id = 1;
+}
+
+enum PetStatus {
+  PET_STATUS_UNSPECIFIED = 0;
+  PET_STATUS_ACTIVE = 1;
+}
+
+service Catalog {
+  rpc GetPet(GetPetRequest) returns (Pet);
+  rpc StreamPets(google.protobuf.Empty) returns (stream Pet);
+}

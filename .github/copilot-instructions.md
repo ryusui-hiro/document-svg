@@ -1,8 +1,9 @@
 # Copilot instructions
 
-`document-svg` is a Rust workspace that converts PDF, PPTX, XLSX, DOCX and
-draw.io files into deterministic per-page SVG files, and packages SVG pages back
-into OOXML.
+`document-svg` is a Rust workspace that converts 60+ document, diagram,
+CAD/CAM/3D, CAE mesh, chart, geospatial, math, and data formats into
+deterministic per-page SVG files, transforms SVG files, and packages SVG pages
+back into OOXML, draw.io, HTML viewer, and WebP.
 The supported entrypoint is the `docsvg` CLI; `bindings/node` and
 `bindings/python` wrap the same Rust core.
 
@@ -26,8 +27,9 @@ proposing a change. The pinned toolchain is Rust 1.93.0.
 ## Running the converter
 
 ```bash
-cargo run --bin docsvg -- <input.pdf|pptx|xlsx|docx> --output <directory>
-cargo run --bin docsvg -- reverse <svg-or-directory> --output <file.pptx|docx|xlsx>
+cargo run --bin docsvg -- <input> --output <directory>
+cargo run --bin docsvg -- reverse <svg-or-directory> --output <file.pptx|docx|xlsx|html|webp>
+cargo run --bin docsvg -- transform <input.svg> --output <output.svg> [options]
 ```
 
 Conversion writes `page-NNNN.svg` plus `conversion.json`. Always read

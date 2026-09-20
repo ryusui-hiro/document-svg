@@ -1,0 +1,28 @@
+openapi: 3.1.0
+info:
+  title: Catalog YAML API
+  version: '2.0'
+  description: YAML description
+servers:
+  - url: https://api.example.invalid/v2
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      summary: List pets
+      tags:
+        - pets
+      responses:
+        '200':
+          description: ok
+        default:
+          description: error
+  /pets/{id}:
+    delete:
+      operationId: deletePet
+      responses:
+        '204':
+          description: deleted
+components:
+  schemas:
+    Pet: {}

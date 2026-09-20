@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<coverage line-rate="0.75" branch-rate="0.50" version="private">
+  <sources><source>/private/workspace/src</source></sources>
+  <packages>
+    <package name="app.core" line-rate="0.80" branch-rate="0.50">
+      <classes>
+        <class name="app.core.Main" filename="/private/Main.py" line-rate="0.80" branch-rate="0.50">
+          <methods><method name="run" signature=""><lines><line number="1" hits="2"/></lines></method></methods>
+          <lines><line number="1" hits="2"/><line number="2" hits="0"/></lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

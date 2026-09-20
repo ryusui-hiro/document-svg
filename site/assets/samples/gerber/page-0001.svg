@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="961.90476pt" viewBox="0 0 1200 961.90476" data-source-format="gerber" data-source-page="1">
+  <title>PCB Layer</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":2,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="961.90476" fill="#FFFFFF" data-role="page-background"/>
+  <path id="pcb-substrate" d="M 0 0 L 1200 0 L 1200 961.90476 L 0 961.90476 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#143d22" fill-opacity="1" stroke="none" data-semantic-role="pcb:substrate"/>
+  <g id="pcb-copper-layer" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="pcb:copper">
+    <path id="" d="M 123.80952 838.09524 L 1076.19048 838.09524" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#e8be38" stroke-opacity="1" stroke-width="4.7619" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1076.19048 838.09524 L 1076.19048 123.80952" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#e8be38" stroke-opacity="1" stroke-width="4.7619" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1076.19048 123.80952 L 123.80952 123.80952" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#e8be38" stroke-opacity="1" stroke-width="4.7619" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 123.80952 123.80952 L 123.80952 838.09524" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#e8be38" stroke-opacity="1" stroke-width="4.7619" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 361.90476 600 L 600 480.95238" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#e8be38" stroke-opacity="1" stroke-width="4.7619" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 600 480.95238 L 838.09524 361.90476" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#e8be38" stroke-opacity="1" stroke-width="4.7619" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 838.09524 361.90476 L 480.95238 766.66667 L 480.95238 766.66667 L 719.04762 766.66667 L 719.04762 766.66667 L 719.04762 671.42857 L 719.04762 671.42857 L 480.95238 671.42857 L 480.95238 671.42857 L 480.95238 766.66667 L 480.95238 766.66667 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#e8be38" fill-opacity="1" stroke="none"/>
+  </g>
+</svg>

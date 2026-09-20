@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="1100pt" viewBox="0 0 1200 1100" data-source-format="gcode" data-source-page="1">
+  <title>CNC Toolpath</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":3,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="1100" fill="#FFFFFF" data-role="page-background"/>
+  <path id="cam-workspace" d="M 0 0 L 1200 0 L 1200 1100 L 0 1100 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#18181b" fill-opacity="1" stroke="none" data-semantic-role="cam:workspace"/>
+  <g id="rapid-traverse" transform="matrix(1 0 0 1 0 0)" opacity="0.75" data-semantic-role="gcode:rapid">
+    <path id="" d="M 100 1000 L 200 900" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#38bdf8" stroke-opacity="1" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+  </g>
+  <g id="cutting-toolpath" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="gcode:cut">
+    <path id="" d="M 200 900 L 1000 900" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1000 900 A 100 100 0 1 0 1100 800" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1100 800 L 1100 200" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1100 200 A 100 100 0 1 0 1000 100" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1000 100 L 200 100" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 200 100 A 100 100 0 1 0 100 200" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 100 200 L 100 800" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 100 800 A 100 100 0 1 0 200 900" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f97316" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+</svg>

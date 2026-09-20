@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project xmlns="http://schemas.microsoft.com/project">
+  <SaveVersion>12</SaveVersion>
+  <Name>Website Refresh Plan</Name>
+  <StartDate>2026-09-01T08:00:00</StartDate>
+  <Tasks>
+    <Task>
+      <UID>0</UID><ID>0</ID><Name>Website Refresh</Name><OutlineLevel>0</OutlineLevel>
+      <Summary>1</Summary><Start>2026-09-01T08:00:00</Start><Finish>2026-09-14T17:00:00</Finish>
+      <PercentComplete>45</PercentComplete>
+    </Task>
+    <Task>
+      <UID>1</UID><ID>1</ID><Name>User &amp; stakeholder discovery</Name><OutlineLevel>1</OutlineLevel>
+      <Start>2026-09-01T08:00:00</Start><Finish>2026-09-03T17:00:00</Finish><PercentComplete>100</PercentComplete>
+      <Notes>Notes are data and are not shown in the preview.</Notes>
+    </Task>
+    <Task>
+      <UID>2</UID><ID>2</ID><Name>Visual design</Name><OutlineLevel>1</OutlineLevel>
+      <Start>2026-09-04T08:00:00</Start><Finish>2026-09-08T17:00:00</Finish><PercentComplete>70</PercentComplete>
+      <PredecessorLink><PredecessorUID>1</PredecessorUID><Type>1</Type><LinkLag>0</LinkLag></PredecessorLink>
+    </Task>
+    <Task>
+      <UID>3</UID><ID>3</ID><Name>Prototype and review</Name><OutlineLevel>1</OutlineLevel>
+      <Start>2026-09-08T08:00:00</Start><Finish>2026-09-12T17:00:00</Finish><PercentComplete>20</PercentComplete>
+      <PredecessorLink><PredecessorUID>2</PredecessorUID><Type>1</Type><LinkLag>0</LinkLag></PredecessorLink>
+    </Task>
+    <Task>
+      <UID>4</UID><ID>4</ID><Name>Launch</Name><OutlineLevel>1</OutlineLevel>
+      <Start>2026-09-14T09:00:00</Start><Finish>2026-09-14T09:00:00</Finish><Milestone>1</Milestone>
+      <PredecessorLink><PredecessorUID>3</PredecessorUID><Type>1</Type><LinkLag>0</LinkLag></PredecessorLink>
+    </Task>
+    <Task>
+      <UID>5</UID><ID>5</ID><Name>Unscheduled follow-up</Name><OutlineLevel>1</OutlineLevel>
+    </Task>
+  </Tasks>
+  <Resources><Resource><UID>1</UID><Name>Private project resource</Name></Resource></Resources>
+</Project>

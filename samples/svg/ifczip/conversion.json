@@ -1,0 +1,26 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.ifczip",
+  "source_format": "ifczip",
+  "output_directory": "samples/svg/ifczip",
+  "elapsed_ms": 0,
+  "input_bytes": 956,
+  "page_count": 1,
+  "largest_page_ir_bytes": 14669,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 1200.0,
+      "height_points": 905.6503290095427,
+      "node_count": 2,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 14669
+    }
+  ],
+  "warnings": [
+    "IFC materials, object properties, units, georeferencing, and project hierarchy are not displayed; mesh geometry is shaded with a neutral preview style"
+  ]
+}

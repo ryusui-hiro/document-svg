@@ -1,0 +1,14 @@
+%FDF-1.2
+%‚„œ”
+1 0 obj
+<< /FDF << /F (private-template.pdf) /Fields [ << /T (Full Name) /FT /Tx /V (Alice Example) >> << /T (Age) /FT /Tx /V (42) >> << /T (Password) /FT /PS /V (secret-value) >> << /T (Preferences) /Kids [ << /T (Color) /FT /Ch /Opt [(Red) (Blue)] /V (Blue) >> << /T (Callback) /FT /Tx /V (https://private.example.invalid/form) >> ] >> ] /JavaScript << /After (app.alert\(\)) >> >> >>
+endobj
+xref
+0 2
+0000000000 65535 f 
+0000000015 00000 n 
+trailer
+<< /Size 2 /Root 1 0 R >>
+startxref
+409
+%%EOF

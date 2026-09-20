@@ -1,0 +1,24 @@
+LOCUS       DEMO0001      12 bp    DNA     linear   PLN 16-SEP-2026
+DEFINITION  Demonstration GenBank record for bounded preview.
+            The definition continuation remains plain text.
+ACCESSION   DEMO0001 DEMO0001.1
+KEYWORDS    .
+SOURCE      synthetic construct
+  ORGANISM  synthetic construct
+            other sequences; artificial sequences.
+FEATURES             Location/Qualifiers
+     source          1..12
+                     /organism="synthetic construct"
+     CDS             1..9
+                     /gene="demo"
+ORIGIN
+        1 atgcgtaaccgg
+//
+LOCUS       DEMO0002       6 aa    linear   PLN 16-SEP-2026
+DEFINITION  A small protein record.
+ACCESSION   DEMO0002
+FEATURES             Location/Qualifiers
+     source          1..6
+ORIGIN
+        1 mktail
+//

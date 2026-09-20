@@ -1,0 +1,533 @@
+{
+  "languages": [
+    {
+      "code": "en",
+      "label": "English"
+    },
+    {
+      "code": "ja",
+      "label": "日本語"
+    },
+    {
+      "code": "zh",
+      "label": "中文"
+    }
+  ],
+  "defaultLang": "en",
+  "strings": {
+    "en": {
+      "meta": {
+        "title": "document-svg — convert any document to inspectable SVG pages",
+        "description": "A Rust library and CLI, with Node.js and Python bindings, that converts PDF, Office, CAD, diagrams and more into one SVG per page — built for humans and AI agents alike."
+      },
+      "nav": {
+        "useCases": "Use cases",
+        "forAI": "For AI agents",
+        "formats": "Format map",
+        "samples": "Samples",
+        "install": "Install",
+        "github": "GitHub",
+        "usage": "Module usage"
+      },
+      "hero": {
+        "eyebrow": "Rust · Node.js · Python · CLI",
+        "title": "Turn any document into SVG pages you can inspect, preview, and re-embed.",
+        "description": "document-svg (docsvg) converts PDF, PowerPoint, Excel, Word, draw.io, CAD/CAM, 3D meshes, diagrams, and more into one SVG per page, plus a JSON report of exactly what it did and didn't reproduce. Run it locally, in CI, in a desktop app, or as a tool call from an AI agent.",
+        "ctaPrimary": "Read the install guide",
+        "ctaSecondary": "See the format map",
+        "ctaTertiary": "Browse the samples"
+      },
+      "stats": {
+        "formats": "input formats",
+        "reverse": "reversible to Office/CAD/diagram formats",
+        "languages": "language bindings",
+        "tiers": "documented fidelity tiers"
+      },
+      "useCasesSection": {
+        "title": "What people build with it",
+        "description": "document-svg is not a viewer. It is a conversion engine you embed in something else — a CI job, a desktop app, a documentation pipeline, or an agent's toolbox.",
+        "items": [
+          {
+            "icon": "🔍",
+            "title": "Pull request document previews",
+            "description": "Convert every changed PDF, PPTX, XLSX, or DOCX in a pull request into SVG pages and post them as a visual diff — reviewers see the actual rendered pages, not a binary blob. The bundled GitHub Actions workflow does this out of the box."
+          },
+          {
+            "icon": "🖥️",
+            "title": "In-app document preview",
+            "description": "Render user-uploaded Office files, PDFs, or drawings inside a web or Electron app without shipping a headless browser or a proprietary SDK. Convert on the server or in the Electron main process, then show the SVG with an <img> tag."
+          },
+          {
+            "icon": "🧭",
+            "title": "Diagrams-as-code pipelines",
+            "description": "Keep architecture diagrams in draw.io, Mermaid, PlantUML, D2, or DOT next to the code, and render them to SVG at build time for a documentation site, a wiki, or a design review — no diagramming SaaS account required."
+          },
+          {
+            "icon": "🛠️",
+            "title": "CAD, CAM, and 3D quick-look",
+            "description": "Get a fast visual check of DXF floor plans, Gerber PCB layouts, G-code toolpaths, STL/OBJ/STEP 3D models, or IFC4 tessellated BIM, SU2 CFD, and OpenFOAM meshes without opening a full CAD suite — useful for manufacturing review tools and internal dashboards."
+          },
+          {
+            "icon": "📊",
+            "title": "Data and report rendering",
+            "description": "Turn CSV tables, chart JSON, and LaTeX formulas straight into SVG for reports, dashboards, or generated documentation, with column widths and axis ticks computed deterministically."
+          },
+          {
+            "icon": "🤖",
+            "title": "A tool call for AI agents",
+            "description": "Give an LLM agent a single, predictable tool: 'convert this file to SVG pages, then read conversion.json for warnings.' No screenshotting, no headless-browser flakiness, and a JSON report the agent can reason over directly."
+          },
+          {
+            "icon": "🔁",
+            "title": "Round-tripping SVG back to a native format",
+            "description": "Send an edited or generated SVG back into PPTX, DOCX, XLSX, draw.io, DXF, G-code, STL, and more with `docsvg reverse` — useful for design tools that edit SVG and need to hand a file back to Office or CAD software."
+          }
+        ]
+      },
+      "forAISection": {
+        "title": "Built to be read by machines too",
+        "description": "Every page on this site is backed by plain JSON data (formats.json, content.json) so an AI agent can consume the format map without scraping HTML. There is also a dedicated machine-readable entry point.",
+        "llmsTitle": "llms.txt",
+        "llmsDescription": "A concise, link-first summary of this project for LLMs and coding agents, following the emerging llms.txt convention used across the AI-tooling ecosystem.",
+        "llmsLink": "Open llms.txt",
+        "contractTitle": "The agent contract, in short",
+        "contractItems": [
+          "Pick the entry point by task: CLI or high-level convert() for a straight file conversion; Rust convert_path() from inside a Rust program; ir::Page + svg::write_page() to build SVG from your own shapes/text/images.",
+          "Input format is decided by file extension — see the format map below for the full list.",
+          "One SVG per output page (slide, sheet, or document page), plus a single conversion.json for the whole job.",
+          "Judge success from both the error result and the warnings — a call that returns Ok/no exception can still carry document- or page-level warnings that mean 'needs review', not 'converted perfectly'.",
+          "Do not call internal pdf/ooxml parser modules directly — only the crate root API (convert_path, ConvertOptions, ConversionReport) and ir/svg are public.",
+          "Do not raise the built-in safety limits (input size, ZIP entry size, page count, XML event count) just to force a conversion to succeed — they exist to bound memory and CPU on untrusted input.",
+          "Reversing an SVG back into Office/CAD/draw.io preserves the visual result, not the original semantic structure (paragraphs, cells, formulas) unless the SVG carries embedded diagram source."
+        ],
+        "guideLink": "Full AI usage guide (docs/AI_USAGE_GUIDE.md)"
+      },
+      "formatsSection": {
+        "title": "Format support map",
+        "description": "Every supported extension, whether it converts to SVG (forward), converts back from SVG (reverse), and the fidelity tier that conversion falls into.",
+        "legendTitle": "Fidelity tiers",
+        "filterAll": "All categories",
+        "colExt": "Extensions",
+        "colForward": "To SVG",
+        "colReverse": "From SVG",
+        "colNotes": "Notes"
+      },
+      "gallerySection": {
+        "title": "Samples",
+        "description": "Every thumbnail below is a real, unedited SVG produced by docsvg from the source file shown. Source files are generated by this repository's own scripts — nothing is copied in from elsewhere.",
+        "viewSvg": "Open SVG",
+        "viewSource": "View source"
+      },
+      "installSection": {
+        "title": "Install",
+        "description": "Pick the one path that matches how you'll call the converter — you don't need all three.",
+        "node": "Node.js / TypeScript",
+        "python": "Python",
+        "rust": "Rust / CLI"
+      },
+      "footer": {
+        "tagline": "MIT OR Apache-2.0 licensed. Runs locally — no upload, no network call, no telemetry.",
+        "repo": "Repository",
+        "releases": "Releases",
+        "docs": "Documentation",
+        "support": "Supported features & limitations",
+        "architecture": "Architecture"
+      },
+      "usageSection": {
+        "title": "Module usage",
+        "description": "The same conversion, called from wherever you're standing: a shell, a Node.js app, a Python script, or a Rust program. Every example below is runnable as shown.",
+        "tabs": {
+          "cli": "CLI",
+          "node": "Node.js / TypeScript",
+          "python": "Python",
+          "rust": "Rust"
+        }
+      }
+    },
+    "ja": {
+      "meta": {
+        "title": "document-svg — あらゆる文書を検査可能なSVGページへ変換",
+        "description": "PDF、Office文書、CAD、図表などをページごとに1枚のSVGへ変換するRustライブラリ・CLI（Node.js/Pythonバインディング付き）。人間にも生成AIにも読みやすい形で公開しています。"
+      },
+      "nav": {
+        "useCases": "ユースケース",
+        "forAI": "生成AI向け",
+        "formats": "対応形式マップ",
+        "samples": "サンプル",
+        "install": "インストール",
+        "github": "GitHub",
+        "usage": "モジュールの使い方"
+      },
+      "hero": {
+        "eyebrow": "Rust ・ Node.js ・ Python ・ CLI",
+        "title": "あらゆる文書を、検査・プレビュー・再埋め込みできるSVGページへ。",
+        "description": "document-svg（docsvg）は、PDF、PowerPoint、Excel、Word、draw.io、CAD/CAM、3Dメッシュ、各種ダイアグラムなどをページごとに1枚のSVGへ変換し、何が再現でき何ができなかったかを記録したJSONレポートを同時に出力します。ローカル実行、CI、デスクトップアプリ、AIエージェントのツール呼び出しのいずれからも使えます。",
+        "ctaPrimary": "インストール方法を見る",
+        "ctaSecondary": "対応形式マップを見る",
+        "ctaTertiary": "サンプルを見る"
+      },
+      "stats": {
+        "formats": "対応入力形式",
+        "reverse": "Office/CAD/ダイアグラム形式へ逆変換可能",
+        "languages": "言語バインディング",
+        "tiers": "文書化された忠実度ティア"
+      },
+      "useCasesSection": {
+        "title": "何に使われているか",
+        "description": "document-svg はビューアではありません。CIジョブ、デスクトップアプリ、ドキュメント生成パイプライン、あるいはAIエージェントのツールボックスに組み込む変換エンジンです。",
+        "items": [
+          {
+            "icon": "🔍",
+            "title": "プルリクエストの文書プレビュー",
+            "description": "プルリクエストで変更されたPDF・PPTX・XLSX・DOCXをSVGページへ変換し、ビジュアルな差分としてコメントに投稿します。レビュアーはバイナリではなく実際に描画されたページを見られます。付属のGitHub Actionsワークフローでそのまま使えます。"
+          },
+          {
+            "icon": "🖥️",
+            "title": "アプリ内文書プレビュー",
+            "description": "ヘッドレスブラウザや商用SDKを組み込まずに、ユーザーがアップロードしたOffice文書・PDF・図面をWebアプリやElectronアプリ内で表示します。サーバーまたはElectronのmainプロセスで変換し、SVGを<img>タグとして表示するだけです。"
+          },
+          {
+            "icon": "🧭",
+            "title": "Diagrams-as-code パイプライン",
+            "description": "アーキテクチャ図をdraw.io・Mermaid・PlantUML・D2・DOTとしてコードのそばに置き、ビルド時にSVGへレンダリングしてドキュメントサイトやWiki、デザインレビューに使います。作図SaaSのアカウントは不要です。"
+          },
+          {
+            "icon": "🛠️",
+            "title": "CAD・CAM・3Dのクイックプレビュー",
+            "description": "フルスペックのCADソフトを起動せずに、DXFの図面、GerberのPCBパターン、G-codeの加工パス、STL/OBJ/STEPの3DモデルやIFC4 tessellated BIM、SU2 CFD、OpenFOAM meshを素早く目視確認できます。製造レビューツールや社内ダッシュボードに便利です。"
+          },
+          {
+            "icon": "📊",
+            "title": "データ・レポートの描画",
+            "description": "CSV表、チャートJSON、LaTeX数式をそのままSVGへ変換します。列幅や目盛りは決定的に計算されるため、レポートやダッシュボード、自動生成ドキュメントに適しています。"
+          },
+          {
+            "icon": "🤖",
+            "title": "AIエージェント向けのツール呼び出し",
+            "description": "LLMエージェントに「このファイルをSVGページへ変換し、conversion.jsonの警告を読む」という単一で予測可能なツールを渡せます。スクリーンショットやヘッドレスブラウザの不安定さを避け、エージェントが直接推論できるJSONレポートを得られます。"
+          },
+          {
+            "icon": "🔁",
+            "title": "SVGをネイティブ形式へ書き戻す",
+            "description": "`docsvg reverse` で、編集・生成したSVGをPPTX、DOCX、XLSX、draw.io、DXF、G-code、STLなどへ戻せます。SVGを編集するデザインツールが、最終的にOfficeやCADソフトへファイルを渡す必要がある場合に有用です。"
+          }
+        ]
+      },
+      "forAISection": {
+        "title": "機械にも読める設計",
+        "description": "このサイトの各ページは formats.json・content.json というプレーンなJSONデータに裏打ちされており、AIエージェントはHTMLをスクレイピングせずに形式マップを取得できます。専用の機械可読エントリポイントも用意しています。",
+        "llmsTitle": "llms.txt",
+        "llmsDescription": "AIツールエコシステムで広まりつつある llms.txt 規約に従った、LLMやコーディングエージェント向けの簡潔でリンク優先のプロジェクト要約です。",
+        "llmsLink": "llms.txt を開く",
+        "contractTitle": "エージェント向け契約の要約",
+        "contractItems": [
+          "タスクに応じてエントリポイントを選ぶ: 単純なファイル変換ならCLIまたは各言語の高レベル convert()、Rustプログラム内からなら convert_path()、自作の図形・文字・画像からSVGを組み立てるなら ir::Page + svg::write_page()。",
+          "入力形式はファイル拡張子で決まります。全リストは下の対応形式マップを参照してください。",
+          "出力ページ（スライド・シート・文書ページ）ごとに1つのSVGを生成し、ジョブ全体につき1つの conversion.json を出力します。",
+          "成功判定はエラー結果と警告の両方で行ってください。エラーなし（Ok／例外なし）でも文書またはページ単位の警告が付くことがあり、それは「要レビュー」を意味し「完全に変換できた」を意味しません。",
+          "内部の pdf/ooxml パーサーモジュールを直接呼び出さないでください。公開APIは crate root（convert_path, ConvertOptions, ConversionReport）と ir/svg だけです。",
+          "変換を無理に成功させるために、組み込みの安全上限（入力サイズ、ZIPエントリサイズ、ページ数、XMLイベント数）を引き上げないでください。これらは信頼できない入力に対するメモリ・CPU使用量の上限です。",
+          "SVGをOffice/CAD/draw.ioへ逆変換すると、見た目は保持されますが、SVGが図面のソースを埋め込んでいない限り、元の意味的構造（段落・セル・数式）は復元されません。"
+        ],
+        "guideLink": "AI利用ガイド全文（docs/AI_USAGE_GUIDE.md）"
+      },
+      "formatsSection": {
+        "title": "対応形式マップ",
+        "description": "対応する拡張子ごとに、SVGへの変換（forward）、SVGからの逆変換（reverse）の可否と、その変換が属する忠実度ティアを一覧にしています。",
+        "legendTitle": "忠実度ティア",
+        "filterAll": "すべてのカテゴリ",
+        "colExt": "拡張子",
+        "colForward": "SVGへ",
+        "colReverse": "SVGから",
+        "colNotes": "備考"
+      },
+      "gallerySection": {
+        "title": "サンプル",
+        "description": "以下のサムネイルはすべて、表示されているソースファイルからdocsvgが実際に生成した、未編集のSVGです。ソースファイルはこのリポジトリ自身のスクリプトで生成しており、外部から持ち込んだものはありません。",
+        "viewSvg": "SVGを開く",
+        "viewSource": "ソースを見る"
+      },
+      "installSection": {
+        "title": "インストール",
+        "description": "変換処理をどこから呼ぶかに合わせて、いずれか1つを選んでください。3つとも入れる必要はありません。",
+        "node": "Node.js / TypeScript",
+        "python": "Python",
+        "rust": "Rust / CLI"
+      },
+      "footer": {
+        "tagline": "MIT OR Apache-2.0 ライセンス。ローカルで実行され、アップロードも通信もテレメトリもありません。",
+        "repo": "リポジトリ",
+        "releases": "リリース",
+        "docs": "ドキュメント",
+        "support": "対応状況と制限事項",
+        "architecture": "アーキテクチャ"
+      },
+      "usageSection": {
+        "title": "モジュールの使い方",
+        "description": "同じ変換処理を、シェル・Node.jsアプリ・Pythonスクリプト・Rustプログラムのどこからでも呼び出せます。以下の例はそのまま実行できます。",
+        "tabs": {
+          "cli": "CLI",
+          "node": "Node.js / TypeScript",
+          "python": "Python",
+          "rust": "Rust"
+        }
+      }
+    },
+    "zh": {
+      "meta": {
+        "title": "document-svg — 将任意文档转换为可检查的 SVG 页面",
+        "description": "一个 Rust 库与命令行工具（附带 Node.js 与 Python 绑定），可将 PDF、Office 文档、CAD、图表等转换为每页一个 SVG——面向人类与 AI 智能体同样友好。"
+      },
+      "nav": {
+        "useCases": "使用场景",
+        "forAI": "面向 AI 智能体",
+        "formats": "格式支持地图",
+        "samples": "示例",
+        "install": "安装",
+        "github": "GitHub",
+        "usage": "模块用法"
+      },
+      "hero": {
+        "eyebrow": "Rust · Node.js · Python · CLI",
+        "title": "把任意文档变成可检查、可预览、可重新嵌入的 SVG 页面。",
+        "description": "document-svg（docsvg）可将 PDF、PowerPoint、Excel、Word、draw.io、CAD/CAM、三维网格及各类图表转换为每页一个 SVG，并同时生成一份 JSON 报告，精确记录哪些内容被还原、哪些没有。可在本地、CI、桌面应用中运行，也可作为 AI 智能体的工具调用。",
+        "ctaPrimary": "查看安装方式",
+        "ctaSecondary": "查看格式支持地图",
+        "ctaTertiary": "浏览示例"
+      },
+      "stats": {
+        "formats": "支持的输入格式",
+        "reverse": "可反向导出为 Office/CAD/图表格式",
+        "languages": "语言绑定",
+        "tiers": "有文档记录的保真度等级"
+      },
+      "useCasesSection": {
+        "title": "人们用它做什么",
+        "description": "document-svg 不是一个查看器，而是一个转换引擎，供你嵌入到 CI 任务、桌面应用、文档构建流程，或 AI 智能体的工具箱中。",
+        "items": [
+          {
+            "icon": "🔍",
+            "title": "Pull Request 文档预览",
+            "description": "将 PR 中变更的每个 PDF、PPTX、XLSX 或 DOCX 转换为 SVG 页面，并作为可视化差异发布评论——评审者看到的是实际渲染的页面，而不是二进制文件。内置的 GitHub Actions 工作流开箱即用。"
+          },
+          {
+            "icon": "🖥️",
+            "title": "应用内文档预览",
+            "description": "无需引入无头浏览器或商业 SDK，即可在 Web 或 Electron 应用中渲染用户上传的 Office 文件、PDF 或图纸。只需在服务器端或 Electron 主进程中转换，然后用 <img> 标签展示 SVG。"
+          },
+          {
+            "icon": "🧭",
+            "title": "图表即代码流程",
+            "description": "将架构图以 draw.io、Mermaid、PlantUML、D2 或 DOT 的形式与代码放在一起，在构建时渲染为 SVG，用于文档站点、Wiki 或设计评审——无需订阅作图 SaaS。"
+          },
+          {
+            "icon": "🛠️",
+            "title": "CAD、CAM 与 3D 快速预览",
+            "description": "无需打开完整的 CAD 软件，即可快速查看 DXF 平面图、Gerber PCB 布局、G-code 刀具路径，或 STL/OBJ/STEP 三维模型或 IFC4 三角网格 BIM、SU2 CFD 与 OpenFOAM 网格——适用于制造评审工具与内部看板。"
+          },
+          {
+            "icon": "📊",
+            "title": "数据与报表渲染",
+            "description": "将 CSV 表格、图表 JSON 与 LaTeX 公式直接渲染为 SVG，列宽与坐标刻度均以确定性方式计算，适合报表、看板与自动生成的文档。"
+          },
+          {
+            "icon": "🤖",
+            "title": "作为 AI 智能体的工具调用",
+            "description": "为 LLM 智能体提供一个简单、可预测的工具：“将此文件转换为 SVG 页面，然后读取 conversion.json 中的警告。”无需截图，也没有无头浏览器的不稳定性，智能体可以直接对 JSON 报告进行推理。"
+          },
+          {
+            "icon": "🔁",
+            "title": "将 SVG 写回原生格式",
+            "description": "使用 `docsvg reverse` 可将编辑或生成的 SVG 写回 PPTX、DOCX、XLSX、draw.io、DXF、G-code、STL 等格式——适合那些编辑 SVG、最终需要把文件交回 Office 或 CAD 软件的设计工具。"
+          }
+        ]
+      },
+      "forAISection": {
+        "title": "同样为机器可读而设计",
+        "description": "本站每个页面都由纯 JSON 数据（formats.json、content.json）驱动，AI 智能体无需抓取 HTML 即可获取格式支持地图。此外还提供了专门的机器可读入口。",
+        "llmsTitle": "llms.txt",
+        "llmsDescription": "遵循 AI 工具生态中逐渐普及的 llms.txt 约定，为大语言模型与编程智能体提供的简明、以链接为主的项目摘要。",
+        "llmsLink": "打开 llms.txt",
+        "contractTitle": "智能体契约摘要",
+        "contractItems": [
+          "按任务选择入口：单纯的文件转换用 CLI 或各语言的高层 convert()；在 Rust 程序内部用 convert_path()；若要用自己的形状/文字/图像构建 SVG，则用 ir::Page + svg::write_page()。",
+          "输入格式由文件扩展名决定——完整列表见下方的格式支持地图。",
+          "每个输出页面（幻灯片、工作表或文档页）生成一个 SVG，整个任务只生成一份 conversion.json。",
+          "判断是否成功需同时看错误结果与警告——调用未报错（Ok / 无异常）也可能带有文档级或页面级警告，这意味着“需要复查”，而不是“完美转换”。",
+          "不要直接调用内部的 pdf/ooxml 解析模块——公开 API 仅限 crate 根（convert_path、ConvertOptions、ConversionReport）以及 ir/svg。",
+          "不要为了强行让转换成功而调高内置的安全上限（输入大小、ZIP 条目大小、页数、XML 事件数）——这些限制是为了约束不可信输入带来的内存与 CPU 占用。",
+          "将 SVG 反向导出为 Office/CAD/draw.io 会保留视觉效果，但除非该 SVG 内嵌了图纸源数据，否则不会还原原始的语义结构（段落、单元格、公式）。"
+        ],
+        "guideLink": "完整 AI 使用指南（docs/AI_USAGE_GUIDE.md）"
+      },
+      "formatsSection": {
+        "title": "格式支持地图",
+        "description": "列出每个受支持的扩展名是否可转换为 SVG（正向）、是否可从 SVG 反向导出，以及该转换所属的保真度等级。",
+        "legendTitle": "保真度等级",
+        "filterAll": "全部类别",
+        "colExt": "扩展名",
+        "colForward": "转为 SVG",
+        "colReverse": "从 SVG 转回",
+        "colNotes": "说明"
+      },
+      "gallerySection": {
+        "title": "示例",
+        "description": "下方每个缩略图都是 docsvg 从所示源文件生成的真实、未经编辑的 SVG。源文件由本仓库自身的脚本生成，没有从外部引入任何内容。",
+        "viewSvg": "打开 SVG",
+        "viewSource": "查看源文件"
+      },
+      "installSection": {
+        "title": "安装",
+        "description": "根据你调用转换器的方式选择其中一种即可，不需要同时安装三种。",
+        "node": "Node.js / TypeScript",
+        "python": "Python",
+        "rust": "Rust / CLI"
+      },
+      "footer": {
+        "tagline": "MIT OR Apache-2.0 许可。完全本地运行——不上传、不联网、不遥测。",
+        "repo": "代码仓库",
+        "releases": "发布版本",
+        "docs": "文档",
+        "support": "支持范围与限制",
+        "architecture": "架构说明"
+      },
+      "usageSection": {
+        "title": "模块用法",
+        "description": "同一个转换过程,可以从命令行、Node.js 应用、Python 脚本或 Rust 程序中的任意一处调用。下面每个示例都可以直接运行。",
+        "tabs": {
+          "cli": "CLI",
+          "node": "Node.js / TypeScript",
+          "python": "Python",
+          "rust": "Rust"
+        }
+      }
+    }
+  },
+  "usageSnippets": {
+    "cli": [
+      {
+        "lang": "bash",
+        "caption": {
+          "en": "Convert a file to SVG pages",
+          "ja": "ファイルをSVGページへ変換する",
+          "zh": "将文件转换为 SVG 页面"
+        },
+        "code": "docsvg report.pdf --output output/report\ndocsvg slides.pptx --output output/slides\ndocsvg architecture.drawio --output output/diagram --stencils path/to/stencils.xml"
+      },
+      {
+        "lang": "bash",
+        "caption": {
+          "en": "Convert PDF pages in parallel",
+          "ja": "PDFのページを並列変換する",
+          "zh": "并行转换 PDF 页面"
+        },
+        "code": "docsvg report.pdf --output output/report --jobs 4 --max-pages 100"
+      },
+      {
+        "lang": "bash",
+        "caption": {
+          "en": "Reverse SVG pages back into a native format",
+          "ja": "SVGページをネイティブ形式へ逆変換する",
+          "zh": "将 SVG 页面反向导出为原生格式"
+        },
+        "code": "docsvg reverse output/slides --output slides.pptx\ndocsvg reverse output/diagram --output diagram.drawio\ndocsvg reverse output/drawing --output drawing.dxf"
+      },
+      {
+        "lang": "bash",
+        "caption": {
+          "en": "Reshape an existing SVG for a specific destination",
+          "ja": "既存のSVGを用途に合わせて再仕立てする",
+          "zh": "为特定用途重新调整已有的 SVG"
+        },
+        "code": "docsvg transform diagram.svg --output diagram.min.svg \\\n  --minify --monochrome \"#1e293b\" --responsive --precision 1"
+      }
+    ],
+    "node": [
+      {
+        "lang": "javascript",
+        "caption": {
+          "en": "Convert and save SVG files",
+          "ja": "変換してSVGファイルを保存する",
+          "zh": "转换并保存 SVG 文件"
+        },
+        "code": "const { convert } = require('document-svg')\n\nconst report = await convert('report.docx', 'output/report', { maxPages: 100 })\nconst needsReview = report.warnings.length > 0 ||\n  report.pages.some((page) => page.warnings.length > 0)\n\nconsole.log(report.pageCount, needsReview)"
+      },
+      {
+        "lang": "typescript",
+        "caption": {
+          "en": "Get complete SVG strings for an in-app preview",
+          "ja": "アプリ内プレビュー用に完全なSVG文字列を取得する",
+          "zh": "获取完整的 SVG 字符串用于应用内预览"
+        },
+        "code": "import { preview } from 'document-svg'\n\nconst report = await preview('slides.pptx', { maxPages: 100 })\nfor (const page of report.pages) {\n  console.log(page.number, page.widthPoints, page.heightPoints)\n  // page.svg is the complete SVG XML string\n}\nconsole.log('review required:', report.needsReview)"
+      },
+      {
+        "lang": "tsx",
+        "caption": {
+          "en": "Render it in the browser without loading native code",
+          "ja": "ネイティブコードを読み込まずブラウザで表示する",
+          "zh": "无需加载原生代码即可在浏览器中渲染"
+        },
+        "code": "import { createSvgPreviewUrl, revokeSvgPreviewUrl } from 'document-svg/preview-ui'\n\nconst url = createSvgPreviewUrl(svgMarkup)\n// <img src={url} alt=\"Office document preview\" />\n\n// when replacing the image or disposing of the view:\nrevokeSvgPreviewUrl(url)"
+      },
+      {
+        "lang": "javascript",
+        "caption": {
+          "en": "Reverse SVG pages back into a native format",
+          "ja": "SVGページをネイティブ形式へ逆変換する",
+          "zh": "将 SVG 页面反向导出为原生格式"
+        },
+        "code": "const { reverse } = require('document-svg')\n\nconst report = await reverse('output/diagram', 'diagram.drawio')\nconsole.log(report.pageCount, report.warnings)"
+      }
+    ],
+    "python": [
+      {
+        "lang": "python",
+        "caption": {
+          "en": "Convert a file to SVG pages",
+          "ja": "ファイルをSVGページへ変換する",
+          "zh": "将文件转换为 SVG 页面"
+        },
+        "code": "from document_svg import convert\n\nreport = convert(\"input.pptx\", \"output/pptx\", jobs=1, max_pages=500)\nneeds_review = bool(report[\"warnings\"]) or any(\n    page[\"warnings\"] for page in report[\"pages\"]\n)\nprint(report[\"page_count\"], needs_review)"
+      },
+      {
+        "lang": "python",
+        "caption": {
+          "en": "Reverse SVG pages back into a native format",
+          "ja": "SVGページをネイティブ形式へ逆変換する",
+          "zh": "将 SVG 页面反向导出为原生格式"
+        },
+        "code": "from document_svg import reverse\n\nreport = reverse(\"output/slides\", \"slides.pptx\")\nprint(report[\"page_count\"], report[\"warnings\"])"
+      }
+    ],
+    "rust": [
+      {
+        "lang": "rust",
+        "caption": {
+          "en": "Convert a file to SVG pages",
+          "ja": "ファイルをSVGページへ変換する",
+          "zh": "将文件转换为 SVG 页面"
+        },
+        "code": "use document_svg::{convert_path, ConvertOptions};\n\nlet options = ConvertOptions { jobs: 4, max_pages: 500, ..ConvertOptions::default() };\nlet report = convert_path(\"input.pdf\", \"output/pdf\", &options)?;\nprintln!(\"{} pages\", report.page_count);"
+      },
+      {
+        "lang": "rust",
+        "caption": {
+          "en": "Build an SVG page from your own shapes and text",
+          "ja": "自作の図形やテキストからSVGページを組み立てる",
+          "zh": "用自己的形状和文字构建 SVG 页面"
+        },
+        "code": "use document_svg::ir::{IDENTITY, Node, Page, Paint, Stroke};\nuse document_svg::svg::write_page;\n\nlet mut page = Page::new(1, 320.0, 180.0, \"custom\");\npage.nodes.push(Node::Path {\n    id: \"card\".into(),\n    d: \"M 20 20 H 300 V 160 H 20 Z\".into(),\n    fill_rule: \"nonzero\".into(),\n    fill: Paint::solid(\"#E8F1FF\"),\n    stroke: Stroke { paint: Paint::solid(\"#246BCE\"), width: 2.0, ..Stroke::default() },\n    transform: IDENTITY,\n    clip_id: None,\n    meta: Default::default(),\n});\nwrite_page(&mut std::fs::File::create(\"out.svg\")?, &page)?;"
+      },
+      {
+        "lang": "rust",
+        "caption": {
+          "en": "Reverse SVG pages back into a native format",
+          "ja": "SVGページをネイティブ形式へ逆変換する",
+          "zh": "将 SVG 页面反向导出为原生格式"
+        },
+        "code": "use document_svg::{svg_to_document, ReverseOptions};\n\nlet report = svg_to_document(\"output/slides\", \"slides.pptx\", &ReverseOptions::default())?;\nprintln!(\"{} pages\", report.page_count);"
+      }
+    ]
+  }
+}

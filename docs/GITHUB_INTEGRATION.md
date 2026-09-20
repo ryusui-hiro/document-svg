@@ -130,12 +130,13 @@ Claude Code users can add the marketplace without cloning:
 /plugin install document-svg@document-svg
 ```
 
-The plugin provides the `document-svg` skill plus four commands:
+The plugin provides the `document-svg` skill plus five commands:
 
 | Command | Purpose |
 |---|---|
-| `/document-svg:convert` | Convert a document to SVG pages and report warnings |
-| `/document-svg:reverse` | Package SVG pages into PPTX, DOCX or XLSX |
+| `/document-svg:convert` | Convert documents, diagrams, CAD, 3D, mesh, charts, data to SVG pages |
+| `/document-svg:reverse` | Package SVG pages into PPTX, DOCX, XLSX, draw.io, HTML viewer, or WebP |
+| `/document-svg:transform` | Transform SVG pages (minify, format, scale, remove metadata) |
 | `/document-svg:preview` | Render SVG pages to deterministic PNG previews |
 | `/document-svg:setup` | Check the docsvg installation and show install options |
 

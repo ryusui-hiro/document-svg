@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head>
+    <title>Team feeds</title>
+    <dateCreated>Wed, 16 Sep 2026 10:00:00 GMT</dateCreated>
+    <ownerName>Private Team</ownerName>
+    <ownerEmail>owner@private.example.invalid</ownerEmail>
+  </head>
+  <body>
+    <outline text="Engineering">
+      <outline text="Release notes" type="rss" xmlUrl="https://private.example.invalid/release.xml" htmlUrl="https://private.example.invalid/release" />
+      <outline text="Research" type="rss" xmlUrl="https://private.example.invalid/research.xml" />
+    </outline>
+    <outline text="Reading list" type="folder">
+      <outline title="Standards" description="private description" htmlUrl="https://private.example.invalid/standards" />
+    </outline>
+  </body>
+</opml>

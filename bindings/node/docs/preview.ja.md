@@ -2,17 +2,28 @@
 
 [日本語](preview.ja.md) · [English](preview.en.md) · [简体中文](preview.zh-CN.md)
 
-`document-svg`は、PDF・PowerPoint・Excel・Word文書を、アプリで安全に表示しやすいページ別SVGへ変換するNode.jsモジュールです。変換はRustのネイティブ処理をNode.jsのworkerで実行するため、イベントループを占有しません。
+`document-svg`は、PDF・Office/OpenDocument・Apple Mail EMLX（`.emlx`）・Web/テキスト・reStructuredText（`.rst`、`.rest`）・図面・CAD/CAEなど対応形式を、アプリで安全に表示しやすいページ別SVGへ変換するNode.jsモジュールです。変換はRustのネイティブ処理をNode.jsのworkerで実行するため、イベントループを占有しません。
 
 ## できること
 
-- PDF、PPTX、XLSX、DOCX、drawioを1ページずつ完全なSVG文字列へ変換
+- PDF、legacy Word Binary `.doc`/`.dot`、text-only legacy PowerPoint Binary `.ppt`、旧Excel（`.xls` / `.xlsb`）、PPTX、XLSX、DOCX、Flat OPC（`.flatopc` / `.fopc` / `.flatopc.xml`）、AASX（`.aasx`）、OpenSCAD（`.scad`）、AMF（`.amf`）、PLMXML（`.plmxml` / `.plm.xml`）、STEP-XML（`.stepxml` / `.stpx`）、QIF（`.qif` / `.qif.xml`）、B2MML/JDF（`.b2mml` / `.jdf`）、ODT/ODS、Visio Open XML（`.vsdx` / `.vsdm` / `.vstx` / `.vstm`）と旧Visio XML（`.vdx`）、iCalendar（`.ics`）、legacy vCalendar（`.vcs`）、vCard contact（`.vcf` / `.vcard`）、MIMEメール（`.eml`）、Apple Mail EMLX（`.emlx`）、Outlook message（`.msg`）、MBOX archive（`.mbox`）、MHTML web archive（`.mht` / `.mhtml`）、DocBook 4/5（`.dbk` / `.docbook`）、DITA topic/map（`.dita` / `.ditamap`）、PDB coordinate models（`.pdb` / `.ent`）、HWPX（`.hwpx`）、COLLADA（`.dae`）、X3D（`.x3d`）、XMind（`.xmind`）、NIfTI（`.nii` / `.nii.gz`）、FITS（`.fits` / `.fit` / `.fts` / `.fits.gz`）、MRC（`.mrc` / `.map` / `.mrc.gz`）、SQLite（`.sqlite` / `.sqlite3` / `.db`）、mmCIF/PDBx（`.cif` / `.mmcif`）、MOL2（`.mol2`）、RDF Turtle（`.ttl` / `.nt` / `.nq`）、EPS/PostScript（`.eps` / `.ps`）、DICOM medical image（`.dcm` / `.dicom`）、HTML、EPUB、Jupyter notebook（`.ipynb`）、Quarto（`.qmd`）、R Markdown（`.Rmd`）、reStructuredText（`.rst` / `.rest`）、Org-mode（`.org`）、GNU gettext PO/POT翻訳カタログ（`.po` / `.pot`）、BibTeX bibliography（`.bib` / `.bibtex`）、raster PNG/JPEG/BMP/GIF/WebP、CBZコミックarchive、standalone JPEG 2000（`.jp2` / `.j2k` / `.j2c` / `.jpc` / `.jpx`）、複数ページTIFF/BigTIFF、glTF/GLB（`.gltf` / `.glb`）、OFF polygon mesh（`.off`）、IFC4 BIM（`.ifc` / `.ifczip`）、buildingSMART BCFZIP（`.bcfzip`）、KiCad PCB（`.kicad_pcb`）、ASCII XYZ/PCL PCD/ASTM E57/Leica PTS/PTX/ASPRS LAS/LAZ point cloud（`.xyz` / `.pcd` / `.e57` / `.pts` / `.ptx` / `.las` / `.laz`）、Abaqus mesh deck（`.inp`）、LS-DYNA Keyword（`.k` / `.key`）、MEDIT ASCII/binary (`.mesh` / `.meshb`)、Nastran Bulk Data（`.bdf` / `.nas`）、SU2 CFD mesh（`.su2`）、OpenFOAM（`.foam`）、ARFF (`.arff`), JSON-LD 1.1 (`.jsonld`, `.json-ld`), NetCDF classic (`.nc`, `.nc3`, `.cdf`), GraphML (`.graphml`), GEXF (`.gexf`), XGMML (`.xgmml`), Graph Modeling Language (`.gml`), CSV/TSV table、TOML configuration（`.toml`）、YAML 1.2 configuration（`.yaml` / `.yml`）、generic XML（`.xml` fallback）、Java Properties（`.properties`）、BPMN 2.0（`.bpmn` / `.bpmn2`）、CMMN case plan（`.cmmn`）、DMN decision table（`.dmn`）、ReqIF requirements（`.reqif`）、XMI model（`.xmi`）、ESRI ASCII Grid raster（`.asc`）、dBASE III/III+ table（`.dbf`）、GeoJSON/GeoRSS/GML/GPX/KML/KMZ/ESRI Shapefile（`.shp`）/WKT/EWKT、drawio、VTK、CADなどの対応入力を1ページずつSVG文字列へ変換
 - 出力ファイルを残さないインメモリプレビュー
 - Node.jsサーバー、Electronのmain process、サーバー側TypeScriptでの利用
 - `<img>`向けBlob URL／Data URLの生成
 - SVG画像またはSVGソースのクリップボードコピー
 - 変換警告を`needsReview`で検出
 - SVGページをPPTX、DOCX、XLSXへベクター画像として格納
+
+DICOMDIR（`DICOMDIR` / `.dicomdir`）はDirectory Record offsetで階層をたどり、File IDを同じfile set folder内だけで解決します。
+
+BCFZIP issue package（`.bcfzip`）はbuildingSMARTのproject/topic metadata、topic title/status/priority、markup countをbounded表示します。snapshot画像、IFC/model payload、document URL、協調actionは不活性で、entryの実行・外部参照は行いません。
+
+Flat OPC package（`.flatopc` / `.fopc` / `.flatopc.xml`）は検証後にメモリ内で再構成し、既存のDOCX/XLSX/PPTX rendererへ渡します。macro、外部relationship、URL、active content、filesystem extractionは不活性です。
+
+AASX package（`.aasx`）はAsset Administration Shellのrelationshipとspecification metadataをbounded表示します。supplementary CAD/manual file、identifier、value、URL、signature、encryption materialは不活性です。
+
+Jupyter notebookは保存済みのcodeとoutputを表示するだけで、kernelを起動してcodeを実行することはありません。
+Quarto/R Markdownのcode chunkとYAML execution optionも評価しません。
 
 純粋なブラウザだけで文書を変換するWASMモジュールではありません。文書変換はNode.js側で実行し、表示ヘルパー`document-svg/preview-ui`だけをrenderer／ブラウザ側で使います。
 

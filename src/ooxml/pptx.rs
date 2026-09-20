@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::PI;
+use std::io::{Read, Seek};
 use std::path::Path;
 
 use base64::Engine;
@@ -15,8 +16,8 @@ use crate::ir::{
 };
 use crate::ooxml::chart::{parse_chart, render_chart};
 use crate::ooxml::{
-    Relationships, ZipPackage, attribute, color_from_hex, local_name, parse_i64,
-    decode_xml_reference, qualified_attribute, sniff_image_mime, text_advance_factor,
+    Relationships, ZipPackage, attribute, color_from_hex, decode_xml_reference, local_name,
+    parse_i64, qualified_attribute, sniff_image_mime, text_advance_factor,
 };
 
 const EMU_PER_POINT: f64 = 12_700.0;
@@ -29,7 +30,24 @@ pub(crate) fn convert(
     options: &ConvertOptions,
     sink: &mut dyn PageConsumer,
 ) -> Result<Vec<String>> {
-    let mut package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    let package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+pub(crate) fn convert_bytes(
+    bytes: &[u8],
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
+    let package = ZipPackage::from_bytes(bytes, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+fn convert_package<R: Read + Seek>(
+    mut package: ZipPackage<R>,
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
     let presentation_part = "ppt/presentation.xml";
     if !package.contains(presentation_part) {
         return Err(Error::InvalidInput(
@@ -296,7 +314,7 @@ fn parse_pptx_chart_frames(
     page_number: usize,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
 ) -> Result<(Vec<Node>, Vec<String>)> {
     if !xml_contains_local_element(xml, b"chart") {
@@ -1142,7 +1160,8 @@ fn render_pptx_table(
                 parent_id: None,
                 additional_paths: Vec::new(),
             });
-            let lines = table_cell_lines(cell, cell_width, theme, frame.first_row && row_index == 0);
+            let lines =
+                table_cell_lines(cell, cell_width, theme, frame.first_row && row_index == 0);
             let total_text_height = lines.iter().map(|(_, _, height)| height).sum::<f64>();
             let mut text_y = match cell.vertical_anchor.as_deref() {
                 Some("b") => y + cell_height - cell.margin_bottom - total_text_height,
@@ -1401,7 +1420,7 @@ fn parse_pptx_smartart_frames(
     text_styles: &PresentationTextStyles,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
 ) -> Result<SmartArtRender> {
     if !xml_contains_local_element(xml, b"relIds") {
@@ -2358,7 +2377,7 @@ fn parse_slide(
     theme: &Theme,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
     id_namespace: &str,
     inherited_placeholders: &HashMap<String, ShapeGeometry>,
@@ -2519,9 +2538,7 @@ fn parse_slide(
                     "p" if shape.is_some() && stack.iter().any(|item| item == "txBody") => {
                         current_paragraph = Some(Paragraph::default());
                     }
-                    "r" | "fld"
-                        if shape.is_some() && stack.iter().any(|item| item == "txBody") =>
-                    {
+                    "r" | "fld" if shape.is_some() && stack.iter().any(|item| item == "txBody") => {
                         // A slide-number field carries the placeholder PowerPoint
                         // last rendered ("<#>") as its cached text, so the cached
                         // text is never what the reader should see.
@@ -2965,10 +2982,8 @@ fn apply_start(
                 // negative extent and PowerPoint still shows the shape. Reading
                 // the magnitude keeps the text on the slide; dropping the shape
                 // would lose it outright.
-                shape.width =
-                    (parse_i64(attribute(start, b"cx"), 0) as f64).abs() / EMU_PER_POINT;
-                shape.height =
-                    (parse_i64(attribute(start, b"cy"), 0) as f64).abs() / EMU_PER_POINT;
+                shape.width = (parse_i64(attribute(start, b"cx"), 0) as f64).abs() / EMU_PER_POINT;
+                shape.height = (parse_i64(attribute(start, b"cy"), 0) as f64).abs() / EMU_PER_POINT;
             }
         }
         "xfrm" => {
@@ -4521,7 +4536,7 @@ fn append_shape(
     mut shape: Shape,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     theme: &Theme,
     text_styles: &PresentationTextStyles,
     id_namespace: &str,
@@ -4927,8 +4942,7 @@ fn append_shape(
             .or(style.alignment)
             .unwrap_or(TextAnchor::Start);
         let margin_left = paragraph.margin_left.unwrap_or(style.margin_left);
-        let mut available_width =
-            (text_width - left_inset - right_inset - margin_left).max(6.0);
+        let mut available_width = (text_width - left_inset - right_inset - margin_left).max(6.0);
         if shape.text_width.is_some() {
             let natural_width = paragraph
                 .runs

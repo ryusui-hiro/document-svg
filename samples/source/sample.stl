@@ -1,0 +1,30 @@
+solid tetrahedron
+  facet normal 0 0 -1
+    outer loop
+      vertex 0 0 0
+      vertex 50 0 0
+      vertex 25 43.3 0
+    endloop
+  endfacet
+  facet normal 0 -0.816 0.577
+    outer loop
+      vertex 0 0 0
+      vertex 25 14.4 40
+      vertex 50 0 0
+    endloop
+  endfacet
+  facet normal 0.707 0.408 0.577
+    outer loop
+      vertex 50 0 0
+      vertex 25 14.4 40
+      vertex 25 43.3 0
+    endloop
+  endfacet
+  facet normal -0.707 0.408 0.577
+    outer loop
+      vertex 25 43.3 0
+      vertex 25 14.4 40
+      vertex 0 0 0
+    endloop
+  endfacet
+endsolid tetrahedron

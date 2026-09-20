@@ -17,6 +17,16 @@ dependency inventory. Original copyright/trademark notices and permission are in
 [licenses/Adobe-Core14-AFM.txt](licenses/Adobe-Core14-AFM.txt) and the notice bundle.
 The source is [tc-font-core14-afms](https://github.com/tecnickcom/tc-font-core14-afms/tree/0675784d24b28a55c607cad6b74596ce19ce333c).
 
+## E57 reference test data
+
+`tests/fixtures/sample_e57_bunny.e57` is the `BunnyDouble.e57` XYZ reference file
+from the [E57 Example/Test Data collection](https://e57-3d-imgfmt.sourceforge.net/data.html).
+The collection publishes a Test Data License permitting use, reproduction,
+display, distribution, publication, transmission and reformatting. It requires
+copyright notices except for copies distributed solely as binary files; this
+repository stores the sample in binary form and records its source, license and
+SHA-256 in `tests/fixtures/e57_bunny.provenance.json`.
+
 ## Optional cloud architecture assets
 
 `authoring/cloud_icons.py` は、Azure・AWS・Google Cloudの公式アイコンを利用者のローカル
@@ -31,7 +41,7 @@ The source is [tc-font-core14-afms](https://github.com/tecnickcom/tc-font-core14
 
 ## Runtime dependencies
 
-このプロジェクトは、コア実行時依存をMIT、Apache-2.0、BSD-3-Clause、Zlib、IJGなどの許容的ライセンスへ限定します。GPL、AGPL、SSPL、非商用限定、ソース公開を要求する依存は採用していません。
+このプロジェクトは、コア実行時依存をMIT、Apache-2.0、BSD-3-Clause、CC0-1.0、Zlib、IJGなどの許容的ライセンスへ限定します。GPL、AGPL、SSPL、非商用限定、ソース公開を要求する依存は採用していません。
 
 直接依存:
 
@@ -39,8 +49,13 @@ The source is [tc-font-core14-afms](https://github.com/tecnickcom/tc-font-core14
 |---|---:|---|
 | anyhow | 1.0.104 | MIT OR Apache-2.0 |
 | base64 | 0.23.1 | MIT OR Apache-2.0 |
+| dicom-object | 0.10.0 | MIT OR Apache-2.0 |
+| dicom-parser | 0.10.0 | MIT OR Apache-2.0 |
+| dicom-pixeldata | 0.10.0 | MIT OR Apache-2.0 |
+| dicom-transfer-syntax-registry | 0.10.0 | MIT OR Apache-2.0 |
 | clap | 4.6.6 | MIT OR Apache-2.0 |
 | emf-core | 0.1.0 | MIT |
+| e57 | 0.11.13 | MIT |
 | hayro-ccitt | 0.3.0 | Apache-2.0 OR MIT |
 | jpeg-decoder | 0.3.2 | MIT OR Apache-2.0 |
 | lopdf | 0.44.0 | MIT |
@@ -64,14 +79,13 @@ The source is [tc-font-core14-afms](https://github.com/tecnickcom/tc-font-core14
 | pyo3 | 0.29.2 | MIT OR Apache-2.0 |
 | tempfile | 3.27.0 | MIT OR Apache-2.0 |
 
-実行時依存`jpeg-encoder 0.6.1`は、PDF内のCMYK/YCCK JPEGをブラウザ互換RGB JPEGへ正規化するために使用し、ライセンスは(MIT OR Apache-2.0) AND IJGです。`tempfile`はコアのテストに加えてNode.js preview APIの一時出力管理にも使用します。
+実行時依存`jpeg-encoder 0.6.1`は、PDF内のCMYK/YCCK JPEGをブラウザ互換RGB JPEGへ正規化するために使用し、ライセンスは(MIT OR Apache-2.0) AND IJGです。DICOM-rs 0.10.0のcrate archiveはroot license textを含まないため、pinned release tagのMIT/Apache licenseをbundleします。`encoding-index-*`のCC0-1.0 legal codeは`licenses/CC0-1.0.txt`とbundleに含めます。`zune-inflate`は宣言済みlicense alternativesからZlibを選び、pinned source commitのnoticeをbundleします。`tempfile`はコアのテストに加えてNode.js preview APIの一時出力管理にも使用します。
 
-2026-08-23に次のコマンドで全推移依存のSPDX表現を確認し、必須のコピーレフト依存がないことを確認しました。複数ライセンスを`OR`で提示するcrateは、MIT、Apache-2.0または他の許容的選択肢を選択します。target固有推移依存`r-efi`の`MIT OR Apache-2.0 OR LGPL-2.1-or-later`からもMITを選択します。
+2026-09-14に次の監査で全推移依存のSPDX表現を確認し、必須のコピーレフト依存がないことを確認しました。複数ライセンスを`OR`で提示するcrateは、許容的な選択肢を選びます。target固有推移依存`r-efi`の`MIT OR Apache-2.0 OR LGPL-2.1-or-later`からはMITを選択します。
 
 ```bash
-cargo metadata --format-version 1 \
-  | jq -r '.packages[] | [.name,.version,(.license // "MISSING")] | @tsv' \
-  | sort -u
+bindings/python/.venv/bin/python scripts/audit-licenses.py \
+  --cargo-deny /path/to/cargo-deny --check
 ```
 
 リリース前には`Cargo.lock`を基準に同じ監査を再実行し、各crateの配布物に含まれるLICENSE／NOTICEも保持してください。QAだけに使う`pdftoppm`、`rsvg-convert`、LibreOfficeは外部CLIであり、このcrateへリンク・同梱しません。

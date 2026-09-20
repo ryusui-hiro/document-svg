@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cml xmlns="http://www.xml-cml.org/schema" xmlns:dictRef="http://www.xml-cml.org/dict/atomic">
+  <molecule id="water" title="Water"><formula concise="H2O"/><atomArray><atom id="a1" elementType="O" x3="0" y3="0" z3="0"/><atom id="a2" elementType="H" x3="0.9" y3="0" z3="0"/><atom id="a3" elementType="H" x3="-0.9" y3="0" z3="0"/></atomArray><bondArray><bond atomRefs2="a1 a2" order="1"/><bond atomRefs2="a1 a3" order="1"/></bondArray><property dictRef="private:boiling"><scalar>private value</scalar></property></molecule>
+  <reaction id="r1"><reactantList><reactant href="https://private.example.invalid/reactant"/></reactantList></reaction>
+  <spectrum id="s1"><spectrumData>private spectrum payload</spectrumData></spectrum>
+</cml>

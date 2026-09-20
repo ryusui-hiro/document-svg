@@ -1,0 +1,11 @@
+239
+From: Mail Sender <sender@example.invalid>
+To: reader@example.invalid
+Subject: Apple Mail message
+Date: Wed, 14 Sep 2026 12:00:00 +0900
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+EMLX body text. 日本語の本文です。
+
+<?xml version="1.0"?><plist><dict><key>flags</key><integer>0</integer></dict></plist>

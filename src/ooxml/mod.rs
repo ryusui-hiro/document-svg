@@ -2,10 +2,12 @@ pub(crate) mod chart;
 pub(crate) mod docx;
 mod package;
 pub(crate) mod pptx;
+pub(crate) mod xls;
+pub(crate) mod xlsb;
 pub(crate) mod xlsx;
 mod xml;
 
-pub(crate) use package::{Relationships, ZipPackage};
+pub(crate) use package::{MAX_ZIP_PACKAGE_ENTRIES, Relationships, ZipPackage, resolve_part_target};
 pub(crate) use xml::{
     attribute, color_from_hex, local_name, parse_f64, parse_i64, qualified_attribute,
 };
@@ -125,7 +127,10 @@ mod tests {
 
     #[test]
     fn reads_the_image_type_from_the_signature_not_the_name() {
-        assert_eq!(sniff_image_mime(b"\xff\xd8\xff\xe0\x00\x10JFIF"), Some("image/jpeg"));
+        assert_eq!(
+            sniff_image_mime(b"\xff\xd8\xff\xe0\x00\x10JFIF"),
+            Some("image/jpeg")
+        );
         assert_eq!(sniff_image_mime(b"\x89PNG\r\n\x1a\n"), Some("image/png"));
         assert_eq!(sniff_image_mime(b"GIF89a"), Some("image/gif"));
         assert_eq!(sniff_image_mime(b"RIFF____WEBPVP8 "), Some("image/webp"));

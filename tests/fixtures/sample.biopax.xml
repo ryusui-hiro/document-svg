@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:bp="http://www.biopax.org/release/biopax-level3.owl#"><owl:Ontology xmlns:owl="http://www.w3.org/2002/07/owl#"><owl:imports rdf:resource="http://www.biopax.org/release/biopax-level3.owl"/></owl:Ontology><bp:Pathway rdf:about="private-pathway"><bp:displayName>Private pathway</bp:displayName><bp:pathwayComponent rdf:resource="#r1"/></bp:Pathway><bp:Protein rdf:about="private-protein"><bp:displayName>Private protein</bp:displayName></bp:Protein><bp:BiochemicalReaction rdf:about="private-reaction"><bp:left rdf:resource="#private-protein"/></bp:BiochemicalReaction><bp:PublicationXref rdf:about="private-xref"/></rdf:RDF>
+

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CityModel xmlns="http://www.opengis.net/citygml/3.0" xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:bldg="http://www.opengis.net/citygml/building/3.0" xmlns:tran="http://www.opengis.net/citygml/transportation/3.0" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <gml:boundedBy><gml:Envelope srsName="urn:ogc:def:crs:EPSG::4326"><gml:lowerCorner>139.7 35.6</gml:lowerCorner><gml:upperCorner>139.8 35.7</gml:upperCorner></gml:Envelope></gml:boundedBy>
+  <cityObjectMember><bldg:Building gml:id="b1"><bldg:lod2Solid><gml:Solid><gml:exterior><gml:CompositeSurface /></gml:exterior></gml:Solid></bldg:lod2Solid><bldg:lod3MultiSurface /></bldg:Building></cityObjectMember>
+  <cityObjectMember><tran:Road gml:id="r1"><tran:lod0MultiSurface /></tran:Road></cityObjectMember>
+  <cityObjectMember><bldg:Building gml:id="b2" xlink:href="https://private.example.invalid/building" /></cityObjectMember>
+</CityModel>

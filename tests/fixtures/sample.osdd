@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"><ShortName>Private Search</ShortName><Description>private search description</Description><Url type="text/html" template="https://example.invalid/?q={searchTerms}"/><Query role="example" searchTerms="private"/><Language>ja</Language><InputEncoding>UTF-8</InputEncoding><OutputEncoding>UTF-8</OutputEncoding><Image type="image/png">https://example.invalid/logo.png</Image></OpenSearchDescription>
+

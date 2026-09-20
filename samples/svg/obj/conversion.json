@@ -1,0 +1,24 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.obj",
+  "source_format": "obj",
+  "output_directory": "samples/svg/obj",
+  "elapsed_ms": 0,
+  "input_bytes": 143,
+  "page_count": 1,
+  "largest_page_ir_bytes": 3896,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 1200.0,
+      "height_points": 969.8003589195009,
+      "node_count": 2,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 3896
+    }
+  ],
+  "warnings": []
+}

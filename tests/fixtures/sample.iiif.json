@@ -1,0 +1,31 @@
+{
+  "@context": "http://iiif.io/api/presentation/3/context.json",
+  "id": "https://private.example.invalid/iiif/manifest.json",
+  "type": "Manifest",
+  "label": {"en": ["Digitized handbook"]},
+  "metadata": [{"label": "Language", "value": "en"}, {"label": "Private", "value": "do-not-render"}],
+  "rights": "https://private.example.invalid/rights",
+  "structures": [{"id": "https://private.example.invalid/range/1", "type": "Range", "label": "Chapter One", "items": []}],
+  "items": [
+    {
+      "id": "https://private.example.invalid/canvas/1",
+      "type": "Canvas",
+      "label": {"en": ["Page 1"]},
+      "width": 1200,
+      "height": 1600,
+      "items": [{
+        "id": "https://private.example.invalid/page/1",
+        "type": "AnnotationPage",
+        "items": [{"id": "https://private.example.invalid/annotation/1", "type": "Annotation", "motivation": "painting", "body": {"id": "https://private.example.invalid/image/1/full/full/0/default.jpg", "type": "Image", "format": "image/jpeg", "width": 1200, "height": 1600}}]
+      }]
+    },
+    {
+      "id": "https://private.example.invalid/canvas/2",
+      "type": "Canvas",
+      "label": "Page 2",
+      "width": 1200,
+      "height": 1600,
+      "items": [{"type": "AnnotationPage", "items": [{"type": "Annotation", "motivation": "painting", "body": {"type": "Image", "format": "image/jpeg"}}, {"type": "Annotation", "motivation": "commenting", "body": {"type": "TextualBody", "value": "private annotation"}}]}]
+    }
+  ]
+}

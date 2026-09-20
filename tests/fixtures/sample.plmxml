@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PLMXML xmlns="http://www.plmxml.org/Schemas/PLMXMLSchema" schemaVersion="7.0" author="Private Engineer" date="2026-09-17" time="10:00:00">
+  <Header id="private-header"/>
+  <ProductDef id="prod-1" name="Pump Assembly" type="assembly"/>
+  <ProductDef id="prod-2" name="Bracket" type="part"/>
+  <Part id="part-1" name="Bracket" type="solid"/>
+  <Structure id="struct-1" revision="A">
+    <Instance id="inst-1" partRef="part-1"/>
+  </Structure>
+  <StructureRevision id="struct-rev-1" structureRef="struct-1"/>
+  <Representation id="rep-1" format="JT">
+    <Geometry id="geom-1"/>
+  </Representation>
+  <ConstructionGeometry id="construction-1"/>
+  <Attribute id="attr-1" name="PrivateSerial" value="SECRET-VALUE"/>
+  <ExternalReference id="ext-1" location="https://private.example.invalid/model.x_t"/>
+</PLMXML>

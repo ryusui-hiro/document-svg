@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{Read, Seek};
+use std::io::{Cursor, Read, Seek};
 use std::path::{Component, Path, PathBuf};
 
 use quick_xml::Reader;
@@ -9,6 +9,11 @@ use zip::ZipArchive;
 
 use crate::error::{Error, Result};
 use crate::ooxml::{attribute, local_name};
+
+/// ZIP central directories are metadata that is allocated before any part is
+/// read. Keep a package-wide cap so an archive containing millions of tiny
+/// entries cannot exhaust memory even when each individual entry is small.
+pub(crate) const MAX_ZIP_PACKAGE_ENTRIES: usize = 100_000;
 
 pub(crate) struct ZipPackage<R: Read + Seek> {
     archive: ZipArchive<R>,
@@ -32,25 +37,43 @@ impl ZipPackage<File> {
             ));
         }
         file.rewind()?;
-        Ok(Self {
-            archive: ZipArchive::new(file)?,
-            max_entry_bytes,
-        })
+        Self::from_reader(file, max_entry_bytes)
     }
 }
 
 impl<R: Read + Seek> ZipPackage<R> {
+    /// Open a ZIP package from any bounded, seekable reader.
+    ///
+    /// This is also the in-memory entry point used by browser/WASM callers;
+    /// those callers pass a `Cursor<&[u8]>` and never need a filesystem path.
+    pub fn from_reader(reader: R, max_entry_bytes: u64) -> Result<Self> {
+        let archive = ZipArchive::new(reader)?;
+        validate_zip_entry_count(archive.len())?;
+        Ok(Self {
+            archive,
+            max_entry_bytes,
+        })
+    }
+
+    pub fn entry_count(&self) -> usize {
+        self.archive.len()
+    }
+
     pub fn contains(&mut self, name: &str) -> bool {
         self.archive.by_name(name).is_ok()
     }
 
     pub fn read(&mut self, name: &str) -> Result<Vec<u8>> {
+        self.read_limited(name, self.max_entry_bytes)
+    }
+
+    pub fn read_limited(&mut self, name: &str, max_bytes: u64) -> Result<Vec<u8>> {
+        let limit = self.max_entry_bytes.min(max_bytes);
         let entry = self.archive.by_name(name)?;
-        if entry.size() > self.max_entry_bytes {
+        if entry.size() > limit {
             return Err(Error::LimitExceeded(format!(
-                "ZIP entry {name} is {} bytes; maximum is {} bytes",
+                "ZIP entry {name} is {} bytes; maximum is {limit} bytes",
                 entry.size(),
-                self.max_entry_bytes
             )));
         }
         let capacity = usize::try_from(entry.size()).map_err(|_| {
@@ -58,35 +81,38 @@ impl<R: Read + Seek> ZipPackage<R> {
         })?;
         let mut bytes = Vec::with_capacity(capacity.min(8 * 1024 * 1024));
         entry
-            .take(self.max_entry_bytes.saturating_add(1))
+            .take(limit.saturating_add(1))
             .read_to_end(&mut bytes)?;
-        if bytes.len() as u64 > self.max_entry_bytes {
+        if bytes.len() as u64 > limit {
             return Err(Error::LimitExceeded(format!(
-                "ZIP entry {name} expanded beyond {} bytes",
-                self.max_entry_bytes
+                "ZIP entry {name} expanded beyond {limit} bytes"
             )));
         }
         Ok(bytes)
     }
 
     pub fn read_optional(&mut self, name: &str) -> Result<Option<Vec<u8>>> {
+        self.read_optional_limited(name, self.max_entry_bytes)
+    }
+
+    pub fn read_optional_limited(&mut self, name: &str, max_bytes: u64) -> Result<Option<Vec<u8>>> {
+        let limit = self.max_entry_bytes.min(max_bytes);
         match self.archive.by_name(name) {
             Ok(entry) => {
-                if entry.size() > self.max_entry_bytes {
+                if entry.size() > limit {
                     return Err(Error::LimitExceeded(format!(
                         "ZIP entry {name} is {} bytes; maximum is {} bytes",
                         entry.size(),
-                        self.max_entry_bytes
+                        limit
                     )));
                 }
                 let mut bytes = Vec::new();
                 entry
-                    .take(self.max_entry_bytes.saturating_add(1))
+                    .take(limit.saturating_add(1))
                     .read_to_end(&mut bytes)?;
-                if bytes.len() as u64 > self.max_entry_bytes {
+                if bytes.len() as u64 > limit {
                     return Err(Error::LimitExceeded(format!(
-                        "ZIP entry {name} expanded beyond {} bytes",
-                        self.max_entry_bytes
+                        "ZIP entry {name} expanded beyond {limit} bytes"
                     )));
                 }
                 Ok(Some(bytes))
@@ -97,11 +123,42 @@ impl<R: Read + Seek> ZipPackage<R> {
     }
 
     pub fn relationships(&mut self, part_name: &str, max_events: usize) -> Result<Relationships> {
+        self.relationships_with_size(part_name, max_events, self.max_entry_bytes)
+            .map(|(relationships, _)| relationships)
+    }
+
+    pub fn relationships_with_size(
+        &mut self,
+        part_name: &str,
+        max_events: usize,
+        max_bytes: u64,
+    ) -> Result<(Relationships, usize)> {
         let relationship_path = relationship_part_name(part_name)?;
-        let Some(xml) = self.read_optional(&relationship_path)? else {
-            return Ok(Relationships::default());
+        let Some(xml) = self.read_optional_limited(&relationship_path, max_bytes)? else {
+            return Ok((Relationships::default(), 0));
         };
-        Relationships::parse(&xml, part_name, max_events)
+        let byte_count = xml.len();
+        let relationships = Relationships::parse(&xml, part_name, max_events)?;
+        Ok((relationships, byte_count))
+    }
+
+    pub fn package_relationships(&mut self, max_events: usize) -> Result<(Relationships, usize)> {
+        const MAX_PACKAGE_RELATIONSHIPS_BYTES: u64 = 1024 * 1024;
+        let xml = self.read_limited("_rels/.rels", MAX_PACKAGE_RELATIONSHIPS_BYTES)?;
+        let byte_count = xml.len();
+        let relationships = Relationships::parse(&xml, "", max_events)?;
+        Ok((relationships, byte_count))
+    }
+}
+
+impl<'a> ZipPackage<Cursor<&'a [u8]>> {
+    pub fn from_bytes(bytes: &'a [u8], max_entry_bytes: u64) -> Result<Self> {
+        if bytes.starts_with(&COMPOUND_FILE_SIGNATURE) {
+            return Err(Error::Unsupported(
+                "encrypted or legacy binary Office documents are unsupported; access controls are not bypassed".into(),
+            ));
+        }
+        Self::from_reader(Cursor::new(bytes), max_entry_bytes)
     }
 }
 
@@ -150,6 +207,11 @@ impl Relationships {
                             },
                         );
                     }
+                }
+                Event::DocType(_) => {
+                    return Err(Error::InvalidInput(
+                        "relationship XML document type declarations are not supported".into(),
+                    ));
                 }
                 Event::Eof => break,
                 _ => {}
@@ -232,4 +294,37 @@ fn to_zip_path(path: &Path) -> String {
         })
         .collect::<Vec<_>>()
         .join("/")
+}
+
+fn validate_zip_entry_count(count: usize) -> Result<()> {
+    if count > MAX_ZIP_PACKAGE_ENTRIES {
+        return Err(Error::LimitExceeded(format!(
+            "ZIP package contains {count} entries; maximum is {MAX_ZIP_PACKAGE_ENTRIES}"
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MAX_ZIP_PACKAGE_ENTRIES, Relationships, validate_zip_entry_count};
+    use crate::error::Error;
+
+    #[test]
+    fn rejects_relationship_xml_document_type_declarations() {
+        let xml = br#"<!DOCTYPE Relationships [<!ENTITY target "../../outside.xml">]><Relationships><Relationship Id="r1" Target="&target;" Type="urn:test"/></Relationships>"#;
+        assert!(matches!(
+            Relationships::parse(xml, "", 100),
+            Err(Error::InvalidInput(_))
+        ));
+    }
+
+    #[test]
+    fn rejects_zip_packages_with_excessive_entry_counts() {
+        assert!(validate_zip_entry_count(MAX_ZIP_PACKAGE_ENTRIES).is_ok());
+        assert!(matches!(
+            validate_zip_entry_count(MAX_ZIP_PACKAGE_ENTRIES + 1),
+            Err(Error::LimitExceeded(message)) if message.contains("ZIP package contains")
+        ));
+    }
 }

@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="378.434pt" height="147.327pt" viewBox="0 0 378.434 147.327" data-source-format="latex_math" data-source-page="1" content="\frac{1}{\sqrt{2\pi \sigma^2}} \sum (x_i - \mu)^2 + \lambda \sqrt{w^2 + \epsilon}">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":22,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="378.434" height="147.327" fill="#FFFFFF" data-role="page-background"/>
+  <text id="" x="73.147" y="46.1" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="18.7" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">1</tspan>
+  </text>
+  <path id="" d="M 46.00,80.86 L 49.00,78.86 L 52.00,89.27 L 56.00,59.84 L 111.51,59.84" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#0f172a" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="58" y="82.727" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="18.7" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">2</tspan>
+  </text>
+  <text id="" x="71.22" y="82.727" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="18.7" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">π</tspan>
+  </text>
+  <text id="" x="84.44" y="82.727" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="18.7" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">σ</tspan>
+  </text>
+  <text id="" x="97.66" y="74.312" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13.09" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">2</tspan>
+  </text>
+  <path id="" d="M 42.00,53.84 L 115.51,53.84" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#0f172a" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="119.514" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">∑</tspan>
+  </text>
+  <text id="" x="134.714" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">(</tspan>
+  </text>
+  <text id="" x="149.914" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Cambria Math, &apos;Times New Roman&apos;, serif" font-size="22" font-weight="400" font-style="italic" baseline-shift="0" fill="#0f172a" fill-opacity="1">x</tspan>
+  </text>
+  <text id="" x="165.114" y="66.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Cambria Math, &apos;Times New Roman&apos;, serif" font-size="15.4" font-weight="400" font-style="italic" baseline-shift="0" fill="#0f172a" fill-opacity="1">i</tspan>
+  </text>
+  <text id="" x="176.354" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">-</tspan>
+  </text>
+  <text id="" x="191.554" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">μ</tspan>
+  </text>
+  <text id="" x="206.754" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">)</tspan>
+  </text>
+  <text id="" x="221.954" y="50.1" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="15.4" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">2</tspan>
+  </text>
+  <text id="" x="233.194" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">+</tspan>
+  </text>
+  <text id="" x="248.394" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">λ</tspan>
+  </text>
+  <path id="" d="M 263.59,57.80 L 266.59,55.80 L 269.59,67.70 L 273.59,33.78 L 336.43,33.78" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#0f172a" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="275.594" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Cambria Math, &apos;Times New Roman&apos;, serif" font-size="22" font-weight="400" font-style="italic" baseline-shift="0" fill="#0f172a" fill-opacity="1">w</tspan>
+  </text>
+  <text id="" x="290.794" y="50.1" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="15.4" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">2</tspan>
+  </text>
+  <text id="" x="302.034" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">+</tspan>
+  </text>
+  <text id="" x="317.234" y="60" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="22" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">ε</tspan>
+  </text>
+</svg>

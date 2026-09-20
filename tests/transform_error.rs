@@ -1,4 +1,4 @@
-use document_svg::{transform_svg, TransformOptions};
+use document_svg::{TransformOptions, transform_svg};
 
 #[test]
 fn test_transform_svg_returns_error_for_invalid_xml() -> Result<(), Box<dyn std::error::Error>> {
@@ -7,9 +7,9 @@ fn test_transform_svg_returns_error_for_invalid_xml() -> Result<(), Box<dyn std:
         invalid_svg,
         &TransformOptions {
             minify: true,
-            monochrome: None,
             responsive: true,
             precision: Some(2),
+            ..Default::default()
         },
     );
 

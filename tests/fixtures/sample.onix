@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ONIXMessage xmlns="http://ns.editeur.org/onix/3.0/reference" release="3.0">
+  <Header><FromCompany>Private Publisher</FromCompany></Header>
+  <Product recordreference="secret-record"><ProductIdentifier><ProductIDType>15</ProductIDType><IDValue>9780000000000</IDValue></ProductIdentifier><DescriptiveDetail><TitleDetail><TitleElement><TitleText>Private Book Title</TitleText></TitleElement></TitleDetail><Contributor><NamesBeforeKey>Private Author</NamesBeforeKey></Contributor><Language><LanguageCode>jpn</LanguageCode></Language><Subject><SubjectCode>ABC</SubjectCode></Subject><Measure><Measurement>123</Measurement></Measure></DescriptiveDetail><CollateralDetail><TextContent><Text>private description</Text></TextContent><SupportingResource/></CollateralDetail><PublishingStatus>04</PublishingStatus><SupplyDetail><Price><PriceAmount>999</PriceAmount></Price></SupplyDetail></Product>
+</ONIXMessage>
+

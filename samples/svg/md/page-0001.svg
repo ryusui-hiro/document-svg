@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="595pt" height="842pt" viewBox="0 0 595 842" data-source-format="html-page" data-source-page="1">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":58,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="595" height="842" fill="#FFFFFF" data-role="page-background"/>
+  <path id="page_bg_1" d="M 0,0 h 595.00 v 842.00 h -595.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="none"/>
+  <text id="heading_1_1" x="54" y="96.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Cloud Compute Instance Offerings</tspan>
+  </text>
+  <path id="tbl_hdr_bg_1_2" d="M 54.00,126.00 h 487.00 v 26.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#cbd5e1" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_hdr_txt_1_3" x="62" y="142.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Instance F…</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_4" x="159.56427" y="142.9" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">vC…</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_5" x="213.40263" y="142.9" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Memory …</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_6" x="255.88657" y="142.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Storage</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_7" x="377.20132" y="142.9" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Network Band…</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_8" x="481.2741" y="142.9" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Hourly…</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_9" x="515.13705" y="142.9" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Stat…</tspan>
+  </text>
+  <path id="tbl_row_bg_1_10" d="M 54.00,152.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_11" x="62" y="167.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">c7g.large</tspan>
+  </text>
+  <text id="tbl_cell_1_12" x="159.56427" y="167.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">2</tspan>
+  </text>
+  <text id="tbl_cell_1_13" x="213.40263" y="167.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">4.0</tspan>
+  </text>
+  <text id="tbl_cell_1_14" x="255.88657" y="167.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">EBS-Only</tspan>
+  </text>
+  <text id="tbl_cell_1_15" x="377.20132" y="167.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Up to 12.5 Gb…</tspan>
+  </text>
+  <text id="tbl_cell_1_16" x="481.2741" y="167.6" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$0.0725</tspan>
+  </text>
+  <text id="tbl_cell_1_17" x="515.13705" y="167.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Active</tspan>
+  </text>
+  <path id="tbl_row_bg_1_18" d="M 54.00,176.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_19" x="62" y="191.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">c7g.xlarge</tspan>
+  </text>
+  <text id="tbl_cell_1_20" x="159.56427" y="191.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">4</tspan>
+  </text>
+  <text id="tbl_cell_1_21" x="213.40263" y="191.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">8.0</tspan>
+  </text>
+  <text id="tbl_cell_1_22" x="255.88657" y="191.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">EBS-Only</tspan>
+  </text>
+  <text id="tbl_cell_1_23" x="377.20132" y="191.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Up to 12.5 Gb…</tspan>
+  </text>
+  <text id="tbl_cell_1_24" x="481.2741" y="191.6" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$0.1450</tspan>
+  </text>
+  <text id="tbl_cell_1_25" x="515.13705" y="191.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Active</tspan>
+  </text>
+  <path id="tbl_row_bg_1_26" d="M 54.00,200.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_27" x="62" y="215.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">m7g.xlarge</tspan>
+  </text>
+  <text id="tbl_cell_1_28" x="159.56427" y="215.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">4</tspan>
+  </text>
+  <text id="tbl_cell_1_29" x="213.40263" y="215.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">16.0</tspan>
+  </text>
+  <text id="tbl_cell_1_30" x="255.88657" y="215.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">EBS-Only</tspan>
+  </text>
+  <text id="tbl_cell_1_31" x="377.20132" y="215.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Up to 12.5 Gb…</tspan>
+  </text>
+  <text id="tbl_cell_1_32" x="481.2741" y="215.6" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$0.1632</tspan>
+  </text>
+  <text id="tbl_cell_1_33" x="515.13705" y="215.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Active</tspan>
+  </text>
+  <path id="tbl_row_bg_1_34" d="M 54.00,224.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_35" x="62" y="239.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">r7g.2xlarge</tspan>
+  </text>
+  <text id="tbl_cell_1_36" x="159.56427" y="239.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">8</tspan>
+  </text>
+  <text id="tbl_cell_1_37" x="213.40263" y="239.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">64.0</tspan>
+  </text>
+  <text id="tbl_cell_1_38" x="255.88657" y="239.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">1x 474 NVMe</tspan>
+  </text>
+  <text id="tbl_cell_1_39" x="377.20132" y="239.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">15 Gbps</tspan>
+  </text>
+  <text id="tbl_cell_1_40" x="481.2741" y="239.6" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$0.4352</tspan>
+  </text>
+  <text id="tbl_cell_1_41" x="515.13705" y="239.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Active</tspan>
+  </text>
+  <path id="tbl_row_bg_1_42" d="M 54.00,248.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_43" x="62" y="263.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">g5g.4xlarge</tspan>
+  </text>
+  <text id="tbl_cell_1_44" x="159.56427" y="263.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">16</tspan>
+  </text>
+  <text id="tbl_cell_1_45" x="213.40263" y="263.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">64.0</tspan>
+  </text>
+  <text id="tbl_cell_1_46" x="255.88657" y="263.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">1x 950 NVMe</tspan>
+  </text>
+  <text id="tbl_cell_1_47" x="377.20132" y="263.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">25 Gbps</tspan>
+  </text>
+  <text id="tbl_cell_1_48" x="481.2741" y="263.6" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$1.1760</tspan>
+  </text>
+  <text id="tbl_cell_1_49" x="515.13705" y="263.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Beta</tspan>
+  </text>
+  <path id="tbl_row_bg_1_50" d="M 54.00,272.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_51" x="62" y="287.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">p5.48xlarge</tspan>
+  </text>
+  <text id="tbl_cell_1_52" x="159.56427" y="287.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">192</tspan>
+  </text>
+  <text id="tbl_cell_1_53" x="213.40263" y="287.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">2048.0</tspan>
+  </text>
+  <text id="tbl_cell_1_54" x="255.88657" y="287.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">8x 3.84TB …</tspan>
+  </text>
+  <text id="tbl_cell_1_55" x="377.20132" y="287.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">3200 Gbps</tspan>
+  </text>
+  <text id="tbl_cell_1_56" x="481.2741" y="287.6" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$98.3200</tspan>
+  </text>
+  <text id="tbl_cell_1_57" x="515.13705" y="287.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Dedic…</tspan>
+  </text>
+</svg>

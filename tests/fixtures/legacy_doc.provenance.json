@@ -1,0 +1,14 @@
+{
+  "generator": "LibreOffice 26.2.2.2 MS Word 97-2003 export filter",
+  "source_files": [
+    "tests/fixtures/sample_strict.docx"
+  ],
+  "sha256": {
+    "tests/fixtures/sample_legacy.doc": "dbaae3b09b9896fe749c60329b790d268532338ca2a6f0439c1acd5c8631c00e"
+  },
+  "source_sha256": {
+    "tests/fixtures/sample_strict.docx": "788ac32856712181283877632838113d4248317f69be1bf0f0a73382c63f243a"
+  },
+  "license": "MIT OR Apache-2.0",
+  "content": "Synthetic conversion guide text and table; no personal data."
+}

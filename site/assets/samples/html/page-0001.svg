@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="595pt" height="842pt" viewBox="0 0 595 842" data-source-format="html-page" data-source-page="1">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":18,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="595" height="842" fill="#FFFFFF" data-role="page-background"/>
+  <path id="page_bg_1" d="M 0,0 h 595.00 v 842.00 h -595.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="none"/>
+  <text id="heading_1_1" x="54" y="96.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">DocSVG System Report © 2026</tspan>
+  </text>
+  <text id="p_1_2" x="54" y="127.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Status: All 250+ tests passing — High visual fidelity ± 0.1px.</tspan>
+  </text>
+  <text id="heading_1_3" x="54" y="178.45" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-2">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="17" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Operational Metrics</tspan>
+  </text>
+  <path id="tbl_hdr_bg_1_4" d="M 54.00,204.00 h 487.00 v 26.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#cbd5e1" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_hdr_txt_1_5" x="62" y="220.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Pipeline</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_6" x="239.09091" y="220.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Latency</tspan>
+  </text>
+  <text id="tbl_hdr_txt_1_7" x="394.04545" y="220.9" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-header">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="10" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Status</tspan>
+  </text>
+  <path id="tbl_row_bg_1_8" d="M 54.00,230.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_9" x="62" y="245.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">CAD 3D</tspan>
+  </text>
+  <text id="tbl_cell_1_10" x="239.09091" y="245.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">1.8ms</tspan>
+  </text>
+  <text id="tbl_cell_1_11" x="394.04545" y="245.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Optimal</tspan>
+  </text>
+  <path id="tbl_row_bg_1_12" d="M 54.00,254.00 h 487.00 v 24.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="tbl_cell_1_13" x="62" y="269.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">OOXML</tspan>
+  </text>
+  <text id="tbl_cell_1_14" x="239.09091" y="269.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">3.2ms</tspan>
+  </text>
+  <text id="tbl_cell_1_15" x="394.04545" y="269.6" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="table-cell">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="9.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Optimal</tspan>
+  </text>
+  <path id="code_bg_1_16" d="M 54.00,290.00 h 487.00 v 30.00 h -487.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#f8fafc" fill-opacity="1" stroke="#e2e8f0" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="code_1_17" x="64" y="306.5" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="code">
+    <tspan xml:space="preserve" font-family="monospace" font-size="10" font-weight="400" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">let status = "READY";</tspan>
+  </text>
+</svg>

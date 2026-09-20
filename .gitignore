@@ -21,6 +21,7 @@
 *.pyd
 *.dylib
 node_modules/
+bindings/wasm/web/pkg/
 __pycache__/
 *.py[cod]
 .pytest_cache/

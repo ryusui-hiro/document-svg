@@ -1,0 +1,8 @@
+1
+00:00:01,250 --> 00:00:02,500
+Hello <i>world</i>.
+字幕の2行目。
+
+2
+00:00:03,000 --> 00:00:04,250
+<script>alert('not executed')</script>Safe text.

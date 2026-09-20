@@ -1,0 +1,45 @@
+{
+  "resourceSpans": [
+    {
+      "resource": {
+        "attributes": [
+          {"key": "service.name", "value": {"stringValue": "checkout"}},
+          {"key": "api.token", "value": {"stringValue": "very-secret"}}
+        ],
+        "schemaUrl": "https://schemas.example.invalid/otel"
+      },
+      "scopeSpans": [
+        {
+          "scope": {"name": "demo-tracer", "version": "1.0"},
+          "spans": [
+            {"traceId": "abcdef", "spanId": "1234", "name": "private-span", "events": [{"name": "secret-event"}], "links": [{"traceId": "link-secret"}]}
+          ]
+        }
+      ]
+    }
+  ],
+  "resourceMetrics": [
+    {
+      "resource": {"attributes": [{"key": "service.name", "value": {"stringValue": "checkout"}}]},
+      "scopeMetrics": [
+        {
+          "scope": {"name": "demo-meter", "version": "1.0"},
+          "metrics": [
+            {"name": "requests", "unit": "1", "gauge": {"dataPoints": [{"asInt": "42", "timeUnixNano": "123"}]}}
+          ]
+        }
+      ]
+    }
+  ],
+  "resourceLogs": [
+    {
+      "resource": {"attributes": [{"key": "service.name", "value": {"stringValue": "checkout"}}]},
+      "scopeLogs": [
+        {
+          "scope": {"name": "demo-logger"},
+          "logRecords": [{"body": {"stringValue": "very-secret log body"}, "severityText": "ERROR"}]
+        }
+      ]
+    }
+  ]
+}

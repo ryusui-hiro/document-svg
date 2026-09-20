@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<log><event-types><event-type name="create-order"><attributes><attribute name="total-items" type="integer"/></attributes></event-type></event-types><object-types><object-type name="order"><attributes><attribute name="item" type="integer"/></attributes></object-type></object-types><events><event id="private-event" type="create-order" time="2026-01-01T00:00:00Z"><attributes><attribute name="total-items">99</attribute></attributes><objects><relationship object-id="private-object" relationship="order"/></objects></event></events><objects><object id="private-object" type="order"><attributes><attribute name="item">private-value</attribute></attributes></object></objects></log>
+

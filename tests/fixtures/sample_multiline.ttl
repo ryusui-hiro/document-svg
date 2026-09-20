@@ -1,0 +1,3 @@
+@prefix ex: <https://example.invalid/> .
+ex:Alice ex:role "Admin" ;
+  ex:score 10, 11 .

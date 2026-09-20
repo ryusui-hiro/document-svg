@@ -1,0 +1,30 @@
+\documentclass{article}
+\usepackage{graphicx}
+\graphicspath{{assets/}}
+\title{LaTeX Document Preview}
+\author{Conversion Team}
+\date{2026-09-15}
+
+\begin{document}
+\maketitle
+
+\section{Overview}
+This is a complete LaTeX document with inline math $x^2 + y^2$ and safe source previewing.
+
+\begin{itemize}
+\item Deterministic document structure
+\item No TeX execution
+\end{itemize}
+
+\begin{figure}
+\includegraphics[width=200pt]{red-blue.png}
+\caption{Local red and blue figure}
+\end{figure}
+
+\begin{tabular}{ll}
+Name & Value \\
+Preview & Ready \\
+\end{tabular}
+
+\input{not-loaded.tex}
+\end{document}

@@ -10,6 +10,9 @@ use tempfile::TempDir;
 use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
 
+#[path = "common/mod.rs"]
+mod common;
+
 #[path = "../src/pdf/font_test_data.rs"]
 mod font_test_data;
 
@@ -636,6 +639,367 @@ fn renders_annotation_appearance_streams_but_skips_link_and_hidden() {
     assert!(svg.contains("#00FF00"), "{svg}");
     assert!(!svg.contains("#FF0000"), "{svg}");
     assert!(!svg.contains("#FFFF00"), "{svg}");
+}
+
+#[test]
+fn renders_freetext_annotation_from_contents_when_no_appearance_exists() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("free-text-no-appearance.pdf");
+    let mut document = Document::with_version("1.7");
+    let annotation = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "FreeText",
+        "Rect" => vec![10.into(), 30.into(), 190.into(), 90.into()],
+        "Contents" => Object::string_literal("Fallback free-text comment"),
+        "DA" => Object::string_literal("/Helv 12 Tf 1 0 0 rg"),
+        "Q" => 1,
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 120.into()],
+        "Resources" => dictionary! {}, "Contents" => content,
+        "Annots" => vec![Object::Reference(annotation)],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("FreeText annotation without a normal appearance"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Fallback free-text comment"), "{svg}");
+    assert!(svg.contains("#FF0000"), "{svg}");
+}
+
+#[test]
+fn renders_acroform_text_widget_without_appearance_and_masks_passwords() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("widgets-no-appearance.pdf");
+    let mut document = Document::with_version("1.7");
+    let text_field = document.add_object(dictionary! {
+        "FT" => "Tx", "T" => Object::string_literal("review"),
+        "V" => Object::string_literal("Review approved"),
+        "DA" => Object::string_literal("/Helv 12 Tf 0 0 1 rg"),
+    });
+    let password_field = document.add_object(dictionary! {
+        "FT" => "Tx", "T" => Object::string_literal("password"),
+        "V" => Object::string_literal("top-secret"), "Ff" => 1 << 13,
+        "DA" => Object::string_literal("/Helv 12 Tf 0 g"),
+    });
+    let stream_value = document.add_object(Stream::new(
+        dictionary! {},
+        b"Stream-backed field value".to_vec(),
+    ));
+    let stream_field = document.add_object(dictionary! {
+        "FT" => "Tx", "T" => Object::string_literal("stream-value"),
+        "V" => Object::Reference(stream_value),
+    });
+    let text_widget = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![20.into(), 20.into(), 180.into(), 50.into()],
+        "Parent" => Object::Reference(text_field),
+    });
+    let password_widget = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![20.into(), 60.into(), 180.into(), 90.into()],
+        "Parent" => Object::Reference(password_field),
+    });
+    let stream_widget = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![20.into(), 95.into(), 180.into(), 115.into()],
+        "Parent" => Object::Reference(stream_field),
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 120.into()],
+        "Resources" => dictionary! {}, "Contents" => content,
+        "Annots" => vec![
+            Object::Reference(text_widget),
+            Object::Reference(password_widget),
+            Object::Reference(stream_widget),
+        ],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! {
+        "Type" => "Catalog", "Pages" => pages,
+        "AcroForm" => dictionary! {
+            "Fields" => vec![
+                Object::Reference(text_field),
+                Object::Reference(password_field),
+                Object::Reference(stream_field),
+            ],
+            "DA" => Object::string_literal("/Helv 10 Tf 0 g"),
+        },
+    });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Review approved"), "{svg}");
+    assert!(svg.contains("Stream-backed field value"), "{svg}");
+    assert!(svg.contains("annotation-widget-text"), "{svg}");
+    assert!(
+        !svg.contains("top-secret"),
+        "password value leaked into SVG"
+    );
+    assert!(svg.contains("••••••••••"), "{svg}");
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("password Widget value was masked"))
+    );
+}
+
+#[test]
+fn renders_checkbox_and_radio_widgets_without_appearance_streams() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("button-widgets-no-appearance.pdf");
+    let mut document = Document::with_version("1.7");
+    let checkbox_field = document.add_object(dictionary! {
+        "FT" => "Btn", "T" => Object::string_literal("accepted"),
+        "V" => Object::Name(b"Yes".to_vec()),
+    });
+    let radio_field = document.add_object(dictionary! {
+        "FT" => "Btn", "T" => Object::string_literal("choice"),
+        "Ff" => 1 << 15, "V" => Object::Name(b"OptionA".to_vec()),
+    });
+    let checkbox = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![20.into(), 20.into(), 40.into(), 40.into()],
+        "Parent" => Object::Reference(checkbox_field),
+    });
+    let radio = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![60.into(), 20.into(), 80.into(), 40.into()],
+        "Parent" => Object::Reference(radio_field), "AS" => Object::Name(b"OptionA".to_vec()),
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 100.into(), 60.into()],
+        "Resources" => dictionary! {}, "Contents" => content,
+        "Annots" => vec![Object::Reference(checkbox), Object::Reference(radio)],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert_eq!(
+        svg.matches("data-content-kind=\"annotation-widget-button\"")
+            .count(),
+        2
+    );
+    assert_eq!(
+        svg.matches("data-content-kind=\"annotation-widget-button-mark\"")
+            .count(),
+        2
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("simple checkbox/radio marker"))
+    );
+}
+
+#[test]
+fn renders_choice_widget_export_values_as_display_text_without_appearance() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("choice-widget-no-appearance.pdf");
+    let mut document = Document::with_version("1.7");
+    let choice_field = document.add_object(dictionary! {
+        "FT" => "Ch", "T" => Object::string_literal("category"),
+        "Ff" => 1 << 21,
+        "V" => Object::Array(vec![
+            Object::string_literal("42"),
+            Object::string_literal("7"),
+        ]),
+        "Opt" => Object::Array(vec![
+            Object::Array(vec![Object::string_literal("42"), Object::string_literal("Forty-two")]),
+            Object::Array(vec![Object::string_literal("7"), Object::string_literal("Seven")]),
+        ]),
+    });
+    let choice = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![20.into(), 20.into(), 180.into(), 80.into()],
+        "Parent" => Object::Reference(choice_field),
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! {}, "Contents" => content,
+        "Annots" => vec![Object::Reference(choice)],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! {
+        "Type" => "Catalog", "Pages" => pages,
+        "AcroForm" => dictionary! {
+            "Fields" => vec![Object::Reference(choice_field)],
+            "DA" => Object::string_literal("/Helv 12 Tf 0 g"),
+        },
+    });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Forty-two"), "{svg}");
+    assert!(svg.contains("Seven"), "{svg}");
+    assert!(
+        !svg.contains(">42</tspan>"),
+        "export value should map to display text"
+    );
+    assert!(
+        !svg.contains(">7</tspan>"),
+        "export value should map to display text"
+    );
+    assert!(svg.contains("annotation-widget-choice"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("choice Widget without a normal appearance"))
+    );
+}
+
+#[test]
+fn bounds_pdf_form_value_and_default_appearance_fallback_text() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("oversized-form-value.pdf");
+    let mut document = Document::with_version("1.7");
+    let oversized_value = "x".repeat(2 * 1024 * 1024 + 1);
+    let oversized_field = document.add_object(dictionary! {
+        "FT" => "Tx", "T" => Object::string_literal("oversized-value"),
+        "V" => Object::string_literal(oversized_value.as_str()),
+    });
+    let appearance_field = document.add_object(dictionary! {
+        "FT" => "Tx", "T" => Object::string_literal("oversized-da"),
+        "V" => Object::string_literal("Short value"),
+        "DA" => Object::string_literal(format!("/Helv 10 Tf {}", "0 ".repeat(40 * 1024))),
+    });
+    let oversized_widget = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![10.into(), 20.into(), 100.into(), 40.into()],
+        "Parent" => Object::Reference(oversized_field),
+    });
+    let appearance_widget = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Widget",
+        "Rect" => vec![20.into(), 20.into(), 195.into(), 40.into()],
+        "Parent" => Object::Reference(appearance_field),
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 80.into()],
+        "Resources" => dictionary! {}, "Contents" => content,
+        "Annots" => vec![Object::Reference(oversized_widget), Object::Reference(appearance_widget)],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let warnings = &report.pages[0].warnings;
+    assert!(
+        warnings
+            .iter()
+            .any(|warning| warning.contains("form field value or selection list exceeds"))
+    );
+    assert!(
+        warnings
+            .iter()
+            .any(|warning| warning.contains("DA exceeds 65536 bytes"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(!svg.contains(&oversized_value));
+    assert!(svg.contains("Short value"), "{svg}");
+}
+
+#[test]
+fn caps_pdf_annotations_per_page() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("many-annotations.pdf");
+    let mut document = Document::with_version("1.7");
+    let link = document.add_object(dictionary! {
+        "Type" => "Annot", "Subtype" => "Link",
+        "Rect" => vec![0.into(), 0.into(), 0.into(), 0.into()],
+    });
+    let content = document.add_object(Stream::new(dictionary! {}, Vec::new()));
+    let pages = document.new_object_id();
+    let page = document.add_object(dictionary! {
+        "Type" => "Page", "Parent" => pages,
+        "MediaBox" => vec![0.into(), 0.into(), 200.into(), 100.into()],
+        "Resources" => dictionary! {}, "Contents" => content,
+        "Annots" => vec![Object::Reference(link); 10_001],
+    });
+    document.objects.insert(
+        pages,
+        Object::Dictionary(
+            dictionary! { "Type" => "Pages", "Kids" => vec![page.into()], "Count" => 1 },
+        ),
+    );
+    let catalog = document.add_object(dictionary! { "Type" => "Catalog", "Pages" => pages });
+    document.trailer.set("Root", catalog);
+    document.save(&input).unwrap();
+
+    let output = temporary.path().join("out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("only the first 10000 were considered"))
+    );
 }
 
 #[test]
@@ -2026,6 +2390,8 @@ fn rejects_pdf_image_dimension_bombs_before_allocation() {
             "Height" => 100_000,
             "ColorSpace" => "DeviceRGB",
             "BitsPerComponent" => 8,
+            "SMaskInData" => 1,
+            "Filter" => "JPXDecode",
         },
         Vec::new(),
     ));
@@ -2039,9 +2405,9 @@ fn rejects_pdf_image_dimension_bombs_before_allocation() {
 
     let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
 
-    // The guard runs on the declared dimensions, so the 30 GB buffer is never
-    // allocated. The rest of the document still converts: one unusable image
-    // is a warning, not a reason to discard every other page.
+    // The guard charges the embedded alpha plane too, so the 40 GB decoded
+    // image is never allocated. One unusable image is a warning, not a reason
+    // to discard every page in the document.
     assert_eq!(report.page_count, 1);
     assert!(
         report.warnings.iter().any(
@@ -3523,6 +3889,56 @@ fn converts_pptx_cached_line_chart() {
 }
 
 #[test]
+fn converts_pptx_scatter_as_xy_and_area_as_filled_chart() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("charts.pptx");
+    let output = temporary.path().join("out");
+    make_zip(
+        &input,
+        &[
+            (
+                "ppt/presentation.xml",
+                r#"<p:presentation xmlns:p="p" xmlns:r="r"><p:sldIdLst><p:sldId id="256" r:id="rId1"/></p:sldIdLst><p:sldSz cx="9144000" cy="6858000"/></p:presentation>"#,
+            ),
+            (
+                "ppt/_rels/presentation.xml.rels",
+                r#"<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Target="slides/slide1.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/slides/slide1.xml",
+                r#"<p:sld xmlns:p="p" xmlns:a="a" xmlns:c="c" xmlns:r="r"><p:cSld><p:spTree><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="1" name="XY chart"/></p:nvGraphicFramePr><p:xfrm><a:off x="127000" y="127000"/><a:ext cx="3810000" cy="2540000"/></p:xfrm><a:graphic><a:graphicData><c:chart r:id="rId2"/></a:graphicData></a:graphic></p:graphicFrame><p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="2" name="Area chart"/></p:nvGraphicFramePr><p:xfrm><a:off x="4200000" y="127000"/><a:ext cx="3810000" cy="2540000"/></p:xfrm><a:graphic><a:graphicData><c:chart r:id="rId3"/></a:graphicData></a:graphic></p:graphicFrame></p:spTree></p:cSld></p:sld>"#,
+            ),
+            (
+                "ppt/slides/_rels/slide1.xml.rels",
+                r#"<Relationships><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/scatter.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/chart" Target="../charts/area.xml"/></Relationships>"#,
+            ),
+            (
+                "ppt/charts/scatter.xml",
+                r#"<c:chartSpace xmlns:c="c"><c:chart><c:plotArea><c:scatterChart><c:scatterStyle val="marker"/><c:ser><c:tx><c:v>Measurements</c:v></c:tx><c:xVal><c:numRef><c:numCache><c:pt idx="0"><c:v>10</c:v></c:pt><c:pt idx="1"><c:v>20</c:v></c:pt></c:numCache></c:numRef></c:xVal><c:yVal><c:numRef><c:numCache><c:pt idx="0"><c:v>20</c:v></c:pt><c:pt idx="1"><c:v>10</c:v></c:pt></c:numCache></c:numRef></c:yVal></c:ser></c:scatterChart></c:plotArea><c:legend><c:legendPos val="r"/></c:legend></c:chart></c:chartSpace>"#,
+            ),
+            (
+                "ppt/charts/area.xml",
+                r#"<c:chartSpace xmlns:c="c"><c:chart><c:plotArea><c:areaChart><c:ser><c:cat><c:strRef><c:strCache><c:pt idx="0"><c:v>Jan</c:v></c:pt><c:pt idx="1"><c:v>Feb</c:v></c:pt></c:strCache></c:strRef></c:cat><c:val><c:numRef><c:numCache><c:pt idx="0"><c:v>5</c:v></c:pt><c:pt idx="1"><c:v>15</c:v></c:pt></c:numCache></c:numRef></c:val></c:ser></c:areaChart></c:plotArea></c:chart></c:chartSpace>"#,
+            ),
+        ],
+    );
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert_eq!(
+        svg.matches("data-content-kind=\"chart-scatter-point\"")
+            .count(),
+        2
+    );
+    assert!(svg.contains("data-content-kind=\"chart-area\""));
+    assert!(svg.contains("fill-opacity=\"0.28\""));
+    assert!(svg.contains("data-content-kind=\"chart-legend-label\""));
+    assert!(svg.contains(">Measurements</tspan>"));
+}
+
+#[test]
 fn converts_minimal_xlsx() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("sample.xlsx");
@@ -3551,6 +3967,1307 @@ fn converts_minimal_xlsx() {
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("Hello XLSX"));
     assert!(svg.contains(">42</tspan>"));
+}
+
+#[test]
+fn converts_binary_dxf_and_sniffs_its_sentinel() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/binary_line.dxf");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::Dxf);
+    let output = temporary.path().join("binary-dxf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dxf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"dxf\""));
+    assert!(svg.contains("<path"));
+
+    let extensionless = temporary.path().join("binary-cad-drawing");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Dxf
+    );
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("binary-dxf-sniff-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Dxf);
+}
+
+#[test]
+fn converts_geojson_features_and_sniffs_the_json_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.geojson");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::GeoJson);
+    let output = temporary.path().join("geojson-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::GeoJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GeoJSON Map Preview"));
+    assert!(svg.contains("geojson:polygon"));
+    assert!(svg.contains("geojson:line"));
+    assert!(svg.contains("geojson:point"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("altitude"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("closed"))
+    );
+
+    let extensionless = temporary.path().join("map-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::GeoJson
+    );
+    let generic_json = temporary.path().join("map.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::GeoJson
+    );
+}
+
+#[test]
+fn converts_esri_shapefile_polygons_and_validates_sidecars() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_polygon.shp");
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::Shapefile
+    );
+    let output = temporary.path().join("shapefile-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Shapefile);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Shapefile Map Preview"));
+    assert!(svg.contains("data-source-format=\"shapefile\""));
+    assert!(svg.contains("data-semantic-role=\"shapefile:polygon\""));
+    assert!(svg.contains("1 features, 1 geometries, and 15 positions"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Web Mercator"))
+    );
+    assert!(
+        !report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains(".prj"))
+    );
+
+    let extensionless = temporary.path().join("spatial-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Shapefile
+    );
+    let extensionless_output = temporary.path().join("extensionless-out");
+    let extensionless_report = convert_path(
+        &extensionless,
+        &extensionless_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        extensionless_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("coordinates are assumed"))
+    );
+
+    let bad_crs = temporary.path().join("unsupported.shp");
+    fs::copy(&input, &bad_crs).unwrap();
+    fs::write(
+        temporary.path().join("unsupported.prj"),
+        "PROJCS[\"WGS_1984_Web_Mercator_Auxiliary_Sphere\",AUTHORITY[\"EPSG\",\"3857\"]]",
+    )
+    .unwrap();
+    let unsupported_crs_error = convert_path(
+        &bad_crs,
+        temporary.path().join("unsupported-crs-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(
+        unsupported_crs_error.contains("not a recognized degree-based WGS 84 geographic CRS"),
+        "{unsupported_crs_error}"
+    );
+
+    let bad_index = temporary.path().join("bad-index.shp");
+    fs::copy(&input, &bad_index).unwrap();
+    let index_path = temporary.path().join("bad-index.shx");
+    let source_index =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_polygon.shx");
+    let mut shx = fs::read(source_index).unwrap();
+    shx[100..104].copy_from_slice(&51u32.to_be_bytes());
+    fs::write(index_path, shx).unwrap();
+    assert!(
+        convert_path(
+            &bad_index,
+            temporary.path().join("bad-index-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("SHX entry does not match")
+    );
+
+    let dbf_shp = temporary.path().join("sample_polygon.shp");
+    fs::copy(&input, &dbf_shp).unwrap();
+    fs::write(
+        temporary.path().join("sample_polygon.dbf"),
+        b"dbf placeholder",
+    )
+    .unwrap();
+    let dbf_report = convert_path(
+        &dbf_shp,
+        temporary.path().join("dbf-warning-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        dbf_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("DBF attribute fields"))
+    );
+}
+
+#[test]
+fn converts_read_only_geopackage_vector_layers_with_supported_crs() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_features.gpkg");
+    let before = fs::read(&input).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::Geopackage
+    );
+    let output = temporary.path().join("geopackage-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Geopackage);
+    assert_eq!(report.page_count, 3);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("EPSG:3857"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Z and M"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("attributes"))
+    );
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Private layer title"))
+    );
+    assert_eq!(
+        fs::read(&input).unwrap(),
+        before,
+        "conversion modified the source database"
+    );
+
+    let area = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(area.contains("GeoPackage Feature Layer 1"));
+    assert!(area.contains("data-source-format=\"geopackage\""));
+    assert!(area.contains("data-semantic-role=\"geopackage:polygon\""));
+    assert!(!area.contains("private record"));
+    assert!(!area.contains("Private layer title"));
+
+    let elevated = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(elevated.contains("geopackage:point"));
+    let projected = fs::read_to_string(output.join("page-0003.svg")).unwrap();
+    assert!(projected.contains("geopackage:point"));
+
+    let extensionless = temporary.path().join("spatial-database");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Geopackage
+    );
+
+    let limited = ConvertOptions {
+        max_pages: 2,
+        ..ConvertOptions::default()
+    };
+    let page_limit = convert_path(
+        &input,
+        temporary.path().join("geopackage-page-limit"),
+        &limited,
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(page_limit.contains("page limit"), "{page_limit}");
+
+    let unsupported_crs = temporary.path().join("unsupported-crs.gpkg");
+    fs::copy(&input, &unsupported_crs).unwrap();
+    let database = rusqlite::Connection::open(&unsupported_crs).unwrap();
+    database
+        .execute(
+            "UPDATE gpkg_spatial_ref_sys SET organization_coordsys_id=32654 WHERE srs_id=4326",
+            [],
+        )
+        .unwrap();
+    drop(database);
+    let unsupported = convert_path(
+        &unsupported_crs,
+        temporary.path().join("unsupported-crs-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(unsupported.contains("EPSG:32654"), "{unsupported}");
+}
+
+#[test]
+fn converts_geopackage_raster_tiles_and_tile_only_packages() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_tile_mixed.gpkg");
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::Geopackage
+    );
+    let output = temporary.path().join("geopackage-mixed-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Geopackage);
+    assert_eq!(report.page_count, 2);
+    assert!(
+        report.pages[1]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("re-encoded as PNG"))
+    );
+    let tile_svg = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(tile_svg.contains("GeoPackage Raster Tile Layer 1"));
+    assert!(tile_svg.contains("data-semantic-role=\"geopackage:tile\""));
+    assert!(tile_svg.contains("data:image/png;base64,"));
+
+    let tile_only = temporary.path().join("tiles-only.gpkg");
+    fs::copy(&input, &tile_only).unwrap();
+    let database = rusqlite::Connection::open(&tile_only).unwrap();
+    database
+        .execute("DELETE FROM gpkg_contents WHERE data_type='features'", [])
+        .unwrap();
+    database
+        .execute("DELETE FROM gpkg_geometry_columns", [])
+        .unwrap();
+    database.execute("DROP TABLE districts", []).unwrap();
+    drop(database);
+    let tile_only_report = convert_path(
+        &tile_only,
+        temporary.path().join("tiles-only-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(tile_only_report.page_count, 1);
+    assert!(tile_only_report.pages[0].svg.ends_with("page-0001.svg"));
+    let tile_only_svg =
+        fs::read_to_string(temporary.path().join("tiles-only-out/page-0001.svg")).unwrap();
+    assert!(tile_only_svg.contains("data-semantic-role=\"geopackage:tile\""));
+
+    let unsupported_tiles = temporary.path().join("unsupported-tile-crs.gpkg");
+    fs::copy(&input, &unsupported_tiles).unwrap();
+    let database = rusqlite::Connection::open(&unsupported_tiles).unwrap();
+    database
+        .execute(
+            "UPDATE gpkg_contents SET srs_id=4326 WHERE data_type='tiles'",
+            [],
+        )
+        .unwrap();
+    database
+        .execute("UPDATE gpkg_tile_matrix_set SET srs_id=4326", [])
+        .unwrap();
+    drop(database);
+    let unsupported_report = convert_path(
+        &unsupported_tiles,
+        temporary.path().join("unsupported-tile-crs-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(unsupported_report.page_count, 1);
+    assert!(
+        unsupported_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("non-EPSG:3857"))
+    );
+
+    let corrupt_tiles = temporary.path().join("corrupt-tiles.gpkg");
+    fs::copy(&input, &corrupt_tiles).unwrap();
+    let database = rusqlite::Connection::open(&corrupt_tiles).unwrap();
+    database
+        .execute(
+            "UPDATE basemap SET tile_data=?1",
+            [b"not an image".as_slice()],
+        )
+        .unwrap();
+    drop(database);
+    let corrupt_report = convert_path(
+        &corrupt_tiles,
+        temporary.path().join("corrupt-tiles-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(corrupt_report.page_count, 1);
+    assert!(
+        corrupt_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("corrupt or unsupported GeoPackage tile image"))
+    );
+}
+
+#[test]
+fn converts_rfc7464_generic_json_text_sequences() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jsons");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::JsonSeq);
+    let output = temporary.path().join("json-sequence-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::JsonSeq);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("4 JSON sequence record(s)"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"jsonseq\""));
+    assert!(svg.contains("JSON sequence record 2"));
+    assert!(svg.contains("ingest"));
+    assert!(svg.contains("validated"));
+    assert!(svg.contains("42"));
+
+    let extensionless = temporary.path().join("json-stream");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::JsonSeq
+    );
+    let generic_json = temporary.path().join("json-stream.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::JsonSeq
+    );
+
+    let invalid_record = temporary.path().join("recoverable.jsons");
+    fs::write(&invalid_record, b"\x1e{\"good\":true}\n\x1e{invalid}\n").unwrap();
+    let recovered = convert_path(
+        &invalid_record,
+        temporary.path().join("json-sequence-recovered"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        recovered
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("invalid JSON sequence record(s) were skipped"))
+    );
+
+    let newline = temporary.path().join("compat.jsonl");
+    fs::write(&newline, b"{\"kind\":\"alpha\"}\n{\"kind\":\"beta\"}\n").unwrap();
+    let newline_report = convert_path(
+        &newline,
+        temporary.path().join("json-lines-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        newline_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("compatibility mode"))
+    );
+}
+
+#[test]
+fn converts_quantized_topojson_with_shared_and_reversed_arcs() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.topojson");
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::TopoJson
+    );
+    let output = temporary.path().join("topojson-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::TopoJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("TopoJSON Map Preview"));
+    assert!(svg.contains("data-source-format=\"topojson\""));
+    assert!(svg.contains("data-semantic-role=\"topojson:polygon\""));
+    assert!(svg.contains("data-semantic-role=\"topojson:point\""));
+    assert!(!svg.contains("private west"));
+    assert!(!svg.contains("private station"));
+
+    let extensionless = temporary.path().join("topology");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::TopoJson
+    );
+    let generic_json = temporary.path().join("topology.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::TopoJson
+    );
+}
+
+#[test]
+fn converts_rfc8142_geojson_text_sequences_and_line_delimited_compatibility() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.geojsons");
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::GeoJsonSeq
+    );
+    let output = temporary.path().join("geojson-sequence-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::GeoJsonSeq);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("3 GeoJSON sequence record(s)"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GeoJSON Text Sequence Map Preview"));
+    assert!(svg.contains("data-source-format=\"geojsonseq\""));
+    assert!(svg.contains("data-semantic-role=\"geojsonseq:point\""));
+    assert!(svg.contains("data-semantic-role=\"geojsonseq:line\""));
+    assert!(svg.contains("data-semantic-role=\"geojsonseq:polygon\""));
+    assert!(!svg.contains("private-sample-point-id"));
+    assert!(!svg.contains("Private feature attribute"));
+
+    let extensionless = temporary.path().join("geojson-stream");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::GeoJsonSeq
+    );
+    let json_extension = temporary.path().join("geojson-stream.json");
+    fs::copy(&input, &json_extension).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&json_extension).unwrap(),
+        SourceFormat::GeoJsonSeq
+    );
+
+    let newline_delimited = temporary.path().join("compatibility.geojsonl");
+    fs::write(
+        &newline_delimited,
+        b"{\"type\":\"Feature\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[139,35]},\"properties\":null}\n{\"type\":\"LineString\",\"coordinates\":[[139,35],[140,36]]}\n",
+    )
+    .unwrap();
+    assert_eq!(
+        SourceFormat::detect(&newline_delimited).unwrap(),
+        SourceFormat::GeoJsonSeq
+    );
+    let newline_report = convert_path(
+        &newline_delimited,
+        temporary.path().join("geojsonl-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        newline_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("compatibility mode"))
+    );
+}
+
+#[test]
+fn converts_georss_simple_feed_geometries_without_fetching_feed_links() {
+    let temporary = TempDir::new().unwrap();
+    let feed = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.georss");
+    assert_eq!(SourceFormat::detect(&feed).unwrap(), SourceFormat::GeoRss);
+    let output = temporary.path().join("georss-out");
+    let report = convert_path(&feed, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::GeoRss);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GeoRSS Feed Map Preview"));
+    assert!(svg.contains("georss:polygon"));
+    assert!(svg.contains("georss:line"));
+    assert!(svg.contains("georss:point"));
+    assert!(svg.contains("6 features, 6 geometries, and 19 positions"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not fetched"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("unsupported geometries"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("extra coordinate ordinates"))
+    );
+
+    let extensionless = temporary.path().join("geo-feed");
+    fs::copy(&feed, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::GeoRss
+    );
+    let generic_xml = temporary.path().join("geo-feed.xml");
+    fs::copy(&feed, &generic_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::GeoRss
+    );
+
+    for (filename, source_xml) in [
+        (
+            "map.atom",
+            "<atom:feed xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:geo=\"http://www.georss.org/georss\"><atom:entry><geo:point>37.4 -122.1</geo:point></atom:entry></atom:feed>",
+        ),
+        (
+            "map-rdf.xml",
+            "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" xmlns:geo=\"http://www.georss.org/georss\"><item><geo:point>37.4 -122.1</geo:point></item></rdf:RDF>",
+        ),
+    ] {
+        let input = temporary.path().join(filename);
+        fs::write(&input, source_xml).unwrap();
+        assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::GeoRss);
+        let output = temporary.path().join(format!("{filename}-out"));
+        let report = convert_path(&input, output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::GeoRss);
+        assert_eq!(report.page_count, 1);
+    }
+
+    let unsupported_gml_crs = temporary.path().join("unsupported-georss-crs.rss");
+    fs::write(
+        &unsupported_gml_crs,
+        "<rss xmlns:g=\"http://www.georss.org/georss\" xmlns:m=\"http://www.opengis.net/gml/3.2\"><channel><item><g:where><m:Point srsName=\"EPSG:3857\"><m:pos>0 0</m:pos></m:Point></g:where></item></channel></rss>",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &unsupported_gml_crs,
+            temporary.path().join("unsupported-georss-crs-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("without a coordinate transformation")
+    );
+}
+
+#[test]
+fn converts_gml_linear_geometries_with_crs_axis_order_and_no_fetching() {
+    let temporary = TempDir::new().unwrap();
+    let gml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.gml");
+    assert_eq!(SourceFormat::detect(&gml).unwrap(), SourceFormat::Gml);
+    let output = temporary.path().join("gml-out");
+    let report = convert_path(&gml, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Gml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GML Map Preview"));
+    assert!(svg.contains("gml:polygon"));
+    assert!(svg.contains("gml:line"));
+    assert!(svg.contains("gml:point"));
+    assert!(svg.contains("3 features, 3 geometries, and 14 positions"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("ordinates"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not fetched"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("properties"))
+    );
+
+    let extensionless = temporary.path().join("spatial-features");
+    fs::copy(&gml, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Gml
+    );
+    let generic_xml = temporary.path().join("spatial-features.xml");
+    fs::copy(&gml, &generic_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::Gml
+    );
+
+    let gml2 = temporary.path().join("gml2.gml");
+    fs::write(
+        &gml2,
+        b"<gml:FeatureCollection xmlns:gml=\"http://www.opengis.net/gml\"><gml:featureMember><gml:Point srsName=\"CRS:84\"><gml:coordinates>-122.1,37.4</gml:coordinates></gml:Point></gml:featureMember></gml:FeatureCollection>",
+    )
+    .unwrap();
+    assert_eq!(SourceFormat::detect(&gml2).unwrap(), SourceFormat::Gml);
+    assert_eq!(
+        convert_path(
+            &gml2,
+            temporary.path().join("gml2-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap()
+        .source_format,
+        SourceFormat::Gml
+    );
+
+    let unsupported_crs = temporary.path().join("unknown-crs.gml");
+    fs::write(
+        &unsupported_crs,
+        b"<gml:Point xmlns:gml=\"http://www.opengis.net/gml/3.2\" srsName=\"EPSG:3857\"><gml:pos>0 0</gml:pos></gml:Point>",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &unsupported_crs,
+            temporary.path().join("unknown-crs-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("without a coordinate transformation")
+    );
+
+    let oversized_position_list = temporary.path().join("oversized-poslist.gml");
+    let tuples = vec!["-122.1 37.4"; 500_001].join(" ");
+    let oversized_xml = format!(
+        "<gml:LineString xmlns:gml=\"http://www.opengis.net/gml/3.2\" srsName=\"CRS:84\"><gml:posList srsDimension=\"2\">{tuples}</gml:posList></gml:LineString>"
+    );
+    fs::write(&oversized_position_list, oversized_xml).unwrap();
+    assert!(
+        convert_path(
+            &oversized_position_list,
+            temporary.path().join("oversized-poslist-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("exceeds 500000 positions")
+    );
+}
+
+#[test]
+fn converts_gpx_waypoints_routes_and_separate_track_segments() {
+    let temporary = TempDir::new().unwrap();
+    let gpx = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.gpx");
+    assert_eq!(SourceFormat::detect(&gpx).unwrap(), SourceFormat::Gpx);
+    let output = temporary.path().join("gpx-out");
+    let report = convert_path(&gpx, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Gpx);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GPX Map Preview"));
+    assert!(svg.contains("data-source-format=\"gpx\""));
+    assert!(svg.contains("gpx:point"));
+    assert!(svg.contains("gpx:line"));
+    assert!(svg.contains("3 features, 5 geometries, and 8 positions"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("Harbor loop"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("elevation"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not fetched"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("extension data"))
+    );
+
+    let extensionless = temporary.path().join("gps-data");
+    fs::copy(&gpx, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Gpx
+    );
+    let generic_xml = temporary.path().join("gps-data.xml");
+    fs::copy(&gpx, &generic_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::Gpx
+    );
+
+    let prefixed = temporary.path().join("prefixed-gpx.xml");
+    fs::write(
+        &prefixed,
+        b"<gps:gpx xmlns:gps=\"http://www.topografix.com/GPX/1/1\" version=\"1.1\" creator=\"fixture\"><gps:wpt lat=\"37.4\" lon=\"-122.1\"/></gps:gpx>",
+    )
+    .unwrap();
+    assert_eq!(SourceFormat::detect(&prefixed).unwrap(), SourceFormat::Gpx);
+    let prefixed_report = convert_path(
+        &prefixed,
+        temporary.path().join("prefixed-gpx-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(prefixed_report.source_format, SourceFormat::Gpx);
+
+    let wrong_version = temporary.path().join("gpx-1.0.xml");
+    let xml = fs::read_to_string(&gpx)
+        .unwrap()
+        .replace("version=\"1.1\"", "version=\"1.0\"");
+    fs::write(&wrong_version, xml).unwrap();
+    assert!(
+        convert_path(
+            &wrong_version,
+            temporary.path().join("wrong-version-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("only GPX 1.1")
+    );
+
+    let invalid_coordinate = temporary.path().join("gpx-outside-world.gpx");
+    fs::write(
+        &invalid_coordinate,
+        b"<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" version=\"1.1\"><wpt lat=\"90.1\" lon=\"0\"/></gpx>",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &invalid_coordinate,
+            temporary.path().join("invalid-coordinate-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("outside WGS 84 bounds")
+    );
+}
+
+#[test]
+fn converts_bounded_wkt_simple_geometries_and_enforces_srid_and_dimensions() {
+    let temporary = TempDir::new().unwrap();
+    let wkt = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.wkt");
+    assert_eq!(SourceFormat::detect(&wkt).unwrap(), SourceFormat::Wkt);
+    let output = temporary.path().join("wkt-out");
+    let report = convert_path(&wkt, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Wkt);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("WKT Geometry Map Preview"));
+    assert!(svg.contains("data-source-format=\"wkt\""));
+    assert!(svg.contains("wkt:polygon"));
+    assert!(svg.contains("wkt:line"));
+    assert!(svg.contains("wkt:point"));
+    assert!(svg.contains("1 features, 7 geometries, and 24 positions"));
+    assert!(
+        !report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("no SRID"))
+    );
+
+    let extensionless = temporary.path().join("map-geometry");
+    fs::copy(&wkt, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Wkt
+    );
+
+    let untagged = temporary.path().join("untagged.wkt");
+    fs::write(&untagged, "POINT ZM (-122.1 37.4 30 99)").unwrap();
+    let untagged_report = convert_path(
+        &untagged,
+        temporary.path().join("untagged-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        untagged_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("no SRID"))
+    );
+    assert!(
+        untagged_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Z/M"))
+    );
+
+    let inherited_dimensions = temporary.path().join("inherited-dimensions.wkt");
+    fs::write(
+        &inherited_dimensions,
+        "GEOMETRYCOLLECTION Z (POINT (-122.1 37.4 12), LINESTRING (-122.2 37.3 4, -122.0 37.5 5))",
+    )
+    .unwrap();
+    let inherited_report = convert_path(
+        &inherited_dimensions,
+        temporary.path().join("inherited-dimensions-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        inherited_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Z/M"))
+    );
+
+    let empty_member = temporary.path().join("empty-member.wkt");
+    fs::write(
+        &empty_member,
+        "SRID=4326; MULTIPOINT (EMPTY, (-122.1 37.4))",
+    )
+    .unwrap();
+    let empty_report = convert_path(
+        &empty_member,
+        temporary.path().join("empty-member-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        empty_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("empty WKT geometry members"))
+    );
+
+    let bom = temporary.path().join("bom-geometry");
+    fs::write(&bom, "\u{feff}POINT (-122.1 37.4)").unwrap();
+    assert_eq!(SourceFormat::detect(&bom).unwrap(), SourceFormat::Wkt);
+    assert_eq!(
+        convert_path(
+            &bom,
+            temporary.path().join("bom-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap()
+        .source_format,
+        SourceFormat::Wkt
+    );
+
+    let unsupported_srid = temporary.path().join("unsupported-srid.ewkt");
+    fs::write(&unsupported_srid, "SRID=3857;POINT(0 0)").unwrap();
+    assert!(
+        convert_path(
+            &unsupported_srid,
+            temporary.path().join("unsupported-srid-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("without a coordinate transformation")
+    );
+
+    let curved = temporary.path().join("curved.wkt");
+    fs::write(&curved, "CIRCULARSTRING(0 0,1 1,2 0)").unwrap();
+    assert!(
+        convert_path(
+            &curved,
+            temporary.path().join("curved-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("outside the supported linear")
+    );
+}
+
+#[test]
+fn converts_kml_geometries_and_kmz_documents_without_fetching_links() {
+    let temporary = TempDir::new().unwrap();
+    let kml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.kml");
+    assert_eq!(SourceFormat::detect(&kml).unwrap(), SourceFormat::Kml);
+    let output = temporary.path().join("kml-out");
+    let report = convert_path(&kml, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Kml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("KML Map Preview"));
+    assert!(svg.contains("data-source-format=\"kml\""));
+    assert!(svg.contains("kml:polygon"));
+    assert!(svg.contains("kml:line"));
+    assert!(svg.contains("kml:point"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("altitude"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not fetched"))
+    );
+    let limited_options = ConvertOptions {
+        max_xml_events: 2,
+        ..ConvertOptions::default()
+    };
+    let limited_output = temporary.path().join("kml-limited-out");
+    assert!(
+        convert_path(&kml, &limited_output, &limited_options)
+            .unwrap_err()
+            .to_string()
+            .contains("XML events")
+    );
+
+    let extensionless = temporary.path().join("placemarks");
+    fs::copy(&kml, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Kml
+    );
+    let generic_xml = temporary.path().join("placemarks.xml");
+    fs::copy(&kml, &generic_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::Kml
+    );
+
+    let invalid_coordinates = temporary.path().join("outside-world.kml");
+    fs::write(
+        &invalid_coordinates,
+        b"<kml xmlns=\"http://www.opengis.net/kml/2.2\"><Placemark><Point><coordinates>181,91</coordinates></Point></Placemark></kml>",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &invalid_coordinates,
+            temporary.path().join("invalid-coordinate-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("outside WGS 84 bounds")
+    );
+
+    let kmz = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.kmz");
+    assert_eq!(SourceFormat::detect(&kmz).unwrap(), SourceFormat::Kmz);
+    let kmz_output = temporary.path().join("kmz-out");
+    let kmz_report = convert_path(&kmz, &kmz_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(kmz_report.source_format, SourceFormat::Kmz);
+    let kmz_svg = fs::read_to_string(kmz_output.join("page-0001.svg")).unwrap();
+    assert!(kmz_svg.contains("kmz:point"));
+    assert!(!kmz_svg.contains("example.invalid"));
+    assert!(
+        kmz_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("embedded images/models"))
+    );
+
+    let extensionless_kmz = temporary.path().join("compressed-map");
+    fs::copy(&kmz, &extensionless_kmz).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless_kmz).unwrap(),
+        SourceFormat::Kmz
+    );
+
+    let unsafe_kmz = temporary.path().join("unsafe.kmz");
+    let mut archive = ZipWriter::new(File::create(&unsafe_kmz).unwrap());
+    archive
+        .start_file("../escape.kml", SimpleFileOptions::default())
+        .unwrap();
+    archive.write_all(&fs::read(&kml).unwrap()).unwrap();
+    archive.finish().unwrap();
+    assert!(
+        convert_path(
+            &unsafe_kmz,
+            temporary.path().join("unsafe-kmz-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("unsafe part name")
+    );
+}
+
+#[test]
+fn converts_legacy_xls_using_bounded_worksheet_pages() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/legacy_sample.xls");
+    let output = temporary.path().join("legacy-xls-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xls);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("sample — rows 1–4, columns A–B"));
+    assert!(svg.contains("Name"));
+    assert!(svg.contains("Amount"));
+    assert!(svg.contains("Alpha"));
+    assert!(svg.contains("99.75"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("cached results"))
+    );
+
+    let template = temporary.path().join("template.xlt");
+    fs::copy(input, &template).unwrap();
+    assert_eq!(SourceFormat::detect(&template).unwrap(), SourceFormat::Xls);
+    let template_report = convert_path(
+        &template,
+        temporary.path().join("legacy-xlt-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(template_report.source_format, SourceFormat::Xls);
+}
+
+#[test]
+fn converts_legacy_word_doc_text_and_disambiguates_dot_templates() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_legacy.doc");
+    let output = temporary.path().join("legacy-doc-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Doc);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("document-svg sample"));
+    assert!(svg.contains("Supported inputs"));
+    assert!(svg.contains("Entry point") && svg.contains("Output"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("layout"))
+    );
+
+    let extensionless = temporary.path().join("legacy-word");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Doc
+    );
+
+    let template = temporary.path().join("template.dot");
+    fs::copy(&input, &template).unwrap();
+    assert_eq!(SourceFormat::detect(&template).unwrap(), SourceFormat::Doc);
+    let graphviz = temporary.path().join("diagram.dot");
+    fs::write(&graphviz, "digraph sample { a -> b; }").unwrap();
+    assert_eq!(SourceFormat::detect(&graphviz).unwrap(), SourceFormat::Dot);
+}
+
+#[test]
+fn converts_legacy_powerpoint_binary_text_in_live_slide_order() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_legacy.ppt");
+    let output = temporary.path().join("legacy-ppt-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ppt);
+    assert_eq!(report.page_count, 2);
+
+    let first = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(first.contains("Slide 1"));
+    assert!(first.contains("document-svg"));
+    assert!(first.contains("self-contained SVG pages"));
+    let second = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(second.contains("Slide 2"));
+    assert!(second.contains("One page in, one SVG out"));
+    assert!(second.contains("Every page becomes page-NNNN.svg"));
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("geometry"))
+    );
+
+    let extensionless = temporary.path().join("legacy-presentation");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ppt
+    );
+}
+
+#[test]
+fn converts_kicad_pcb_tracks_pads_zone_and_sniffs_extensionless_boards() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.kicad_pcb");
+    let output = temporary.path().join("kicad-pcb-out");
+
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::KicadPcb
+    );
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::KicadPcb);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("PCB DEMO"));
+    assert!(svg.contains("R1"));
+    assert!(svg.contains("pcb:track"));
+    assert!(svg.contains("pcb:pad"));
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("2D artwork"))
+    );
+
+    let extensionless = temporary.path().join("board");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::KicadPcb
+    );
+}
+
+#[test]
+fn converts_legacy_word_complex_piece_table_text() {
+    fn write_complex_doc(path: &Path, text: &str, one_table: bool, encrypted: bool) {
+        let text_offset = 1024usize;
+        let text_bytes = text.as_bytes();
+        let mut word_document = vec![0u8; text_offset + text_bytes.len()];
+        word_document[text_offset..].copy_from_slice(text_bytes);
+        word_document[0..2].copy_from_slice(&0xA5ECu16.to_le_bytes());
+        word_document[2..4].copy_from_slice(&0x00C1u16.to_le_bytes());
+        word_document[6..8].copy_from_slice(&0x0409u16.to_le_bytes());
+        let flags: u16 =
+            0x0004 | if one_table { 0x0200 } else { 0 } | if encrypted { 0x0100 } else { 0 };
+        word_document[10..12].copy_from_slice(&flags.to_le_bytes());
+        word_document[32..34].copy_from_slice(&14u16.to_le_bytes()); // csw
+        let cslw_offset = 34 + 14 * 2;
+        word_document[cslw_offset..cslw_offset + 2].copy_from_slice(&22u16.to_le_bytes());
+        let fib_rg_lw = cslw_offset + 2;
+        let word_document_len = word_document.len() as u32;
+        word_document[fib_rg_lw..fib_rg_lw + 4].copy_from_slice(&word_document_len.to_le_bytes());
+        word_document[fib_rg_lw + 12..fib_rg_lw + 16]
+            .copy_from_slice(&(text.len() as i32).to_le_bytes());
+        let fc_lcb_count_offset = fib_rg_lw + 22 * 4;
+        word_document[fc_lcb_count_offset..fc_lcb_count_offset + 2]
+            .copy_from_slice(&93u16.to_le_bytes());
+
+        let mut plc_pcd = Vec::new();
+        plc_pcd.extend_from_slice(&0u32.to_le_bytes());
+        plc_pcd.extend_from_slice(&(text.len() as u32).to_le_bytes());
+        plc_pcd.extend_from_slice(&[0, 0]); // PCD flags
+        let compressed_fc = 0x4000_0000u32 | (text_offset as u32 * 2);
+        plc_pcd.extend_from_slice(&compressed_fc.to_le_bytes());
+        plc_pcd.extend_from_slice(&[0, 0]); // PCD property modifier
+        let mut clx = vec![0x02]; // Pcdt marker
+        clx.extend_from_slice(&(plc_pcd.len() as u32).to_le_bytes());
+        clx.extend_from_slice(&plc_pcd);
+        let clx_table_entry = fc_lcb_count_offset + 2 + 33 * 8;
+        word_document[clx_table_entry..clx_table_entry + 4].copy_from_slice(&0u32.to_le_bytes());
+        word_document[clx_table_entry + 4..clx_table_entry + 8]
+            .copy_from_slice(&(clx.len() as u32).to_le_bytes());
+
+        let mut compound = cfb::CompoundFile::create(std::io::Cursor::new(Vec::new())).unwrap();
+        compound
+            .create_stream("WordDocument")
+            .unwrap()
+            .write_all(&word_document)
+            .unwrap();
+        compound
+            .create_stream(if one_table { "1Table" } else { "0Table" })
+            .unwrap()
+            .write_all(&clx)
+            .unwrap();
+        fs::write(path, compound.into_inner().into_inner()).unwrap();
+    }
+
+    let temporary = TempDir::new().unwrap();
+    for (one_table, name) in [(false, "zero-table"), (true, "one-table")] {
+        let input = temporary
+            .path()
+            .join(format!("complex-piece-table-{name}.doc"));
+        let output = temporary.path().join(format!("out-{name}"));
+        write_complex_doc(&input, "Complex piece-table text\r", one_table, false);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::Doc);
+        assert_eq!(report.page_count, 1);
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(svg.contains("Complex piece-table text"));
+    }
+
+    let encrypted = temporary.path().join("encrypted-legacy-word.doc");
+    write_complex_doc(&encrypted, "Secret text\r", false, true);
+    let error = convert_path(
+        &encrypted,
+        temporary.path().join("encrypted-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(
+        matches!(&error, document_svg::Error::Unsupported(message) if message.contains("encrypted or obfuscated")),
+        "{error}"
+    );
+}
+
+#[test]
+fn converts_xlsb_shared_strings_and_detects_binary_workbook_packages() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/calamine_any_sheets.xlsb");
+    let output = temporary.path().join("xlsb-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xlsb);
+    assert_eq!(report.page_count, 3);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("hidden"))
+    );
+    let first_svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(first_svg.contains("Visible — rows 1–5"));
+    assert!(first_svg.contains("data-source-format=\"xlsb\""));
+
+    let extensionless = temporary.path().join("excel-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xlsb
+    );
 }
 
 #[test]
@@ -4146,6 +5863,175 @@ fn converts_minimal_docx() {
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("Hello DOCX"));
     assert!(svg.contains("font-weight=\"700\""));
+}
+
+#[test]
+fn converts_iso_strict_ooxml_word_workbook_and_presentation_packages() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    for (filename, expected_format, expected_pages, expected_text) in [
+        (
+            "sample_strict.docx",
+            SourceFormat::Docx,
+            2,
+            "document-svg sample",
+        ),
+        (
+            "sample_strict.xlsx",
+            SourceFormat::Xlsx,
+            4,
+            "Quarterly sales by region",
+        ),
+        (
+            "sample_strict.pptx",
+            SourceFormat::Pptx,
+            2,
+            "PDF and Office documents as self-contained SVG pages",
+        ),
+    ] {
+        let input = fixture_dir.join(filename);
+        let output = temporary.path().join(filename);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, expected_format, "{filename}");
+        assert_eq!(report.page_count, expected_pages, "{filename}");
+        assert!(
+            report.warnings.is_empty(),
+            "{filename}: {:?}",
+            report.warnings
+        );
+        let first_page = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(first_page.contains(expected_text), "{filename}");
+    }
+}
+
+#[test]
+fn converts_microsoft_project_xml_to_a_bounded_gantt_preview() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.project.xml");
+    assert_eq!(
+        SourceFormat::detect(&fixture).unwrap(),
+        SourceFormat::ProjectXml
+    );
+    let output = temporary.path().join("project-out");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::ProjectXml);
+    assert_eq!(report.page_count, 1);
+    assert!(report.pages[0].warnings.iter().any(|warning| {
+        warning.contains("predecessor relationship") && warning.contains("not recalculated")
+    }));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("without a schedule bar"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"msproject\""));
+    assert!(svg.contains("Website Refresh Plan"));
+    assert!(svg.contains("User &amp; stakeholder discovery"));
+    assert!(svg.contains("office:project-task-bar"));
+    assert!(svg.contains("office:project-dependency-arrow"));
+    assert!(svg.contains("office:project-milestone"));
+    assert!(!svg.contains("Private project resource"));
+    assert!(!svg.contains("Notes are data"));
+
+    let extensionless = temporary.path().join("project-plan");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::ProjectXml
+    );
+    assert_eq!(
+        convert_path(
+            &extensionless,
+            temporary.path().join("project-sniffed-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap()
+        .source_format,
+        SourceFormat::ProjectXml
+    );
+
+    let mspdi_alias = temporary.path().join("schedule.mspdi");
+    fs::copy(&fixture, &mspdi_alias).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&mspdi_alias).unwrap(),
+        SourceFormat::ProjectXml
+    );
+    assert_eq!(
+        convert_path(
+            &mspdi_alias,
+            temporary.path().join("project-mspdi-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap()
+        .page_count,
+        1
+    );
+
+    let limited = ConvertOptions {
+        max_pages: 0,
+        ..Default::default()
+    };
+    assert!(matches!(
+        convert_path(
+            &fixture,
+            temporary.path().join("project-limited-out"),
+            &limited
+        ),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
+
+    let many_tasks = temporary.path().join("many-tasks.xml");
+    let mut xml = String::from(
+        "<Project xmlns=\"http://schemas.microsoft.com/project\"><Name>Task pagination</Name><Tasks>",
+    );
+    for uid in 1..=26 {
+        xml.push_str(&format!(
+            "<Task><UID>{uid}</UID><Name>Task {uid}</Name><Start>2026-09-01T08:00:00</Start><Finish>2026-09-02T17:00:00</Finish></Task>"
+        ));
+    }
+    xml.push_str("</Tasks></Project>");
+    fs::write(&many_tasks, xml).unwrap();
+    let pages = temporary.path().join("project-pages-out");
+    let page_report = convert_path(&many_tasks, &pages, &ConvertOptions::default()).unwrap();
+    assert_eq!(page_report.page_count, 2);
+    let last_page = fs::read_to_string(pages.join("page-0002.svg")).unwrap();
+    assert!(last_page.contains("Task 26"));
+    let one_page_limit = ConvertOptions {
+        max_pages: 1,
+        ..Default::default()
+    };
+    assert!(matches!(
+        convert_path(
+            &many_tasks,
+            temporary.path().join("project-pages-limited-out"),
+            &one_page_limit
+        ),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
+
+    let inverted_dates = temporary.path().join("inverted-project-dates.xml");
+    fs::write(
+        &inverted_dates,
+        r#"<Project xmlns="http://schemas.microsoft.com/project"><Tasks><Task><UID>1</UID><Name>Invalid date order</Name><Start>2026-09-05T08:00:00</Start><Finish>2026-09-01T17:00:00</Finish></Task></Tasks></Project>"#,
+    )
+    .unwrap();
+    let inverted_output = temporary.path().join("inverted-project-out");
+    let inverted_report = convert_path(
+        &inverted_dates,
+        &inverted_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        inverted_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Finish earlier than Start"))
+    );
+    let inverted_svg = fs::read_to_string(inverted_output.join("page-0001.svg")).unwrap();
+    assert!(!inverted_svg.contains("office:project-task-bar"));
 }
 
 #[test]
@@ -5622,6 +7508,584 @@ fn save_single_page_pdf(
     document.save(path).unwrap();
 }
 
+#[test]
+fn decodes_pdf_jpx_images_and_uses_codestream_precision() {
+    fn create_pdf(input: &Path, jpx: &[u8], dictionary_bits_per_component: i64) {
+        let mut document = Document::with_version("1.7");
+        let image_id = document.add_object(Stream::new(
+            dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => 4,
+                "Height" => 4,
+                "ColorSpace" => "DeviceGray",
+                "BitsPerComponent" => dictionary_bits_per_component,
+                "Filter" => "JPXDecode",
+            },
+            jpx.to_vec(),
+        ));
+        let resources_id = document.add_object(dictionary! {
+            "XObject" => dictionary! { "JPX" => Object::Reference(image_id) },
+        });
+        let content = Content {
+            operations: vec![
+                Operation::new("q", vec![]),
+                Operation::new(
+                    "cm",
+                    vec![
+                        120.into(),
+                        0.into(),
+                        0.into(),
+                        120.into(),
+                        50.into(),
+                        50.into(),
+                    ],
+                ),
+                Operation::new("Do", vec![Object::Name(b"JPX".to_vec())]),
+                Operation::new("Q", vec![]),
+            ],
+        };
+        save_single_page_pdf(&mut document, input, resources_id, content);
+    }
+
+    let temporary = TempDir::new().unwrap();
+    for (name, jpx, dictionary_bits_per_component) in [
+        (
+            "raw",
+            include_bytes!("fixtures/sample_jpeg2000.j2k").as_slice(),
+            8,
+        ),
+        (
+            "boxed",
+            include_bytes!("fixtures/sample_jpeg2000.jp2").as_slice(),
+            8,
+        ),
+        (
+            "dictionary-bpc-ignored",
+            include_bytes!("fixtures/sample_jpeg2000.jp2").as_slice(),
+            1,
+        ),
+    ] {
+        let input = temporary.path().join(format!("{name}-jpx.pdf"));
+        let output = temporary.path().join(format!("{name}-jpx-out"));
+        create_pdf(&input, jpx, dictionary_bits_per_component);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::Pdf);
+        assert_eq!(report.page_count, 1);
+        assert!(report.warnings.is_empty(), "{name}: {:?}", report.warnings);
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(svg.contains("data:image/png;base64,"), "{name}");
+        assert!(!svg.contains("data:image/jp2"), "{name}");
+        let encoded = svg
+            .split_once("href=\"data:image/png;base64,")
+            .unwrap()
+            .1
+            .split_once('"')
+            .unwrap()
+            .0;
+        let png_bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .unwrap();
+        let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+            .read_info()
+            .unwrap();
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut pixels).unwrap();
+        assert_eq!((info.width, info.height), (4, 4));
+        assert_eq!(info.color_type, png::ColorType::Grayscale);
+        assert_eq!(
+            &pixels[..info.buffer_size()],
+            &[
+                0, 32, 64, 96, 32, 64, 96, 128, 64, 96, 128, 160, 96, 128, 160, 255
+            ]
+        );
+    }
+
+    let mut oversized_codestream = include_bytes!("fixtures/sample_jpeg2000.j2k").to_vec();
+    let siz_marker = oversized_codestream
+        .windows(2)
+        .position(|window| window == [0xff, 0x51])
+        .unwrap();
+    oversized_codestream[siz_marker + 6..siz_marker + 10].copy_from_slice(&8192u32.to_be_bytes());
+    oversized_codestream[siz_marker + 10..siz_marker + 14].copy_from_slice(&8192u32.to_be_bytes());
+    let input = temporary.path().join("oversized-jpx.pdf");
+    let output = temporary.path().join("oversized-jpx-out");
+    create_pdf(&input, &oversized_codestream, 8);
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("JPX image is 8192x8192"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(!svg.contains("<image"));
+}
+
+#[test]
+fn decodes_pdf_jpx_rgb_and_sixteen_bit_grayscale_to_png() {
+    fn converted_pixels(jpx: &[u8], color_space: &[u8], bits: i64) -> (png::ColorType, Vec<u8>) {
+        let temporary = TempDir::new().unwrap();
+        let input = temporary.path().join("jpx-image.pdf");
+        let output = temporary.path().join("out");
+        let mut document = Document::with_version("1.7");
+        let image_id = document.add_object(Stream::new(
+            dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => 4,
+                "Height" => 4,
+                "ColorSpace" => Object::Name(color_space.to_vec()),
+                "BitsPerComponent" => bits,
+                "Filter" => "JPXDecode",
+            },
+            jpx.to_vec(),
+        ));
+        let resources_id = document.add_object(dictionary! {
+            "XObject" => dictionary! { "JPX" => Object::Reference(image_id) },
+        });
+        let content = Content {
+            operations: vec![
+                Operation::new("q", vec![]),
+                Operation::new(
+                    "cm",
+                    vec![
+                        120.into(),
+                        0.into(),
+                        0.into(),
+                        120.into(),
+                        50.into(),
+                        50.into(),
+                    ],
+                ),
+                Operation::new("Do", vec![Object::Name(b"JPX".to_vec())]),
+                Operation::new("Q", vec![]),
+            ],
+        };
+        save_single_page_pdf(&mut document, &input, resources_id, content);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        let encoded = svg
+            .split_once("href=\"data:image/png;base64,")
+            .unwrap()
+            .1
+            .split_once('"')
+            .unwrap()
+            .0;
+        let png_bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .unwrap();
+        let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+            .read_info()
+            .unwrap();
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut pixels).unwrap();
+        assert_eq!((info.width, info.height), (4, 4));
+        (info.color_type, pixels[..info.buffer_size()].to_vec())
+    }
+
+    let (color_type, rgb_pixels) = converted_pixels(
+        include_bytes!("fixtures/sample_jpeg2000_rgb.jp2"),
+        b"DeviceRGB",
+        8,
+    );
+    assert_eq!(color_type, png::ColorType::Rgb);
+    let expected_rgb = (0..4)
+        .flat_map(|y| {
+            let colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 255]];
+            (0..4).flat_map(move |x| colors[(x + y) % colors.len()])
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(rgb_pixels, expected_rgb);
+
+    let (color_type, gray_pixels) = converted_pixels(
+        include_bytes!("fixtures/sample_jpeg2000_gray16.jp2"),
+        b"DeviceGray",
+        8,
+    );
+    assert_eq!(color_type, png::ColorType::Grayscale);
+    assert_eq!(
+        gray_pixels,
+        [
+            0, 16, 32, 64, 96, 128, 143, 159, 175, 191, 207, 223, 239, 247, 251, 255
+        ]
+    );
+}
+
+#[test]
+fn honors_pdf_jpx_embedded_alpha_and_warns_when_mode_2_has_no_matte() {
+    fn convert_jpx(smask_in_data: Option<i64>, encoded: &[u8]) -> (Vec<String>, String) {
+        let temporary = TempDir::new().unwrap();
+        let input = temporary.path().join("jpx-alpha.pdf");
+        let output = temporary.path().join("out");
+        let mut document = Document::with_version("1.7");
+        let mut image_dictionary = dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 4,
+            "Height" => 4,
+            "ColorSpace" => "DeviceRGB",
+            "BitsPerComponent" => 8,
+            "Filter" => "JPXDecode",
+        };
+        if let Some(mode) = smask_in_data {
+            image_dictionary.set("SMaskInData", mode);
+        }
+        let image_id = document.add_object(Stream::new(image_dictionary, encoded.to_vec()));
+        let resources_id = document.add_object(dictionary! {
+            "XObject" => dictionary! { "JPX" => Object::Reference(image_id) },
+        });
+        let content = Content {
+            operations: vec![
+                Operation::new("q", vec![]),
+                Operation::new(
+                    "cm",
+                    vec![
+                        120.into(),
+                        0.into(),
+                        0.into(),
+                        120.into(),
+                        50.into(),
+                        50.into(),
+                    ],
+                ),
+                Operation::new("Do", vec![Object::Name(b"JPX".to_vec())]),
+                Operation::new("Q", vec![]),
+            ],
+        };
+        save_single_page_pdf(&mut document, &input, resources_id, content);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        (
+            report.pages[0].warnings.clone(),
+            fs::read_to_string(output.join("page-0001.svg")).unwrap(),
+        )
+    }
+
+    fn embedded_png(svg: &str) -> (png::ColorType, Vec<u8>) {
+        let encoded = svg
+            .split_once("href=\"data:image/png;base64,")
+            .unwrap()
+            .1
+            .split_once('"')
+            .unwrap()
+            .0;
+        let png_bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .unwrap();
+        let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+            .read_info()
+            .unwrap();
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut pixels).unwrap();
+        assert_eq!((info.width, info.height), (4, 4));
+        (info.color_type, pixels[..info.buffer_size()].to_vec())
+    }
+
+    let colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 255]];
+    let expected_rgba = (0..4)
+        .flat_map(move |y| {
+            (0..4).flat_map(move |x| {
+                let mut pixel = colors[(x + y) % colors.len()].to_vec();
+                pixel.push([255, 128, 0, 64][(x + y) % 4]);
+                pixel
+            })
+        })
+        .collect::<Vec<_>>();
+    let boxed_alpha = include_bytes!("fixtures/sample_jpeg2000_rgba.jp2");
+    let raw_alpha = include_bytes!("fixtures/sample_jpeg2000_rgba.j2k");
+    let (warnings, svg) = convert_jpx(Some(1), boxed_alpha);
+    assert!(warnings.is_empty(), "{warnings:?}");
+    assert!(!svg.contains("data:image/jp2"));
+    assert_eq!(
+        embedded_png(&svg),
+        (png::ColorType::Rgba, expected_rgba.clone())
+    );
+    let (warnings, raw_svg) = convert_jpx(Some(1), raw_alpha);
+    assert!(warnings.is_empty(), "{warnings:?}");
+    assert_eq!(
+        embedded_png(&raw_svg),
+        (png::ColorType::Rgba, expected_rgba)
+    );
+
+    // Missing /SMaskInData defaults to 0: discard the JPX alpha channel.
+    let (warnings, svg) = convert_jpx(None, boxed_alpha);
+    assert!(warnings.is_empty(), "{warnings:?}");
+    let expected_rgb = (0..4)
+        .flat_map(move |y| (0..4).flat_map(move |x| colors[(x + y) % colors.len()]))
+        .collect::<Vec<_>>();
+    assert_eq!(embedded_png(&svg), (png::ColorType::Rgb, expected_rgb));
+
+    let (warnings, svg) = convert_jpx(Some(2), boxed_alpha);
+    assert!(
+        warnings
+            .iter()
+            .any(|warning| warning.contains("JPX image") && warning.contains("alpha")),
+        "{warnings:?}"
+    );
+    assert!(svg.contains("data:image/jp2;base64,"));
+    assert!(!svg.contains("data:image/png;base64,"));
+
+    let (warnings, svg) = convert_jpx(Some(2), raw_alpha);
+    assert!(
+        warnings
+            .iter()
+            .any(|warning| warning.contains("JPX image") && warning.contains("alpha")),
+        "{warnings:?}"
+    );
+    assert!(svg.contains("data:image/j2c;base64,"));
+}
+
+#[test]
+fn unblends_jpx_smask_in_data_2_when_the_matte_is_supported() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_jpx_smask_in_data_2.pdf");
+    let output = temporary.path().join("out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('"')
+        .unwrap()
+        .0;
+    let png_bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgba);
+    assert_eq!((info.width, info.height), (4, 4));
+    let colors = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 255]];
+    let alpha_values = [255, 128, 0, 64];
+    let expected = (0..4)
+        .flat_map(|y| {
+            (0..4).flat_map(move |x| {
+                let index = (x + y) % 4;
+                let mut pixel = colors[index].to_vec();
+                if alpha_values[index] == 0 {
+                    pixel.fill(0);
+                }
+                pixel.push(alpha_values[index]);
+                pixel
+            })
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(&pixels[..info.buffer_size()], expected);
+}
+
+#[test]
+fn unblends_jpx_smask_in_data_2_in_calibrated_rgb_components() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("jpx-matte-calrgb.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    let cal_rgb = Object::Array(vec![
+        Object::Name(b"CalRGB".to_vec()),
+        Object::Dictionary(dictionary! {
+            "WhitePoint" => vec![0.9505.into(), 1.0.into(), 1.0890.into()],
+            "Gamma" => vec![1.0.into(), 1.0.into(), 1.0.into()],
+            "Matrix" => vec![1.0.into(), 0.0.into(), 0.0.into(), 0.0.into(), 1.0.into(), 0.0.into(), 0.0.into(), 0.0.into(), 1.0.into()],
+        }),
+    ]);
+    let image_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 4,
+            "Height" => 4,
+            "ColorSpace" => cal_rgb,
+            "BitsPerComponent" => 8,
+            "Filter" => "JPXDecode",
+            "SMaskInData" => 2,
+            "Matte" => vec![0.into(), 0.into(), 1.into()],
+        },
+        include_bytes!("fixtures/sample_jpeg2000_rgba_preblended.jp2").to_vec(),
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "JPX" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![Operation::new("Do", vec![Object::Name(b"JPX".to_vec())])],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('"')
+        .unwrap()
+        .0;
+    let png_bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgba);
+    assert_eq!((info.width, info.height), (4, 4));
+    let alpha_values = (0..4)
+        .flat_map(|y| (0..4).map(move |x| [255, 128, 0, 64][(x + y) % 4]))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        (0..16)
+            .map(|pixel| pixels[pixel * 4 + 3])
+            .collect::<Vec<_>>(),
+        alpha_values
+    );
+}
+
+#[test]
+fn applies_a_bounded_external_soft_mask_to_a_jpx_image() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("jpx-soft-mask.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    let mask_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 2,
+            "Height" => 2,
+            "ColorSpace" => "DeviceGray",
+            "BitsPerComponent" => 8,
+        },
+        vec![0, 64, 128, 255],
+    ));
+    let image_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 4,
+            "Height" => 4,
+            "ColorSpace" => "DeviceRGB",
+            "BitsPerComponent" => 8,
+            "Filter" => "JPXDecode",
+            "SMask" => Object::Reference(mask_id),
+        },
+        include_bytes!("fixtures/sample_jpeg2000_rgb.jp2").to_vec(),
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "JPX" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![
+            Operation::new("q", vec![]),
+            Operation::new(
+                "cm",
+                vec![
+                    120.into(),
+                    0.into(),
+                    0.into(),
+                    120.into(),
+                    40.into(),
+                    40.into(),
+                ],
+            ),
+            Operation::new("Do", vec![Object::Name(b"JPX".to_vec())]),
+            Operation::new("Q", vec![]),
+        ],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('"')
+        .unwrap()
+        .0;
+    let png_bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    let pixels = &pixels[..info.buffer_size()];
+    assert_eq!(info.color_type, png::ColorType::Rgba);
+    assert_eq!((info.width, info.height), (4, 4));
+    assert_eq!(&pixels[0..3], &[255, 0, 0]);
+    assert_eq!(pixels[3], 0);
+    assert_eq!(&pixels[8..11], &[0, 0, 255]);
+    assert_eq!(pixels[11], 64);
+    assert_eq!(pixels[63], 255);
+}
+
+#[test]
+fn keeps_jpx_with_matte_soft_mask_as_a_warned_unsupported_image() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("jpx-matte-soft-mask.pdf");
+    let output = temporary.path().join("out");
+    let mut document = Document::with_version("1.7");
+    let mask_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 2,
+            "Height" => 2,
+            "ColorSpace" => "DeviceGray",
+            "BitsPerComponent" => 8,
+            "Matte" => vec![0.0.into(), 0.0.into(), 0.0.into()],
+        },
+        vec![0, 64, 128, 255],
+    ));
+    let image_id = document.add_object(Stream::new(
+        dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => 4,
+            "Height" => 4,
+            "ColorSpace" => "DeviceRGB",
+            "BitsPerComponent" => 8,
+            "Filter" => "JPXDecode",
+            "SMask" => Object::Reference(mask_id),
+        },
+        include_bytes!("fixtures/sample_jpeg2000_rgb.jp2").to_vec(),
+    ));
+    let resources_id = document.add_object(dictionary! {
+        "XObject" => dictionary! { "JPX" => Object::Reference(image_id) },
+    });
+    let content = Content {
+        operations: vec![Operation::new("Do", vec![Object::Name(b"JPX".to_vec())])],
+    };
+    save_single_page_pdf(&mut document, &input, resources_id, content);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("PDF-level masks may not be preserved")),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data:image/jp2;base64,"));
+    assert!(!svg.contains("data:image/png;base64,"));
+}
+
 /// A 600 DPI bilevel page scan is one byte per pixel once unpacked, so the
 /// expansion budget must not charge it four. Before this was fixed an ordinary
 /// scanned A4 page failed the whole document with an "RGBA limit" error.
@@ -6860,15 +9324,18 @@ fn keeps_a_drawio_shape_it_cannot_draw_as_a_labelled_placeholder() {
 }
 
 #[test]
-fn rejects_xml_that_is_not_a_drawio_document() {
+fn previews_generic_xml_that_is_not_a_drawio_document() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("notes.xml");
     let output = temporary.path().join("out");
     drawio_file(&input, "<notes><note>Not a diagram</note></notes>");
 
-    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
 
-    assert!(error.to_string().contains("mxGraphModel"), "{}", error);
+    assert_eq!(report.source_format, SourceFormat::Xml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Not a diagram"));
 }
 
 #[test]
@@ -9481,6 +11948,8 @@ POINTS 3 float
 50.0 80.0 0.0
 CELLS 1 4
 3 0 1 2
+CELL_TYPES 1
+5
 POINT_DATA 3
 SCALARS temperature float 1
 LOOKUP_TABLE default
@@ -9492,6 +11961,2706 @@ LOOKUP_TABLE default
     assert_eq!(vtk_report.source_format, SourceFormat::Simulation);
     let vtk_svg = fs::read_to_string(vtk_out.join("page-0001.svg")).unwrap();
     assert!(vtk_svg.contains("colorbar-max"));
+}
+
+#[test]
+fn converts_gmsh_v41_block_mesh_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("block_mesh.msh");
+    let output = temporary.path().join("gmsh41_out");
+    let msh = r#"$MeshFormat
+4.1 0 8
+$EndMeshFormat
+$Nodes
+1 6 1 6
+2 1 0 6
+1
+2
+3
+4
+5
+6
+0 0 0
+1 0 0
+1 1 0
+0 1 0
+2 0 0
+2 1 0
+$EndNodes
+$Elements
+1 2 1 2
+2 1 3 2
+1 1 2 3 4
+2 2 5 6 3
+$EndElements
+$NodeData
+1
+"Temperature"
+1
+0.0
+3
+0
+1
+6
+1 10.0
+2 20.0
+3 30.0
+4 40.0
+5 50.0
+6 60.0
+$EndNodeData
+$ElementData
+1
+"Strain"
+1
+0.0
+3
+0
+1
+2
+1 2.0
+2 8.0
+$EndElementData
+"#;
+    fs::write(&input, msh).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Simulation);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("color map uses cell values"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Gmsh MSH 4.1 FEA Mesh"));
+    assert!(svg.contains("Temperature / Strain"));
+    assert!(svg.contains("colorbar-max"));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+}
+
+#[test]
+fn converts_gmsh_v40_ascii_mesh_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("mesh_v40.msh");
+    let output = temporary.path().join("gmsh40_out");
+    let msh = r#"$MeshFormat
+4.0 0 8
+$EndMeshFormat
+$Nodes
+1 4
+1 2 0 4
+10 0 0 0
+20 50 0 0
+30 50 50 0
+40 0 50 0
+$EndNodes
+$Elements
+1 2
+1 2 2 2
+100 10 20 30
+200 10 30 40
+$EndElements
+"#;
+    fs::write(&input, msh).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Simulation);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Gmsh MSH 4.0 FEA Mesh"));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+}
+
+#[test]
+fn converts_ascii_vtk_xml_unstructured_grid_through_public_api() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("stress.vtu");
+    let output = temporary.path().join("vtu_out");
+    let source = r#"<?xml version="1.0"?>
+<VTKFile type="UnstructuredGrid" version="1.0" byte_order="LittleEndian">
+  <UnstructuredGrid><Piece NumberOfPoints="4" NumberOfCells="2">
+    <PointData Scalars="temperature"><DataArray type="Float32" Name="temperature" format="ascii">10 20 30 40</DataArray></PointData>
+    <CellData Scalars="stress"><DataArray type="Float32" Name="stress" format="ascii">2 8</DataArray></CellData>
+    <Points><DataArray type="Float32" NumberOfComponents="3" format="ascii">0 0 0 100 0 0 100 100 0 0 100 0</DataArray></Points>
+    <Cells>
+      <DataArray type="Int32" Name="connectivity" format="ascii">0 1 2 0 2 3</DataArray>
+      <DataArray type="Int32" Name="offsets" format="ascii">3 6</DataArray>
+      <DataArray type="UInt8" Name="types" format="ascii">5 5</DataArray>
+    </Cells>
+  </Piece></UnstructuredGrid>
+</VTKFile>"#;
+    fs::write(&input, source).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Simulation);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("color map uses cell values"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+    assert!(svg.contains("colorbar-max"));
+}
+
+#[test]
+fn converts_zlib_appended_vtk_xml_through_public_api() {
+    use flate2::Compression;
+    use flate2::write::ZlibEncoder;
+
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("stress.vtu");
+    let output = temporary.path().join("vtu_binary_out");
+    let mut appended = Vec::new();
+    let mut arrays_xml = String::new();
+    let mut cells_xml = String::new();
+
+    let mut add_array = |type_name: &str, name: &str, raw: &[u8]| {
+        let offset = appended.len();
+        let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(raw).unwrap();
+        let compressed = encoder.finish().unwrap();
+        appended.extend_from_slice(&1u32.to_le_bytes());
+        appended.extend_from_slice(&(raw.len() as u32).to_le_bytes());
+        appended.extend_from_slice(&(raw.len() as u32).to_le_bytes());
+        appended.extend_from_slice(&(compressed.len() as u32).to_le_bytes());
+        appended.extend_from_slice(&compressed);
+        let context = match name {
+            "points" => format!(
+                "<Points><DataArray type=\"{type_name}\" NumberOfComponents=\"3\" format=\"appended\" offset=\"{offset}\"/></Points>"
+            ),
+            "temperature" => format!(
+                "<PointData Scalars=\"temperature\"><DataArray type=\"{type_name}\" Name=\"{name}\" format=\"appended\" offset=\"{offset}\"/></PointData>"
+            ),
+            "stress" => format!(
+                "<CellData Scalars=\"stress\"><DataArray type=\"{type_name}\" Name=\"{name}\" format=\"appended\" offset=\"{offset}\"/></CellData>"
+            ),
+            _ => format!(
+                "<DataArray type=\"{type_name}\" Name=\"{name}\" format=\"appended\" offset=\"{offset}\"/>"
+            ),
+        };
+        if matches!(name, "connectivity" | "offsets" | "types") {
+            cells_xml.push_str(&context);
+        } else {
+            arrays_xml.push_str(&context);
+        }
+    };
+
+    let mut points = Vec::new();
+    for value in [
+        0.0f32, 0.0, 0.0, 100.0, 0.0, 0.0, 100.0, 100.0, 0.0, 0.0, 100.0, 0.0,
+    ] {
+        points.extend_from_slice(&value.to_le_bytes());
+    }
+    add_array("Float32", "points", &points);
+    let mut point_scalars = Vec::new();
+    for value in [10.0f32, 20.0, 30.0, 40.0] {
+        point_scalars.extend_from_slice(&value.to_le_bytes());
+    }
+    add_array("Float32", "temperature", &point_scalars);
+    let mut cell_scalars = Vec::new();
+    for value in [2.0f32, 8.0] {
+        cell_scalars.extend_from_slice(&value.to_le_bytes());
+    }
+    add_array("Float32", "stress", &cell_scalars);
+    let mut connectivity = Vec::new();
+    for value in [0i32, 1, 2, 0, 2, 3] {
+        connectivity.extend_from_slice(&value.to_le_bytes());
+    }
+    add_array("Int32", "connectivity", &connectivity);
+    let mut offsets = Vec::new();
+    for value in [3i32, 6] {
+        offsets.extend_from_slice(&value.to_le_bytes());
+    }
+    add_array("Int32", "offsets", &offsets);
+    add_array("UInt8", "types", &[5, 5]);
+    arrays_xml.push_str(&format!("<Cells>{cells_xml}</Cells>"));
+
+    let xml = format!(
+        "<VTKFile type=\"UnstructuredGrid\" version=\"1.0\" byte_order=\"LittleEndian\" header_type=\"UInt32\" compressor=\"vtkZLibDataCompressor\"><UnstructuredGrid><Piece NumberOfPoints=\"4\" NumberOfCells=\"2\">{arrays_xml}</Piece></UnstructuredGrid><AppendedData encoding=\"base64\">_{}</AppendedData></VTKFile>",
+        base64::engine::general_purpose::STANDARD.encode(appended)
+    );
+    fs::write(&input, xml).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Simulation);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("color map uses cell values"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+    assert!(svg.contains("colorbar-max"));
+}
+
+fn cbz_png(red: u8, green: u8, blue: u8) -> Vec<u8> {
+    let mut bytes = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut bytes, 1, 1);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().unwrap();
+        writer.write_image_data(&[red, green, blue]).unwrap();
+    }
+    bytes
+}
+
+fn minimal_xps_package(page_source: &str, openxps: bool, utf16_parts: bool) -> Vec<u8> {
+    let mut archive = ZipWriter::new(std::io::Cursor::new(Vec::new()));
+    let options = SimpleFileOptions::default();
+    let parts = [
+        (
+            "_rels/.rels",
+            r#"<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.microsoft.com/xps/2005/06/fixedrepresentation" Target="/FixedDocumentSequence.fdseq"/></Relationships>"#,
+        ),
+        (
+            "FixedDocumentSequence.fdseq",
+            r#"<FixedDocumentSequence xmlns="http://schemas.microsoft.com/xps/2005/06"><DocumentReference Source="Documents/1/FixedDocument.fdoc"/></FixedDocumentSequence>"#,
+        ),
+        (
+            "Documents/1/FixedDocument.fdoc",
+            "<FixedDocument xmlns=\"http://schemas.microsoft.com/xps/2005/06\"><PageContent Source=\"{page_source}\" Width=\"200\" Height=\"120\"/></FixedDocument>",
+        ),
+        (
+            "Documents/1/Pages/1.fpage",
+            r##"<?xml version="1.0"?><FixedPage xmlns="http://schemas.microsoft.com/xps/2005/06" Width="200" Height="120"><Path Fill="#FFFF0000" Data="F0 M 10,10 L 190,10 190,110 10,110 Z"/><Canvas Opacity="0.5" RenderTransform="0.75,0,0,0.75,5,0"><Path><Path.Fill><SolidColorBrush Color="#FF00FF00"/></Path.Fill><Path.Data><PathGeometry Figures="F1 M 20,20 L 180,20 180,100 20,100 Z"/></Path.Data></Path></Canvas><Path><Path.Fill><ImageBrush ImageSource="/Resources/Images/image1.png"/></Path.Fill><Path.Data><PathGeometry Figures="F1 M 30,60 L 170,60 170,100 30,100 Z"/></Path.Data></Path><Glyphs FontUri="/Resources/Fonts/missing.odttf" OriginX="20" OriginY="85" UnicodeString="XPS &amp; OXPS" FontRenderingEmSize="12" Fill="#FF0000FF"/></FixedPage>"##,
+        ),
+    ];
+    for (name, contents) in parts {
+        archive.start_file(name, options).unwrap();
+        let mut contents = if name == "Documents/1/FixedDocument.fdoc" {
+            contents.replace("{page_source}", page_source)
+        } else {
+            contents.to_owned()
+        };
+        if openxps {
+            contents = contents.replace(
+                "http://schemas.microsoft.com/xps/2005/06",
+                "http://schemas.openxps.org/oxps/v1.0",
+            );
+        }
+        if utf16_parts && name != "_rels/.rels" {
+            archive.write_all(&[0xff, 0xfe]).unwrap();
+            for code_unit in contents.encode_utf16() {
+                archive.write_all(&code_unit.to_le_bytes()).unwrap();
+            }
+        } else {
+            archive.write_all(contents.as_bytes()).unwrap();
+        }
+    }
+    let mut image_bytes = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut image_bytes, 2, 2);
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        let mut writer = encoder.write_header().unwrap();
+        writer
+            .write_image_data(&[0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0])
+            .unwrap();
+    }
+    archive
+        .start_file("Resources/Images/image1.png", options)
+        .unwrap();
+    archive.write_all(&image_bytes).unwrap();
+    archive.finish().unwrap().into_inner()
+}
+
+#[test]
+fn converts_xps_and_oxps_fixed_pages_with_bounded_package_parts() {
+    let temporary = TempDir::new().unwrap();
+    let xps_bytes = minimal_xps_package("Pages/1.fpage", false, false);
+    let oxps_bytes = minimal_xps_package("Pages/1.fpage", true, true);
+    for (filename, output_name, bytes) in [
+        ("sample.xps", "xps_out", xps_bytes.clone()),
+        ("sample.oxps", "oxps_out", oxps_bytes),
+        ("extensionless", "xps_sniffed_out", xps_bytes),
+    ] {
+        let input = temporary.path().join(filename);
+        let output = temporary.path().join(output_name);
+        fs::write(&input, bytes).unwrap();
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::Xps);
+        assert_eq!(report.page_count, 1);
+        assert!(
+            report
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("embedded fonts"))
+        );
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(svg.contains("width=\"150pt\" height=\"90pt\""));
+        assert!(svg.contains("data-semantic-role=\"xps:path\""));
+        assert!(svg.contains("data-semantic-role=\"xps:glyphs\""));
+        assert!(svg.contains("XPS &amp; OXPS"));
+        assert!(svg.contains("data:image/png;base64,"));
+        assert!(svg.contains("clip-path=\"url(#xps-image-clip-"));
+        assert!(svg.contains("matrix(0.75 0 0 0.75 5 0)"));
+        assert!(svg.contains("opacity=\"0.5\""));
+    }
+
+    let traversal = minimal_xps_package("../../../escape.fpage", false, false);
+    let traversal_path = temporary.path().join("traversal.xps");
+    fs::write(&traversal_path, traversal).unwrap();
+    assert!(matches!(
+        convert_path(
+            &traversal_path,
+            temporary.path().join("traversal_out"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::InvalidInput(_))
+    ));
+}
+
+#[test]
+fn converts_dwfx_fixed_page_alias_through_xps_reader() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.dwfx");
+    let output = temporary.path().join("dwfx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xps);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("DWFx preview"));
+    assert!(svg.contains("data-semantic-role=\"xps:path\""));
+}
+
+#[test]
+fn converts_nastran_op2_record_preflight_without_decoding_results() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.op2");
+    let output = temporary.path().join("op2-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Op2);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Nastran OP2 preflight"));
+    assert!(svg.contains("GEOM1"));
+    assert!(svg.contains("OUGV1"));
+    let extensionless = temporary.path().join("nastran-results");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Op2
+    );
+}
+
+#[test]
+fn converts_ipc2581_pcb_exchange_structure_without_rendering_manufacturing_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ipc2581");
+    let output = temporary.path().join("ipc2581-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ipc2581);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("IPC-2581 PCB exchange"));
+    assert!(svg.contains("Layers"));
+    assert!(svg.contains("Components"));
+    let extensionless = temporary.path().join("pcb-exchange");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ipc2581
+    );
+}
+
+#[test]
+fn converts_jt_fixed_header_without_loading_model_segments() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jt");
+    let output = temporary.path().join("jt-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Jt);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Siemens JT header"));
+    assert!(svg.contains("Version 10.6"));
+    let extensionless = temporary.path().join("jt-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Jt
+    );
+}
+
+#[test]
+fn converts_cbz_images_in_natural_order_and_warns_on_unsupported_types() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("comic.cbz");
+    let mut archive = ZipWriter::new(std::io::Cursor::new(Vec::new()));
+    let options = SimpleFileOptions::default();
+    for (name, bytes) in [
+        ("ComicInfo.xml", b"<ComicInfo/>".to_vec()),
+        ("Page 10.png", cbz_png(0, 0, 255)),
+        ("Page 2.png", cbz_png(255, 0, 0)),
+        ("Page 3.gif", b"GIF89a\x01\x00\x01\x00".to_vec()),
+    ] {
+        archive.start_file(name, options).unwrap();
+        archive.write_all(&bytes).unwrap();
+    }
+    fs::write(&input, archive.finish().unwrap().into_inner()).unwrap();
+
+    let output = temporary.path().join("cbz_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Cbz);
+    assert_eq!(report.page_count, 2);
+    assert!(report.warnings.iter().any(
+        |warning| warning.contains("omitted 1 image member(s)") && warning.contains("PNG/JPEG")
+    ));
+
+    let first_svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let encoded = first_svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('\"')
+        .unwrap()
+        .0;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(bytes))
+        .read_info()
+        .unwrap();
+    let mut pixel = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixel).unwrap();
+    assert_eq!(&pixel[..info.buffer_size()], &[255, 0, 0]);
+
+    let limits = ConvertOptions {
+        max_pages: 1,
+        ..Default::default()
+    };
+    assert!(matches!(
+        convert_path(&input, temporary.path().join("cbz_limited_out"), &limits),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
+}
+
+#[test]
+fn converts_abaqus_inp_parts_instances_and_extensionless_meshes() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("assembly.inp");
+    let deck = "*Heading\nTwo translated triangles\n*Part, name=Triangle\n*Node\n1, 0, 0, 0\n2, 1, 0, 0\n3, 0, 1, 0\n*Element, type=CPS3\n1, 1, 2, 3\n*End Part\n*Assembly, name=Model\n*Instance, name=Left, part=Triangle\n*End Instance\n*Instance, name=Right, part=Triangle\n2, 0, 0\n*End Instance\n*End Assembly\n";
+    fs::write(&input, deck).unwrap();
+
+    let output = temporary.path().join("abaqus_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Abaqus);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+    assert!(svg.contains("Two translated triangles"));
+
+    let extensionless = temporary.path().join("mesh-data");
+    fs::write(&extensionless, deck).unwrap();
+    let sniffed_output = temporary.path().join("abaqus_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Abaqus);
+    assert_eq!(sniffed.page_count, 1);
+}
+
+#[test]
+fn converts_nastran_bulk_data_and_sniffs_extensionless_meshes() {
+    let temporary = TempDir::new().unwrap();
+    let deck = "$ Nastran free-field mesh\nGRID,1,,0.,0.,0.\nGRID,2,,1.,0.,0.\nGRID,3,,0.,1.,2.\nINCLUDE 'external.bdf'\nCTRIA3,10,1,1,2,3\nCQUAD9,11,1,1,2,3,1,2,3,1,2,3\nENDDATA\n";
+    let input = temporary.path().join("plate.bdf");
+    fs::write(&input, deck).unwrap();
+    let output = temporary.path().join("nastran_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Nastran);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("INCLUDE"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("unsupported element"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+    assert!(svg.contains("Nastran Bulk Data mesh"));
+
+    let extensionless = temporary.path().join("mesh-data");
+    let whitespace_deck = "$ Nastran whitespace free field\nGRID 1 0 0 0 0\nGRID 2 0 1 0 0\nGRID 3 0 0 1 0\nCTRIA3 10 1 1 2 3\n";
+    fs::write(&extensionless, whitespace_deck).unwrap();
+    let sniffed_output = temporary.path().join("nastran_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Nastran);
+    assert_eq!(sniffed.page_count, 1);
+
+    let alias = temporary.path().join("mesh.nastran");
+    fs::write(&alias, deck).unwrap();
+    let alias_output = temporary.path().join("nastran_alias_out");
+    let alias_report = convert_path(&alias, &alias_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(alias_report.source_format, SourceFormat::Nastran);
+}
+
+#[test]
+fn converts_lsdyna_keyword_mesh_and_sniffs_extensionless_files() {
+    let temporary = TempDir::new().unwrap();
+    let deck = "*KEYWORD\n*TITLE\nLS-DYNA panel\n*ELEMENT_SHELL\n1,1,1,2,3,4\n*NODE\n1,0,0,0\n2,100,0,0\n3,100,50,2\n4,0,50,2\n*INCLUDE\nmesh-extra.k\n*END\n";
+    let input = temporary.path().join("panel.k");
+    fs::write(&input, deck).unwrap();
+    let output = temporary.path().join("lsdyna_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::LsDyna);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("INCLUDE"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("LS-DYNA panel"));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+
+    let extensionless = temporary.path().join("keyword-mesh");
+    fs::write(&extensionless, deck).unwrap();
+    let sniffed_output = temporary.path().join("lsdyna_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::LsDyna);
+    assert_eq!(sniffed.page_count, 1);
+
+    let alias = temporary.path().join("panel.key");
+    fs::write(&alias, deck).unwrap();
+    let alias_output = temporary.path().join("lsdyna_alias_out");
+    let alias_report = convert_path(&alias, &alias_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(alias_report.source_format, SourceFormat::LsDyna);
+}
+
+#[test]
+fn converts_jupyter_notebooks_and_sniffs_extensionless_json() {
+    let temporary = TempDir::new().unwrap();
+    let notebook = serde_json::json!({
+        "nbformat": 4,
+        "nbformat_minor": 5,
+        "metadata": {},
+        "cells": [
+            {"cell_type":"markdown", "metadata":{}, "source":["# Notebook report\n", "Short introduction."]},
+            {"cell_type":"code", "execution_count":1, "metadata":{}, "source":["print(1 + 1)"], "outputs":[
+                {"output_type":"stream", "name":"stdout", "text":["2\n"]}
+            ]}
+        ]
+    });
+    let source_text = serde_json::to_string(&notebook).unwrap();
+    let input = temporary.path().join("analysis.ipynb");
+    fs::write(&input, &source_text).unwrap();
+    let output = temporary.path().join("jupyter_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Jupyter);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Notebook report"));
+    assert!(svg.contains("print(1 + 1)"));
+    assert!(svg.contains("2"));
+
+    let extensionless = temporary.path().join("notebook-data");
+    fs::write(&extensionless, source_text).unwrap();
+    let sniffed_output = temporary.path().join("jupyter_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Jupyter);
+}
+
+#[test]
+fn renders_jupyter_markdown_attachment_images_with_shared_limits() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/jupyter_attachment.ipynb");
+    let output = temporary.path().join("jupyter-attachment-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Jupyter);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"attached chart\""));
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("attachments were omitted"))
+    );
+}
+
+#[test]
+fn previews_quarto_and_r_markdown_source_without_executing_chunks() {
+    let temporary = TempDir::new().unwrap();
+    let source_text = "---\ntitle: \"Simulation Notes\"\nauthor: Ada\ndate: 2026-09-13\nformat: pdf\n---\n\n## Results\nThe stored source shows a chunk.\n\n```{r, echo=FALSE}\nmean(c(1, 2, 3))\n```\n";
+    let input = temporary.path().join("analysis.qmd");
+    fs::write(&input, source_text).unwrap();
+    let output = temporary.path().join("quarto_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Quarto);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("are not executed"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Simulation Notes"));
+    assert!(svg.contains("mean(c(1, 2, 3))"));
+
+    let alias = temporary.path().join("analysis.Rmd");
+    fs::write(&alias, source_text).unwrap();
+    let alias_output = temporary.path().join("rmarkdown_out");
+    let alias_report = convert_path(&alias, &alias_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(alias_report.source_format, SourceFormat::Quarto);
+}
+
+#[test]
+fn embeds_quarto_local_and_reference_images_without_executing_chunks() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/quarto_image.qmd");
+    let input = temporary.path().join("report.qmd");
+    fs::copy(&fixture, &input).unwrap();
+    fs::create_dir_all(input.parent().unwrap().join("assets")).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/assets/red-blue.png"),
+        input.parent().unwrap().join("assets/red-blue.png"),
+    )
+    .unwrap();
+    let output = temporary.path().join("quarto-image-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Quarto);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("are not executed"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("external image resources"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("aria-label=\"Local Quarto image\""));
+    assert!(svg.contains("aria-label=\"Reference Quarto image\""));
+    assert!(!svg.contains("example.invalid"));
+}
+
+#[test]
+fn converts_jats_article_sections_figures_and_tables() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jats");
+    let input = temporary.path().join("article.jats");
+    fs::copy(&fixture, &input).unwrap();
+    fs::create_dir_all(input.parent().unwrap().join("assets")).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/assets/red-blue.png"),
+        input.parent().unwrap().join("assets/red-blue.png"),
+    )
+    .unwrap();
+    let output = temporary.path().join("jats-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Jats);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JATS Article Preview"));
+    assert!(svg.contains("Introduction"));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("Figure: Local figure"));
+    assert!(svg.contains("Ready"));
+}
+
+#[test]
+fn converts_docbook_article_with_lists_code_tables_and_local_image() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.docbook");
+    let input = temporary.path().join("article.dbk");
+    fs::copy(&fixture, &input).unwrap();
+    fs::create_dir_all(input.parent().unwrap().join("assets")).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/assets/red-blue.png"),
+        input.parent().unwrap().join("assets/red-blue.png"),
+    )
+    .unwrap();
+    let output = temporary.path().join("docbook-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Docbook);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("DocBook Preview"));
+    assert!(svg.contains("First item"));
+    assert!(svg.contains("1.Ordered item"));
+    assert!(svg.contains("never executed"));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("Figure: Validated local image"));
+    assert!(svg.contains("Ready"));
+
+    let extensionless = temporary.path().join("article");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed_output = temporary.path().join("docbook-sniffed");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Docbook);
+}
+
+#[test]
+fn converts_dita_topic_and_ditamap_with_local_topics() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let input = temporary.path().join("guide.dita");
+    fs::copy(fixture_root.join("sample.dita"), &input).unwrap();
+    fs::create_dir_all(input.parent().unwrap().join("assets")).unwrap();
+    fs::copy(
+        fixture_root.join("assets/red-blue.png"),
+        input.parent().unwrap().join("assets/red-blue.png"),
+    )
+    .unwrap();
+    let output = temporary.path().join("dita-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dita);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("DITA Preview"));
+    assert!(svg.contains("1.Ordered topic item"));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("Ready"));
+
+    fs::copy(
+        fixture_root.join("sample.ditamap"),
+        temporary.path().join("guide.ditamap"),
+    )
+    .unwrap();
+    fs::copy(
+        fixture_root.join("second.dita"),
+        temporary.path().join("second.dita"),
+    )
+    .unwrap();
+    let map_output = temporary.path().join("dita-map-out");
+    let map_report = convert_path(
+        temporary.path().join("guide.ditamap"),
+        &map_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(map_report.source_format, SourceFormat::Dita);
+    let map_svg = fs::read_to_string(map_output.join("page-0001.svg")).unwrap();
+    assert!(map_svg.contains("DITA Guide Map"));
+    assert!(map_svg.contains("Second Topic"));
+
+    let unsafe_map = temporary.path().join("unsafe.ditamap");
+    fs::write(
+        &unsafe_map,
+        r#"<map xmlns="http://dita.oasis-open.org/architecture/1.3/"><title>Unsafe refs</title><topicref href="../outside.dita"/><topicref href="https://example.invalid/remote.dita"/></map>"#,
+    )
+    .unwrap();
+    let unsafe_report = convert_path(
+        &unsafe_map,
+        temporary.path().join("unsafe-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        unsafe_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("outside the map directory"))
+    );
+
+    let extensionless = temporary.path().join("topic");
+    fs::copy(fixture_root.join("sample.dita"), &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("dita-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Dita);
+}
+
+#[test]
+fn converts_pdb_models_and_sniffs_extensionless_coordinates() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.pdb");
+    let input = temporary.path().join("models.pdb");
+    fs::copy(&fixture, &input).unwrap();
+    let output = temporary.path().join("pdb-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Pdb);
+    assert_eq!(report.page_count, 2);
+    let first = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(first.contains("SAMPLE PDB PREVIEW"));
+    assert!(first.contains("chemical:bond"));
+
+    let extensionless = temporary.path().join("coordinates");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("pdb-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Pdb);
+}
+
+#[test]
+fn converts_hwpx_sections_tables_and_package_images() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.hwpx");
+    let input = temporary.path().join("report.hwpx");
+    fs::copy(&fixture, &input).unwrap();
+    let output = temporary.path().join("hwpx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Hwpx);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("HWPX Preview"));
+    assert!(svg.contains("Ready"));
+    assert!(svg.contains("data:image/png;base64,"));
+
+    let extensionless = temporary.path().join("report");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("hwpx-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Hwpx);
+}
+
+#[test]
+fn converts_collada_geometry_and_sniffs_extensionless_mesh() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/triangle.dae");
+    let input = temporary.path().join("triangle.dae");
+    fs::copy(&fixture, &input).unwrap();
+    let output = temporary.path().join("collada-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Collada);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("obj:background"));
+    assert!(svg.contains("COLLADA materials"));
+
+    let extensionless = temporary.path().join("triangle");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("collada-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Collada);
+}
+
+#[test]
+fn converts_x3d_indexed_face_set_and_sniffs_extensionless_mesh() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/triangle.x3d");
+    let input = temporary.path().join("triangle.x3d");
+    fs::copy(&fixture, &input).unwrap();
+    let output = temporary.path().join("x3d-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::X3d);
+    assert!(
+        fs::read_to_string(output.join("page-0001.svg"))
+            .unwrap()
+            .contains("obj:background")
+    );
+
+    let extensionless = temporary.path().join("triangle");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("x3d-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::X3d);
+}
+
+#[test]
+fn converts_xmind_topic_outline_and_sniffs_extensionless_package() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xmind");
+    let input = temporary.path().join("map.xmind");
+    fs::copy(&fixture, &input).unwrap();
+    let output = temporary.path().join("xmind-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xmind);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XMind Preview"));
+    assert!(svg.contains("Child topic"));
+
+    let extensionless = temporary.path().join("map");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("xmind-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Xmind);
+}
+
+#[test]
+fn converts_xmind_json_content_package() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_json.xmind");
+    let output = temporary.path().join("xmind-json-out");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xmind);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JSON XMind Preview"));
+    assert!(svg.contains("JSON Child"));
+}
+
+#[test]
+fn converts_nifti_nii_and_gzip_volumes() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.nii");
+    let gz_fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.nii.gz");
+    let input = temporary.path().join("volume.nii");
+    fs::copy(&fixture, &input).unwrap();
+    let report = convert_path(
+        &input,
+        temporary.path().join("nii-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Nifti);
+    assert_eq!(report.page_count, 2);
+    assert!(
+        fs::read_to_string(temporary.path().join("nii-out/page-0001.svg"))
+            .unwrap()
+            .contains("NIfTI slice 1")
+    );
+
+    let gz_input = temporary.path().join("volume.nii.gz");
+    fs::copy(&gz_fixture, &gz_input).unwrap();
+    let gz_report = convert_path(
+        &gz_input,
+        temporary.path().join("nii-gz-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(gz_report.source_format, SourceFormat::Nifti);
+    assert_eq!(gz_report.page_count, 2);
+}
+
+#[test]
+fn converts_big_endian_nifti_integer_volume() {
+    let temporary = TempDir::new().unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_big_endian.nii");
+    let report = convert_path(
+        &fixture,
+        temporary.path().join("nifti-be-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Nifti);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        fs::read_to_string(temporary.path().join("nifti-be-out/page-0001.svg"))
+            .unwrap()
+            .contains("data:image/png;base64,")
+    );
+}
+
+#[test]
+fn converts_fits_and_gzip_image_planes() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fits");
+    let gz_fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fits.gz");
+    let input = temporary.path().join("image.fits");
+    fs::copy(&fixture, &input).unwrap();
+    let report = convert_path(
+        &input,
+        temporary.path().join("fits-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Fits);
+    assert_eq!(report.page_count, 2);
+    assert!(
+        fs::read_to_string(temporary.path().join("fits-out/page-0001.svg"))
+            .unwrap()
+            .contains("FITS image plane 1")
+    );
+
+    let gz_input = temporary.path().join("image.fits.gz");
+    fs::copy(&gz_fixture, &gz_input).unwrap();
+    let gz_report = convert_path(
+        &gz_input,
+        temporary.path().join("fits-gz-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(gz_report.source_format, SourceFormat::Fits);
+    assert_eq!(gz_report.page_count, 2);
+}
+
+#[test]
+fn converts_mrc_and_gzip_density_planes() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mrc");
+    let gz_fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mrc.gz");
+    let input = temporary.path().join("map.mrc");
+    fs::copy(&fixture, &input).unwrap();
+    let report = convert_path(
+        &input,
+        temporary.path().join("mrc-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mrc);
+    assert_eq!(report.page_count, 2);
+    let gz_input = temporary.path().join("map.mrc.gz");
+    fs::copy(&gz_fixture, &gz_input).unwrap();
+    let gz_report = convert_path(
+        &gz_input,
+        temporary.path().join("mrc-gz-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(gz_report.source_format, SourceFormat::Mrc);
+    assert_eq!(gz_report.page_count, 2);
+}
+
+#[test]
+fn converts_big_endian_mrc_density_plane() {
+    let temporary = TempDir::new().unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_big_endian.mrc");
+    let report = convert_path(
+        &fixture,
+        temporary.path().join("mrc-be-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mrc);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        fs::read_to_string(temporary.path().join("mrc-be-out/page-0001.svg"))
+            .unwrap()
+            .contains("MRC plane 1")
+    );
+}
+
+#[test]
+fn converts_read_only_sqlite_user_tables() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sqlite");
+    let input = temporary.path().join("data.sqlite");
+    fs::copy(&fixture, &input).unwrap();
+    let output = temporary.path().join("sqlite-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sqlite);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("people"));
+    assert!(svg.contains("Alice"));
+    assert!(svg.contains("metrics"));
+}
+
+#[test]
+fn converts_cif_atom_site_models_and_sniffs_extensionless_coordinates() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cif");
+    let input = temporary.path().join("structure.cif");
+    fs::copy(&fixture, &input).unwrap();
+    let report = convert_path(
+        &input,
+        temporary.path().join("cif-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Cif);
+    assert_eq!(report.page_count, 2);
+    let extensionless = temporary.path().join("structure");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("cif-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Cif);
+}
+
+#[test]
+fn converts_mol2_atoms_bonds_and_sniffs_extensionless_structure() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mol2");
+    let input = temporary.path().join("structure.mol2");
+    fs::copy(&fixture, &input).unwrap();
+    let report = convert_path(
+        &input,
+        temporary.path().join("mol2-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mol2);
+    let svg = fs::read_to_string(temporary.path().join("mol2-out/page-0001.svg")).unwrap();
+    assert!(svg.contains("chemical:bond"));
+    let extensionless = temporary.path().join("structure");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("mol2-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Mol2);
+}
+
+#[test]
+fn converts_nquads_graph_column() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.nq");
+    let report = convert_path(
+        &fixture,
+        temporary.path().join("nq-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Turtle);
+    let svg = fs::read_to_string(temporary.path().join("nq-out/page-0001.svg")).unwrap();
+    assert!(svg.contains("Graph"));
+    assert!(svg.contains("Graph"));
+}
+
+#[test]
+fn converts_turtle_semicolon_and_comma_continuations() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_multiline.ttl");
+    let report = convert_path(
+        &fixture,
+        temporary.path().join("turtle-multiline-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Turtle);
+    let svg =
+        fs::read_to_string(temporary.path().join("turtle-multiline-out/page-0001.svg")).unwrap();
+    assert!(svg.contains("score"));
+    assert!(svg.contains("11"));
+}
+
+#[test]
+fn converts_turtle_rdf_statements_and_sniffs_extensionless_file() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ttl");
+    let input = temporary.path().join("graph.ttl");
+    fs::copy(&fixture, &input).unwrap();
+    let report = convert_path(
+        &input,
+        temporary.path().join("turtle-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Turtle);
+    let svg = fs::read_to_string(temporary.path().join("turtle-out/page-0001.svg")).unwrap();
+    assert!(svg.contains("RDF statements"));
+    assert!(svg.contains("Alice"));
+    let extensionless = temporary.path().join("graph");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("turtle-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Turtle);
+}
+
+#[test]
+fn converts_bounded_eps_paths_and_sniffs_extensionless_postscript() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/triangle.eps");
+    let input = temporary.path().join("triangle.eps");
+    fs::copy(&fixture, &input).unwrap();
+    let report = convert_path(
+        &input,
+        temporary.path().join("eps-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Eps);
+    assert!(
+        fs::read_to_string(temporary.path().join("eps-out/page-0001.svg"))
+            .unwrap()
+            .contains("eps:path")
+    );
+    let extensionless = temporary.path().join("triangle");
+    fs::copy(&fixture, &extensionless).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("eps-sniffed"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Eps);
+}
+
+#[test]
+fn converts_postscript_showpage_sequence_as_multiple_pages() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/multi-page.ps");
+    let report = convert_path(
+        &fixture,
+        temporary.path().join("ps-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Eps);
+    assert_eq!(report.page_count, 2);
+    assert!(temporary.path().join("ps-out/page-0002.svg").exists());
+}
+
+#[test]
+fn rejects_postscript_showpage_sequence_over_max_pages() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/multi-page.ps");
+    let options = ConvertOptions {
+        max_pages: 1,
+        ..ConvertOptions::default()
+    };
+    let error =
+        convert_path(&fixture, temporary.path().join("ps-limited-out"), &options).unwrap_err();
+    assert!(error.to_string().contains("PostScript exceeded max_pages"));
+}
+
+#[test]
+fn converts_multiple_mol2_molecule_records_as_pages() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_multi.mol2");
+    let report = convert_path(
+        &fixture,
+        temporary.path().join("mol2-multi-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mol2);
+    assert_eq!(report.page_count, 2);
+    assert!(
+        fs::read_to_string(temporary.path().join("mol2-multi-out/page-0002.svg"))
+            .unwrap()
+            .contains("Second molecule")
+    );
+}
+
+#[test]
+fn rejects_sqlite_sidecar_that_exceeds_the_input_budget() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sqlite");
+    let input = temporary.path().join("data.sqlite");
+    fs::copy(&fixture, &input).unwrap();
+    fs::write(
+        temporary.path().join("data.sqlite-shm"),
+        vec![0u8; 16 * 1024 * 1024 + 1],
+    )
+    .unwrap();
+    let error = convert_path(
+        &input,
+        temporary.path().join("sqlite-sidecar-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("sidecar '-shm' exceeds"));
+}
+
+#[test]
+fn converts_medit_ascii_mesh_and_sniffs_extensionless_files() {
+    let temporary = TempDir::new().unwrap();
+    let mesh = "# MEDIT sample\nMeshVersionFormatted 2\nDimension 3\nVertices\n4\n0 0 0 1\n1 0 0 1\n0 1 0 1\n0 0 1 1\nEdges 1\n1 2 0\nTriangles\n1\n1 2 3 5\nTetrahedra\n1\n1 2 3 4 7\nRequiredVertices\n1\n1\nEnd\n";
+    let input = temporary.path().join("mesh.mesh");
+    fs::write(&input, mesh).unwrap();
+    let output = temporary.path().join("medit_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Medit);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("XY projection"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MEDIT finite-element mesh"));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+
+    let extensionless = temporary.path().join("medit-data");
+    fs::write(&extensionless, mesh).unwrap();
+    let sniffed_output = temporary.path().join("medit_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Medit);
+}
+
+#[test]
+fn converts_binary_medit_meshb_and_sniffs_extensionless_header() {
+    let temporary = TempDir::new().unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/medit_binary_v2.meshb");
+    let bytes = fs::read(fixture).unwrap();
+    assert_eq!(bytes, common::medit_binary_tetrahedron());
+    let input = temporary.path().join("volume.meshb");
+    fs::write(&input, &bytes).unwrap();
+    let output = temporary.path().join("meshb_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Medit);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("XY projection"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MEDIT binary finite-element mesh"));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+
+    let extensionless = temporary.path().join("meshb-data");
+    fs::write(&extensionless, bytes).unwrap();
+    let sniffed_output = temporary.path().join("meshb_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Medit);
+    assert_eq!(sniffed.page_count, 1);
+}
+
+#[test]
+fn converts_off_polygon_mesh_and_sniffs_header_variants() {
+    let temporary = TempDir::new().unwrap();
+    let mesh = "# simple OFF quad\nOFF 4 1 4\n0 0 0\n100 0 0\n100 100 0\n0 100 0\n4 0 1 2 3\n";
+    let input = temporary.path().join("surface.off");
+    fs::write(&input, mesh).unwrap();
+    let output = temporary.path().join("off_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Off);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OFF polygon mesh"));
+    assert!(svg.contains("data-semantic-role=\"obj:mesh\""));
+
+    let extensionless = temporary.path().join("off-data");
+    fs::write(&extensionless, mesh).unwrap();
+    let sniffed_output = temporary.path().join("off_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Off);
+
+    let alias = temporary.path().join("surface.coff");
+    fs::write(&alias, mesh.replace("OFF", "COFF")).unwrap();
+    let alias_output = temporary.path().join("coff_out");
+    let alias_report = convert_path(&alias, &alias_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(alias_report.source_format, SourceFormat::Off);
+    assert!(
+        alias_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("colors"))
+    );
+}
+
+#[test]
+fn converts_ifc4_tessellated_geometry_and_sniffs_extensionless_model() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ifc");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::Ifc);
+    let output = temporary.path().join("ifc_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ifc);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("materials"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("IFC tessellated building model"));
+    assert!(svg.contains("data-semantic-role=\"obj:mesh\""));
+
+    let extensionless = temporary.path().join("ifc-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ifc
+    );
+    let sniffed_output = temporary.path().join("ifc_sniffed");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Ifc);
+}
+
+#[test]
+fn converts_ifc_mapped_tessellations_with_product_and_map_transforms() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_mapped.ifc");
+    let output = temporary.path().join("ifc_mapped_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ifc);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("materials"))
+    );
+    assert!(!report.warnings.iter().any(|warning| {
+        warning.contains("mapped geometry") || warning.contains("mapped representation")
+    }));
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("IFC tessellated building model"));
+    assert!(svg.contains("data-semantic-role=\"obj:mesh\""));
+
+    let extensionless = temporary.path().join("mapped-building-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ifc
+    );
+
+    let nonuniform = temporary.path().join("nonuniform-mapped.ifc");
+    let fixture = fs::read_to_string(&input).unwrap();
+    let nonuniform_fixture = fixture.replace(
+        "#11=IFCCARTESIANTRANSFORMATIONOPERATOR3D(#7,#8,#10,2.,#9);",
+        "#11=IFCCARTESIANTRANSFORMATIONOPERATOR3DNONUNIFORM(#7,#8,#10,2.,#9,1.,1.);",
+    );
+    assert_ne!(nonuniform_fixture, fixture);
+    fs::write(&nonuniform, &nonuniform_fixture).unwrap();
+    let partial = convert_path(
+        &nonuniform,
+        temporary.path().join("nonuniform_out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(partial.page_count, 1);
+    assert!(
+        partial
+            .warnings
+            .iter()
+            .any(|warning| { warning.contains("unsupported mapped/swept geometry") })
+    );
+
+    let unsupported_only = temporary.path().join("unsupported-only-mapped.ifc");
+    let unsupported_fixture = nonuniform_fixture.replace(
+        "#14=IFCCARTESIANTRANSFORMATIONOPERATOR3D($,$,#13,$,$);",
+        "#14=IFCCARTESIANTRANSFORMATIONOPERATOR3DNONUNIFORM($,$,#13,$,$,$,$);",
+    );
+    assert_ne!(unsupported_fixture, nonuniform_fixture);
+    fs::write(&unsupported_only, unsupported_fixture).unwrap();
+    let error = convert_path(
+        &unsupported_only,
+        temporary.path().join("unsupported_only_out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("no supported"));
+}
+
+#[test]
+fn converts_ifc_extruded_area_solids_from_common_profiles() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_extruded.ifc");
+    let output = temporary.path().join("ifc_extruded_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ifc);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("materials"))
+    );
+    assert!(!report.warnings.iter().any(|warning| {
+        warning.contains("unsupported mapped") || warning.contains("extruded profile")
+    }));
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("IFC tessellated building model"));
+    assert!(svg.contains("data-semantic-role=\"obj:mesh\""));
+
+    let extensionless = temporary.path().join("extruded-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ifc
+    );
+}
+
+#[test]
+fn converts_bounded_ifcxml_geometry_and_rejects_dtds() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_ifcxml.ifcxml");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::IfcXml);
+    let xml_with_ifc_extension = temporary.path().join("model.ifc");
+    fs::copy(&input, &xml_with_ifc_extension).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&xml_with_ifc_extension).unwrap(),
+        SourceFormat::IfcXml
+    );
+    let output = temporary.path().join("ifcxml_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::IfcXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"obj:mesh\""));
+
+    let extensionless = temporary.path().join("ifcxml-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::IfcXml
+    );
+    let sniffed_output = temporary.path().join("ifcxml_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::IfcXml);
+
+    let wrong_extension = temporary.path().join("step-data.ifcxml");
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ifc"),
+        &wrong_extension,
+    )
+    .unwrap();
+    let wrong_error = convert_path(
+        &wrong_extension,
+        temporary.path().join("wrong_extension_out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(
+        wrong_error
+            .to_string()
+            .contains("buildingSMART IFCXML root")
+    );
+
+    let doctype = temporary.path().join("dtd.ifcxml");
+    fs::write(
+        &doctype,
+        "<!DOCTYPE ifcXML [<!ENTITY ext SYSTEM 'file:///etc/passwd'>]><ifc:ifcXML xmlns:ifc='http://www.buildingsmart-tech.org/ifcXML/IFC4/Add2'><IfcProject Name='&ext;'/></ifc:ifcXML>",
+    )
+    .unwrap();
+    let error = convert_path(
+        &doctype,
+        temporary.path().join("dtd_out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("document type declarations"));
+}
+
+#[test]
+fn converts_ifc4_indexed_concave_polygon_faces() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("polygon.ifc");
+    fs::write(
+        &input,
+        "ISO-10303-21;HEADER;FILE_SCHEMA(('IFC4'));ENDSEC;DATA;\
+         #1=IFCCARTESIANPOINTLIST3D(((0.,0.,0.),(400.,0.,0.),(400.,200.,0.),(200.,200.,0.),(200.,400.,0.),(0.,400.,0.)),$);\
+         #2=IFCINDEXEDPOLYGONALFACE((1,2,3,4,5,6));\
+         #3=IFCPOLYGONALFACESET(#1,.F.,(#2),$);\
+         #4=IFCSHAPEREPRESENTATION($,'Body','Tessellation',(#3));\
+         #5=IFCPRODUCTDEFINITIONSHAPE($,$,(#4));\
+         #6=IFCCARTESIANPOINT((0.,0.,0.));\
+         #7=IFCAXIS2PLACEMENT3D(#6,$,$);\
+         #8=IFCLOCALPLACEMENT($,#7);\
+         #9=IFCBUILDINGELEMENTPROXY('2L$!Polygon',$,'Quad',$,$,#8,#5,$,$);\
+         ENDSEC;END-ISO-10303-21;",
+    )
+    .unwrap();
+    let output = temporary.path().join("polygon_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ifc);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("polygon"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"obj:mesh\""));
+}
+
+#[test]
+fn converts_ifczip_with_one_root_model_and_ignores_sidecar_files() {
+    let temporary = TempDir::new().unwrap();
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ifc");
+    let input = temporary.path().join("building.ifczip");
+    let mut archive = ZipWriter::new(File::create(&input).unwrap());
+    archive
+        .start_file("building.ifc", SimpleFileOptions::default())
+        .unwrap();
+    archive.write_all(&fs::read(&source).unwrap()).unwrap();
+    archive
+        .start_file("textures/material.png", SimpleFileOptions::default())
+        .unwrap();
+    archive.write_all(b"sidecar is not loaded").unwrap();
+    archive.finish().unwrap();
+
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::IfcZip);
+    let output = temporary.path().join("ifczip_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::IfcZip);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("sidecar"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"ifczip\""));
+
+    let extensionless = temporary.path().join("building-archive");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::IfcZip
+    );
+
+    let nested_input = temporary.path().join("nested.ifczip");
+    let mut nested = ZipWriter::new(File::create(&nested_input).unwrap());
+    nested
+        .start_file("models/building.ifc", SimpleFileOptions::default())
+        .unwrap();
+    nested.write_all(&fs::read(&source).unwrap()).unwrap();
+    nested.finish().unwrap();
+    assert!(
+        convert_path(
+            &nested_input,
+            temporary.path().join("nested_out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_su2_cfd_mesh_and_sniffs_extensionless_file() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.su2");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::Su2);
+    let output = temporary.path().join("su2_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Su2);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("marker name"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SU2 CFD mesh"));
+    assert!(svg.contains("data-source-format=\"su2\""));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+
+    let extensionless = temporary.path().join("cfd-mesh");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Su2
+    );
+}
+
+#[test]
+fn converts_openfoam_ascii_poly_mesh_from_case_marker() {
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/openfoam_case/sample.foam");
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::OpenFoam
+    );
+    let temporary = TempDir::new().unwrap();
+    let output = temporary.path().join("openfoam_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenFoam);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("patch names"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OpenFOAM polyMesh"));
+    assert!(svg.contains("data-source-format=\"openfoam\""));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+    assert!(svg.contains("data-semantic-role=\"simulation:boundary-patch\""));
+}
+
+#[test]
+fn converts_gzip_compressed_ascii_openfoam_poly_mesh_with_expansion_limits() {
+    let temporary = TempDir::new().unwrap();
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/openfoam_case");
+    let case = temporary.path().join("compressed-case");
+    let poly_mesh = case.join("constant/polyMesh");
+    fs::create_dir_all(&poly_mesh).unwrap();
+    fs::copy(source.join("sample.foam"), case.join("case.foam")).unwrap();
+    for name in ["points", "faces", "owner", "neighbour", "boundary"] {
+        let input = fs::read(source.join("constant/polyMesh").join(name)).unwrap();
+        let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        encoder.write_all(&input).unwrap();
+        fs::write(
+            poly_mesh.join(format!("{name}.gz")),
+            encoder.finish().unwrap(),
+        )
+        .unwrap();
+    }
+    let output = temporary.path().join("compressed_openfoam_out");
+    let report = convert_path(case.join("case.foam"), &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenFoam);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("simulation:boundary-patch"));
+
+    let bomb_case = temporary.path().join("expanded-case");
+    let bomb_poly_mesh = bomb_case.join("constant/polyMesh");
+    fs::create_dir_all(&bomb_poly_mesh).unwrap();
+    fs::copy(source.join("sample.foam"), bomb_case.join("case.foam")).unwrap();
+    for name in ["points", "faces", "owner", "neighbour", "boundary"] {
+        let mut input = fs::read(source.join("constant/polyMesh").join(name)).unwrap();
+        if name == "points" {
+            let comment = format!("/*{}*/\n", "x".repeat(8192));
+            input.splice(0..0, comment.bytes());
+        }
+        let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+        encoder.write_all(&input).unwrap();
+        fs::write(
+            bomb_poly_mesh.join(format!("{name}.gz")),
+            encoder.finish().unwrap(),
+        )
+        .unwrap();
+    }
+    let limited = ConvertOptions {
+        max_input_bytes: 4096,
+        ..ConvertOptions::default()
+    };
+    let error = convert_path(
+        bomb_case.join("case.foam"),
+        temporary.path().join("expanded_openfoam_out"),
+        &limited,
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("decompressed OpenFOAM file"));
+}
+
+#[cfg(unix)]
+#[test]
+fn rejects_openfoam_poly_mesh_sidecars_that_escape_the_case_root() {
+    use std::os::unix::fs::symlink;
+
+    let temporary = TempDir::new().unwrap();
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/openfoam_case");
+    let case = temporary.path().join("case");
+    let poly_mesh = case.join("constant/polyMesh");
+    fs::create_dir_all(&poly_mesh).unwrap();
+    fs::copy(source.join("sample.foam"), case.join("case.foam")).unwrap();
+    for name in ["faces", "owner", "neighbour", "boundary"] {
+        fs::copy(
+            source.join("constant/polyMesh").join(name),
+            poly_mesh.join(name),
+        )
+        .unwrap();
+    }
+    let outside = temporary.path().join("outside-points");
+    fs::copy(source.join("constant/polyMesh/points"), &outside).unwrap();
+    symlink(&outside, poly_mesh.join("points")).unwrap();
+
+    let error = convert_path(
+        case.join("case.foam"),
+        temporary.path().join("out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("escapes the case directory"));
+
+    let compressed_case = temporary.path().join("compressed-case");
+    let compressed_poly_mesh = compressed_case.join("constant/polyMesh");
+    fs::create_dir_all(&compressed_poly_mesh).unwrap();
+    fs::copy(
+        source.join("sample.foam"),
+        compressed_case.join("case.foam"),
+    )
+    .unwrap();
+    for name in ["faces", "owner", "neighbour", "boundary"] {
+        fs::copy(
+            source.join("constant/polyMesh").join(name),
+            compressed_poly_mesh.join(name),
+        )
+        .unwrap();
+    }
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder
+        .write_all(&fs::read(source.join("constant/polyMesh/points")).unwrap())
+        .unwrap();
+    let outside_gzip = temporary.path().join("outside-points.gz");
+    fs::write(&outside_gzip, encoder.finish().unwrap()).unwrap();
+    symlink(&outside_gzip, compressed_poly_mesh.join("points.gz")).unwrap();
+    let gzip_error = convert_path(
+        compressed_case.join("case.foam"),
+        temporary.path().join("gzip_escape_out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(
+        gzip_error
+            .to_string()
+            .contains("escapes the case directory")
+    );
+}
+
+#[test]
+fn converts_multiframe_tiff_as_color_svg_pages_and_sniffs_header() {
+    use tiff::encoder::{TiffEncoder, colortype};
+
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("multipage.tiff");
+    {
+        let file = fs::File::create(&input).unwrap();
+        let mut encoder = TiffEncoder::new(file).unwrap();
+        let mut image = encoder.new_image::<colortype::RGB8>(3, 2).unwrap();
+        image
+            .encoder()
+            .write_tag(tiff::tags::Tag::Orientation, 6u16)
+            .unwrap();
+        image
+            .write_data(&[
+                255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 0, 255, 255, 255, 0, 255,
+            ])
+            .unwrap();
+        encoder
+            .write_image::<colortype::Gray8>(2, 1, &[0, 255])
+            .unwrap();
+        encoder
+            .write_image::<colortype::RGB16>(1, 1, &[0, 32_768, 65_535])
+            .unwrap();
+        encoder
+            .write_image::<colortype::CMYK8>(1, 1, &[255, 0, 0, 0])
+            .unwrap();
+    }
+
+    let output = temporary.path().join("tiff_out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Tiff);
+    assert_eq!(report.page_count, 4);
+    assert!(
+        report.pages[2]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("reduced from 16-bit"))
+    );
+    assert!(
+        report.pages[3]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("CMYK samples"))
+    );
+    assert_eq!(report.pages[0].width_points, 2.0);
+    assert_eq!(report.pages[0].height_points, 3.0);
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("matrix(0 1 -1 0 2 0)"));
+    let encoded = svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('"')
+        .unwrap()
+        .0;
+    let png_bytes =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, encoded).unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgb);
+    assert_eq!(
+        &pixels[..info.buffer_size()],
+        &[
+            255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 255, 0, 0, 255, 255, 255, 0, 255
+        ]
+    );
+
+    let gray_svg = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(gray_svg.contains("<image"));
+    let high_depth_svg = fs::read_to_string(output.join("page-0003.svg")).unwrap();
+    let encoded = high_depth_svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('\"')
+        .unwrap()
+        .0;
+    let png_bytes =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, encoded).unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgb);
+    assert_eq!(&pixels[..info.buffer_size()], &[0, 128, 255]);
+
+    let cmyk_svg = fs::read_to_string(output.join("page-0004.svg")).unwrap();
+    let encoded = cmyk_svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('\"')
+        .unwrap()
+        .0;
+    let png_bytes =
+        base64::Engine::decode(&base64::engine::general_purpose::STANDARD, encoded).unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!(info.color_type, png::ColorType::Rgb);
+    assert_eq!(&pixels[..info.buffer_size()], &[0, 255, 255]);
+
+    let extensionless = temporary.path().join("content-sniffed");
+    fs::copy(&input, &extensionless).unwrap();
+    let sniffed_output = temporary.path().join("tiff_sniffed_out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Tiff);
+    assert_eq!(sniffed.page_count, 4);
+
+    let limited_output = temporary.path().join("tiff_limited_out");
+    let limits = ConvertOptions {
+        max_pages: 1,
+        ..Default::default()
+    };
+    assert!(matches!(
+        convert_path(&input, &limited_output, &limits),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
+
+    let big_tiff = temporary.path().join("bigtiff.dat");
+    {
+        let mut encoder = TiffEncoder::new_big(fs::File::create(&big_tiff).unwrap()).unwrap();
+        encoder
+            .write_image::<colortype::Gray8>(2, 1, &[32, 224])
+            .unwrap();
+    }
+    let big_output = temporary.path().join("bigtiff_out");
+    let big_report = convert_path(&big_tiff, &big_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(big_report.source_format, SourceFormat::Tiff);
+    assert_eq!(big_report.page_count, 1);
+}
+
+#[test]
+fn converts_dicom_multiframe_and_rgb_without_serializing_patient_metadata() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let multiframe = fixture_dir.join("sample_multiframe.dcm");
+    assert_eq!(
+        SourceFormat::detect(&multiframe).unwrap(),
+        SourceFormat::Dicom
+    );
+    let multiframe_output = temporary.path().join("dicom-multiframe-out");
+    let report = convert_path(&multiframe, &multiframe_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dicom);
+    assert_eq!(report.page_count, 2);
+    for page_number in 1..=2 {
+        let svg = fs::read_to_string(multiframe_output.join(format!("page-{page_number:04}.svg")))
+            .unwrap();
+        assert!(svg.contains("DICOM Image Frame"));
+        assert!(svg.contains("data:image/png;base64,"));
+        assert!(svg.contains("data-semantic-role=\"dicom:image-frame\""));
+        assert!(!svg.contains("Doe^DICOM QA"));
+    }
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not de-identification"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("2 sequential SVG pages"))
+    );
+
+    let extensionless = temporary.path().join("medical-image");
+    fs::copy(&multiframe, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Dicom
+    );
+    assert_eq!(
+        convert_path(
+            &extensionless,
+            temporary.path().join("dicom-sniffed-out"),
+            &ConvertOptions::default(),
+        )
+        .unwrap()
+        .source_format,
+        SourceFormat::Dicom
+    );
+
+    let rgb = fixture_dir.join("sample_rgb.dcm");
+    let rgb_report = convert_path(
+        &rgb,
+        temporary.path().join("dicom-rgb-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(rgb_report.page_count, 1);
+    let rgb_svg = fs::read_to_string(temporary.path().join("dicom-rgb-out/page-0001.svg")).unwrap();
+    assert!(rgb_svg.contains("data:image/png;base64,"));
+    assert!(!rgb_svg.contains("Private^Image"));
+
+    let ct = fixture_dir.join("sample_ct_16bit.dcm");
+    let ct_report = convert_path(
+        &ct,
+        temporary.path().join("dicom-ct-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(ct_report.page_count, 1);
+    assert!(
+        ct_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("converted to 8-bit display images"))
+    );
+    let ct_svg = fs::read_to_string(temporary.path().join("dicom-ct-out/page-0001.svg")).unwrap();
+    assert!(!ct_svg.contains("Private^CT"));
+    let encoded = ct_svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('\"')
+        .unwrap()
+        .0;
+    let png_bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    assert_eq!(reader.info().bit_depth, png::BitDepth::Eight);
+
+    let implicit = fixture_dir.join("sample_implicit.dcm");
+    let implicit_report = convert_path(
+        &implicit,
+        temporary.path().join("dicom-implicit-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(implicit_report.source_format, SourceFormat::Dicom);
+    assert_eq!(implicit_report.page_count, 1);
+
+    let rle = fixture_dir.join("sample_rle.dcm");
+    let rle_report = convert_path(
+        &rle,
+        temporary.path().join("dicom-rle-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(rle_report.source_format, SourceFormat::Dicom);
+    assert_eq!(rle_report.page_count, 1);
+
+    let jpeg2000 = fixture_dir.join("sample_jpeg2000.dcm");
+    let jpeg2000_output = temporary.path().join("dicom-jpeg2000-out");
+    let jpeg2000_report =
+        convert_path(&jpeg2000, &jpeg2000_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(jpeg2000_report.source_format, SourceFormat::Dicom);
+    assert_eq!(jpeg2000_report.page_count, 1);
+    let jpeg2000_svg = fs::read_to_string(jpeg2000_output.join("page-0001.svg")).unwrap();
+    let encoded = jpeg2000_svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split_once('"')
+        .unwrap()
+        .0;
+    let png_bytes = base64::engine::general_purpose::STANDARD
+        .decode(encoded)
+        .unwrap();
+    let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+        .read_info()
+        .unwrap();
+    let mut decoded_pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut decoded_pixels).unwrap();
+    assert_eq!((info.width, info.height), (4, 4));
+    assert_eq!(info.color_type, png::ColorType::Grayscale);
+    assert_eq!(
+        &decoded_pixels[..info.buffer_size()],
+        &[
+            0, 32, 64, 96, 32, 64, 96, 128, 64, 96, 128, 160, 96, 128, 160, 255
+        ]
+    );
+
+    let mut jpeg2000_general = fs::read(&jpeg2000).unwrap();
+    let lossless_uid = b"1.2.840.10008.1.2.4.90";
+    let general_uid = b"1.2.840.10008.1.2.4.91";
+    let transfer_syntax_offset = jpeg2000_general
+        .windows(lossless_uid.len())
+        .position(|window| window == lossless_uid)
+        .unwrap();
+    jpeg2000_general[transfer_syntax_offset..transfer_syntax_offset + lossless_uid.len()]
+        .copy_from_slice(general_uid);
+    let jpeg2000_general_path = temporary.path().join("general-jpeg2000.dcm");
+    fs::write(&jpeg2000_general_path, jpeg2000_general).unwrap();
+    assert_eq!(
+        convert_path(
+            &jpeg2000_general_path,
+            temporary.path().join("general-jpeg2000-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap()
+        .page_count,
+        1
+    );
+
+    let mut oversized_jpeg2000 = fs::read(&jpeg2000).unwrap();
+    let codestream = fs::read(fixture_dir.join("sample_jpeg2000.j2k")).unwrap();
+    let codestream_offset = oversized_jpeg2000
+        .windows(codestream.len())
+        .position(|window| window == codestream)
+        .unwrap();
+    let siz_marker = codestream
+        .windows(2)
+        .position(|window| window == [0xff, 0x51])
+        .unwrap();
+    let x_size_offset = codestream_offset + siz_marker + 6;
+    let y_size_offset = codestream_offset + siz_marker + 10;
+    oversized_jpeg2000[x_size_offset..x_size_offset + 4].copy_from_slice(&8192u32.to_be_bytes());
+    oversized_jpeg2000[y_size_offset..y_size_offset + 4].copy_from_slice(&8192u32.to_be_bytes());
+    let oversized_jpeg2000_path = temporary.path().join("oversized-jpeg2000.dcm");
+    fs::write(&oversized_jpeg2000_path, oversized_jpeg2000).unwrap();
+    assert!(matches!(
+        convert_path(
+            &oversized_jpeg2000_path,
+            temporary.path().join("oversized-jpeg2000-out"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
+
+    let mut unsupported_jpeg2000 = fs::read(&jpeg2000).unwrap();
+    let unsupported_uid = b"1.2.840.10008.1.2.4.92";
+    let transfer_syntax_offset = unsupported_jpeg2000
+        .windows(lossless_uid.len())
+        .position(|window| window == lossless_uid)
+        .unwrap();
+    unsupported_jpeg2000[transfer_syntax_offset..transfer_syntax_offset + lossless_uid.len()]
+        .copy_from_slice(unsupported_uid);
+    let unsupported_jpeg2000_path = temporary.path().join("part2-jpeg2000.dcm");
+    fs::write(&unsupported_jpeg2000_path, unsupported_jpeg2000).unwrap();
+    assert!(matches!(
+        convert_path(
+            &unsupported_jpeg2000_path,
+            temporary.path().join("part2-jpeg2000-out"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::Unsupported(message)) if message.contains("Part 2")
+    ));
+
+    let mut oversized = fs::read(&multiframe).unwrap();
+    for tag in [0x0010u8, 0x0011u8] {
+        let pattern = [0x28, 0x00, tag, 0x00, b'U', b'S', 0x02, 0x00, 0x04, 0x00];
+        let start = oversized
+            .windows(pattern.len())
+            .position(|window| window == pattern)
+            .unwrap();
+        oversized[start + 8..start + 10].copy_from_slice(&u16::MAX.to_le_bytes());
+    }
+    let oversized_path = temporary.path().join("oversized.dcm");
+    fs::write(&oversized_path, oversized).unwrap();
+    assert!(matches!(
+        convert_path(
+            &oversized_path,
+            temporary.path().join("oversized-dicom-out"),
+            &ConvertOptions::default(),
+        ),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
+}
+
+#[test]
+fn converts_dicom_encapsulated_pdf_without_copying_dicom_metadata() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_encapsulated_pdf.dcm");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::Dicom);
+    let output = temporary.path().join("dicom-encapsulated-pdf");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dicom);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"dicom\""));
+    assert!(svg.contains("DICOM Encapsulated PDF"));
+    assert!(svg.contains("Synthetic radiology report"));
+    assert!(!svg.contains("Synthetic^Patient"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not de-identification"))
+    );
+
+    let bytes = fs::read(&input).unwrap();
+    let mime = b"application/pdf";
+    let mime_offset = bytes
+        .windows(mime.len())
+        .position(|window| window == mime)
+        .unwrap();
+    let mut wrong_mime = bytes.clone();
+    wrong_mime[mime_offset..mime_offset + mime.len()].copy_from_slice(b"application/xml");
+    let wrong_mime_path = temporary.path().join("wrong-mime.dcm");
+    fs::write(&wrong_mime_path, wrong_mime).unwrap();
+    assert!(matches!(
+        convert_path(
+            &wrong_mime_path,
+            temporary.path().join("wrong-mime-out"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::Unsupported(message)) if message.contains("MIME type")
+    ));
+
+    let mut bad_length = bytes;
+    let length_tag = [0x42, 0x00, 0x15, 0x00, b'U', b'L', 0x04, 0x00];
+    let length_offset = bad_length
+        .windows(length_tag.len())
+        .position(|window| window == length_tag)
+        .unwrap()
+        + length_tag.len();
+    bad_length[length_offset..length_offset + 4].copy_from_slice(&1u32.to_le_bytes());
+    let bad_length_path = temporary.path().join("bad-document-length.dcm");
+    fs::write(&bad_length_path, bad_length).unwrap();
+    assert!(matches!(
+        convert_path(
+            &bad_length_path,
+            temporary.path().join("bad-document-length-out"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::InvalidInput(message)) if message.contains("Length does not match")
+    ));
+
+    let mut oversized_document = fs::read(&input).unwrap();
+    let document_tag = [0x42, 0x00, 0x11, 0x00, b'O', b'B', 0x00, 0x00];
+    let document_offset = oversized_document
+        .windows(document_tag.len())
+        .position(|window| window == document_tag)
+        .unwrap();
+    oversized_document[document_offset + 8..document_offset + 12]
+        .copy_from_slice(&(64u32 * 1024 * 1024 + 1).to_le_bytes());
+    let oversized_path = temporary.path().join("oversized-embedded-pdf.dcm");
+    fs::write(&oversized_path, oversized_document).unwrap();
+    assert!(matches!(
+        convert_path(
+            &oversized_path,
+            temporary.path().join("oversized-embedded-pdf-out"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::LimitExceeded(message)) if message.contains("Encapsulated Document exceeds")
+    ));
+
+    let mut wrong_vr = fs::read(&input).unwrap();
+    let document_vr_offset = wrong_vr
+        .windows(document_tag.len())
+        .position(|window| window == document_tag)
+        .unwrap()
+        + 4;
+    wrong_vr[document_vr_offset..document_vr_offset + 2].copy_from_slice(b"UN");
+    let wrong_vr_path = temporary.path().join("wrong-document-vr.dcm");
+    fs::write(&wrong_vr_path, wrong_vr).unwrap();
+    assert!(matches!(
+        convert_path(
+            &wrong_vr_path,
+            temporary.path().join("wrong-document-vr-out"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::InvalidInput(message)) if message.contains("must use the OB")
+    ));
+}
+
+#[test]
+fn converts_v2000_v3000_mol_and_multi_record_sdf_structures() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_molecules.sdf");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Sdf);
+    let output = temporary.path().join("sdf-pages");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sdf);
+    assert_eq!(report.page_count, 2);
+    let first_svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(first_svg.contains("Synthetic Aromatic Ion"));
+    assert!(first_svg.contains("chemical:bond"));
+    assert!(first_svg.contains("chemical:atom"));
+    assert!(first_svg.contains("N+"));
+    assert!(!first_svg.contains("SYNTHETIC-001"));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("SDF data fields"))
+    );
+    let second_svg = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(second_svg.contains("Synthetic Water"));
+    assert!(
+        report.pages[1]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("projected onto the XY plane"))
+    );
+
+    let bytes = fs::read(&fixture).unwrap();
+    let first_record = bytes
+        .split(|byte| *byte == b'\n')
+        .take_while(|line| *line != b"$$$$")
+        .collect::<Vec<_>>()
+        .join(&[b'\n'][..]);
+    let mol_path = temporary.path().join("aromatic.mol");
+    fs::write(&mol_path, first_record).unwrap();
+    assert_eq!(SourceFormat::detect(&mol_path).unwrap(), SourceFormat::Mol);
+    let mol_report = convert_path(
+        &mol_path,
+        temporary.path().join("mol-page"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(mol_report.source_format, SourceFormat::Mol);
+    assert_eq!(mol_report.page_count, 1);
+
+    let extensionless = temporary.path().join("chemical-records");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sdf
+    );
+    assert_eq!(
+        convert_path(
+            &extensionless,
+            temporary.path().join("extensionless-sdf"),
+            &ConvertOptions::default()
+        )
+        .unwrap()
+        .page_count,
+        2
+    );
+
+    let v3000_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_molecule_v3000.mol");
+    assert_eq!(
+        SourceFormat::detect(&v3000_path).unwrap(),
+        SourceFormat::Mol
+    );
+    let v3000_report = convert_path(
+        &v3000_path,
+        temporary.path().join("v3000-mol"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(v3000_report.page_count, 1);
+    let v3000_svg = fs::read_to_string(temporary.path().join("v3000-mol/page-0001.svg")).unwrap();
+    assert!(v3000_svg.contains("Synthetic V3000 Isotope"));
+    assert!(v3000_svg.contains("18O-"));
+    assert!(v3000_svg.contains("chemical:stereo-bond"));
+    assert!(
+        v3000_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Sgroups"))
+    );
+    let v3000_extensionless = temporary.path().join("advanced-structure");
+    fs::copy(&v3000_path, &v3000_extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&v3000_extensionless).unwrap(),
+        SourceFormat::Mol
+    );
+
+    let mut unsupported = fs::read(&mol_path).unwrap();
+    let version = b"V2000";
+    let version_offset = unsupported
+        .windows(version.len())
+        .position(|window| window == version)
+        .unwrap();
+    unsupported[version_offset..version_offset + version.len()].copy_from_slice(b"V4000");
+    let unsupported_path = temporary.path().join("unsupported.mol");
+    fs::write(&unsupported_path, unsupported).unwrap();
+    assert!(matches!(
+        convert_path(
+            &unsupported_path,
+            temporary.path().join("unsupported-mol"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::Unsupported(message)) if message.contains("version marker")
+    ));
+}
+
+#[test]
+fn converts_v2000_rxn_into_a_bounded_reaction_diagram() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_reaction.rxn");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Rxn);
+    let output = temporary.path().join("reaction");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Rxn);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Synthetic two-reactant reaction"));
+    assert!(svg.contains("Reactants"));
+    assert!(svg.contains("Products"));
+    assert!(svg.contains("chemical:reaction-arrow"));
+    assert!(svg.contains("chemical:reactant"));
+    assert!(svg.contains("chemical:product"));
+    assert!(svg.contains("Reactant carbonyl"));
+    assert!(svg.contains("Reactant hydrogen chloride"));
+    assert!(svg.contains("Product chloromethanol"));
+
+    let extensionless = temporary.path().join("reaction-record");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Rxn
+    );
+    assert_eq!(
+        convert_path(
+            &extensionless,
+            temporary.path().join("extensionless-reaction"),
+            &ConvertOptions::default()
+        )
+        .unwrap()
+        .page_count,
+        1
+    );
+
+    let mut v3000 = fs::read_to_string(&fixture).unwrap();
+    v3000.replace_range(0..4, "$RXN V3000");
+    let v3000_path = temporary.path().join("unsupported.rxn");
+    fs::write(&v3000_path, v3000.as_bytes()).unwrap();
+    assert!(matches!(
+        convert_path(
+            &v3000_path,
+            temporary.path().join("unsupported-reaction"),
+            &ConvertOptions::default()
+        ),
+        Err(document_svg::Error::Unsupported(message)) if message.contains("V3000")
+    ));
+}
+
+#[test]
+fn converts_dicomdir_file_set_in_hierarchy_order_with_confined_file_ids() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/dicom_set");
+    let dicomdir = fixture_root.join("DICOMDIR");
+    assert_eq!(
+        SourceFormat::detect(&dicomdir).unwrap(),
+        SourceFormat::DicomDir
+    );
+    let output = temporary.path().join("dicomdir-out");
+    let report = convert_path(&dicomdir, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::DicomDir);
+    assert_eq!(report.page_count, 3);
+    for page_number in 1..=3 {
+        let svg = fs::read_to_string(output.join(format!("page-{page_number:04}.svg"))).unwrap();
+        assert!(svg.contains("data-source-format=\"dicomdir\""));
+        assert!(svg.contains(&format!("DICOMDIR Image {page_number}")));
+        assert!(!svg.contains("Private^DirectoryPatient"));
+    }
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("hierarchy is followed"))
+    );
+    assert!(
+        report.pages[1]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("2 sequential SVG pages"))
+    );
+    assert!(
+        !report.pages[2]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("2 sequential SVG pages"))
+    );
+
+    let copied_root = temporary.path().join("copied-file-set");
+    let image_dir = copied_root.join("DICOM");
+    fs::create_dir_all(&image_dir).unwrap();
+    fs::copy(&dicomdir, copied_root.join("medical-index")).unwrap();
+    fs::copy(
+        fixture_root.join("DICOM/IMG0001"),
+        image_dir.join("IMG0001"),
+    )
+    .unwrap();
+    fs::copy(
+        fixture_root.join("DICOM/IMG0002"),
+        image_dir.join("IMG0002"),
+    )
+    .unwrap();
+    let extensionless = copied_root.join("medical-index");
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::DicomDir
+    );
+    assert_eq!(
+        convert_path(
+            &extensionless,
+            temporary.path().join("dicomdir-sniffed-out"),
+            &ConvertOptions::default(),
+        )
+        .unwrap()
+        .page_count,
+        3
+    );
+
+    let mut traversal = fs::read(&dicomdir).unwrap();
+    let source_id = b"DICOM\\IMG0001";
+    let invalid_id = b"DICOM\\../0001";
+    assert_eq!(source_id.len(), invalid_id.len());
+    let start = traversal
+        .windows(source_id.len())
+        .position(|window| window == source_id)
+        .unwrap();
+    traversal[start..start + source_id.len()].copy_from_slice(invalid_id);
+    let traversal_root = temporary.path().join("traversal-file-set");
+    fs::create_dir_all(&traversal_root).unwrap();
+    let traversal_path = traversal_root.join("DICOMDIR");
+    fs::write(&traversal_path, traversal).unwrap();
+    assert!(
+        convert_path(
+            &traversal_path,
+            temporary.path().join("traversal-out"),
+            &ConvertOptions::default()
+        )
+        .unwrap_err()
+        .to_string()
+        .contains("File ID component violates")
+    );
+}
+
+#[test]
+fn rejects_palette_tiff_and_converts_white_is_zero_low_bit_grayscale() {
+    let temporary = TempDir::new().unwrap();
+    let palette = temporary.path().join("palette.tif");
+    fs::write(&palette, common::tiff_palette_1bit()).unwrap();
+
+    let palette_error = convert_path(
+        &palette,
+        temporary.path().join("palette-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(matches!(palette_error, document_svg::Error::Unsupported(_)));
+
+    let decode_png = |svg: &str| {
+        let encoded = svg
+            .split_once("href=\"data:image/png;base64,")
+            .unwrap()
+            .1
+            .split_once('\"')
+            .unwrap()
+            .0;
+        let png_bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded)
+            .unwrap();
+        let mut reader = png::Decoder::new(std::io::Cursor::new(png_bytes))
+            .read_info()
+            .unwrap();
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut pixels).unwrap();
+        pixels.truncate(info.buffer_size());
+        (info.color_type, pixels)
+    };
+
+    for bits in [1, 2, 4] {
+        let grayscale = temporary.path().join(format!("white-is-zero-{bits}.tif"));
+        fs::write(&grayscale, common::tiff_white_is_zero_gray(bits)).unwrap();
+        let grayscale_output = temporary.path().join(format!("gray-{bits}-out"));
+        let grayscale_report =
+            convert_path(&grayscale, &grayscale_output, &ConvertOptions::default()).unwrap();
+        assert_eq!(grayscale_report.page_count, 1);
+        let grayscale_svg = fs::read_to_string(grayscale_output.join("page-0001.svg")).unwrap();
+        let (grayscale_color, grayscale_pixels) = decode_png(&grayscale_svg);
+        assert_eq!(grayscale_color, png::ColorType::Grayscale);
+        assert_eq!(
+            grayscale_pixels[0], 255,
+            "WhiteIsZero {bits}-bit sample 0 must be white"
+        );
+        assert_eq!(
+            grayscale_pixels[10], 0,
+            "WhiteIsZero {bits}-bit sample max must be black"
+        );
+    }
+}
+
+#[test]
+fn converts_svgz_and_caps_decompressed_svg_size() {
+    let temporary = TempDir::new().unwrap();
+    let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect x="10" y="10" width="90" height="50" fill="#00aa55"/></svg>"##;
+    let mut encoder = flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    encoder.write_all(svg.as_bytes()).unwrap();
+    let compressed = encoder.finish().unwrap();
+
+    let input = temporary.path().join("shape.svgz");
+    let output = temporary.path().join("svgz_out");
+    fs::write(&input, &compressed).unwrap();
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Svg);
+    assert_eq!(report.page_count, 1);
+    let converted = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(converted.contains("#00aa55"));
+
+    let extensionless = temporary.path().join("compressed-vector");
+    fs::write(&extensionless, &compressed).unwrap();
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("sniffed_svgz_out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Svg);
+
+    let expanded_svg = format!(
+        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\">{}</svg>",
+        "<rect x=\"0\" y=\"0\" width=\"1\" height=\"1\"/>".repeat(300)
+    );
+    let mut bomb_encoder =
+        flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::default());
+    bomb_encoder.write_all(expanded_svg.as_bytes()).unwrap();
+    let compressed_expansion = bomb_encoder.finish().unwrap();
+    assert!(compressed_expansion.len() < 1024);
+    let expansion_path = temporary.path().join("expanded.svgz");
+    fs::write(&expansion_path, compressed_expansion).unwrap();
+    let limited = ConvertOptions {
+        max_input_bytes: 1024,
+        ..ConvertOptions::default()
+    };
+    assert!(matches!(
+        convert_path(
+            &expansion_path,
+            temporary.path().join("too_large_svgz_out"),
+            &limited
+        ),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
 }
 
 #[test]
@@ -9604,6 +14773,1242 @@ end_header
 
     let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
     assert!(svg.contains("<path id=\"face_"));
+}
+
+#[test]
+fn converts_ascii_and_binary_ply_point_clouds_without_faces() {
+    let temporary = TempDir::new().unwrap();
+    let ascii = temporary.path().join("scan.ply");
+    let ascii_output = temporary.path().join("ply-points-out");
+    let point_cloud = concat!(
+        "ply\nformat ascii 1.0\n",
+        "element vertex 4\n",
+        "property float x\nproperty float y\nproperty float z\n",
+        "property uchar red\nproperty uchar green\nproperty uchar blue\n",
+        "end_header\n",
+        "-10 0 0 255 0 0\n10 0 0 0 255 0\n0 10 0 0 0 255\n0 0 10 255 255 255\n",
+    );
+    fs::write(&ascii, point_cloud).unwrap();
+
+    let report = convert_path(&ascii, &ascii_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ply);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(ascii_output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("PLY Point Cloud"));
+    assert!(svg.contains("data-semantic-role=\"ply:point-cloud\""));
+    assert!(svg.contains("a2.5 2.5"));
+    assert!(svg.contains("fill=\"#FF0000\""));
+    assert!(svg.contains("fill=\"#00FF00\""));
+
+    let extensionless = temporary.path().join("scan-content-sniffed");
+    fs::copy(&ascii, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ply
+    );
+
+    let binary = temporary.path().join("scan-binary.ply");
+    let mut bytes = b"ply\nformat binary_little_endian 1.0\nelement vertex 3\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n".to_vec();
+    for (point, color) in [
+        ([0.0f32, 0.0, 0.0], [255u8, 0, 0]),
+        ([10.0, 0.0, 0.0], [0, 255, 0]),
+        ([0.0, 10.0, 4.0], [0, 0, 255]),
+    ] {
+        for coordinate in point {
+            bytes.extend_from_slice(&coordinate.to_le_bytes());
+        }
+        bytes.extend_from_slice(&color);
+    }
+    fs::write(&binary, bytes).unwrap();
+    let binary_output = temporary.path().join("ply-binary-points-out");
+    let binary_report = convert_path(&binary, &binary_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(binary_report.source_format, SourceFormat::Ply);
+    assert_eq!(binary_report.page_count, 1);
+    assert!(
+        fs::read_to_string(binary_output.join("page-0001.svg"))
+            .unwrap()
+            .contains("ply:point-cloud")
+    );
+    let binary_svg = fs::read_to_string(binary_output.join("page-0001.svg")).unwrap();
+    assert!(binary_svg.contains("fill=\"#00FF00\""));
+}
+
+#[test]
+fn bounds_ply_point_cloud_color_groups_with_quantization() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("many-colors.ply");
+    let output = temporary.path().join("bounded-color-points-out");
+    let mut ply = String::from(
+        "ply\nformat ascii 1.0\nelement vertex 513\nproperty float x\nproperty float y\nproperty float z\nproperty uchar red\nproperty uchar green\nproperty uchar blue\nend_header\n",
+    );
+    for index in 0u16..513 {
+        let red = (index % 256) as u8;
+        let green = (index / 256) as u8;
+        ply.push_str(&format!(
+            "{index} {} {} {red} {green} 0\n",
+            index % 13,
+            index % 7
+        ));
+    }
+    fs::write(&input, ply).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ply);
+    assert_eq!(report.page_count, 1);
+    assert!(report.pages[0].node_count <= 512);
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("quantized"))
+    );
+}
+
+#[test]
+fn converts_pcd_ascii_binary_and_lzf_compressed_point_clouds() {
+    let temporary = TempDir::new().unwrap();
+    let ascii = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/point_cloud_ascii.pcd");
+    let ascii_output = temporary.path().join("pcd-ascii-out");
+    let ascii_report = convert_path(&ascii, &ascii_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(ascii_report.source_format, SourceFormat::Pcd);
+    assert_eq!(ascii_report.page_count, 1);
+    assert!(
+        ascii_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("non-coordinate fields"))
+    );
+    assert!(
+        ascii_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("non-finite"))
+    );
+    let ascii_svg = fs::read_to_string(ascii_output.join("page-0001.svg")).unwrap();
+    assert!(ascii_svg.contains("PCD Point Cloud"));
+    assert!(ascii_svg.contains("data-semantic-role=\"pcd:point-cloud\""));
+    assert!(ascii_svg.contains("fill=\"#FF0000\""));
+    assert!(ascii_svg.contains("fill=\"#00FF00\""));
+    assert!(ascii_svg.contains("fill=\"#FF0000\""));
+    assert!(ascii_svg.contains("fill=\"#00FF00\""));
+
+    let extensionless = temporary.path().join("pcd-header-sniff");
+    fs::copy(&ascii, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Pcd
+    );
+
+    let header = concat!(
+        "# .PCD v0.7 - Point Cloud Data file format\n",
+        "VERSION .7\nFIELDS x y z\nSIZE 4 4 4\nTYPE F F F\nCOUNT 1 1 1\n",
+        "WIDTH 3\nHEIGHT 1\nVIEWPOINT 0 0 0 1 0 0 0\nPOINTS 3\nDATA ",
+    );
+    let points = [[0.0f32, 0.0, 0.0], [10.0, 0.0, 0.0], [0.0, 10.0, 4.0]];
+    let mut raw = Vec::new();
+    for point in points {
+        for value in point {
+            raw.extend_from_slice(&value.to_le_bytes());
+        }
+    }
+    let binary = temporary.path().join("binary.pcd");
+    let mut binary_bytes = format!("{header}binary\n").into_bytes();
+    binary_bytes.extend_from_slice(&raw);
+    fs::write(&binary, binary_bytes).unwrap();
+    let binary_output = temporary.path().join("pcd-binary-out");
+    let binary_report = convert_path(&binary, &binary_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(binary_report.source_format, SourceFormat::Pcd);
+    assert!(
+        fs::read_to_string(binary_output.join("page-0001.svg"))
+            .unwrap()
+            .contains("pcd:point-cloud")
+    );
+
+    let mut soa = Vec::new();
+    for axis in 0..3 {
+        for point in points {
+            soa.extend_from_slice(&point[axis].to_le_bytes());
+        }
+    }
+    let mut compressed = Vec::new();
+    for chunk in soa.chunks(32) {
+        compressed.push(u8::try_from(chunk.len() - 1).unwrap());
+        compressed.extend_from_slice(chunk);
+    }
+    let mut compressed_bytes = format!("{header}binary_compressed\n").into_bytes();
+    compressed_bytes.extend_from_slice(&u32::try_from(compressed.len()).unwrap().to_le_bytes());
+    compressed_bytes.extend_from_slice(&u32::try_from(soa.len()).unwrap().to_le_bytes());
+    compressed_bytes.extend_from_slice(&compressed);
+    let compressed_path = temporary.path().join("compressed.pcd");
+    fs::write(&compressed_path, compressed_bytes).unwrap();
+    let compressed_output = temporary.path().join("pcd-compressed-out");
+    let compressed_report = convert_path(
+        &compressed_path,
+        &compressed_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(compressed_report.source_format, SourceFormat::Pcd);
+    assert!(
+        fs::read_to_string(compressed_output.join("page-0001.svg"))
+            .unwrap()
+            .contains("pcd:point-cloud")
+    );
+
+    let separate_channels = temporary.path().join("separate-channels.pcd");
+    fs::write(
+        &separate_channels,
+        concat!(
+            "VERSION .7\nFIELDS x y z red green blue\n",
+            "SIZE 4 4 4 2 2 2\nTYPE F F F U U U\nCOUNT 1 1 1 1 1 1\n",
+            "WIDTH 1\nHEIGHT 1\nPOINTS 1\nDATA ascii\n",
+            "0 0 0 65535 32768 0\n"
+        ),
+    )
+    .unwrap();
+    let separate_output = temporary.path().join("pcd-separate-colors-out");
+    let separate_report = convert_path(
+        &separate_channels,
+        &separate_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(separate_report.source_format, SourceFormat::Pcd);
+    let separate_svg = fs::read_to_string(separate_output.join("page-0001.svg")).unwrap();
+    assert!(separate_svg.contains("fill=\"#FF8000\""));
+
+    let mut invalid_compressed = format!("{header}binary_compressed\n").into_bytes();
+    invalid_compressed.extend_from_slice(&1u32.to_le_bytes());
+    invalid_compressed.extend_from_slice(&36u32.to_le_bytes());
+    invalid_compressed.push(31);
+    let invalid_path = temporary.path().join("invalid-compressed.pcd");
+    fs::write(&invalid_path, invalid_compressed).unwrap();
+    assert!(
+        convert_path(
+            &invalid_path,
+            temporary.path().join("pcd-invalid-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_multiscan_ptx_with_registration_transforms_colors_and_intensity() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ptx");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::Ptx);
+    let output = temporary.path().join("ptx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ptx);
+    assert_eq!(report.page_count, 2);
+    let first = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let second = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(first.contains("PTX scan 1"));
+    assert!(first.contains("data-semantic-role=\"ptx:point-cloud\""));
+    assert!(first.contains("fill=\"#FF009B\""));
+    assert!(first.contains("fill=\"#00FF9B\""));
+    assert!(first.contains("fill=\"#2563EB\""));
+    assert!(report.pages[0].node_count > 5);
+    assert!(second.contains("PTX scan 2"));
+    assert!(second.contains("data-semantic-role=\"ptx:point-cloud\""));
+    assert!(second.contains("fill=\"#808080\""));
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("no-return"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("mark no color"))
+    );
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("mark no color"))
+    );
+    assert!(
+        report.pages[1]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("scan 2"))
+    );
+    assert!(
+        report.pages[1]
+            .warnings
+            .iter()
+            .all(|warning| !warning.contains("scan 1"))
+    );
+
+    let extensionless = temporary.path().join("ptx-header-sniff");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ptx
+    );
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("ptx-sniffed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Ptx);
+}
+
+#[test]
+fn converts_leica_pts_rgb_and_legacy_intensity_point_clouds() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.pts");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::Pts);
+    let output = temporary.path().join("pts-rgb-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Pts);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"pts:point-cloud\""));
+    assert!(svg.contains("fill=\"#FF0000\""));
+    assert!(svg.contains("fill=\"#00FF00\""));
+    assert!(svg.contains("fill=\"#0000FF\""));
+    assert!(svg.contains("fill=\"#2563EB\""));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("mark no color"))
+    );
+
+    let intensity_input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_intensity.pts");
+    let intensity_output = temporary.path().join("pts-intensity-out");
+    let intensity_report = convert_path(
+        &intensity_input,
+        &intensity_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(intensity_report.source_format, SourceFormat::Pts);
+    let intensity_svg = fs::read_to_string(intensity_output.join("page-0001.svg")).unwrap();
+    assert!(intensity_svg.contains("fill=\"#000000\""));
+    assert!(intensity_svg.contains("fill=\"#808080\""));
+    assert!(intensity_svg.contains("fill=\"#FFFFFF\""));
+
+    let extensionless = temporary.path().join("pts-header-sniff");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Pts
+    );
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("pts-sniffed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Pts);
+}
+
+#[test]
+fn rejects_pts_count_mismatch_and_inconsistent_records() {
+    let temporary = TempDir::new().unwrap();
+    let count_mismatch = temporary.path().join("count-mismatch.pts");
+    fs::write(&count_mismatch, "2\n0 0 0 0.5\n").unwrap();
+    assert!(
+        convert_path(
+            &count_mismatch,
+            temporary.path().join("count-mismatch-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+
+    let inconsistent = temporary.path().join("inconsistent.pts");
+    fs::write(&inconsistent, "2\n0 0 0 0.5\n1 1 1 0.5 0 255 0\n").unwrap();
+    assert!(
+        convert_path(
+            &inconsistent,
+            temporary.path().join("inconsistent-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_real_and_multiscan_e57_point_clouds_and_checks_page_crc() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_e57_bunny.e57");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::E57);
+    let output = temporary.path().join("e57-bunny-out");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::E57);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"e57:point-cloud\""));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .all(|warning| !warning.contains("invalid E57 colors"))
+    );
+
+    let extensionless = temporary.path().join("e57-signature-sniff");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::E57
+    );
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("e57-bunny-sniffed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::E57);
+    assert_eq!(sniffed.page_count, 1);
+
+    let generated = temporary.path().join("multiscan.e57");
+    common::write_e57_rgb_and_intensity_fixture(&generated);
+    let generated_output = temporary.path().join("e57-multiscan-out");
+    let generated_report =
+        convert_path(&generated, &generated_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(generated_report.source_format, SourceFormat::E57);
+    assert_eq!(generated_report.page_count, 2);
+    let colored = fs::read_to_string(generated_output.join("page-0001.svg")).unwrap();
+    let intensity = fs::read_to_string(generated_output.join("page-0002.svg")).unwrap();
+    assert!(colored.contains("data-semantic-role=\"e57:point-cloud\""));
+    assert!(colored.contains("fill=\"#FF0000\""));
+    assert!(colored.contains("fill=\"#00FF00\""));
+    assert!(colored.contains("fill=\"#0000FF\""));
+    assert!(
+        generated_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("invalid or out-of-range"))
+    );
+    assert!(intensity.contains("fill=\"#000000\""));
+    assert!(intensity.contains("fill=\"#808080\""));
+    assert!(intensity.contains("fill=\"#FFFFFF\""));
+
+    let corrupted = temporary.path().join("bad-crc.e57");
+    let mut corrupted_bytes = fs::read(&fixture).unwrap();
+    corrupted_bytes[1020] ^= 0xFF;
+    fs::write(&corrupted, corrupted_bytes).unwrap();
+    assert!(
+        convert_path(
+            &corrupted,
+            temporary.path().join("bad-crc-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_common_xyz_ascii_point_layouts_and_keeps_black_rgb() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let rgb_input = fixture_dir.join("sample.xyz");
+    assert_eq!(SourceFormat::detect(&rgb_input).unwrap(), SourceFormat::Xyz);
+    let rgb_output = temporary.path().join("xyz-rgb-out");
+    let report = convert_path(&rgb_input, &rgb_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xyz);
+    assert_eq!(report.page_count, 1);
+    let rgb_svg = fs::read_to_string(rgb_output.join("page-0001.svg")).unwrap();
+    assert!(rgb_svg.contains("data-semantic-role=\"xyz:point-cloud\""));
+    assert!(rgb_svg.contains("fill=\"#FF0000\""));
+    assert!(rgb_svg.contains("fill=\"#00FF00\""));
+    assert!(rgb_svg.contains("fill=\"#0000FF\""));
+    assert!(rgb_svg.contains("fill=\"#000000\""));
+
+    let intensity_input = fixture_dir.join("sample_xyz_intensity.xyz");
+    let intensity_output = temporary.path().join("xyz-intensity-out");
+    let intensity_report = convert_path(
+        &intensity_input,
+        &intensity_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(intensity_report.source_format, SourceFormat::Xyz);
+    let intensity_svg = fs::read_to_string(intensity_output.join("page-0001.svg")).unwrap();
+    assert!(intensity_svg.contains("fill=\"#000000\""));
+    assert!(intensity_svg.contains("fill=\"#808080\""));
+    assert!(intensity_svg.contains("fill=\"#FFFFFF\""));
+
+    let rgb_only_input = fixture_dir.join("sample_xyz_rgb.xyz");
+    let rgb_only_output = temporary.path().join("xyz-rgb-only-out");
+    convert_path(
+        &rgb_only_input,
+        &rgb_only_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    let rgb_only_svg = fs::read_to_string(rgb_only_output.join("page-0001.svg")).unwrap();
+    assert!(rgb_only_svg.contains("fill=\"#000000\""));
+    assert!(rgb_only_svg.contains("fill=\"#FF4000\""));
+
+    let normals_input = fixture_dir.join("sample_xyz_normals.xyz");
+    let normals_report = convert_path(
+        &normals_input,
+        temporary.path().join("xyz-normals-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        normals_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("normal vectors"))
+    );
+    let normals9_input = fixture_dir.join("sample_xyz_normals9.xyz");
+    let normals9_report = convert_path(
+        &normals9_input,
+        temporary.path().join("xyz-normals9-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert!(
+        normals9_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("normal vectors"))
+    );
+
+    let header_input = fixture_dir.join("sample_xyz_header.xyz");
+    let header_output = temporary.path().join("xyz-header-out");
+    let header_report =
+        convert_path(&header_input, &header_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(header_report.source_format, SourceFormat::Xyz);
+    let header_svg = fs::read_to_string(header_output.join("page-0001.svg")).unwrap();
+    assert!(header_svg.contains("fill=\"#FF0000\""));
+    assert!(header_svg.contains("fill=\"#00FF00\""));
+    assert!(
+        header_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("1 unrecognized XYZ header column"))
+    );
+
+    let headerless_header = temporary.path().join("xyz-header-sniff");
+    fs::copy(&header_input, &headerless_header).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&headerless_header).unwrap(),
+        SourceFormat::Xyz
+    );
+
+    let extensionless = temporary.path().join("xyz-content-sniff");
+    fs::write(&extensionless, "0 0 0\n1 0 0\n").unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xyz
+    );
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("xyz-sniffed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Xyz);
+}
+
+#[test]
+fn rejects_xyz_rows_with_inconsistent_field_widths() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("mixed-width.xyz");
+    fs::write(&input, "0 0 0\n1 1 1 0.5\n").unwrap();
+    assert!(
+        convert_path(
+            &input,
+            temporary.path().join("mixed-width-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+
+    let incomplete_header = temporary.path().join("incomplete-color-header.xyz");
+    fs::write(
+        &incomplete_header,
+        "x y z red green\n0 0 0 255 0\n1 0 0 0 255\n",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &incomplete_header,
+            temporary.path().join("incomplete-header-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_esri_ascii_grid_and_keeps_nodata_transparent() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_elevation.asc");
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::EsriAsciiGrid
+    );
+    let output = temporary.path().join("ascii-grid-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::EsriAsciiGrid);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("NODATA_VALUE"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"esri:ascii-grid-raster\""));
+    let data_uri = svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split('"')
+        .next()
+        .unwrap();
+    let png_bytes = base64::engine::general_purpose::STANDARD
+        .decode(data_uri)
+        .unwrap();
+    let decoder = png::Decoder::new(std::io::Cursor::new(png_bytes));
+    let mut reader = decoder.read_info().unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!((info.width, info.height), (4, 3));
+    assert_eq!(&pixels[0..4], &[68, 1, 84, 255]);
+    assert_eq!(&pixels[20..24], &[0, 0, 0, 0]);
+    assert_eq!(&pixels[11 * 4..11 * 4 + 4], &[253, 231, 37, 255]);
+
+    let extensionless = temporary.path().join("grid-signature-sniff");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::EsriAsciiGrid
+    );
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("grid-sniffed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::EsriAsciiGrid);
+}
+
+#[test]
+fn converts_an_all_nodata_esri_grid_to_a_transparent_raster() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("all-nodata.asc");
+    fs::write(
+        &input,
+        "ncols 2\nnrows 1\nxllcenter 1\nyllcenter 2\ncellsize 3\nnodata_value -9999\n-9999 -9999\n",
+    )
+    .unwrap();
+    let output = temporary.path().join("all-nodata-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::EsriAsciiGrid);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("no valid data cells"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("2 NODATA_VALUE cells"))
+    );
+
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("No valid data cells"));
+    assert!(!svg.contains("grid-legend-band-"));
+    let data_uri = svg
+        .split_once("href=\"data:image/png;base64,")
+        .unwrap()
+        .1
+        .split('\"')
+        .next()
+        .unwrap();
+    let png_bytes = base64::engine::general_purpose::STANDARD
+        .decode(data_uri)
+        .unwrap();
+    let decoder = png::Decoder::new(std::io::Cursor::new(png_bytes));
+    let mut reader = decoder.read_info().unwrap();
+    let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+    let info = reader.next_frame(&mut pixels).unwrap();
+    assert_eq!((info.width, info.height), (2, 1));
+    assert_eq!(&pixels[..8], &[0, 0, 0, 0, 0, 0, 0, 0]);
+}
+
+#[test]
+fn rejects_esri_ascii_grid_mismatched_origin_and_cell_counts() {
+    let temporary = TempDir::new().unwrap();
+    let mismatched = temporary.path().join("mismatched.asc");
+    fs::write(
+        &mismatched,
+        "ncols 2\nnrows 2\nxllcorner 0\nyllcorner 0\ncellsize 1\n1 2 3\n",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &mismatched,
+            temporary.path().join("mismatched-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+
+    let mismatched_origin = temporary.path().join("mismatched-origin.asc");
+    fs::write(
+        &mismatched_origin,
+        "ncols 1\nnrows 1\nxllcenter 0.5\nyllcorner 0\ncellsize 1\n1\n",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &mismatched_origin,
+            temporary.path().join("mismatched-origin-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_dbase_attribute_tables_and_skips_deleted_records() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_attributes.dbf");
+    assert_eq!(SourceFormat::detect(&input).unwrap(), SourceFormat::Dbf);
+    let output = temporary.path().join("dbase-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dbf);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("deleted dBASE record"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("PARCEL_ID"));
+    assert!(svg.contains("AREA_HA"));
+    assert!(svg.contains("Café Moreno"));
+    assert!(svg.contains("2008-09-22"));
+    assert!(!svg.contains("Willow Farm"));
+
+    let extensionless = temporary.path().join("dbase-signature-sniff");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Dbf
+    );
+    let sniffed = convert_path(
+        &extensionless,
+        temporary.path().join("dbase-sniffed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Dbf);
+}
+
+#[test]
+fn converts_toml_configuration_as_inert_nested_data() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_config.toml");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Toml);
+    let input = temporary.path().join("inert-strings.toml");
+    let mut source = fs::read_to_string(fixture).unwrap();
+    source.push_str("\nliteral_example = \"<script>this is text</script>\"\n");
+    fs::write(&input, source).unwrap();
+    let output = temporary.path().join("toml-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Toml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"toml\""));
+    assert!(svg.contains("$.service.limits.requests_per_minute (integer): 1200"));
+    assert!(svg.contains("$.service.limits.error_rate (float): 0.25"));
+    assert!(svg.contains("$.targets[1].regions[1] (string): \"ap-northeast-1\""));
+    assert!(svg.contains("(datetime): 2026-08-03T17:20:00Z"));
+    assert!(svg.contains("&lt;script&gt;this is text&lt;/script&gt;"));
+    assert!(!svg.contains("<script>this is text</script>"));
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("float value(s) were normalized"))
+    );
+}
+
+#[test]
+fn converts_yaml_documents_without_expanding_aliases_or_tags() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_config.yaml");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Yaml);
+    let yml_alias = temporary.path().join("alias.yml");
+    fs::copy(&fixture, &yml_alias).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&yml_alias).unwrap(),
+        SourceFormat::Yaml
+    );
+    let output = temporary.path().join("yaml-out");
+
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Yaml);
+    assert_eq!(report.page_count, 2);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let svg_second = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"yaml\""));
+    assert!(svg.contains("$.service.limits.requests_per_minute (scalar): \"1200\""));
+    assert!(svg.contains("$.service.limits.error_rate (scalar): \"0.25\""));
+    assert!(svg.contains("$.targets[1].regions[1] (scalar): \"ap-northeast-1\""));
+    assert!(svg.contains("not expanded"));
+    assert!(svg.contains("./secrets.yml"));
+    assert!(svg_second.contains("Document 2"));
+    assert!(!svg.contains("secrets.yml contents") && !svg_second.contains("secrets.yml contents"));
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("alias reference"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("custom-tagged"))
+    );
+}
+
+#[test]
+fn previews_generic_xml_and_keeps_specialized_xml_routes() {
+    let temporary = TempDir::new().unwrap();
+    let generic = temporary.path().join("application.xml");
+    fs::write(
+        &generic,
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<configuration xmlns="urn:example:config" version="1">
+  <service id="catalog">A&amp;B</service>
+  <enabled>true</enabled>
+</configuration>"#,
+    )
+    .unwrap();
+    assert_eq!(SourceFormat::detect(&generic).unwrap(), SourceFormat::Xml);
+    let extensionless = temporary.path().join("xml-content-sniff");
+    fs::copy(&generic, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xml
+    );
+    let plain_xml = temporary.path().join("not-xml.xml");
+    fs::write(&plain_xml, "plain text with no markup").unwrap();
+    assert!(matches!(
+        SourceFormat::detect(&plain_xml),
+        Err(document_svg::Error::Unsupported(_))
+    ));
+    let output = temporary.path().join("xml-out");
+    let report = convert_path(&generic, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"xml\""));
+    assert!(svg.contains("namespace ns1 = \"urn:example:config\""));
+    assert!(svg.contains("/@version = \"1\""));
+    assert!(svg.contains("A&amp;B"));
+
+    let drawio = temporary.path().join("diagram.xml");
+    fs::write(
+        &drawio,
+        "<mxfile><diagram name=\"Empty\"><mxGraphModel><root><mxCell id=\"0\"/><mxCell id=\"1\" parent=\"0\"/></root></mxGraphModel></diagram></mxfile>",
+    )
+    .unwrap();
+    assert_eq!(SourceFormat::detect(&drawio).unwrap(), SourceFormat::Drawio);
+
+    let project = Path::new(env!("CARGO_MANIFEST_DIR")).join("samples/source/sample.project.xml");
+    assert_eq!(
+        SourceFormat::detect(&project).unwrap(),
+        SourceFormat::ProjectXml
+    );
+}
+
+#[test]
+fn converts_java_properties_with_last_value_override_and_inert_placeholders() {
+    let temporary = TempDir::new().unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_properties.properties");
+    assert_eq!(
+        SourceFormat::detect(&fixture).unwrap(),
+        SourceFormat::Properties
+    );
+    let output = temporary.path().join("properties-out");
+
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Properties);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("duplicate"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"properties\""));
+    assert!(svg.contains("$[\"app.name\"] = \"Catalog API\""));
+    assert!(svg.contains("$[\"welcome\"] = \"Hello, Café!\""));
+    assert!(svg.contains("$[\"workflow.steps\"] = \"compiletestpackage\""));
+    assert!(svg.contains("$[\"release.channel\"] = \"stable\""));
+    assert!(!svg.contains("$[\"release.channel\"] = \"old\""));
+    assert!(svg.contains("${HOME} is displayed as text"));
+    assert!(svg.contains("🚀"));
+}
+
+#[test]
+fn converts_bpmn_20_diagrams_and_sniffs_the_bpmn_namespace() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_bpmn.bpmn");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Bpmn);
+    let output = temporary.path().join("bpmn-out");
+
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Bpmn);
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"bpmn\""));
+    assert!(svg.contains("Order fulfillment"));
+    assert!(svg.contains("Validate order"));
+    assert!(svg.contains("In stock?"));
+    assert!(svg.contains("bpmn-flow-arrow-Flow_In_Stock"));
+
+    let extensionless = temporary.path().join("bpmn-content-sniff");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Bpmn
+    );
+    let bpmn2 = temporary.path().join("workflow.bpmn2");
+    fs::copy(&fixture, &bpmn2).unwrap();
+    assert_eq!(SourceFormat::detect(&bpmn2).unwrap(), SourceFormat::Bpmn);
+
+    let without_di = temporary.path().join("model-only.bpmn");
+    fs::write(
+        &without_di,
+        format!(
+            "<definitions xmlns=\"{}\"><process id=\"p\"/></definitions>",
+            "http://www.omg.org/spec/BPMN/20100524/MODEL"
+        ),
+    )
+    .unwrap();
+    let error = convert_path(
+        &without_di,
+        temporary.path().join("model-only-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("no BPMN Diagram Interchange"));
+
+    let dtd = temporary.path().join("external.bpmn");
+    fs::write(
+        &dtd,
+        format!(
+            "<!DOCTYPE definitions SYSTEM \"https://example.invalid/bpmn.dtd\"><definitions xmlns=\"{}\"/>",
+            "http://www.omg.org/spec/BPMN/20100524/MODEL"
+        ),
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &dtd,
+            temporary.path().join("dtd-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_dmn_15_decision_tables_as_inert_rule_rows() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_dmn.dmn");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Dmn);
+    let output = temporary.path().join("dmn-out");
+
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Dmn);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"dmn\""));
+    assert!(svg.contains("Loan approval"));
+    assert!(svg.contains("Requires inputData: Applicant age"));
+    assert!(svg.contains("Applicant age"));
+    assert!(svg.contains("Credit score"));
+    assert!(svg.contains("manual review"));
+    assert!(svg.contains("FEEL is") && svg.contains("not evaluated."));
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+
+    let extensionless = temporary.path().join("dmn-content-sniff");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Dmn
+    );
+    let generic_xml = temporary.path().join("decision.xml");
+    fs::copy(&fixture, &generic_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::Dmn
+    );
+}
+
+#[test]
+fn converts_cmmn_11_case_plan_with_cmmndi_geometry() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_cmmn.cmmn");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Cmmn);
+    let output = temporary.path().join("cmmn-out");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Cmmn);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not evaluated"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"cmmn\""));
+    assert!(svg.contains("Claims file"));
+    assert!(svg.contains("Review documents"));
+    assert!(svg.contains("cmmn:connector"));
+
+    let extensionless = temporary.path().join("case-content-sniff");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Cmmn
+    );
+    let wrong = temporary.path().join("wrong.cmmn");
+    fs::write(
+        &wrong,
+        "<definitions xmlns=\"http://example.invalid/not-cmmn\"/>",
+    )
+    .unwrap();
+    assert!(
+        convert_path(
+            &wrong,
+            temporary.path().join("wrong-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn converts_reqif_requirements_hierarchy_values_and_relations() {
+    let temporary = TempDir::new().unwrap();
+    let fixture =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_requirements.reqif");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Reqif);
+    let output = temporary.path().join("reqif-out");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Reqif);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("XHTML"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"reqif\""));
+    assert!(svg.contains("Vehicle braking requirements"));
+    assert!(svg.contains("Stopping distance"));
+    assert!(svg.contains("Stop within 40 m at 100 km/h"));
+    assert!(svg.contains("Approved"));
+    assert!(svg.contains("Relations"));
+    assert!(svg.contains("Derives"));
+
+    let reqif_xml = temporary.path().join("requirements.reqif.xml");
+    fs::copy(&fixture, &reqif_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&reqif_xml).unwrap(),
+        SourceFormat::Reqif
+    );
+    let extensionless = temporary.path().join("requirements-content-sniff");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Reqif
+    );
+}
+
+#[test]
+fn converts_xmi_model_elements_and_inert_references() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_model.xmi");
+    assert_eq!(SourceFormat::detect(&fixture).unwrap(), SourceFormat::Xmi);
+    let output = temporary.path().join("xmi-out");
+    let report = convert_path(&fixture, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xmi);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"xmi\""));
+    assert!(svg.contains("BrakeController"));
+    assert!(svg.contains("WheelSensor"));
+    assert!(svg.contains("type=double"));
+    assert!(svg.contains("memberEnd=attr-pressure") && svg.contains("attr-speed"));
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+
+    let extensionless = temporary.path().join("model-content-sniff");
+    fs::copy(&fixture, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xmi
+    );
+}
+
+#[test]
+fn converts_las_and_laz_point_clouds_with_sampling_and_rgb() {
+    let temporary = TempDir::new().unwrap();
+    let las_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_rgb.las");
+    let output = temporary.path().join("las-out");
+    let report = convert_path(&las_path, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Las);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("LAS/LAZ Point Cloud"));
+    assert!(svg.contains("data-semantic-role=\"las:point-cloud\""));
+    assert!(svg.contains("fill=\"#FF0000\""));
+    assert!(svg.contains("fill=\"#00FF00\""));
+    assert!(svg.contains("fill=\"#0000FF\""));
+    assert!(
+        report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("classification"))
+    );
+
+    let extensionless = temporary.path().join("las-header-sniff");
+    fs::copy(&las_path, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Las
+    );
+    let sniffed_output = temporary.path().join("las-sniff-out");
+    let sniffed =
+        convert_path(&extensionless, &sniffed_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(sniffed.source_format, SourceFormat::Las);
+
+    let mut builder = las::Builder::from((1, 2));
+    builder.point_format = las::point::Format::new(2).unwrap();
+    builder.point_format.is_compressed = true;
+    let header = builder.into_header().unwrap();
+    let laz_path = temporary.path().join("compressed.laz");
+    let mut writer = las::Writer::new(File::create(&laz_path).unwrap(), header).unwrap();
+    for point in [
+        las::Point {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            color: Some(las::Color::new(65_535, 0, 0)),
+            ..Default::default()
+        },
+        las::Point {
+            x: 10.0,
+            y: 0.0,
+            z: 2.0,
+            color: Some(las::Color::new(0, 65_535, 0)),
+            ..Default::default()
+        },
+        las::Point {
+            x: 0.0,
+            y: 10.0,
+            z: 4.0,
+            color: Some(las::Color::new(0, 0, 65_535)),
+            ..Default::default()
+        },
+    ] {
+        writer.write_point(point).unwrap();
+    }
+    writer.close().unwrap();
+    let laz_output = temporary.path().join("laz-out");
+    let laz_report = convert_path(&laz_path, &laz_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(laz_report.source_format, SourceFormat::Las);
+    let laz_svg = fs::read_to_string(laz_output.join("page-0001.svg")).unwrap();
+    assert!(laz_svg.contains("data-semantic-role=\"las:point-cloud\""));
+    assert!(laz_svg.contains("fill=\"#FF0000\""));
+    assert!(laz_svg.contains("fill=\"#00FF00\""));
+
+    let mut builder = las::Builder::from((1, 4));
+    builder.point_format = las::point::Format::new(8).unwrap();
+    let header = builder.into_header().unwrap();
+    let las14_path = temporary.path().join("las14-nir.las");
+    let mut writer = las::Writer::new(File::create(&las14_path).unwrap(), header).unwrap();
+    writer
+        .write_point(las::Point {
+            x: 4.0,
+            y: 5.0,
+            z: 6.0,
+            gps_time: Some(12.5),
+            color: Some(las::Color::new(65_535, 32_768, 0)),
+            nir: Some(45_000),
+            ..Default::default()
+        })
+        .unwrap();
+    writer.close().unwrap();
+    let las14_output = temporary.path().join("las14-out");
+    let las14_report =
+        convert_path(&las14_path, &las14_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(las14_report.source_format, SourceFormat::Las);
+    let las14_svg = fs::read_to_string(las14_output.join("page-0001.svg")).unwrap();
+    assert!(las14_svg.contains("fill=\"#FF8000\""));
+    assert!(
+        las14_report.pages[0]
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("NIR"))
+    );
+}
+
+#[test]
+fn bounds_las_point_data_and_laz_decode_before_parsing_points() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_rgb.las");
+    let mut bytes = fs::read(fixture).unwrap();
+
+    let truncated = temporary.path().join("truncated.las");
+    bytes[107..111].copy_from_slice(&5u32.to_le_bytes());
+    fs::write(&truncated, &bytes).unwrap();
+    assert!(
+        convert_path(
+            &truncated,
+            temporary.path().join("truncated-out"),
+            &ConvertOptions::default()
+        )
+        .is_err()
+    );
+
+    let oversized_laz = temporary.path().join("oversized.laz");
+    bytes[104] = 0x82;
+    bytes[107..111].copy_from_slice(&20_000_001u32.to_le_bytes());
+    fs::write(&oversized_laz, &bytes).unwrap();
+    let error = convert_path(
+        &oversized_laz,
+        temporary.path().join("oversized-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(format!("{error}").contains("maximum sequential decode count"));
 }
 
 #[test]
@@ -9739,6 +16144,40 @@ fn converts_threemf_file_through_public_api() {
 
     let svg = fs::read_to_string(out_dir.join("page-0001.svg")).unwrap();
     assert!(svg.contains("id=\"face_0\""));
+}
+
+#[test]
+fn follows_3mf_primary_model_relationship_and_applies_build_selection_and_transforms() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("assembly.3mf");
+    let output = temporary.path().join("assembly_out");
+    let file = File::create(&input).unwrap();
+    let mut zip = ZipWriter::new(file);
+    zip.start_file("unrelated/preview.model", SimpleFileOptions::default())
+        .unwrap();
+    zip.write_all(b"<model/>").unwrap();
+    zip.start_file("_rels/.rels", SimpleFileOptions::default())
+        .unwrap();
+    zip.write_all(
+        br#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="root" Type="http://schemas.microsoft.com/3dmanufacturing/2013/01/3dmodel" Target="/Models/primary.model"/></Relationships>"#,
+    )
+    .unwrap();
+    zip.start_file("Models/primary.model", SimpleFileOptions::default())
+        .unwrap();
+    zip.write_all(
+        br#"<model xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02"><resources>
+<object id="1" type="model"><mesh><vertices><vertex x="0" y="0" z="0"/><vertex x="10" y="0" z="0"/><vertex x="0" y="10" z="0"/></vertices><triangles><triangle v1="0" v2="1" v3="2"/></triangles></mesh></object>
+<object id="2" type="model"><mesh><vertices><vertex x="20" y="0" z="0"/><vertex x="30" y="0" z="0"/><vertex x="20" y="10" z="0"/></vertices><triangles><triangle v1="0" v2="1" v3="2"/></triangles></mesh></object>
+</resources><build><item objectid="2" transform="2 0 0 0 1 0 0 0 1 5 0 0"/></build></model>"#,
+    )
+    .unwrap();
+    zip.finish().unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("id=\"face_0\""));
+    assert!(!svg.contains("id=\"face_1\""));
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
 }
 
 #[test]
@@ -9944,4 +16383,6012 @@ fn draws_content_after_a_comment_trailing_an_operator_on_the_same_line() {
     assert_eq!(report.pages[0].node_count, 1);
     let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
     assert!(svg.contains("#000000"), "{svg}");
+}
+
+#[test]
+fn converts_visio_open_xml_pages_and_sniffs_extensionless_packages() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("flow.vsdx");
+    let package_entries = [
+        (
+            "_rels/.rels",
+            r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/visioDocument" Target="visio/document.xml"/></Relationships>"#,
+        ),
+        (
+            "visio/document.xml",
+            r#"<VisioDocument xmlns="urn:visio"/>"#,
+        ),
+        (
+            "visio/_rels/document.xml.rels",
+            r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdPages" Type="http://schemas.microsoft.com/visio/2010/relationships/pages" Target="pages/pages.xml"/></Relationships>"#,
+        ),
+        (
+            "visio/pages/pages.xml",
+            r#"<Pages xmlns="urn:visio" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><Page ID="0" NameU="Main"><PageSheet><Cell N="PageWidth" V="5"/><Cell N="PageHeight" V="4"/></PageSheet><Rel r:id="rId1"/></Page></Pages>"#,
+        ),
+        (
+            "visio/pages/_rels/pages.xml.rels",
+            r#"<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.microsoft.com/visio/2010/relationships/page" Target="page1.xml"/></Relationships>"#,
+        ),
+        (
+            "visio/pages/page1.xml",
+            r##"<PageContents xmlns="urn:visio"><PageSheet><Cell N="PageWidth" V="5"/><Cell N="PageHeight" V="4"/></PageSheet><Shapes><Shape ID="1" NameU="Process" Type="Shape"><Cell N="PinX" V="2.5"/><Cell N="PinY" V="2"/><Cell N="Width" V="2"/><Cell N="Height" V="1"/><Cell N="LocPinX" V="1"/><Cell N="LocPinY" V="0.5"/><Cell N="FillForegnd" V="#FF0000"/><Cell N="LineColor" V="#112233"/><Section N="Geometry"><Row T="RelMoveTo"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row><Row T="RelLineTo"><Cell N="X" V="1"/><Cell N="Y" V="0"/></Row><Row T="RelLineTo"><Cell N="X" V="1"/><Cell N="Y" V="1"/></Row><Row T="RelLineTo"><Cell N="X" V="0"/><Cell N="Y" V="1"/></Row></Section><Text>R&amp;D</Text><Section N="Character"><Row IX="0"><Cell N="Color" V="#000000"/><Cell N="Size" V="0.166667"/></Row></Section></Shape></Shapes></PageContents>"##,
+        ),
+    ];
+    make_zip(&input, &package_entries);
+
+    let output = temporary.path().join("vsdx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Visio);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"visio\""));
+    assert!(svg.contains("Main"));
+    assert!(svg.contains("R&amp;D"));
+    assert!(svg.contains("#FF0000"));
+
+    let extensionless = temporary.path().join("flow.unknown");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Visio
+    );
+}
+
+#[test]
+fn converts_legacy_visio_xml_pages_and_sniffs_extensionless_files() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("flow.vdx");
+    let xml = r##"<?xml version="1.0" encoding="UTF-8"?><VisioDocument xmlns="urn:visio" xml:space="preserve"><Pages><Page ID="2" NameU="Legacy flow"><PageSheet><Cell N="PageWidth" V="4"/><Cell N="PageHeight" V="3"/></PageSheet><Shapes><Shape ID="7" NameU="Process" Type="Shape"><Cell N="PinX" V="2"/><Cell N="PinY" V="1.5"/><Cell N="Width" V="2"/><Cell N="Height" V="1"/><Cell N="FillForegnd" V="#22AA44"/><Section N="Geometry"><Row T="RelMoveTo"><Cell N="X" V="0"/><Cell N="Y" V="0"/></Row><Row T="RelLineTo"><Cell N="X" V="1"/><Cell N="Y" V="0"/></Row><Row T="RelLineTo"><Cell N="X" V="1"/><Cell N="Y" V="1"/></Row></Section><Text>Legacy &amp; editable</Text></Shape></Shapes></Page></Pages></VisioDocument>"##;
+    fs::write(&input, xml).unwrap();
+
+    let output = temporary.path().join("vdx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Visio);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report.pages[0].warnings.is_empty(),
+        "{:?}",
+        report.pages[0].warnings
+    );
+    assert_eq!(report.pages[0].width_points, 288.0);
+    assert_eq!(report.pages[0].height_points, 216.0);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Legacy &amp; editable"));
+    assert!(svg.contains("#22AA44"));
+
+    let extensionless = temporary.path().join("flow.xml");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Visio
+    );
+}
+
+#[test]
+fn converts_eml_html_alternative_without_fetching_remote_resources_or_attachments() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("message.eml");
+    let message = concat!(
+        "From: =?UTF-8?Q?Alice_Example?= <alice@example.test>\r\n",
+        "To: Bob <bob@example.test>\r\n",
+        "Date: Tue, 10 Sep 2024 12:30:00 +0000\r\n",
+        "Subject: =?UTF-8?Q?Quarterly_update_=E2=9C=93?=\r\n",
+        "MIME-Version: 1.0\r\n",
+        "Content-Type: multipart/mixed; boundary=outer\r\n\r\n",
+        "--outer\r\n",
+        "Content-Type: multipart/alternative; boundary=alt\r\n\r\n",
+        "--alt\r\n",
+        "Content-Type: text/plain; charset=utf-8\r\n",
+        "Content-Transfer-Encoding: quoted-printable\r\n\r\n",
+        "Revenue increased by 12=25.\r\n\r\nNext steps follow.\r\n",
+        "--alt\r\n",
+        "Content-Type: text/html; charset=utf-8\r\n\r\n",
+        "<html><body><p>Styled alternative.</p><img src=\"https://example.invalid/pixel.png\"></body></html>\r\n",
+        "--alt--\r\n",
+        "--outer\r\n",
+        "Content-Type: application/octet-stream; name=secret.bin\r\n",
+        "Content-Disposition: attachment; filename=secret.bin\r\n",
+        "Content-Transfer-Encoding: base64\r\n\r\n",
+        "U0VDUkVU\r\n",
+        "--outer--\r\n",
+    );
+    fs::write(&input, message).unwrap();
+
+    let output = temporary.path().join("eml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Eml);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("attachment"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("HTML image source")),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Quarterly update ✓"));
+    assert!(svg.contains("Alice Example"));
+    assert!(svg.contains("alice@example.test"));
+    assert!(svg.contains("Styled alternative."));
+    assert!(!svg.contains("Revenue increased by 12%"));
+    assert!(!svg.contains("SECRET"));
+    assert!(!svg.contains("example.invalid/pixel.png"));
+
+    let extensionless = temporary.path().join("message.unknown");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Eml
+    );
+}
+
+#[test]
+fn unfolds_rfc3676_flowed_plain_text_and_space_stuffing() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/flowed_message.eml");
+    let output = temporary.path().join("flowed-eml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Eml);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("RFC 3676 flowed plain text"))
+    );
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("HTML e-mail alternative is shown"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("A flowed line with a preserved word."));
+    assert!(svg.contains("From this sender."));
+    assert!(svg.contains("&gt; quoted words continue."));
+    assert!(svg.contains("--"));
+    assert!(svg.contains("Signature line."));
+}
+
+#[test]
+fn converts_eml_cid_inline_png_as_a_safe_html_image() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("inline-image.eml");
+    let png =
+        fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/assets/red-blue.png"))
+            .unwrap();
+    let encoded = base64::engine::general_purpose::STANDARD.encode(png);
+    let message = format!(
+        "From: Alice <alice@example.test>\r\nSubject: Inline image\r\nMIME-Version: 1.0\r\nContent-Type: multipart/related; boundary=eml; type=\"text/html\"\r\n\r\n--eml\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<html><body><p>Before image.</p><img src=\"cid:eml-logo\" alt=\"brand logo\"><img src=\"https://example.invalid/eml-logo.png\" alt=\"location logo\"><img src=\"https://example.invalid/tracker.png\"><script>must not render</script></body></html>\r\n--eml\r\nContent-Type: image/png\r\nContent-ID: <eml-logo>\r\nContent-Location: https://example.invalid/eml-logo.png\r\nContent-Transfer-Encoding: base64\r\n\r\n{encoded}\r\n--eml--\r\n"
+    );
+    fs::write(&input, message).unwrap();
+
+    let output = temporary.path().join("eml-inline-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Eml);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("HTML image source"))
+    );
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("1 mail attachment/resource part"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Before image."));
+    assert!(svg.contains("brand logo"));
+    assert!(svg.contains("location logo"));
+    assert_eq!(svg.matches("data:image/png;base64,").count(), 2);
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("must not render"));
+}
+
+#[test]
+fn converts_emlx_only_within_declared_message_bytes_and_sniffs_extensionless_input() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.emlx");
+    let output = temporary.path().join("emlx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Emlx);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("property-list metadata was ignored"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Apple Mail message"));
+    assert!(svg.contains("EMLX body text."));
+    assert!(svg.contains("日本語の本文です。"));
+    assert!(!svg.contains("plist"));
+    assert!(!svg.contains("flags"));
+
+    let extensionless = temporary.path().join("apple-mail-message");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Emlx
+    );
+}
+
+#[test]
+fn converts_mbox_messages_to_separate_sequential_svg_pages() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("archive.mbox");
+    let mbox = concat!(
+        "From alice@example.test Sat Sep 14 10:00:00 2024\r\n",
+        "From: Alice <alice@example.test>\r\n",
+        "Subject: First message\r\n",
+        "Content-Type: text/plain; charset=utf-8\r\n\r\n",
+        "First archived body.\r\n\r\n",
+        "From bob@example.test Sun Sep 15 11:30:00 2024\r\n",
+        "From: Bob <bob@example.test>\r\n",
+        "Subject: Second message\r\n",
+        "Content-Type: text/plain; charset=utf-8\r\n\r\n",
+        "Second archived body.\r\n",
+    );
+    fs::write(&input, mbox).unwrap();
+
+    let output = temporary.path().join("mbox-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mbox);
+    assert_eq!(report.page_count, 2);
+    let first = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let second = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(first.contains("First message"));
+    assert!(first.contains("First archived body."));
+    assert!(second.contains("Second message"));
+    assert!(second.contains("Second archived body."));
+
+    let extensionless = temporary.path().join("archive.unknown");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Mbox
+    );
+}
+
+#[test]
+fn converts_mhtml_html_part_without_fetching_referenced_resources() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("saved-page.mhtml");
+    let mhtml = concat!(
+        "MIME-Version: 1.0\r\n",
+        "Subject: Saved page\r\n",
+        "Content-Type: multipart/related; boundary=archive; type=\"text/html\"\r\n\r\n",
+        "--archive\r\n",
+        "Content-Type: text/html; charset=utf-8\r\n",
+        "Content-Location: https://example.invalid/saved/page.html\r\n\r\n",
+        "<html><body><h1>Archived heading</h1><p>Archived web content.</p>",
+        "<script>must not render</script><img src=\"cid:inline-image\" alt=\"inline logo\">",
+        "<img src=\"cid:INLINE-image\" alt=\"case mismatch\">",
+        "<img src=\"https://example.invalid/images/inline.png\" alt=\"location logo\">",
+        "<img src=\"https://example.invalid/tracker.png\">",
+        "</body></html>\r\n",
+        "--archive\r\n",
+        "Content-Type: image/png\r\nContent-ID: <inline-image>\r\n",
+        "Content-Location: https://example.invalid/images/inline.png\r\n",
+        "Content-Transfer-Encoding: base64\r\n\r\n",
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z0S8AAAAASUVORK5CYII=\r\n",
+        "--archive\r\n",
+        "Content-Type: application/octet-stream; name=secret.txt\r\n",
+        "Content-Disposition: attachment; filename=secret.txt\r\n",
+        "Content-Transfer-Encoding: base64\r\n\r\n",
+        "U0VDUkVU\r\n",
+        "--archive--\r\n",
+    );
+    fs::write(&input, mhtml).unwrap();
+
+    let output = temporary.path().join("mhtml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mhtml);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("image source"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("part(s)"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Saved page"));
+    assert!(svg.contains("Archived heading"));
+    assert!(svg.contains("Archived web content."));
+    assert_eq!(svg.matches("data:image/png;base64,").count(), 2);
+    assert!(svg.contains("location logo"));
+    assert!(svg.contains("case mismatch"));
+    assert!(!svg.contains("must not render"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("SECRET"));
+
+    let extensionless = temporary.path().join("saved-page.unknown");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Mhtml
+    );
+}
+
+#[test]
+fn resolves_mhtml_relative_content_locations_against_html_and_mime_bases() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("relative-resource.mhtml");
+    let message = concat!(
+        "MIME-Version: 1.0\r\n",
+        "Content-Type: multipart/related; boundary=archive; type=\"text/html\"\r\n",
+        "Content-Base: https://example.test/archive/\r\n\r\n",
+        "--archive\r\nContent-Type: text/html; charset=utf-8\r\n",
+        "Content-Location: page.html\r\n\r\n",
+        "<html><head><base href=\"assets/\"></head><body><h1>Relative base</h1>",
+        "<img src=\"logo.png\" alt=\"relative logo\"></body></html>\r\n",
+        "--archive\r\nContent-Type: image/png\r\n",
+        "Content-Location: assets/logo.png\r\nContent-Transfer-Encoding: base64\r\n\r\n",
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9Z0S8AAAAASUVORK5CYII=\r\n",
+        "--archive--\r\n",
+    );
+    fs::write(&input, message).unwrap();
+
+    let output = temporary.path().join("relative-resource-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mhtml);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Relative base"));
+    assert!(svg.contains("relative logo"));
+    assert_eq!(svg.matches("data:image/png;base64,").count(), 1);
+    assert!(!svg.contains("logo.png"));
+}
+
+#[test]
+fn rejects_mhtml_start_parameter_that_does_not_name_a_direct_related_part() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("invalid-start.mhtml");
+    let message = concat!(
+        "MIME-Version: 1.0\r\n",
+        "Content-Type: multipart/related; boundary=archive; type=\"text/html\"; start=\"<missing>\"\r\n\r\n",
+        "--archive\r\nContent-Type: text/html; charset=utf-8\r\nContent-ID: <actual>\r\n\r\n<html><body>Not selected</body></html>\r\n",
+        "--archive--\r\n",
+    );
+    fs::write(&input, message).unwrap();
+    let output = temporary.path().join("invalid-start-out");
+    assert!(convert_path(&input, &output, &ConvertOptions::default()).is_err());
+}
+
+#[test]
+fn converts_ical_events_and_tasks_without_expanding_recurrence_or_timezones() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("schedule.ics");
+    let calendar = concat!(
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nX-WR-CALNAME:Planning\r\n",
+        "BEGIN:VEVENT\r\nUID:event-1\r\nDTSTAMP:20240912T120000Z\r\n",
+        "DTSTART;TZID=America/New_York:20240913T100000\r\n",
+        "DTEND;TZID=America/New_York:20240913T110000\r\n",
+        "SUMMARY:Quarterly planning \r\n review\r\n",
+        "DESCRIPTION:Prepare the agenda\\nSend the notes\r\n",
+        "LOCATION:Conference Room\r\nRRULE:FREQ=DAILY;COUNT=3\r\n",
+        "BEGIN:VALARM\r\nTRIGGER:-PT15M\r\nACTION:DISPLAY\r\nEND:VALARM\r\n",
+        "END:VEVENT\r\n",
+        "BEGIN:VTODO\r\nUID:todo-1\r\nSUMMARY:Follow up\r\n",
+        "DUE;VALUE=DATE:20240920\r\nDESCRIPTION:Send the report\r\nEND:VTODO\r\n",
+        "END:VCALENDAR\r\n",
+    );
+    fs::write(&input, calendar).unwrap();
+
+    let output = temporary.path().join("ical-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ical);
+    assert_eq!(report.page_count, 2);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("recurrence"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("TZID"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("VALARM"))
+    );
+    let event = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let task = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(event.contains("Quarterly planning review"));
+    assert!(event.contains("Prepare the agenda"));
+    assert!(event.contains("Send the notes"));
+    assert!(event.contains("2024-09-13 10:00:00 (TZID=America/New_York)"));
+    assert!(event.contains("FREQ=DAILY;COUNT=3"));
+    assert!(task.contains("Follow up"));
+    assert!(task.contains("2024-09-20 (all-day)"));
+
+    let extensionless = temporary.path().join("schedule.unknown");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ical
+    );
+}
+
+#[test]
+fn converts_vcalendar_10_legacy_events_as_calendar_pages() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("meeting.vcs");
+    let source = fs::read_to_string("tests/fixtures/meeting.vcs").unwrap();
+    fs::write(&input, source.replace('\n', "\r\n")).unwrap();
+    let output = temporary.path().join("vcalendar-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Vcalendar);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("unsupported"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Legacy vCalendar meeting"));
+    assert!(svg.contains("Old-format calendar export with a readable summary."));
+    assert!(svg.contains("Conference room"));
+    assert!(!svg.contains("DALARM"));
+
+    let extensionless = temporary.path().join("meeting.data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Vcalendar
+    );
+}
+
+#[test]
+fn parses_standard_html_void_tags_and_warns_when_image_resources_are_omitted() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("void-tags.html");
+    fs::write(
+        &input,
+        "<!doctype html><html><head><meta charset=\"utf-8\"></head><body><p>before<img src=\"https://example.invalid/remote.png\"><br>after</p></body></html>",
+    )
+    .unwrap();
+    let output = temporary.path().join("html-void-tags-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Html);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("external image resources"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("before"));
+    assert!(svg.contains("after"));
+    assert!(!svg.contains("example.invalid"));
+}
+
+#[test]
+fn converts_outlook_msg_and_sniffs_extensionless_compound_documents() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("message.msg");
+    fs::write(&input, common::outlook_msg_bytes()).unwrap();
+    let output = temporary.path().join("msg-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Msg);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("attachment"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("script"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Outlook preview"));
+    assert!(svg.contains("Rina Example &lt;rina@example.test&gt;"));
+    assert!(svg.contains("Kai Example &lt;kai@example.test&gt;"));
+    assert!(svg.contains("Mina Example &lt;mina@example.test&gt;"));
+    assert!(svg.contains("Rendered"));
+    assert!(svg.contains("HTML"));
+    assert!(svg.contains("日本語表示"));
+    assert!(svg.contains("Company mark"));
+    assert!(svg.contains("Attachments: 1 omitted"));
+    assert!(!svg.contains("window.alert"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("Plain body fallback"));
+
+    let extensionless = temporary.path().join("message.data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Msg
+    );
+}
+
+#[test]
+fn converts_vcard_contacts_and_sniffs_extensionless_cards() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("contacts.vcf");
+    let source = fs::read_to_string("tests/fixtures/contact.vcf").unwrap();
+    fs::write(&input, source.replace('\n', "\r\n")).unwrap();
+    let output = temporary.path().join("vcard-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Vcard);
+    assert_eq!(report.page_count, 2);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("photo"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("unsupported"))
+    );
+    let first = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    let second = fs::read_to_string(output.join("page-0002.svg")).unwrap();
+    assert!(first.contains("山田花子"));
+    assert!(first.contains("Example, Inc. / Research"));
+    assert!(first.contains("Phone (cell, voice)"));
+    assert!(first.contains("tel:+81-90-1234-5678"));
+    assert!(first.contains("中央1丁目"));
+    assert!(first.contains("Second line"));
+    assert!(first.contains("https://example.test/contact"));
+    assert!(!first.contains("example.invalid/avatar.jpg"));
+    assert!(second.contains("Ren Tanaka"));
+    assert!(second.contains("Example Studio"));
+    assert!(second.contains("ren@example.test"));
+    assert!(!second.contains("ignored"));
+
+    let extensionless = temporary.path().join("contact.data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Vcard
+    );
+}
+
+#[test]
+fn converts_vcard_21_quoted_printable_and_bare_type_parameters() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("legacy-contact.vcf");
+    let source = fs::read_to_string("tests/fixtures/legacy_contact_21.vcf").unwrap();
+    fs::write(&input, source.replace('\n', "\r\n")).unwrap();
+    let output = temporary.path().join("legacy-vcard-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Vcard);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("photo"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Hanako 山田花子"));
+    assert!(svg.contains("Organization: Example; Corp"));
+    assert!(svg.contains("Email (internet, home): hana@example.test"));
+    assert!(svg.contains("Phone (cell, voice): +81-90-1234-5678"));
+    assert!(svg.contains("Second line"));
+    assert!(svg.contains("Legacy folded line"));
+    assert!(!svg.contains("AA=="));
+}
+
+#[test]
+fn decodes_declared_vcard_21_legacy_charset() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("latin-contact.vcf");
+    fs::write(
+        &input,
+        b"BEGIN:VCARD\r\nVERSION:2.1\r\nFN;CHARSET=ISO-8859-1:Jos\xE9\r\nEND:VCARD\r\n",
+    )
+    .unwrap();
+    let output = temporary.path().join("latin-vcard-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("José"));
+}
+
+#[test]
+fn rejects_unknown_vcard_versions_instead_of_mislabeling_them() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("legacy.vcf");
+    fs::write(
+        &input,
+        "BEGIN:VCARD\r\nVERSION:5.0\r\nFN:Unknown Version\r\nEND:VCARD\r\n",
+    )
+    .unwrap();
+    let output = temporary.path().join("legacy-out");
+
+    let error = convert_path(&input, &output, &ConvertOptions::default()).unwrap_err();
+
+    assert!(
+        error
+            .to_string()
+            .contains("versions 2.1, 3.0, and 4.0 are supported")
+    );
+}
+
+#[test]
+fn converts_webp_raster_images_and_sniffs_extensionless_input() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("sample.webp");
+    fs::write(&input, common::webp_sample()).unwrap();
+    let output = temporary.path().join("webp-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Raster);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("vectorized_path"));
+
+    let extensionless = temporary.path().join("sample.data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Raster
+    );
+}
+
+#[test]
+fn converts_animated_gif_first_frame_and_sniffs_extensionless_input() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("animation.gif");
+    fs::write(&input, common::animated_gif_sample()).unwrap();
+    let output = temporary.path().join("gif-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Raster);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("first frame"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("partial first GIF frame"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("vectorized_path"));
+
+    let extensionless = temporary.path().join("animation.data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Raster
+    );
+}
+
+#[test]
+fn vectorizes_cmyk_jpeg_instead_of_returning_a_blank_fallback() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("cmyk.jpg");
+    fs::write(&input, common::cmyk_jpeg_sample()).unwrap();
+    let output = temporary.path().join("cmyk-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Raster);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("CMYK JPEG"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("vectorized_path"));
+    assert!(svg.contains("M 0,0"));
+}
+
+#[test]
+fn renders_package_linked_opendocument_presentation_images() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("embedded-image.odp");
+    fs::write(&input, common::odp_presentation_with_embedded_image()).unwrap();
+    let output = temporary.path().join("odp-image-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Odp);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("embedded images")
+                || warning.contains("image parts were omitted")),
+        "unexpected ODP image omission warning: {:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("odp-image-1"));
+}
+
+#[test]
+fn renders_flat_fodp_inline_binary_png_in_a_frame() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("inline.fodp");
+    let output = temporary.path().join("inline-fodp-out");
+    let xml = r#"<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0" xmlns:xlink="http://www.w3.org/1999/xlink"><office:body><office:presentation><draw:page draw:name="Inline"><draw:frame draw:name="image" svg:x="1cm" svg:y="1cm" svg:width="4cm" svg:height="2cm"><draw:image xlink:href="fallback.png"><office:binary-data>iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAIAAAD4YuoOAAAAIklEQVR4nGP4z8BAEiJR+X9SlY9aMGrBqAWjFoxaMCAWAABQpv4QX+h4RQAAAABJRU5ErkJggg==</office:binary-data></draw:image></draw:frame></draw:page></office:presentation></office:body></office:document-content>"#;
+    fs::write(&input, xml).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Odp);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("inline office:binary-data images are omitted"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data:image/png;base64,"));
+}
+
+#[test]
+fn renders_package_linked_opendocument_text_images_as_bounded_flow_blocks() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/odt_image.odt");
+    let output = temporary.path().join("odt-image-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Odt);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("centered flow blocks"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Before image"));
+    assert!(svg.contains("after image."));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"red-blue sample\""));
+}
+
+#[test]
+fn renders_flat_fodt_inline_binary_png_with_shared_image_limits() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("inline-image.fodt");
+    let output = temporary.path().join("inline-image-out");
+    let xml = r#"<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink"><office:body><office:text><text:p>Before inline image<draw:frame draw:name="inline"><draw:image xlink:href="fallback.png"><office:binary-data>iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAIAAAD4YuoOAAAAIklEQVR4nGP4z8BAEiJR+X9SlY9aMGrBqAWjFoxaMCAWAABQpv4QX+h4RQAAAABJRU5ErkJggg==</office:binary-data></draw:image></draw:frame>after inline image</text:p></office:text></office:body></office:document>"#;
+    fs::write(&input, xml).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Odt);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("binary-data images are omitted"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Before inline image"));
+    assert!(svg.contains("after inline image"));
+    assert!(svg.contains("data:image/png;base64,"));
+}
+
+#[test]
+fn renders_bounded_opendocument_paragraph_and_character_styles() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/odt_styles.odt");
+    let output = temporary.path().join("odt-style-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Odt);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Styled ODT heading"));
+    assert!(svg.contains("Blue bold paragraph"));
+    assert!(svg.contains("inherited bold red italic"));
+    assert!(svg.contains("automatic green italic"));
+    assert!(svg.contains("#1D4ED8"));
+    assert!(svg.contains("#DC2626"));
+    assert!(svg.contains("#16A34A"));
+    assert!(svg.contains("DejaVu Serif"));
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("styles were not found")),
+        "unexpected missing-style warning: {:?}",
+        report.warnings
+    );
+}
+
+#[test]
+fn does_not_fetch_external_or_escape_package_opendocument_images() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("untrusted-images.odt");
+    let output = temporary.path().join("untrusted-images-out");
+    let mut package = ZipWriter::new(fs::File::create(&input).unwrap());
+    package
+        .start_file(
+            "mimetype",
+            SimpleFileOptions::default().compression_method(zip::CompressionMethod::Stored),
+        )
+        .unwrap();
+    package
+        .write_all(b"application/vnd.oasis.opendocument.text")
+        .unwrap();
+    package
+        .start_file("content.xml", SimpleFileOptions::default())
+        .unwrap();
+    package
+        .write_all(br#"<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink"><office:body><office:text><text:p>Untrusted sources <draw:frame draw:name="external"><draw:image xlink:href="https://example.invalid/image.png"/></draw:frame> and <draw:frame draw:name="escaped"><draw:image xlink:href="../outside.png"/></draw:frame></text:p></office:text></office:body></office:document-content>"#)
+        .unwrap();
+    package.finish().unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("external ODT image"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("escaped the package"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(!svg.contains("data:image/"));
+}
+
+#[test]
+fn embeds_package_linked_epub_images_and_omits_remote_or_escaped_sources() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/epub_image.epub");
+    let output = temporary.path().join("epub-image-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Epub);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("remote EPUB image"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("EPUB image paths escaping the package"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("srcset uses its first candidate"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Before image"));
+    assert!(svg.contains("after image."));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"red-blue EPUB image\""));
+    assert!(!svg.contains("example.invalid"));
+}
+
+#[test]
+fn embeds_package_linked_ods_images_after_their_sheet_table() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/ods_image.ods");
+    let output = temporary.path().join("ods-image-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Ods);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("after the sheet table"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("external ODS image"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("escaped the package"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Requests"));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"red-blue sheet image\""));
+    assert!(svg.contains("aria-label=\"cell-anchored image\""));
+    assert!(!svg.contains("example.invalid"));
+}
+
+#[test]
+fn renders_flat_fods_inline_binary_png_after_the_sheet_table() {
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("inline.fods");
+    let output = temporary.path().join("inline-fods-out");
+    let xml = r#"<office:document xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0" xmlns:xlink="http://www.w3.org/1999/xlink"><office:body><office:spreadsheet><table:table table:name="Sheet"><table:table-row><table:table-cell><text:p>Cell</text:p><draw:frame draw:name="inline"><draw:image xlink:href="fallback.png"><office:binary-data>iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAIAAAD4YuoOAAAAIklEQVR4nGP4z8BAEiJR+X9SlY9aMGrBqAWjFoxaMCAWAABQpv4QX+h4RQAAAABJRU5ErkJggg==</office:binary-data></draw:image></draw:frame></table:table-cell></table:table-row></table:table></office:spreadsheet></office:body></office:document>"#;
+    fs::write(&input, xml).unwrap();
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Ods);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        !report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("binary-data images are omitted"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("Cell"));
+}
+
+#[test]
+fn embeds_local_html_images_and_omits_remote_or_escaped_sources() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/local_image.html");
+    let output = temporary.path().join("html-image-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Html);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("external image resources"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("outside the input directory"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("srcset uses its first candidate"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("centered flow blocks"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Before"));
+    assert!(svg.contains("after."));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"red-blue HTML image\""));
+    assert!(!svg.contains("example.invalid"));
+
+    let limited = ConvertOptions {
+        max_input_bytes: 4,
+        ..ConvertOptions::default()
+    };
+    assert!(matches!(
+        convert_path(&input, temporary.path().join("html-limited-out"), &limited),
+        Err(document_svg::Error::LimitExceeded(_))
+    ));
+}
+
+#[test]
+fn embeds_local_markdown_images_and_omits_remote_or_escaped_sources() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/markdown_image.md");
+    let output = temporary.path().join("markdown-image-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Markdown);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("external image resources"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Markdown images are rendered"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Text before the standalone image."));
+    assert!(svg.contains("Text before an inline image"));
+    assert!(svg.contains("with trailing text."));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"red-blue Markdown image\""));
+    assert!(svg.contains("aria-label=\"red-blue inline image\""));
+    assert!(svg.contains("aria-label=\"red-blue reference image\""));
+    assert!(!svg.contains("example.invalid"));
+}
+
+#[test]
+fn converts_restructuredtext_and_sniffs_section_adornments() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.rst");
+    let output = temporary.path().join("rst-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Rst);
+    assert!(report.page_count >= 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("include directive was not evaluated"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("raw directive was not evaluated"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("external image resources"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("reStructuredText images are embedded"))
+    );
+    let svg = (1..=report.page_count)
+        .map(|page| fs::read_to_string(output.join(format!("page-{page:04}.svg"))).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(svg.contains("Document Conversion Notes"));
+    assert!(svg.contains("named target"));
+    assert!(!svg.contains(":ref:"));
+    assert!(svg.contains("[NOTE]"));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"RST red and blue image\""));
+    assert!(svg.contains("Figure caption is retained"));
+    assert!(svg.contains("Parser"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("must-not-be-read"));
+    assert!(!svg.contains("must-not-run"));
+
+    let extensionless = temporary.path().join("sectioned-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Rst
+    );
+}
+
+#[test]
+fn converts_org_mode_and_keeps_babel_and_file_insertion_inactive() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.org");
+    let output = temporary.path().join("org-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Org);
+    assert!(report.page_count >= 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("#+INCLUDE was not evaluated"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Babel calls were not executed"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("raw/export blocks were omitted"))
+    );
+    let svg = (1..=report.page_count)
+        .map(|page| fs::read_to_string(output.join(format!("page-{page:04}.svg"))).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(svg.contains("Org-mode Architecture Notes"));
+    assert!(svg.contains("Components"));
+    assert!(svg.contains("Ready"));
+    assert!(svg.contains("delete-file"));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("width=\"96\" height=\"48\""));
+    assert!(svg.contains("Local Org image caption"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("must-not-render"));
+    assert!(!svg.contains("/etc/passwd"));
+
+    let extensionless = temporary.path().join("org-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Org
+    );
+}
+
+#[test]
+fn converts_gettext_po_plural_context_and_fuzzy_entries() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.po");
+    let output = temporary.path().join("po-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Po);
+    assert!(report.page_count >= 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("obsolete gettext entries"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("fuzzy gettext translations"))
+    );
+    let svg = (1..=report.page_count)
+        .map(|page| fs::read_to_string(output.join(format!("page-{page:04}.svg"))).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(svg.contains("Project-Id-Version Sample App 1.0"));
+    assert!(svg.contains("Language fr"));
+    assert!(svg.contains("main-menu"));
+    assert!(svg.contains("Bienvenue"));
+    assert!(svg.contains("One file"));
+    assert!(svg.contains("%d files"));
+    assert!(svg.contains("[0] Un fichier"));
+    assert!(svg.contains("[1] %d fichiers"));
+    assert!(svg.contains("[untranslated]"));
+    assert!(svg.contains("[fuzzy] À vérifier"));
+    assert!(svg.contains("Label on the main menu"));
+    assert!(!svg.contains("Obsolete source text"));
+
+    let extensionless = temporary.path().join("translation-catalog");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Po
+    );
+}
+
+#[test]
+fn converts_bibtex_entries_without_expanding_macros_or_running_tex() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.bib");
+    let output = temporary.path().join("bib-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Bib);
+    assert!(report.page_count >= 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("macros or concatenations"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("@string macros are not expanded"))
+    );
+    let svg = (1..=report.page_count)
+        .map(|page| fs::read_to_string(output.join(format!("page-{page:04}.svg"))).unwrap())
+        .collect::<Vec<_>>()
+        .join("\n");
+    assert!(svg.contains("@article{smith2024}"));
+    assert!(svg.contains("Nested Unicode Study"));
+    assert!(svg.contains("A value, with punctuation."));
+    assert!(svg.contains("joc Review"));
+    assert!(!svg.contains("Catalog preview example"));
+
+    let extensionless = temporary.path().join("bibliography");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Bib
+    );
+
+    let bibtex_extension = temporary.path().join("bibliography.bibtex");
+    fs::copy(&input, &bibtex_extension).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&bibtex_extension).unwrap(),
+        SourceFormat::Bib
+    );
+}
+
+#[test]
+fn converts_srt_and_webvtt_with_inert_cue_text_and_extensionless_detection() {
+    let temporary = TempDir::new().unwrap();
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    for (filename, format, expected, omitted) in [
+        (
+            "sample.srt",
+            SourceFormat::Srt,
+            &[
+                "00:00:01.250",
+                "Hello world.",
+                "字幕の2行目。",
+                "not executed",
+            ][..],
+            "<i>",
+        ),
+        (
+            "sample.vtt",
+            SourceFormat::Vtt,
+            &[
+                "English captions",
+                "Narrator: Welcome aboard.",
+                "chapter-one",
+            ][..],
+            "This comment must not appear",
+        ),
+    ] {
+        let input = fixtures.join(filename);
+        let output = temporary.path().join(format!("{filename}-out"));
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, format);
+        assert_eq!(report.page_count, 1);
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        for text in expected {
+            assert!(svg.contains(text), "missing {text:?} in {filename}");
+        }
+        assert!(!svg.contains(omitted));
+        if format == SourceFormat::Vtt {
+            assert!(
+                report
+                    .warnings
+                    .iter()
+                    .any(|warning| warning.contains("NOTE"))
+            );
+            assert!(
+                report
+                    .warnings
+                    .iter()
+                    .any(|warning| warning.contains("STYLE/REGION"))
+            );
+            assert!(
+                report
+                    .warnings
+                    .iter()
+                    .any(|warning| warning.contains("positioning/settings"))
+            );
+            assert!(svg.contains("[chapter-one]"));
+        } else {
+            assert!(svg.contains("&lt;script&gt;"));
+            assert!(!svg.contains("<script>"));
+        }
+
+        let extensionless = temporary.path().join(format!("{filename}.data"));
+        fs::copy(&input, &extensionless).unwrap();
+        assert_eq!(SourceFormat::detect(&extensionless).unwrap(), format);
+    }
+}
+
+#[test]
+fn converts_ttml_text_profile_with_bounded_timing_and_xml_sniffing() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ttml");
+    let output = temporary.path().join("ttml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Ttml);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("styles, regions"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("00:00:01.250–00:00:03.500 [intro]"));
+    assert!(svg.contains("Welcome aboard."));
+    assert!(svg.contains("安全な字幕"));
+    assert!(svg.contains("00:00:03.500–00:00:04.500"));
+    assert!(svg.contains("Literal &lt;script&gt; stays text."));
+    assert!(!svg.contains("<script>"));
+
+    let generic_xml = temporary.path().join("captions.xml");
+    fs::copy(&input, &generic_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::Ttml
+    );
+    let extensionless = temporary.path().join("captions");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ttml
+    );
+    let dfxp = temporary.path().join("captions.dfxp");
+    fs::copy(&input, &dfxp).unwrap();
+    assert_eq!(SourceFormat::detect(&dfxp).unwrap(), SourceFormat::Ttml);
+}
+
+#[test]
+fn converts_xliff_source_target_and_status_without_alternate_translation_confusion() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xliff");
+    let output = temporary.path().join("xliff-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Xliff);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Languages: en → ja"));
+    assert!(svg.contains("Unit welcome — Welcome message"));
+    assert!(svg.contains("Source (en): Hello [pc:emphasis]world[/pc][ph:count]!"));
+    assert!(svg.contains("Segment 1 [translated]"));
+    assert!(svg.contains("Target (ja):"));
+    assert!(svg.contains("[pc:emphasis]世界[/pc][ph:count]"));
+    assert!(svg.contains("！"));
+    assert!(svg.contains("Segment 1 [initial]"));
+    assert!(svg.contains("Target (ja): [untranslated]"));
+    assert!(svg.contains("Note: location: Home screen"));
+    assert!(svg.contains("&lt;script&gt; stays text"));
+    assert!(!svg.contains("<script>"));
+
+    let generic_xml = temporary.path().join("messages.xml");
+    fs::copy(&input, &generic_xml).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::Xliff
+    );
+    let extensionless = temporary.path().join("messages");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xliff
+    );
+}
+
+#[test]
+fn converts_unv_universal_mesh_and_detects_extensionless_files() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.unv");
+    let output = temporary.path().join("unv-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Unv);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("nonzero Z"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("UNV Universal FEA mesh"));
+    assert!(svg.contains("data-source-format=\"unv\""));
+    assert!(svg.contains("data-semantic-role=\"simulation:mesh\""));
+
+    let extensionless = temporary.path().join("universal-mesh");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Unv
+    );
+    let extensionless_output = temporary.path().join("unv-extensionless-out");
+    let extensionless_report = convert_path(
+        &extensionless,
+        &extensionless_output,
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(extensionless_report.source_format, SourceFormat::Unv);
+    assert_eq!(extensionless_report.page_count, 1);
+}
+
+#[test]
+fn converts_general_json_as_bounded_path_and_type_rows() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.json");
+    let output = temporary.path().join("json-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Json);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("$.service.enabled (boolean): true"));
+    assert!(svg.contains("$.service.ports[1] (number): 8081"));
+    assert!(svg.contains("$.empty (object): {}"));
+    assert!(svg.contains("&lt;script&gt;alert(1)&lt;/script&gt;"));
+    assert!(!svg.contains("<script>"));
+
+    let extensionless = temporary.path().join("structured-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Json
+    );
+
+    let generic_elements = temporary.path().join("elements.json");
+    fs::write(&generic_elements, r#"{"elements":["unit","second"]}"#).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_elements).unwrap(),
+        SourceFormat::Json
+    );
+}
+
+#[test]
+fn converts_glb_scene_geometry_with_node_instances_and_warns_about_appearance() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/triangle.glb");
+    let output = temporary.path().join("gltf-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Gltf);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("materials, textures"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"gltf\""));
+    assert!(svg.contains("data-semantic-role=\"gltf:mesh\""));
+}
+
+#[test]
+fn converts_json_gltf_with_confined_external_buffer_and_sniffs_glb() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/triangle.gltf");
+    let output = temporary.path().join("gltf-json-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Gltf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-semantic-role=\"gltf:mesh\""));
+
+    let extensionless = temporary.path().join("model.data");
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/triangle.glb"),
+        &extensionless,
+    )
+    .unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Gltf
+    );
+}
+
+#[test]
+fn gltf_buffer_uris_cannot_escape_or_fetch_the_asset_directory() {
+    let temporary = TempDir::new().unwrap();
+    let asset_dir = temporary.path().join("asset");
+    fs::create_dir_all(&asset_dir).unwrap();
+    fs::write(temporary.path().join("outside.bin"), [0u8; 4]).unwrap();
+
+    for (index, uri) in ["../outside.bin", "https://example.invalid/buffer.bin"]
+        .into_iter()
+        .enumerate()
+    {
+        let input = asset_dir.join(format!("unsafe-{index}.gltf"));
+        let source = format!(
+            r#"{{"asset":{{"version":"2.0"}},"buffers":[{{"uri":"{uri}","byteLength":4}}]}}"#
+        );
+        fs::write(&input, source).unwrap();
+        let result = convert_path(
+            &input,
+            temporary.path().join(format!("unsafe-out-{index}")),
+            &ConvertOptions::default(),
+        );
+        assert!(
+            matches!(result, Err(document_svg::Error::InvalidInput(message)) if message.contains("external or escapes"))
+        );
+    }
+}
+
+#[test]
+fn embeds_bounded_png_pictures_from_rtf_destinations() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/rtf_image.rtf");
+    let output = temporary.path().join("rtf-picture-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Rtf);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("picture anchors"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Before image"));
+    assert!(svg.contains("after image."));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"Embedded RTF picture\""));
+}
+
+#[test]
+fn embeds_bounded_asciidoc_block_images_from_imagesdir() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/asciidoc_image.adoc");
+    let input = temporary.path().join("image-appendix.adoc");
+    fs::copy(&fixture, &input).unwrap();
+    fs::create_dir_all(input.parent().unwrap().join("assets")).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/assets/red-blue.png"),
+        input.parent().unwrap().join("assets/red-blue.png"),
+    )
+    .unwrap();
+    let output = temporary.path().join("asciidoc-image-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Asciidoc);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("centered flow blocks")),
+        "{:?}",
+        report.warnings
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not a validated local PNG/JPEG")),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("This paragraph comes before the figure."));
+    assert!(svg.contains("This paragraph comes after the figure."));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("aria-label=\"Red and blue test image\""));
+
+    let extensionless = temporary.path().join("asciidoc-image");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Asciidoc
+    );
+}
+
+#[test]
+fn previews_complete_latex_document_without_executing_tex_or_external_includes() {
+    let temporary = TempDir::new().unwrap();
+    let fixture = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_latex.tex");
+    let input = temporary.path().join("sample.tex");
+    fs::copy(&fixture, &input).unwrap();
+    fs::create_dir_all(input.parent().unwrap().join("assets")).unwrap();
+    fs::copy(
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/assets/red-blue.png"),
+        input.parent().unwrap().join("assets/red-blue.png"),
+    )
+    .unwrap();
+    let output = temporary.path().join("latex-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Tex);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("input/include/shell")),
+        "{:?}",
+        report.warnings
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("LaTeX Document Preview"));
+    assert!(svg.contains("Deterministic document structure"));
+    assert!(svg.contains("Preview"));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(svg.contains("Local red and blue figure"));
+    assert!(!svg.contains("not-loaded.tex"));
+
+    let extensionless = temporary.path().join("latex-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Tex
+    );
+}
+
+#[test]
+fn converts_fictionbook_body_and_embedded_png_without_rendering_notes_body() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fb2");
+    let output = temporary.path().join("fb2-out");
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+
+    assert_eq!(report.source_format, SourceFormat::Fb2);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("FictionBook Preview"));
+    assert!(svg.contains("Chapter One"));
+    assert!(svg.contains("After the embedded figure."));
+    assert!(svg.contains("data:image/png;base64,"));
+    assert!(!svg.contains("Notes are not part of the main flow"));
+
+    let extensionless = temporary.path().join("book-content");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Fb2
+    );
+
+    let archive_path = temporary.path().join("book.fb2.zip");
+    let mut archive = ZipWriter::new(fs::File::create(&archive_path).unwrap());
+    archive
+        .start_file("books/sample.fb2", SimpleFileOptions::default())
+        .unwrap();
+    archive.write_all(&fs::read(&input).unwrap()).unwrap();
+    archive.finish().unwrap();
+    let archive_output = temporary.path().join("fb2-zip-out");
+    let archive_report =
+        convert_path(&archive_path, &archive_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(archive_report.source_format, SourceFormat::Fb2);
+    assert_eq!(archive_report.page_count, 1);
+    let archive_extensionless = temporary.path().join("book-archive");
+    fs::copy(&archive_path, &archive_extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&archive_extensionless).unwrap(),
+        SourceFormat::Fb2
+    );
+}
+
+#[test]
+fn converts_mobi_palmdoc_records_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mobi");
+    let output = temporary.path().join("mobi-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mobi);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MOBI Preview"));
+    assert!(svg.contains("PalmDOC text from a bounded record"));
+
+    let extensionless = temporary.path().join("ebook-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Mobi
+    );
+    let azw = temporary.path().join("book.azw");
+    fs::copy(&input, &azw).unwrap();
+    assert_eq!(SourceFormat::detect(&azw).unwrap(), SourceFormat::Mobi);
+
+    let compressed =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_mobi_compressed.mobi");
+    let compressed_report = convert_path(
+        &compressed,
+        temporary.path().join("mobi-compressed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(compressed_report.source_format, SourceFormat::Mobi);
+    assert_eq!(compressed_report.page_count, 1);
+    let compressed_svg =
+        fs::read_to_string(temporary.path().join("mobi-compressed-out/page-0001.svg")).unwrap();
+    assert!(compressed_svg.contains("Compressed MOBI"));
+    assert!(compressed_svg.contains("PalmDOC LZ77 record"));
+}
+
+#[test]
+fn converts_arff_dense_and_sparse_records_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let source = "% ARFF preview\n@relation weather\n@attribute outlook {sunny,overcast,rainy}\n@attribute temperature numeric\n@attribute note string\n@data\nsunny,25,'windy, warm'\n{1 18, 2 clear}\n";
+    let input = temporary.path().join("weather.arff");
+    fs::write(&input, source).unwrap();
+    let output = temporary.path().join("arff-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Arff);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ARFF"));
+    assert!(svg.contains("windy, warm"));
+    assert!(svg.contains("18"));
+
+    let extensionless = temporary.path().join("weather-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Arff
+    );
+}
+
+#[test]
+fn converts_jsonld_nodes_and_named_graphs_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jsonld");
+    let output = temporary.path().join("jsonld-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::JsonLd);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("@context"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("urn:book:1"));
+    assert!(svg.contains("A bounded JSON-LD title"));
+    assert!(svg.contains("urn:graph:1"));
+
+    let extensionless = temporary.path().join("linked-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::JsonLd
+    );
+    let generic_extension = temporary.path().join("linked-data.json");
+    fs::copy(&input, &generic_extension).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_extension).unwrap(),
+        SourceFormat::JsonLd
+    );
+    let dashed_extension = temporary.path().join("linked-data.json-ld");
+    fs::copy(&input, &dashed_extension).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&dashed_extension).unwrap(),
+        SourceFormat::JsonLd
+    );
+}
+
+#[test]
+fn converts_graphml_nodes_and_edges_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.graphml");
+    let output = temporary.path().join("graphml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Graphml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Start order"));
+    assert!(svg.contains("approve"));
+    assert!(svg.contains("GraphML"));
+
+    let extensionless = temporary.path().join("workflow-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Graphml
+    );
+}
+
+#[test]
+fn converts_gexf_nodes_and_edges_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.gexf");
+    let output = temporary.path().join("gexf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Gexf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Start order"));
+    assert!(svg.contains("approve"));
+    assert!(svg.contains("GEXF"));
+
+    let extensionless = temporary.path().join("gephi-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Gexf
+    );
+}
+
+#[test]
+fn converts_netcdf_classic_and_cdf2_arrays_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_netcdf.nc");
+    let output = temporary.path().join("netcdf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Netcdf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("NetCDF CDF-1"));
+    assert!(svg.contains("NetCDF demo"));
+    assert!(svg.contains("20"));
+
+    let cdf2 = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_netcdf_cdf2.nc");
+    let cdf2_report = convert_path(
+        &cdf2,
+        temporary.path().join("netcdf-cdf2-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(cdf2_report.source_format, SourceFormat::Netcdf);
+    let cdf2_svg =
+        fs::read_to_string(temporary.path().join("netcdf-cdf2-out/page-0001.svg")).unwrap();
+    assert!(cdf2_svg.contains("NetCDF CDF-2"));
+    assert!(cdf2_svg.contains("CDF-2 demo"));
+    let extensionless = temporary.path().join("netcdf-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Netcdf
+    );
+    let nc_text = temporary.path().join("toolpath.nc");
+    fs::write(&nc_text, "G21\nG1 X1 Y1\n").unwrap();
+    assert_eq!(SourceFormat::detect(&nc_text).unwrap(), SourceFormat::Gcode);
+    let cdf5 = temporary.path().join("unsupported.nc");
+    fs::write(&cdf5, b"CDF\x05").unwrap();
+    assert_eq!(SourceFormat::detect(&cdf5).unwrap(), SourceFormat::Netcdf);
+    let error = convert_path(
+        &cdf5,
+        temporary.path().join("unsupported-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("CDF-5"));
+}
+
+#[test]
+fn converts_xgmml_nodes_and_edges_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xgmml");
+    let output = temporary.path().join("xgmml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xgmml);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("att"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Start order"));
+    assert!(svg.contains("approve"));
+    assert!(svg.contains("XGMML"));
+    let extensionless = temporary.path().join("cytoscape-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xgmml
+    );
+}
+
+#[test]
+fn converts_graph_gml_and_keeps_geographic_gml_detection_separate() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_graph.gml");
+    let output = temporary.path().join("graph-gml-out");
+    assert_eq!(
+        SourceFormat::detect(&input).unwrap(),
+        SourceFormat::GraphGml
+    );
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::GraphGml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Start order"));
+    assert!(svg.contains("approve"));
+    assert!(svg.contains("Graph GML"));
+
+    let extensionless = temporary.path().join("graph-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::GraphGml
+    );
+    let geo = temporary.path().join("geo.gml");
+    fs::write(
+        &geo,
+        "<gml:FeatureCollection xmlns:gml=\"http://www.opengis.net/gml\"><gml:featureMember><gml:Point><gml:coordinates>1,2</gml:coordinates></gml:Point></gml:featureMember></gml:FeatureCollection>",
+    )
+    .unwrap();
+    assert_eq!(SourceFormat::detect(&geo).unwrap(), SourceFormat::Gml);
+}
+
+#[test]
+fn converts_standalone_jpeg2000_jp2_and_raw_codestreams() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    for (filename, expected_text) in [
+        ("sample_jpeg2000.jp2", "JPEG 2000 image"),
+        ("sample_jpeg2000.j2k", "JPEG 2000 image"),
+        ("sample_jpeg2000_rgba.jp2", "JPEG 2000 image"),
+    ] {
+        let input = fixture_dir.join(filename);
+        let output = temporary.path().join(filename);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::Jpeg2000);
+        assert_eq!(report.page_count, 1);
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(svg.contains(expected_text));
+        assert!(svg.contains("data:image/png;base64,"));
+    }
+    let extensionless = temporary.path().join("jpx-data");
+    fs::copy(fixture_dir.join("sample_jpeg2000.jp2"), &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Jpeg2000
+    );
+    let jpc = temporary.path().join("image.jpc");
+    fs::copy(fixture_dir.join("sample_jpeg2000.j2k"), &jpc).unwrap();
+    assert_eq!(SourceFormat::detect(&jpc).unwrap(), SourceFormat::Jpeg2000);
+}
+
+#[test]
+fn converts_tecplot_ascii_finite_element_zones_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_tecplot.dat");
+    let output = temporary.path().join("tecplot-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Tecplot);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Tecplot finite-element sample"));
+    assert!(svg.contains("simulation:mesh"));
+
+    let extensionless = temporary.path().join("mesh-preview");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Tecplot
+    );
+}
+
+#[test]
+fn converts_tecplot_block_and_ordered_zones() {
+    let temporary = TempDir::new().unwrap();
+    let block = temporary.path().join("block.tec");
+    fs::write(
+        &block,
+        "TITLE=\"Block\"\nVARIABLES=\"X\" \"Y\" \"Value\"\nZONE N=4 E=2 F=BLOCK ET=TRIANGLE\n0 1 1 0  0 0 1 1  1 2 3 4  1 2 3  1 3 4\n",
+    )
+    .unwrap();
+    let block_report = convert_path(
+        &block,
+        temporary.path().join("block-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(block_report.source_format, SourceFormat::Tecplot);
+    assert_eq!(block_report.page_count, 1);
+
+    let ordered = temporary.path().join("ordered.dat");
+    fs::write(
+        &ordered,
+        "VARIABLES=\"X\" \"Y\" \"Value\"\nZONE I=3, J=2, F=POINT\n0 0 1\n1 0 2\n2 0 3\n0 1 4\n1 1 5\n2 1 6\n",
+    )
+    .unwrap();
+    let ordered_report = convert_path(
+        &ordered,
+        temporary.path().join("ordered-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(ordered_report.source_format, SourceFormat::Tecplot);
+    assert_eq!(ordered_report.page_count, 1);
+}
+
+#[test]
+fn converts_ensight_gold_case_and_geometry_with_safe_sidecar_resolution() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let case = fixture_dir.join("sample_ensight.case");
+    let output = temporary.path().join("ensight-out");
+    let report = convert_path(&case, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ensight);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("variable files"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("EnSight: EnSight Gold ASCII sample"));
+    assert!(svg.contains("simulation:mesh"));
+
+    let geometry = fixture_dir.join("sample_ensight.geo");
+    assert_eq!(
+        SourceFormat::detect(&geometry).unwrap(),
+        SourceFormat::Ensight
+    );
+    let extensionless = temporary.path().join("ensight-geometry");
+    fs::copy(&geometry, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ensight
+    );
+
+    let unsafe_case = temporary.path().join("unsafe.case");
+    fs::write(
+        &unsafe_case,
+        "FORMAT\ntype: ensight gold\nGEOMETRY\nmodel: ../outside.geo\n",
+    )
+    .unwrap();
+    let error = convert_path(
+        &unsafe_case,
+        temporary.path().join("unsafe-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap_err();
+    assert!(error.to_string().contains("inside the case directory"));
+}
+
+#[test]
+fn converts_plot3d_ascii_single_and_multiblock_grids() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_plot3d.p3d");
+    let output = temporary.path().join("plot3d-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Plot3d);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("PLOT3D structured grid"));
+    assert!(svg.contains("simulation:mesh"));
+
+    let multi = temporary.path().join("multi.plot3d");
+    fs::write(
+        &multi,
+        "2\n2 2 1\n2 2 1\n0 1 0 1  0 1 0 1  0 1 0 1  0 0 1 1\n",
+    )
+    .unwrap();
+    let multi_report = convert_path(
+        &multi,
+        temporary.path().join("multi-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(multi_report.source_format, SourceFormat::Plot3d);
+    assert_eq!(multi_report.page_count, 1);
+
+    let extensionless = temporary.path().join("structured-grid");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Plot3d
+    );
+}
+
+#[test]
+fn converts_vrml97_indexed_faces_and_lines_without_executing_routes() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.wrl");
+    let output = temporary.path().join("vrml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Vrml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Wavefront OBJ 3D Model"));
+    assert!(svg.contains("<path"));
+    assert!(!svg.contains("<script"));
+}
+
+#[test]
+fn converts_netpbm_pbm_pgm_ppm_and_pam_rasters_with_content_sniffing() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    for filename in [
+        "sample_rgb.ppm",
+        "sample_gray16.pgm",
+        "sample_alpha.pam",
+        "sample_bitmap.pbm",
+    ] {
+        let input = fixture_dir.join(filename);
+        let output = temporary.path().join(filename);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::Raster);
+        assert_eq!(report.page_count, 1);
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(svg.contains("<path"));
+        let extensionless = temporary.path().join(format!("{filename}.data"));
+        fs::copy(&input, &extensionless).unwrap();
+        assert_eq!(
+            SourceFormat::detect(&extensionless).unwrap(),
+            SourceFormat::Raster
+        );
+    }
+}
+
+#[test]
+fn converts_sylk_cells_and_preserves_formulas_as_inert_text() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.slk");
+    let output = temporary.path().join("sylk-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sylk);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("formulas"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SYLK spreadsheet"));
+    assert!(svg.contains("Widget"));
+    assert!(svg.contains("[formula: 1C2+R2C2]"));
+    let extensionless = temporary.path().join("sylk-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sylk
+    );
+}
+
+#[test]
+fn converts_dif_spreadsheet_tuples_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.dif");
+    let output = temporary.path().join("dif-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dif);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("DIF spreadsheet"));
+    assert!(svg.contains("Widget"));
+    assert!(svg.contains("42"));
+    let extensionless = temporary.path().join("dif-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Dif
+    );
+}
+
+#[test]
+fn converts_fasta_and_fastq_sequence_records_as_inert_tables() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let fasta = fixture_dir.join("sample.fasta");
+    let fasta_report = convert_path(
+        &fasta,
+        temporary.path().join("fasta-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(fasta_report.source_format, SourceFormat::Fasta);
+    assert_eq!(fasta_report.page_count, 1);
+    let fasta_svg = fs::read_to_string(temporary.path().join("fasta-out/page-0001.svg")).unwrap();
+    assert!(fasta_svg.contains("FASTA sequence records"));
+    assert!(fasta_svg.contains("seq1"));
+    assert!(fasta_svg.contains("GC"));
+
+    let fastq = fixture_dir.join("sample.fastq");
+    let fastq_report = convert_path(
+        &fastq,
+        temporary.path().join("fastq-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(fastq_report.source_format, SourceFormat::Fastq);
+    assert_eq!(fastq_report.page_count, 1);
+    let fastq_svg = fs::read_to_string(temporary.path().join("fastq-out/page-0001.svg")).unwrap();
+    assert!(fastq_svg.contains("FASTQ sequence records"));
+    assert!(fastq_svg.contains("Quality ASCII range"));
+
+    let extensionless = temporary.path().join("sequence-data");
+    fs::copy(&fastq, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Fastq
+    );
+}
+
+#[test]
+fn converts_gff3_and_gtf_feature_annotations_without_loading_embedded_sequence() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let gff = fixture_dir.join("sample.gff3");
+    let gff_report = convert_path(
+        &gff,
+        temporary.path().join("gff3-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(gff_report.source_format, SourceFormat::Gff3);
+    assert_eq!(gff_report.page_count, 1);
+    assert!(
+        gff_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("FASTA"))
+    );
+    let gff_svg = fs::read_to_string(temporary.path().join("gff3-out/page-0001.svg")).unwrap();
+    assert!(gff_svg.contains("GFF3 feature annotations"));
+    assert!(gff_svg.contains("gene00001"));
+    assert!(gff_svg.contains("Example%20gene"));
+
+    let gtf = fixture_dir.join("sample.gtf");
+    let gtf_report = convert_path(
+        &gtf,
+        temporary.path().join("gtf-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(gtf_report.source_format, SourceFormat::Gtf);
+    assert_eq!(gtf_report.page_count, 1);
+    let gtf_svg = fs::read_to_string(temporary.path().join("gtf-out/page-0001.svg")).unwrap();
+    assert!(gtf_svg.contains("GTF feature annotations"));
+    let extensionless = temporary.path().join("annotation-data");
+    fs::copy(&gff, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Gff3
+    );
+}
+
+#[test]
+fn converts_bed_and_bedgraph_intervals_with_zero_based_validation() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let bed = fixture_dir.join("sample.bed");
+    let bed_report = convert_path(
+        &bed,
+        temporary.path().join("bed-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(bed_report.source_format, SourceFormat::Bed);
+    assert_eq!(bed_report.page_count, 1);
+    assert!(
+        bed_report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("directives"))
+    );
+    let bed_svg = fs::read_to_string(temporary.path().join("bed-out/page-0001.svg")).unwrap();
+    assert!(bed_svg.contains("BED interval annotations"));
+    assert!(bed_svg.contains("gene1"));
+
+    let graph = fixture_dir.join("sample.bedgraph");
+    let graph_report = convert_path(
+        &graph,
+        temporary.path().join("bedgraph-out"),
+        &ConvertOptions::default(),
+    )
+    .unwrap();
+    assert_eq!(graph_report.source_format, SourceFormat::BedGraph);
+    assert_eq!(graph_report.page_count, 1);
+    let graph_svg =
+        fs::read_to_string(temporary.path().join("bedgraph-out/page-0001.svg")).unwrap();
+    assert!(graph_svg.contains("BEDGRAPH interval annotations"));
+    let extensionless = temporary.path().join("bed-data");
+    fs::copy(&bed, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Bed
+    );
+}
+
+#[test]
+fn converts_vcf_variants_and_keeps_vcard_extension_disambiguated() {
+    let temporary = TempDir::new().unwrap();
+    let fixture_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let input = fixture_dir.join("sample_variants.vcf");
+    let output = temporary.path().join("vcf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Vcf);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("reference URLs"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("VCF variant annotations"));
+    assert!(svg.contains("rs-demo-1"));
+    assert!(svg.contains("SAMPLE_A"));
+
+    let vcard = fixture_dir.join("contact.vcf");
+    assert_eq!(SourceFormat::detect(&vcard).unwrap(), SourceFormat::Vcard);
+    let extensionless = temporary.path().join("variant-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Vcf
+    );
+}
+
+#[test]
+fn converts_sam_alignment_records_without_reference_or_tag_evaluation() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sam");
+    let output = temporary.path().join("sam-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sam);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SAM alignment records"));
+    assert!(svg.contains("r001"));
+    assert!(svg.contains("NM:i:1"));
+    let extensionless = temporary.path().join("alignment-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sam
+    );
+}
+
+#[test]
+fn converts_wig_fixed_and_variable_step_signals() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.wig");
+    let output = temporary.path().join("wig-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Wig);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("directives"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("WIG continuous signal"));
+    assert!(svg.contains("chr2"));
+    let extensionless = temporary.path().join("wiggle-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Wig
+    );
+}
+
+#[test]
+fn converts_maf_multiple_alignment_blocks_and_keeps_optional_rows_inert() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.maf");
+    let output = temporary.path().join("maf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Maf);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("optional"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MAF multiple alignments"));
+    assert!(svg.contains("hg38.chr1"));
+    let extensionless = temporary.path().join("alignment-blocks");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Maf
+    );
+}
+
+#[test]
+fn converts_newick_phylogenetic_tree_and_sniffs_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.nwk");
+    let output = temporary.path().join("newick-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Newick);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Newick phylogenetic tree"));
+    assert!(svg.contains("Homo_sapiens"));
+    assert!(svg.contains("Pan troglodytes"));
+    assert!(svg.contains("0.1"));
+    let extensionless = temporary.path().join("tree-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Newick
+    );
+
+    let unsafe_tree = temporary.path().join("unsafe.tree");
+    fs::write(&unsafe_tree, "('<script>alert(1)</script>':1)root;").unwrap();
+    let unsafe_output = temporary.path().join("unsafe-out");
+    convert_path(&unsafe_tree, &unsafe_output, &ConvertOptions::default()).unwrap();
+    let unsafe_svg = fs::read_to_string(unsafe_output.join("page-0001.svg")).unwrap();
+    assert!(unsafe_svg.contains("&lt;script&gt;alert(1)&lt;/script&gt;"));
+    assert!(!unsafe_svg.contains("<script>"));
+}
+
+#[test]
+fn converts_stockholm_multiple_alignments_and_split_sequence_rows() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sto");
+    let output = temporary.path().join("stockholm-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Stockholm);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("annotation"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Stockholm multiple alignments"));
+    assert!(svg.contains("seq1"));
+    assert!(svg.contains("AC-GTT.."));
+    assert!(svg.contains("seqA"));
+    let extensionless = temporary.path().join("alignment-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Stockholm
+    );
+}
+
+#[test]
+fn converts_clustal_block_alignment_and_ignores_consensus_rows() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.aln");
+    let output = temporary.path().join("clustal-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Clustal);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("consensus"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("CLUSTAL multiple alignments"));
+    assert!(svg.contains("seq1"));
+    assert!(svg.contains("AC-GTT.."));
+    assert!(svg.contains("seq2"));
+    let extensionless = temporary.path().join("clustal-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Clustal
+    );
+}
+
+#[test]
+fn converts_nexus_tree_block_and_keeps_translate_map_inert() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.nex");
+    let output = temporary.path().join("nexus-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Nexus);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("TRANSLATE"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("NEXUS phylogenetic tree"));
+    assert!(svg.contains("Mammals"));
+    assert!(svg.contains("0.1"));
+    let extensionless = temporary.path().join("nexus-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Nexus
+    );
+}
+
+#[test]
+fn converts_genbank_records_with_features_and_origin_preview() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.gb");
+    let output = temporary.path().join("genbank-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Genbank);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GenBank records"));
+    assert!(svg.contains("DEMO0001"));
+    assert!(svg.contains("Demonstration GenBank record"));
+    assert!(svg.contains("atgcgtaaccgg"));
+    assert!(svg.contains("DEMO0002"));
+    let extensionless = temporary.path().join("genbank-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Genbank
+    );
+}
+
+#[test]
+fn converts_embl_records_with_fixed_tags_and_sq_sequence() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.embl");
+    let output = temporary.path().join("embl-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Embl);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("EMBL-Bank records"));
+    assert!(svg.contains("DEMO0001"));
+    assert!(svg.contains("Description continuation"));
+    assert!(svg.contains("atgcgtaaccgg"));
+    assert!(svg.contains("DEMO0002"));
+    let extensionless = temporary.path().join("embl-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Embl
+    );
+}
+
+#[test]
+fn converts_uniprot_flat_records_and_disambiguates_dat_from_tecplot() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_uniprot.dat");
+    let output = temporary.path().join("uniprot-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Uniprot);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("cross-reference"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("UniProtKB protein records"));
+    assert!(svg.contains("DEMO_HUMAN"));
+    assert!(svg.contains("Demonstration protein"));
+    assert!(svg.contains("MKTAYIAKQRQG"));
+    assert!(svg.contains("DEMO_TRMBL"));
+    let extensionless = temporary.path().join("uniprot-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Uniprot
+    );
+}
+
+#[test]
+fn converts_ris_bibliography_records_and_keeps_links_inert() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ris");
+    let output = temporary.path().join("ris-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ris);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("unknown RIS"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("RIS bibliography"));
+    assert!(svg.contains("Safe document conversion"));
+    assert!(svg.contains("Doe, Jane"));
+    assert!(svg.contains("https://example.invalid/paper/1"));
+    assert!(!svg.contains("<script>"));
+    let extensionless = temporary.path().join("citation-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ris
+    );
+}
+
+#[test]
+fn converts_spice_netlist_cards_without_executing_simulation_or_includes() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cir");
+    let output = temporary.path().join("spice-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Spice);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("include"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SPICE netlist"));
+    assert!(svg.contains("R1"));
+    assert!(svg.contains("in out"));
+    assert!(!svg.contains("external-model.lib"));
+    let extensionless = temporary.path().join("circuit-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Spice
+    );
+}
+
+#[test]
+fn converts_legacy_kicad_schematic_components_wires_and_labels() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_legacy.sch");
+    let output = temporary.path().join("kicad-sch-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::KicadSchLegacy);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("KiCad legacy schematic"));
+    assert!(svg.contains("R1"));
+    assert!(svg.contains("1k"));
+    assert!(svg.contains("FILTERED_OUT"));
+    assert!(svg.contains("Legacy Eeschema preview"));
+    let extensionless = temporary.path().join("legacy-schematic");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::KicadSchLegacy
+    );
+}
+
+#[test]
+fn converts_modern_kicad_schematic_sexpressions() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.kicad_sch");
+    let output = temporary.path().join("kicad-modern-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::KicadSch);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("embedded library"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("KiCad schematic"));
+    assert!(svg.contains("R1"));
+    assert!(svg.contains("1k"));
+    assert!(svg.contains("FILTERED_OUT"));
+    assert!(svg.contains("Modern KiCad schematic"));
+    let extensionless = temporary.path().join("kicad-modern-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::KicadSch
+    );
+}
+
+#[test]
+fn converts_ltspice_ascii_schematic_and_disambiguates_esri_asc() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_ltspice.asc");
+    let output = temporary.path().join("ltspice-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::LtspiceAsc);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("LTspice schematic"));
+    assert!(svg.contains("R1"));
+    assert!(svg.contains("1k"));
+    assert!(svg.contains("IN"));
+    assert!(svg.contains(".tran"));
+    let extensionless = temporary.path().join("ltspice-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::LtspiceAsc
+    );
+}
+
+#[test]
+fn converts_eagle_xml_schematic_with_parts_wires_and_labels() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_eagle.sch");
+    let output = temporary.path().join("eagle-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::EagleSch);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("EAGLE schematic"));
+    assert!(svg.contains("R1"));
+    assert!(svg.contains("1k"));
+    assert!(svg.contains("EAGLE schematic preview"));
+    assert!(svg.contains("OUT"));
+    let extensionless = temporary.path().join("eagle-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::EagleSch
+    );
+}
+
+#[test]
+fn converts_openapi_json_and_yaml_without_fetching_refs_or_servers() {
+    let temporary = TempDir::new().unwrap();
+    let json = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.openapi.json");
+    let output = temporary.path().join("openapi-json-out");
+    let report = convert_path(&json, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Openapi);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never fetched"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not resolved"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OpenAPI description"));
+    assert!(svg.contains("Catalog API"));
+    assert!(svg.contains("listPets"));
+    assert!(svg.contains("https://api.example.invalid/v1"));
+    assert!(!svg.contains("<script>"));
+    let extensionless = temporary.path().join("openapi-data");
+    fs::copy(&json, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Openapi
+    );
+
+    let yaml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.openapi.yaml");
+    let yaml_output = temporary.path().join("openapi-yaml-out");
+    let yaml_report = convert_path(&yaml, &yaml_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(yaml_report.source_format, SourceFormat::Openapi);
+    let yaml_svg = fs::read_to_string(yaml_output.join("page-0001.svg")).unwrap();
+    assert!(yaml_svg.contains("Catalog YAML API"));
+    assert!(yaml_svg.contains("deletePet"));
+    let yaml_extensionless = temporary.path().join("openapi-yaml-data");
+    fs::copy(&yaml, &yaml_extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&yaml_extensionless).unwrap(),
+        SourceFormat::Openapi
+    );
+}
+
+#[test]
+fn converts_asyncapi_json_and_yaml_without_fetching_servers_or_refs() {
+    let temporary = TempDir::new().unwrap();
+    let json = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.asyncapi.json");
+    let output = temporary.path().join("asyncapi-json-out");
+    let report = convert_path(&json, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Asyncapi);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never fetched"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not resolved"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("AsyncAPI description"));
+    assert!(svg.contains("Event Catalog"));
+    assert!(svg.contains("onUserSignedUp"));
+    assert!(svg.contains("user/signedup"));
+    assert!(!svg.contains("<script>"));
+    let extensionless = temporary.path().join("asyncapi-data");
+    fs::copy(&json, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Asyncapi
+    );
+
+    let yaml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.asyncapi.yaml");
+    let yaml_output = temporary.path().join("asyncapi-yaml-out");
+    let yaml_report = convert_path(&yaml, &yaml_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(yaml_report.source_format, SourceFormat::Asyncapi);
+    let yaml_svg = fs::read_to_string(yaml_output.join("page-0001.svg")).unwrap();
+    assert!(yaml_svg.contains("Event Catalog YAML"));
+    assert!(yaml_svg.contains("onUserSigned"));
+    assert!(yaml_svg.contains("publishInvoice"));
+}
+
+#[test]
+fn converts_json_schema_json_and_yaml_without_resolving_refs_or_patterns() {
+    let temporary = TempDir::new().unwrap();
+    let json = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.schema.json");
+    let output = temporary.path().join("schema-json-out");
+    let report = convert_path(&json, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::JsonSchema);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not resolved"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JSON Schema"));
+    assert!(svg.contains("Catalog record"));
+    assert!(svg.contains("$.name"));
+    assert!(svg.contains("minLength"));
+    assert!(!svg.contains("<script>"));
+    let extensionless = temporary.path().join("schema-data");
+    fs::copy(&json, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::JsonSchema
+    );
+
+    let yaml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.schema.yaml");
+    let yaml_output = temporary.path().join("schema-yaml-out");
+    let yaml_report = convert_path(&yaml, &yaml_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(yaml_report.source_format, SourceFormat::JsonSchema);
+    let yaml_svg = fs::read_to_string(yaml_output.join("page-0001.svg")).unwrap();
+    assert!(yaml_svg.contains("Catalog YAML schema"));
+    assert!(yaml_svg.contains("$.enabled"));
+}
+
+#[test]
+fn converts_ansys_cdb_nblock_eblock_mesh_without_executing_apdl() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cdb");
+    let output = temporary.path().join("cdb-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Cdb);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("NBLOCK/EBLOCK"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("no command"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ANSYS CDB mesh"));
+    assert!(svg.contains("sim-background"));
+    let extensionless = temporary.path().join("ansys-mesh-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Cdb
+    );
+}
+
+#[test]
+fn converts_har_entries_with_sensitive_query_masking_and_body_omission() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.har");
+    let output = temporary.path().join("har-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Har);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never fetched"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("masked"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("body data omitted"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("HAR network archive"));
+    assert!(svg.contains("200"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private"));
+    let extensionless = temporary.path().join("browser-log");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Har
+    );
+}
+
+#[test]
+fn converts_warc_records_and_bounded_gzip_without_opening_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.warc");
+    let output = temporary.path().join("warc-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Warc);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("payload record"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("masked"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("WARC web archive"));
+    assert!(svg.contains("200"));
+    assert!(svg.contains("token=***") || svg.contains("example.invalid"));
+    assert!(!svg.contains("private body"));
+    let gzip = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.warc.gz");
+    let gzip_output = temporary.path().join("warc-gzip-out");
+    let gzip_report = convert_path(&gzip, &gzip_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(gzip_report.source_format, SourceFormat::Warc);
+    assert_eq!(gzip_report.page_count, 1);
+    let extensionless = temporary.path().join("web-archive-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Warc
+    );
+}
+
+#[test]
+fn converts_wacz_manifest_and_pages_without_replaying_archive_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.wacz");
+    let output = temporary.path().join("wacz-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Wacz);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("payloads"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("masked"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("WACZ web archive"));
+    assert!(svg.contains("Demo WACZ collection"));
+    assert!(svg.contains("Ho"));
+    assert!(!svg.contains("<script>"));
+    let extensionless = temporary.path().join("archive-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Wacz
+    );
+}
+
+#[test]
+fn converts_postman_collection_without_executing_auth_scripts_or_bodies() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.postman_collection.json");
+    let output = temporary.path().join("postman-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Postman);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never") && warning.contains("executed"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("masked"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("script"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("body"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Postman collection"));
+    assert!(svg.contains("Catalog API collection"));
+    assert!(svg.contains("GET"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private response"));
+    let extensionless = temporary.path().join("postman-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Postman
+    );
+}
+
+#[test]
+fn converts_graphql_sdl_types_and_fields_without_executing_operations() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.graphql");
+    let output = temporary.path().join("graphql-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Graphql);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("executed"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GraphQL schema"));
+    assert!(svg.contains("Query"));
+    assert!(svg.contains("pets"));
+    assert!(svg.contains("PetStatus"));
+    assert!(!svg.contains("<script>"));
+    let extensionless = temporary.path().join("graphql-schema");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Graphql
+    );
+}
+
+#[test]
+fn converts_protobuf_schema_without_executing_imports_or_rpc() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.proto");
+    let output = temporary.path().join("protobuf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Protobuf);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("not opened"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("RPC call"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Protocol Buffers schema"));
+    assert!(svg.contains("catalog.v1"));
+    assert!(svg.contains("GetPet"));
+    assert!(svg.contains("PET_STATUS"));
+    assert!(!svg.contains("very-secret"));
+    let extensionless = temporary.path().join("protobuf-schema");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Protobuf
+    );
+}
+
+#[test]
+fn converts_kubernetes_yaml_and_json_without_cluster_or_secret_access() {
+    let temporary = TempDir::new().unwrap();
+    let yaml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.k8s.yaml");
+    let output = temporary.path().join("k8s-yaml-out");
+    let report = convert_path(&yaml, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Kubernetes);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("kubectl"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("Secret"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Kubernetes manifests"));
+    assert!(svg.contains("Deployment/prod"));
+    assert!(svg.contains("Secret/prod"));
+    assert!(!svg.contains("very-secret"));
+    let json = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.k8s.json");
+    let json_output = temporary.path().join("k8s-json-out");
+    let json_report = convert_path(&json, &json_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(json_report.source_format, SourceFormat::Kubernetes);
+    assert_eq!(json_report.page_count, 1);
+    let extensionless = temporary.path().join("k8s-manifest");
+    fs::copy(&yaml, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Kubernetes
+    );
+}
+
+#[test]
+fn converts_compose_yaml_and_json_without_runtime_or_secret_access() {
+    let temporary = TempDir::new().unwrap();
+    let yaml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.compose.yaml");
+    let output = temporary.path().join("compose-yaml-out");
+    let report = convert_path(&yaml, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Compose);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("daemon"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("secret"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Docker Compose"));
+    assert!(svg.contains("web"));
+    assert!(svg.contains("db"));
+    assert!(svg.contains("nginx:1.27"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("super-secret-value"));
+
+    let json = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.compose.json");
+    let json_output = temporary.path().join("compose-json-out");
+    let json_report = convert_path(&json, &json_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(json_report.source_format, SourceFormat::Compose);
+    assert_eq!(json_report.page_count, 1);
+    let extensionless = temporary.path().join("compose-data");
+    fs::copy(&yaml, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Compose
+    );
+}
+
+#[test]
+fn converts_github_actions_workflow_without_executing_steps() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.github.workflow.yml");
+    let output = temporary.path().join("workflow-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format.to_string(), "GITHUB-ACTIONS");
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("GitHub Actions workflow"));
+    assert!(svg.contains("lint"));
+    assert!(svg.contains("ubuntu-latest"));
+    assert!(svg.contains("A:2"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("super-secret"));
+    let workflow_dir = temporary.path().join(".github").join("workflows");
+    fs::create_dir_all(&workflow_dir).unwrap();
+    let named = workflow_dir.join("ci.yml");
+    fs::copy(&input, &named).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&named).unwrap().to_string(),
+        "GITHUB-ACTIONS"
+    );
+    let extensionless = temporary.path().join("workflow-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap().to_string(),
+        "GITHUB-ACTIONS"
+    );
+}
+
+#[test]
+fn converts_junit_xml_without_executing_tests_or_exposing_logs() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.junit.xml");
+    let output = temporary.path().join("junit-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Junit);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never"))
+    );
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("failing"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JUnit test report"));
+    assert!(svg.contains("converter"));
+    assert!(svg.contains("bindings"));
+    assert!(svg.contains("Failures"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private traceback"));
+    let extensionless = temporary.path().join("test-results");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Junit
+    );
+}
+
+#[test]
+fn converts_sarif_results_without_exposing_alert_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sarif");
+    let output = temporary.path().join("sarif-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sarif);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SARIF static analysis"));
+    assert!(svg.contains("Demo Scanner"));
+    assert!(svg.contains("SEC001"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("file:///private"));
+    let extensionless = temporary.path().join("scan-results");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sarif
+    );
+}
+
+#[test]
+fn converts_terraform_plan_json_without_exposing_values_or_running_providers() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.tfplan.json");
+    let output = temporary.path().join("terraform-plan-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::TerraformPlan);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Terraform plan"));
+    assert!(svg.contains("aws_instance"));
+    assert!(svg.contains("delete/c"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private source"));
+    let extensionless = temporary.path().join("tfplan-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::TerraformPlan
+    );
+}
+
+#[test]
+fn converts_cyclonedx_json_and_xml_without_exposing_sbom_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let json = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cdx.json");
+    let json_output = temporary.path().join("cdx-json-out");
+    let report = convert_path(&json, &json_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::CycloneDx);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("omitted"))
+    );
+    let svg = fs::read_to_string(json_output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("CycloneDX BOM"));
+    assert!(svg.contains("serde"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private-bom"));
+    let xml = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cdx.xml");
+    let xml_output = temporary.path().join("cdx-xml-out");
+    let xml_report = convert_path(&xml, &xml_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(xml_report.source_format, SourceFormat::CycloneDx);
+    assert_eq!(xml_report.page_count, 1);
+    let extensionless = temporary.path().join("software-bom");
+    fs::copy(&json, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::CycloneDx
+    );
+}
+
+#[test]
+fn converts_spdx_json_without_exposing_compliance_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.spdx.json");
+    let output = temporary.path().join("spdx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Spdx);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SPDX document"));
+    assert!(svg.contains("serde"));
+    assert!(svg.contains("src/lib.rs"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private.example"));
+    let extensionless = temporary.path().join("software-bom");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Spdx
+    );
+    let tag = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.spdx");
+    let tag_output = temporary.path().join("spdx-tag-out");
+    let tag_report = convert_path(&tag, &tag_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(tag_report.source_format, SourceFormat::Spdx);
+    assert_eq!(tag_report.page_count, 1);
+    let tag_svg = fs::read_to_string(tag_output.join("page-0001.svg")).unwrap();
+    assert!(tag_svg.contains("Preview tag-value SBOM"));
+    assert!(tag_svg.contains("serde"));
+    assert!(!tag_svg.contains("very-secret"));
+}
+
+#[test]
+fn converts_jacoco_and_cobertura_coverage_without_source_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let jacoco = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jacoco.xml");
+    let jacoco_output = temporary.path().join("jacoco-out");
+    let report = convert_path(&jacoco, &jacoco_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Coverage);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never"))
+    );
+    let svg = fs::read_to_string(jacoco_output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Coverage report"));
+    assert!(svg.contains("com/example/app"));
+    assert!(svg.contains("5/2"));
+    assert!(!svg.contains("private-source"));
+    assert!(!svg.contains("private-session"));
+    let cobertura =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cobertura.xml");
+    let cobertura_output = temporary.path().join("cobertura-out");
+    let cobertura_report =
+        convert_path(&cobertura, &cobertura_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(cobertura_report.source_format, SourceFormat::Coverage);
+    assert_eq!(cobertura_report.page_count, 1);
+    let extensionless = temporary.path().join("coverage-data");
+    fs::copy(&jacoco, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Coverage
+    );
+}
+
+#[test]
+fn converts_lcov_tracefile_without_exposing_source_paths_or_execution_records() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.lcov.info");
+    let output = temporary.path().join("lcov-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Lcov);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("LCOV coverage"));
+    assert!(svg.contains("main.rs"));
+    assert!(svg.contains("lib.rs"));
+    assert!(!svg.contains("/private/workspace"));
+    assert!(!svg.contains("FNDA"));
+    let extensionless = temporary.path().join("trace-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Lcov
+    );
+}
+
+#[test]
+fn converts_json_patch_without_applying_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jsonpatch");
+    let output = temporary.path().join("jsonpatch-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::JsonPatch);
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("never"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JSON Patch"));
+    assert!(svg.contains("replace"));
+    assert!(svg.contains("/metadata/owner"));
+    assert!(svg.contains("string"));
+    assert!(!svg.contains("very-secret"));
+    let extensionless = temporary.path().join("patch-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::JsonPatch
+    );
+}
+
+#[test]
+fn converts_json_merge_patch_without_applying_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mergepatch");
+    let output = temporary.path().join("mergepatch-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::JsonMergePatch);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JSON Merge Patch"));
+    assert!(svg.contains("delete"));
+    assert!(svg.contains("merge"));
+    assert!(!svg.contains("very-secret"));
+}
+
+#[test]
+fn converts_openfoam_scalar_and_vector_fields_without_solver_access() {
+    let temporary = TempDir::new().unwrap();
+    let scalar = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.foamfield");
+    let output = temporary.path().join("foam-field-out");
+    let report = convert_path(&scalar, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format.to_string(), "OPENFOAM-FIELD");
+    assert_eq!(report.page_count, 1);
+    assert!(
+        report
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("solver"))
+    );
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OpenFOAM field"));
+    assert!(svg.contains("volScalarField"));
+    assert!(svg.contains("101250"));
+    assert!(!svg.contains("fixedValue"));
+    let vector =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.foamvectorfield");
+    let vector_output = temporary.path().join("foam-vector-out");
+    let vector_report = convert_path(&vector, &vector_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(vector_report.source_format.to_string(), "OPENFOAM-FIELD");
+    let extensionless = temporary.path().join("field-data");
+    fs::copy(&scalar, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap().to_string(),
+        "OPENFOAM-FIELD"
+    );
+}
+
+#[test]
+fn converts_csl_json_without_style_or_network_access() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.csl.json");
+    let output = temporary.path().join("csl-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format.to_string(), "CSL-JSON");
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("CSL-JSON bibliography"));
+    assert!(svg.contains("reproducible"));
+    assert!(svg.contains("Smith"));
+    assert!(svg.contains("2024"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private abstract"));
+    let extensionless = temporary.path().join("citations-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap().to_string(),
+        "CSL-JSON"
+    );
+}
+
+#[test]
+fn converts_json_feed_without_fetching_content_or_links() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jsonfeed");
+    let output = temporary.path().join("jsonfeed-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::JsonFeed);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JSON Feed"));
+    assert!(svg.contains("A safe update"));
+    assert!(svg.contains("html"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private.example"));
+    let extensionless = temporary.path().join("feed-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::JsonFeed
+    );
+}
+
+#[test]
+fn converts_cloud_events_without_displaying_payloads_or_following_uris() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cloudevent.json");
+    let output = temporary.path().join("cloudevents-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::CloudEvents);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("CloudEvents JSON"));
+    assert!(svg.contains("com.exa"));
+    assert!(svg.contains("evt…"));
+    assert!(svg.contains("events.example"));
+    assert!(svg.contains("With data: 1"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private customer"));
+    assert!(!svg.contains("schema.example.invalid"));
+    let extensionless = temporary.path().join("event-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::CloudEvents
+    );
+    let generic_json = temporary.path().join("event.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::CloudEvents
+    );
+}
+
+#[test]
+fn converts_fhir_json_bundle_without_displaying_clinical_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fhir.json");
+    let output = temporary.path().join("fhir-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::FhirJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("FHIR JSON"));
+    assert!(svg.contains("Bundle type: collection"));
+    assert!(svg.contains("Patient"));
+    assert!(svg.contains("Observa"));
+    assert!(!svg.contains("private patient"));
+    assert!(!svg.contains("SecretFamily"));
+    assert!(!svg.contains("secret-identifier"));
+    assert!(!svg.contains("secret display"));
+    let extensionless = temporary.path().join("patient-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::FhirJson
+    );
+    let generic_json = temporary.path().join("patient.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::FhirJson
+    );
+}
+
+#[test]
+fn converts_avro_schema_without_executing_defaults_or_docs() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.avsc");
+    let output = temporary.path().join("avro-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Avro);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Apache Avro schema"));
+    assert!(svg.contains("Root schema: User"));
+    assert!(svg.contains("fields/email"));
+    assert!(!svg.contains("private documentation"));
+    assert!(!svg.contains("secret field docs"));
+    let extensionless = temporary.path().join("schema-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Avro
+    );
+    let generic_json = temporary.path().join("schema.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::Avro
+    );
+}
+
+#[test]
+fn converts_otlp_json_without_displaying_telemetry_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.otlp.json");
+    let output = temporary.path().join("otlp-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OtlpJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OpenTelemetry OTLP JSON"));
+    assert!(svg.contains("checko"));
+    assert!(svg.contains("Spans: 1"));
+    assert!(svg.contains("Metrics: 1"));
+    assert!(svg.contains("Log records: 1"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("private-span"));
+    let extensionless = temporary.path().join("telemetry-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OtlpJson
+    );
+    let generic_json = temporary.path().join("telemetry.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::OtlpJson
+    );
+}
+
+#[test]
+fn converts_ocel_json_without_displaying_attribute_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jsonocel");
+    let output = temporary.path().join("ocel-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OcelJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OCEL 2.0 JSON"));
+    assert!(svg.contains("Events: 2"));
+    assert!(svg.contains("Objects: 2"));
+    assert!(svg.contains("Event→object relationships: 3"));
+    assert!(!svg.contains("private carrier"));
+    assert!(!svg.contains("secret state"));
+    let extensionless = temporary.path().join("process-log");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OcelJson
+    );
+    let generic_json = temporary.path().join("process-log.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::OcelJson
+    );
+}
+
+#[test]
+fn converts_json_api_compound_document_without_displaying_values_or_links() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jsonapi");
+    let output = temporary.path().join("jsonapi-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::JsonApi);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JSON:API 1.1"));
+    assert!(svg.contains("Primary resources: 1"));
+    assert!(svg.contains("Included resources: 1"));
+    assert!(!svg.contains("private article"));
+    assert!(!svg.contains("secret"));
+    assert!(!svg.contains("api.example.invalid"));
+    let extensionless = temporary.path().join("api-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::JsonApi
+    );
+    let generic_json = temporary.path().join("api.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::JsonApi
+    );
+}
+
+#[test]
+fn converts_opendrive_reference_lines_without_simulation_execution() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xodr");
+    let output = temporary.path().join("opendrive-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenDrive);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("data-source-format=\"opendrive\""));
+    assert!(svg.contains("OpenDRIVE contains 1 road(s), 1 junction(s)"));
+    assert!(!svg.contains("sig-secret"));
+    let extensionless = temporary.path().join("road-network");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OpenDrive
+    );
+}
+
+#[test]
+fn converts_openscenario_structure_without_catalog_or_simulation_access() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xosc");
+    let output = temporary.path().join("openscenario-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenScenario);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ASAM OpenSCENARIO XML"));
+    assert!(svg.contains("Entities: 2"));
+    assert!(svg.contains("Stories: 1"));
+    assert!(svg.contains("Catalog references: 2"));
+    assert!(svg.contains("Ego"));
+    assert!(!svg.contains("private scenario"));
+    assert!(!svg.contains("private/catalog"));
+    assert!(!svg.contains("secret-car"));
+    let extensionless = temporary.path().join("scenario-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OpenScenario
+    );
+}
+
+#[test]
+fn converts_openlabel_annotations_without_sensor_payloads_or_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.openlabel.json");
+    let output = temporary.path().join("openlabel-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenLabel);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ASAM OpenLABEL JSON"));
+    assert!(svg.contains("Schema version: 1.0.0"));
+    assert!(svg.contains("Object data entries: 1"));
+    assert!(svg.contains("Frame object-data entries: 2"));
+    assert!(!svg.contains("private annotator"));
+    assert!(!svg.contains("secret bbox"));
+    assert!(!svg.contains("sensors.example.invalid"));
+    let extensionless = temporary.path().join("annotations-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OpenLabel
+    );
+    let generic_json = temporary.path().join("annotations.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::OpenLabel
+    );
+}
+
+#[test]
+fn converts_citygml_metadata_without_geometry_or_xlink_resolution() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.citygml");
+    let output = temporary.path().join("citygml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::CityGml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OGC CityGML"));
+    assert!(svg.contains("Objects: 3"));
+    assert!(svg.contains("CRS metadata: present"));
+    assert!(svg.contains("Build"));
+    assert!(svg.contains("Road"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("city-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::CityGml
+    );
+    let gml = temporary.path().join("city-model.gml");
+    fs::copy(&input, &gml).unwrap();
+    assert_eq!(SourceFormat::detect(&gml).unwrap(), SourceFormat::CityGml);
+}
+
+#[test]
+fn converts_cityjson_without_expanding_coordinates_or_external_metadata() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cityjson");
+    let output = temporary.path().join("cityjson-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::CityJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OGC CityJSON"));
+    assert!(svg.contains("Objects: 2"));
+    assert!(svg.contains("Transform: present"));
+    assert!(svg.contains("Build"));
+    assert!(svg.contains("Road"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("cityjson-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::CityJson
+    );
+    let generic_json = temporary.path().join("city.json");
+    fs::copy(&input, &generic_json).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_json).unwrap(),
+        SourceFormat::CityJson
+    );
+}
+
+#[test]
+fn converts_stix_bundle_without_displaying_patterns_or_reference_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.stix.json");
+    let output = temporary.path().join("stix-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::StixJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("STIX 2.1 JSON"));
+    assert!(svg.contains("Objects: 2"));
+    assert!(svg.contains("Indicators: 1"));
+    assert!(!svg.contains("very-secret"));
+    assert!(!svg.contains("secret description"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("threat-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::StixJson
+    );
+}
+
+#[test]
+fn converts_opencrg_header_without_decoding_road_payload() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.crg");
+    let output = temporary.path().join("opencrg-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenCrg);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ASAM OpenCRG"));
+    assert!(svg.contains("ROAD_CRG"));
+    assert!(svg.contains("Sections: 5"));
+    assert!(!svg.contains("private_surface"));
+    let extensionless = temporary.path().join("road-surface");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OpenCrg
+    );
+}
+
+#[test]
+fn converts_taxii_manifest_without_network_or_stix_payload_access() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.taxii.json");
+    let output = temporary.path().join("taxii-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::TaxiiJson);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("TAXII 2.1 JSON"));
+    assert!(svg.contains("Resource: manifest"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("taxii-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::TaxiiJson
+    );
+}
+
+#[test]
+fn converts_wsdl_service_description_without_import_or_soap_access() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.wsdl");
+    let output = temporary.path().join("wsdl-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Wsdl);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("WSDL service description"));
+    assert!(svg.contains("Services: 1"));
+    assert!(svg.contains("Operations: 3"));
+    assert!(svg.contains("CatalogService"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("service-definition");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Wsdl
+    );
+}
+
+#[test]
+fn converts_opml_outline_without_fetching_feed_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.opml");
+    let output = temporary.path().join("opml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Opml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OPML outline"));
+    assert!(svg.contains("Outlines: 5"));
+    assert!(svg.contains("Feed outlines: 2"));
+    assert!(svg.contains("Release notes"));
+    assert!(svg.contains("Standards"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private description"));
+    let extensionless = temporary.path().join("feed-outline");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Opml
+    );
+    let xml_alias = temporary.path().join("feed-outline.opml.xml");
+    fs::copy(&input, &xml_alias).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&xml_alias).unwrap(),
+        SourceFormat::Opml
+    );
+}
+
+#[test]
+fn converts_rss_feed_without_fetching_links_or_rendering_content() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.rss");
+    let output = temporary.path().join("rss-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Feed);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("RSS/Atom feed"));
+    assert!(svg.contains("Items/entries: 2"));
+    assert!(svg.contains("Release 1.2"));
+    assert!(svg.contains("Maintenance"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private article body"));
+    assert!(!svg.contains("alert("));
+    assert!(!svg.contains("private HTML"));
+    let extensionless = temporary.path().join("engineering-feed");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Feed
+    );
+}
+
+#[test]
+fn converts_atom_feed_without_following_entry_links() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.atom");
+    let output = temporary.path().join("atom-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Feed);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Format: Atom"));
+    assert!(svg.contains("Items/entries: 1"));
+    assert!(svg.contains("Paper one"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private abstract"));
+}
+
+#[test]
+fn converts_xml_plist_without_rendering_secrets_or_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.plist");
+    let output = temporary.path().join("plist-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Plist);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Apple Property List"));
+    assert!(svg.contains("XML plist"));
+    assert!(svg.contains("CFBundleName"));
+    assert!(svg.contains("Document SVG"));
+    assert!(svg.contains("[URL omitted]"));
+    assert!(svg.contains("[redacted]"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("do-not-render"));
+    assert!(!svg.contains("SENSITIVE"));
+    let extensionless = temporary.path().join("app-settings");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Plist
+    );
+}
+
+#[test]
+fn converts_binary_plist_with_bounded_object_summary() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.bplist");
+    let output = temporary.path().join("bplist-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Plist);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Format: Binary plist"));
+    assert!(svg.contains("Objects: 3"));
+    assert!(svg.contains("object[2]"));
+}
+
+#[test]
+fn converts_tei_scholarly_text_without_external_targets() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.tei");
+    let output = temporary.path().join("tei-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Tei);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("TEI scholarly text"));
+    assert!(svg.contains("A Bounded Edition"));
+    assert!(svg.contains("Chapter One"));
+    assert!(svg.contains("First paragraph"));
+    assert!(svg.contains("Divisions: 3"));
+    assert!(svg.contains("Paragraphs: 2"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private source description"));
+}
+
+#[test]
+fn converts_alto_ocr_layout_without_opening_source_images() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.alto");
+    let output = temporary.path().join("alto-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Alto);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ALTO OCR layout"));
+    assert!(svg.contains("Pages: 2"));
+    assert!(svg.contains("OCR metadata"));
+    assert!(svg.contains("The first page"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("ocr-layout");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Alto
+    );
+}
+
+#[test]
+fn converts_mets_archive_structure_without_following_locations() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mets");
+    let output = temporary.path().join("mets-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mets);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("METS archive structure"));
+    assert!(svg.contains("File groups: 2"));
+    assert!(svg.contains("Structural maps: 2"));
+    assert!(svg.contains("Chapter One"));
+    assert!(svg.contains("image/tiff"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("Private title metadata"));
+    let extensionless = temporary.path().join("archive-structure");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Mets
+    );
+}
+
+#[test]
+fn converts_marcxml_records_without_exposing_catalog_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.marcxml");
+    let output = temporary.path().join("marcxml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Marcxml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MARCXML record preview"));
+    assert!(svg.contains("Records: 2"));
+    assert!(svg.contains("A Safe Catalog Record"));
+    assert!(svg.contains("Example Author"));
+    assert!(svg.contains("[URL omitted]"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("catalog-records");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Marcxml
+    );
+}
+
+#[test]
+fn converts_mods_collection_without_exposing_location_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mods");
+    let output = temporary.path().join("mods-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mods);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MODS bibliographic record"));
+    assert!(svg.contains("Records: 2"));
+    assert!(svg.contains("Digital Preservation Handbook"));
+    assert!(svg.contains("Example Author"));
+    assert!(svg.contains("technical report"));
+    assert!(svg.contains("[URL omitted]"));
+    assert!(svg.contains("external location omitted"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private catalog note"));
+    let extensionless = temporary.path().join("mods-records");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Mods
+    );
+}
+
+#[test]
+fn converts_premis_preservation_metadata_without_exposing_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.premis");
+    let output = temporary.path().join("premis-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Premis);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("PREMIS preservation metadata"));
+    assert!(svg.contains("Objects: 1"));
+    assert!(svg.contains("Events: 1"));
+    assert!(svg.contains("Agents: 1"));
+    assert!(svg.contains("Rights statements: 1"));
+    assert!(svg.contains("validation"));
+    assert!(svg.contains("Document Validator"));
+    assert!(!svg.contains("private-checksum"));
+    assert!(!svg.contains("private command"));
+    assert!(!svg.contains("private rights payload"));
+}
+
+#[test]
+fn converts_iiif_manifest_without_fetching_images_or_ids() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.iiif.json");
+    let output = temporary.path().join("iiif-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Iiif);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("IIIF Presentation manifest"));
+    assert!(svg.contains("Canvases: 2"));
+    assert!(svg.contains("Painted images: 2"));
+    assert!(svg.contains("Page 1"));
+    assert!(svg.contains("Chapter One"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("do-not-render"));
+    assert!(!svg.contains("private annotation"));
+    let extensionless = temporary.path().join("presentation-manifest");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Iiif
+    );
+}
+
+#[test]
+fn converts_iiif_v2_sequence_without_fetching_image_service() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.iiif.v2.json");
+    let output = temporary.path().join("iiif-v2-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Iiif);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Presentation API: 2"));
+    assert!(svg.contains("Canvases: 1"));
+    assert!(svg.contains("Legacy page"));
+    assert!(!svg.contains("private.example.invalid"));
+}
+
+#[test]
+fn converts_ead_finding_aid_without_opening_digital_objects() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ead");
+    let output = temporary.path().join("ead-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ead);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("EAD archival finding aid"));
+    assert!(svg.contains("Components: 3"));
+    assert!(svg.contains("Series One"));
+    assert!(svg.contains("Correspondence"));
+    assert!(svg.contains("Example Archive"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private scope description"));
+    let extensionless = temporary.path().join("finding-aid");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ead
+    );
+}
+
+#[test]
+fn converts_eac_cpf_authority_without_exposing_relations() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.eac-cpf");
+    let output = temporary.path().join("eac-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::EacCpf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("EAC-CPF archival authority"));
+    assert!(svg.contains("Entity type: person"));
+    assert!(svg.contains("Example Researcher"));
+    assert!(svg.contains("CPF relations: 1"));
+    assert!(svg.contains("Resource relations: 1"));
+    assert!(svg.contains("Function relations: 1"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private biographical description"));
+    assert!(!svg.contains("Private relation"));
+}
+
+#[test]
+fn converts_dublin_core_metadata_without_exposing_urls_or_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.dc.xml");
+    let output = temporary.path().join("dc-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::DublinCore);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Dublin Core metadata"));
+    assert!(svg.contains("Records: 1"));
+    assert!(svg.contains("A Safe Dublin Core Record"));
+    assert!(svg.contains("Example Author"));
+    assert!(svg.contains("Document conversion"));
+    assert!(svg.contains("[value omitted]"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private rights text"));
+    assert!(!svg.contains("private description payload"));
+    let extensionless = temporary.path().join("dc-metadata");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::DublinCore
+    );
+}
+
+#[test]
+fn converts_s1000d_data_module_without_following_dm_or_icn_references() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.s1000d");
+    let output = temporary.path().join("s1000d-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::S1000d);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("S1000D data module"));
+    assert!(svg.contains("DMC: modelIdentCode=EXAMPLE"));
+    assert!(svg.contains("Hydraulic Pump"));
+    assert!(svg.contains("Remove the access panel"));
+    assert!(svg.contains("Security classification"));
+    assert!(!svg.contains("private-image"));
+    assert!(!svg.contains("private-target"));
+    let extensionless = temporary.path().join("maintenance-module");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::S1000d
+    );
+}
+
+#[test]
+fn converts_dicom_structured_report_without_following_references() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_sr.dcm");
+    let output = temporary.path().join("dicom-sr-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::DicomSr);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("DICOM Structured Report"));
+    assert!(svg.contains("Basic Text SR"));
+    assert!(svg.contains("Finding"));
+    assert!(svg.contains("No acute abnormality"));
+    assert!(svg.contains("4.2 millimeter"));
+    assert!(svg.contains("Procedure"));
+    assert!(svg.contains("URL omitted"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("sr-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::DicomSr
+    );
+}
+
+#[test]
+fn converts_spreadsheetml_without_evaluating_formulas_or_external_links() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.spreadsheetml");
+    let output = temporary.path().join("xmlss-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Spreadsheetml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SpreadsheetML 2003"));
+    assert!(svg.contains("Worksheets: 2"));
+    assert!(svg.contains("Formula cells: 2"));
+    assert!(svg.contains("Widget A"));
+    assert!(svg.contains("formula omitted"));
+    assert!(svg.contains("URL omitted"));
+    assert!(!svg.contains("https://private.example.invalid"));
+    let extensionless = temporary.path().join("office-xml-sheet");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Spreadsheetml
+    );
+}
+
+#[test]
+fn converts_rdfxml_without_resolving_iris_or_nested_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.rdf");
+    let output = temporary.path().join("rdfxml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::RdfXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("RDF/XML graph"));
+    assert!(svg.contains("Safe RDF document"));
+    assert!(svg.contains("Example Author"));
+    assert!(svg.contains("IRI omitted"));
+    assert!(svg.contains("Blank nodes: 1"));
+    assert!(svg.contains("nested resource omitted"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private nested payload"));
+    let extensionless = temporary.path().join("semantic-graph");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::RdfXml
+    );
+}
+
+#[test]
+fn converts_bcfzip_issue_package_without_opening_models_or_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.bcfzip");
+    let output = temporary.path().join("bcf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Bcfzip);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("BCF issue package"));
+    assert!(svg.contains("Example BIM Coordination"));
+    assert!(svg.contains("Clash at stair core"));
+    assert!(svg.contains("type=Issue"));
+    assert!(svg.contains("status=Open"));
+    assert!(svg.contains("priority=High"));
+    assert!(svg.contains("Comments: 1"));
+    assert!(svg.contains("Snapshots skipped: 1"));
+    assert!(svg.contains("external models"));
+    assert!(!svg.contains("private issue description"));
+    assert!(!svg.contains("private comment payload"));
+    assert!(!svg.contains("topic-001"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("coordination-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Bcfzip
+    );
+}
+
+#[test]
+fn converts_flat_opc_word_package_without_extracting_or_executing_parts() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.flatopc");
+    let output = temporary.path().join("flat-opc-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::FlatOpc);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Flat OPC office document"));
+    assert!(svg.contains("External links remain inert"));
+    assert!(svg.contains("bounded inert Open XML package"));
+    assert!(!svg.contains("http://private.example.invalid"));
+    let extensionless = temporary.path().join("office-flat-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::FlatOpc
+    );
+}
+
+#[test]
+fn converts_aasx_package_without_opening_supplementary_cad_or_manual_files() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.aasx");
+    let output = temporary.path().join("aasx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Aasx);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("AASX asset package"));
+    assert!(svg.contains("Asset Administration Shells: 1"));
+    assert!(svg.contains("Submodels: 1"));
+    assert!(svg.contains("Concept descriptions: 1"));
+    assert!(svg.contains("Supplementary files skipped: 1"));
+    assert!(svg.contains("Thumbnails skipped: 1"));
+    assert!(svg.contains("Pump A"));
+    assert!(svg.contains("Maintenance"));
+    assert!(!svg.contains("PRIVATE-SERIAL"));
+    assert!(!svg.contains("manual.pdf"));
+    assert!(!svg.contains("private-thumbnail"));
+    let extensionless = temporary.path().join("asset-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Aasx
+    );
+}
+
+#[test]
+fn previews_openscad_source_without_executing_imports_or_geometry() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.scad");
+    let output = temporary.path().join("openscad-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenScad);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OpenSCAD source"));
+    assert!(svg.contains("rounded_box"));
+    assert!(svg.contains("imports"));
+    assert!(svg.contains("not a rendered solid model"));
+    assert!(!svg.contains("private-library.scad"));
+    assert!(!svg.contains("private-model.stl"));
+    let extensionless = temporary.path().join("cad-source");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OpenScad
+    );
+}
+
+#[test]
+fn converts_amf_mesh_without_opening_materials_or_external_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.amf");
+    let output = temporary.path().join("amf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Amf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("AMF mesh"));
+    assert!(svg.contains("shaded preview"));
+    assert!(!svg.contains("Private AMF design"));
+    assert!(!svg.contains("Private material"));
+    let extensionless = temporary.path().join("additive-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Amf
+    );
+}
+
+#[test]
+fn converts_plmxml_product_structure_without_following_cad_references() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.plmxml");
+    let output = temporary.path().join("plmxml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::PlmXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("PLMXML product structure"));
+    assert!(svg.contains("schemaVersion=7.0"));
+    assert!(svg.contains("parts=1 structures=1 instances=1"));
+    assert!(svg.contains("externalReferences=1"));
+    assert!(!svg.contains("Private Engineer"));
+    assert!(!svg.contains("SECRET-VALUE"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("product-structure");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::PlmXml
+    );
+}
+
+#[test]
+fn converts_step_xml_without_fetching_schemas_or_external_geometry() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.stepxml");
+    let output = temporary.path().join("stepxml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::StepXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("STEP-XML product data"));
+    assert!(svg.contains("product_definitions=1"));
+    assert!(svg.contains("items=1 points=1 directions=1"));
+    assert!(svg.contains("externalReferences=1"));
+    assert!(!svg.contains("private-product-id"));
+    assert!(!svg.contains("Private property"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("step-xml-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::StepXml
+    );
+}
+
+#[test]
+fn converts_qif_inspection_data_without_exposing_measurement_values_or_files() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.qif");
+    let output = temporary.path().join("qif-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Qif);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("QIF inspection data"));
+    assert!(svg.contains("results=1 traceability=1"));
+    assert!(svg.contains("features=1 characteristics=1"));
+    assert!(svg.contains("External files"));
+    assert!(!svg.contains("PRIVATE-PRODUCT"));
+    assert!(!svg.contains("PRIVATE-MEASURED-VALUE"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("inspection-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Qif
+    );
+}
+
+#[test]
+fn converts_b2mml_manufacturing_data_without_running_operations() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.b2mml");
+    let output = temporary.path().join("b2mml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::B2mml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("B2MML manufacturing data"));
+    assert!(svg.contains("performances=1 requests=1"));
+    assert!(svg.contains("materials=2 personnel=1"));
+    assert!(svg.contains("capabilities=1"));
+    assert!(svg.contains("externalReferences=1"));
+    assert!(!svg.contains("PRIVATE-REQUEST"));
+    assert!(!svg.contains("PRIVATE-PERFORMANCE-VALUE"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("manufacturing-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::B2mml
+    );
+}
+
+#[test]
+fn converts_jdf_job_ticket_without_running_devices_or_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.jdf");
+    let output = temporary.path().join("jdf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Jdf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("JDF job ticket"));
+    assert!(svg.contains("version=1.8 status=Waiting"));
+    assert!(svg.contains("devices=1 media=1"));
+    assert!(svg.contains("URL/file links counted"));
+    assert!(!svg.contains("private-job"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("Private brand"));
+    let extensionless = temporary.path().join("job-ticket");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Jdf
+    );
+}
+
+#[test]
+fn converts_xjdf_job_ticket_without_running_workflow_commands() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xjdf");
+    let output = temporary.path().join("xjdf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xjdf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XJDF job ticket"));
+    assert!(svg.contains("version=2.2 status=Waiting"));
+    assert!(!svg.contains("private-xjdf"));
+    let extensionless = temporary.path().join("exchange-job-ticket");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xjdf
+    );
+}
+
+#[test]
+fn converts_cml_chemical_document_without_resolving_dictionaries() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cml");
+    let output = temporary.path().join("cml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Cml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("CML chemical document"));
+    assert!(svg.contains("Molecules: 1"));
+    assert!(svg.contains("Atoms: 3"));
+    assert!(svg.contains("Bonds: 2"));
+    assert!(svg.contains("Water"));
+    assert!(svg.contains("H=2 O=1"));
+    assert!(!svg.contains("private value"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private spectrum payload"));
+    let extensionless = temporary.path().join("chemical-xml");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Cml
+    );
+}
+
+#[test]
+fn converts_xdp_package_without_executing_xfa_logic() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xdp");
+    let output = temporary.path().join("xdp-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xdp);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XDP/XFA data package"));
+    assert!(svg.contains("Packets: 4"));
+    assert!(svg.contains("Fields: 3"));
+    assert!(svg.contains("ApplicantName"));
+    assert!(svg.contains("Scripts/calculations: 2"));
+    assert!(svg.contains("Submit/action nodes: 1"));
+    assert!(!svg.contains("private-xdp-uuid"));
+    assert!(!svg.contains("private applicant"));
+    assert!(!svg.contains("secret-value"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private embedded PDF payload"));
+    let extensionless = temporary.path().join("xfa-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xdp
+    );
+}
+
+#[test]
+fn converts_xmp_metadata_without_exposing_private_identifiers() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xmp");
+    let output = temporary.path().join("xmp-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xmp);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XMP metadata"));
+    assert!(svg.contains("A Safe XMP Title"));
+    assert!(svg.contains("Example Author"));
+    assert!(svg.contains("2026-09-17T10:00:00Z"));
+    assert!(svg.contains("Safe Producer"));
+    assert!(svg.contains("Private/identifier properties omitted: 3"));
+    assert!(!svg.contains("private-document-id"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private description payload"));
+    assert!(!svg.contains("private-image-bytes"));
+    let extensionless = temporary.path().join("metadata-packet");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xmp
+    );
+}
+
+#[test]
+fn converts_mathml_without_exposing_annotations_or_scripts() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.mathml");
+    let output = temporary.path().join("mathml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Mathml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MathML formula"));
+    assert!(svg.contains("Tokens: 14"));
+    assert!(svg.contains("Annotations skipped: 2"));
+    assert!(svg.contains("x_(1)^(2)"));
+    assert!(svg.contains("root(c, 3)"));
+    assert!(!svg.contains("private annotation payload"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("alert('private')"));
+    let extensionless = temporary.path().join("equation");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Mathml
+    );
+}
+
+#[test]
+fn converts_landxml_civil_model_without_exposing_coordinate_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.landxml");
+    let output = temporary.path().join("landxml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::LandXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("LandXML civil model"));
+    assert!(svg.contains("Version: 1.2"));
+    assert!(svg.contains("Units: meter"));
+    assert!(svg.contains("Surfaces: 1"));
+    assert!(svg.contains("points=3 faces=1"));
+    assert!(svg.contains("segments=2"));
+    assert!(svg.contains("Pipe networks: 1"));
+    assert!(!svg.contains("100.0"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private terrain"));
+    let extensionless = temporary.path().join("civil-exchange");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::LandXml
+    );
+}
+
+#[test]
+fn converts_xfdf_form_data_without_fetching_pdf_targets() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xfdf");
+    let output = temporary.path().join("xfdf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xfdf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XFDF form data"));
+    assert!(svg.contains("Applicant"));
+    assert!(svg.contains("Alice Example"));
+    assert!(svg.contains("Sensitive fields: 1"));
+    assert!(svg.contains("[sensitive value omitted]"));
+    assert!(svg.contains("Rich-text fields: 1"));
+    assert!(svg.contains("Annotations: 2"));
+    assert!(!svg.contains("secret-xfdf"));
+    assert!(!svg.contains("private rich text"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("form-xml");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xfdf
+    );
+}
+
+#[test]
+fn converts_fdf_form_data_without_executing_actions() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fdf");
+    let output = temporary.path().join("fdf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Fdf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("FDF form data"));
+    assert!(svg.contains("Full Name"));
+    assert!(svg.contains("Alice Example"));
+    assert!(svg.contains("Password fields: 1"));
+    assert!(svg.contains("[password omitted]"));
+    assert!(svg.contains("Choice options: 2"));
+    assert!(svg.contains("Action dictionaries: 1"));
+    assert!(svg.contains("[URL omitted]"));
+    assert!(!svg.contains("secret-value"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("form-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Fdf
+    );
+}
+
+#[test]
+fn converts_xbrl_instance_without_fetching_taxonomies_or_entity_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xbrl.xml");
+    let output = temporary.path().join("xbrl-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xbrl);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XBRL 2.1 instance"));
+    assert!(svg.contains("Contexts: 2"));
+    assert!(svg.contains("Facts: 4"));
+    assert!(svg.contains("Revenue"));
+    assert!(svg.contains("1250000"));
+    assert!(svg.contains("iso4217:USD"));
+    assert!(svg.contains("2026-01-01"));
+    assert!(svg.contains("Tuples: 1"));
+    assert!(!svg.contains("EXAMPLE-ENTITY"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private footnote payload"));
+    let extensionless = temporary.path().join("financial-instance");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xbrl
+    );
+}
+
+#[test]
+fn converts_ubl_invoice_without_exposing_party_or_amount_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.ubl.xml");
+    let output = temporary.path().join("ubl-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Ubl);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("UBL Invoice"));
+    assert!(svg.contains("UBL version"));
+    assert!(svg.contains("2026-09-16"));
+    assert!(svg.contains("2026-10-16"));
+    assert!(svg.contains("Line items"));
+    assert!(svg.contains("supplier=1"));
+    assert!(svg.contains("JPY"));
+    assert!(!svg.contains("Private Supplier"));
+    assert!(!svg.contains("private item description"));
+    assert!(!svg.contains("private-bank-account"));
+    assert!(!svg.contains("11000"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("business-invoice");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Ubl
+    );
+}
+
+#[test]
+fn converts_iso19115_metadata_without_exposing_private_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.iso19115.xml");
+    let output = temporary.path().join("iso19115-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Iso19115);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ISO 19115 metadata"));
+    assert!(svg.contains("Coastal habitat survey"));
+    assert!(svg.contains("EPSG:4326"));
+    assert!(svg.contains("west=-123.5"));
+    assert!(svg.contains("biota"));
+    assert!(svg.contains("2025-04-01"));
+    assert!(!svg.contains("private.example.invalid"));
+    assert!(!svg.contains("private abstract payload"));
+    assert!(!svg.contains("private lineage payload"));
+    assert!(!svg.contains("Private Contact"));
+    let extensionless = temporary.path().join("coastal-metadata");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Iso19115
+    );
+}
+
+#[test]
+fn converts_marc21_iso2709_records_without_exposing_catalog_urls() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.marc");
+    let output = temporary.path().join("marc-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Marc);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("MARC21 ISO 2709 record preview"));
+    assert!(svg.contains("Records: 2"));
+    assert!(svg.contains("MARC21 ISO 2709 Record"));
+    assert!(svg.contains("Example Author"));
+    assert!(svg.contains("[URL omitted]"));
+    assert!(!svg.contains("private.example.invalid"));
+    let extensionless = temporary.path().join("iso2709-records");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Marc
+    );
+}
+
+#[test]
+fn converts_tmx_translation_memory_without_exposing_segments() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.tmx");
+    let output = temporary.path().join("tmx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Tmx);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("TMX translation memory"));
+    assert!(svg.contains("variants=4"));
+    assert!(svg.contains("de, en, ja"));
+    assert!(!svg.contains("Hello world"));
+    assert!(!svg.contains("private note"));
+    let extensionless = temporary.path().join("translation-memory");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Tmx
+    );
+}
+
+#[test]
+fn converts_tbx_terminology_without_exposing_term_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.tbx");
+    let output = temporary.path().join("tbx-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Tbx);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("TBX terminology base"));
+    assert!(svg.contains("dialect=TBX"));
+    assert!(svg.contains("terms=2"));
+    assert!(svg.contains("en, ja"));
+    assert!(!svg.contains("gearbox"));
+    assert!(!svg.contains("private definition"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("terminology");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Tbx
+    );
+}
+
+#[test]
+fn converts_gbxml_building_model_without_exposing_geometry_or_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.gbxml");
+    let output = temporary.path().join("gbxml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::GbXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("gbXML building model"));
+    assert!(svg.contains("version=8.01"));
+    assert!(svg.contains("campuses=1"));
+    assert!(svg.contains("spaces=1"));
+    assert!(svg.contains("openings=1"));
+    assert!(!svg.contains("Private site"));
+    assert!(!svg.contains("999"));
+    assert!(!svg.contains("private material"));
+    let extensionless = temporary.path().join("building-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::GbXml
+    );
+}
+
+#[test]
+fn converts_fhir_xml_without_exposing_clinical_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fhir.xml");
+    let output = temporary.path().join("fhir-xml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::FhirXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("FHIR XML"));
+    assert!(svg.contains("resources=3"));
+    assert!(svg.contains("Patient"));
+    assert!(svg.contains("Observation"));
+    assert!(!svg.contains("patient-secret"));
+    assert!(!svg.contains("private narrative"));
+    assert!(!svg.contains("private result"));
+    let extensionless = temporary.path().join("fhir-bundle");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::FhirXml
+    );
+    let generic_xml = temporary.path().join("generic.xml");
+    fs::write(
+        &generic_xml,
+        r#"<config><link>https://hl7.org/fhir/Patient</link></config>"#,
+    )
+    .unwrap();
+    assert_eq!(
+        SourceFormat::detect(&generic_xml).unwrap(),
+        SourceFormat::Xml
+    );
+}
+
+#[test]
+fn converts_idml_package_without_extracting_private_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.idml");
+    let output = temporary.path().join("idml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Idml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("IDML InDesign package"));
+    assert!(svg.contains("stories=1"));
+    assert!(svg.contains("masterSpreads=1"));
+    assert!(svg.contains("images=0"));
+    assert!(!svg.contains("private story text"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("story-1"));
+    let extensionless = temporary.path().join("indesign-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Idml
+    );
+}
+
+#[test]
+fn converts_xpdl_workflow_without_executing_process_logic() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xpdl");
+    let output = temporary.path().join("xpdl-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xpdl);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XPDL workflow definition"));
+    assert!(svg.contains("activities=2"));
+    assert!(svg.contains("transitions=1"));
+    assert!(!svg.contains("private participant"));
+    assert!(!svg.contains("secret"));
+    let extensionless = temporary.path().join("workflow-definition");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xpdl
+    );
+}
+
+#[test]
+fn converts_onix_without_exposing_publishing_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.onix");
+    let output = temporary.path().join("onix-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Onix);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ONIX for Books message"));
+    assert!(svg.contains("release=3.0"));
+    assert!(svg.contains("identifiers=1"));
+    assert!(svg.contains("prices=1"));
+    assert!(!svg.contains("Private Book Title"));
+    assert!(!svg.contains("9780000000000"));
+    assert!(!svg.contains("999"));
+    assert!(!svg.contains("private description"));
+    let extensionless = temporary.path().join("book-message");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Onix
+    );
+}
+
+#[test]
+fn converts_oai_pmh_without_harvesting_or_exposing_records() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.oaipmh");
+    let output = temporary.path().join("oaipmh-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OaiPmh);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OAI-PMH response"));
+    assert!(svg.contains("listRecords=1"));
+    assert!(svg.contains("headers=1"));
+    assert!(svg.contains("metadata=1"));
+    assert!(!svg.contains("private-id"));
+    assert!(!svg.contains("private title"));
+    assert!(!svg.contains("private-token"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("harvest-response");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OaiPmh
+    );
+}
+
+#[test]
+fn converts_cda_without_exposing_phi_or_narrative() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cda");
+    let output = temporary.path().join("cda-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Cda);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("CDA clinical document"));
+    assert!(svg.contains("sections=1"));
+    assert!(svg.contains("observations=1"));
+    assert!(!svg.contains("patient-secret"));
+    assert!(!svg.contains("private narrative"));
+    assert!(!svg.contains("private-value"));
+    let extensionless = temporary.path().join("clinical-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Cda
+    );
+}
+
+#[test]
+fn converts_iso20022_without_exposing_financial_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.iso20022.xml");
+    let output = temporary.path().join("iso20022-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Iso20022);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ISO 20022 message"));
+    assert!(svg.contains("transactions=1"));
+    assert!(svg.contains("accounts=1"));
+    assert!(!svg.contains("Private Debtor"));
+    assert!(!svg.contains("DESECRET"));
+    assert!(!svg.contains("999.00"));
+    assert!(!svg.contains("private remittance"));
+    let extensionless = temporary.path().join("payment-message");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Iso20022
+    );
+}
+
+#[test]
+fn converts_sbml_without_evaluating_equations() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sbml");
+    let output = temporary.path().join("sbml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sbml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SBML model"));
+    assert!(svg.contains("species=1"));
+    assert!(svg.contains("reactions=1"));
+    assert!(!svg.contains("private-equation"));
+    assert!(!svg.contains("initialAmount"));
+    let extensionless = temporary.path().join("systems-biology-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sbml
+    );
+}
+
+#[test]
+fn converts_cellml_without_evaluating_mathml_or_imports() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.cellml");
+    let output = temporary.path().join("cellml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Cellml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("CellML model"));
+    assert!(svg.contains("components=1"));
+    assert!(svg.contains("variables=1"));
+    assert!(!svg.contains("private-equation"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("cell-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Cellml
+    );
+}
+
+#[test]
+fn converts_ocel_xml_without_exposing_event_log_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xmlocel");
+    let output = temporary.path().join("ocel-xml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OcelXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OCEL XML event log"));
+    assert!(svg.contains("eventTypes=1"));
+    assert!(svg.contains("events=1"));
+    assert!(svg.contains("objects=1"));
+    assert!(!svg.contains("private-event"));
+    assert!(!svg.contains("private-value"));
+    let extensionless = temporary.path().join("event-log");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OcelXml
+    );
+}
+
+#[test]
+fn converts_energyplus_idf_without_running_simulation() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.idf");
+    let output = temporary.path().join("idf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::EnergyPlusIdf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("EnergyPlus IDF input"));
+    assert!(svg.contains("Building"));
+    assert!(svg.contains("Zone"));
+    assert!(!svg.contains("Private Building"));
+    assert!(!svg.contains("Private Material"));
+    let extensionless = temporary.path().join("energy-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::EnergyPlusIdf
+    );
+    let compact = temporary.path().join("compact.idf");
+    fs::write(&compact, "Version, 24.1;Building, Compact, 0.0, City;").unwrap();
+    let compact_output = temporary.path().join("compact-idf-out");
+    let compact_report =
+        convert_path(&compact, &compact_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(compact_report.source_format, SourceFormat::EnergyPlusIdf);
+    let compact_svg = fs::read_to_string(compact_output.join("page-0001.svg")).unwrap();
+    assert!(compact_svg.contains("Building"));
+}
+
+#[test]
+fn converts_energyplus_epw_without_exposing_weather_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.epw");
+    let output = temporary.path().join("epw-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::EnergyPlusEpw);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("EnergyPlus EPW weather"));
+    assert!(svg.contains("Hourly rows"));
+    assert!(svg.contains("2"));
+    assert!(!svg.contains("Private City"));
+    assert!(!svg.contains("10.0"));
+    let extensionless = temporary.path().join("weather-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::EnergyPlusEpw
+    );
+}
+
+#[test]
+fn converts_rinex_without_exposing_station_or_measurements() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.rnx");
+    let output = temporary.path().join("rinex-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Rinex);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("RINEX GNSS data"));
+    assert!(svg.contains("epochs"));
+    assert!(svg.contains("satelliteRows=3"));
+    assert!(!svg.contains("PRIVATE-STATION"));
+    assert!(!svg.contains("12345.0"));
+    let extensionless = temporary.path().join("gnss-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Rinex
+    );
+}
+
+#[test]
+fn converts_acis_sat_without_tessellating_geometry() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sat");
+    let output = temporary.path().join("sat-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sat);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("ACIS SAT model"));
+    assert!(svg.contains("solid"));
+    assert!(svg.contains("vertex"));
+    assert!(!svg.contains("private-solid-id"));
+    assert!(!svg.contains("private-vertex-id"));
+    let extensionless = temporary.path().join("acis-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sat
+    );
+}
+
+#[test]
+fn converts_sedml_without_running_models_or_simulations() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sedml");
+    let output = temporary.path().join("sedml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sedml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SED-ML experiment"));
+    assert!(svg.contains("models=1"));
+    assert!(svg.contains("simulations=1"));
+    assert!(svg.contains("plots=1"));
+    assert!(!svg.contains("private-equation"));
+    assert!(!svg.contains("private.xml"));
+    let extensionless = temporary.path().join("experiment");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sedml
+    );
+}
+
+#[test]
+fn converts_sbgnml_without_exposing_pathway_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.sbgnml");
+    let output = temporary.path().join("sbgnml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Sbgnml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SBGN-ML map"));
+    assert!(svg.contains("arcs=1"));
+    assert!(svg.contains("labels=1"));
+    assert!(!svg.contains("private-glyph"));
+    assert!(!svg.contains("Private protein"));
+    let extensionless = temporary.path().join("pathway-map");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Sbgnml
+    );
+}
+
+#[test]
+fn converts_omex_without_extracting_or_executing_archive_members() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.omex");
+    let output = temporary.path().join("omex-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Omex);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("COMBINE/OMEX archive"));
+    assert!(svg.contains("SBML=1"));
+    assert!(svg.contains("SED-ML=1"));
+    assert!(svg.contains("external references=1"));
+    assert!(!svg.contains("external.xml"));
+    let extensionless = temporary.path().join("combine-archive");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Omex
+    );
+}
+
+#[test]
+fn converts_xdmf_without_opening_hdf5_arrays() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xdmf");
+    let output = temporary.path().join("xdmf-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xdmf);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XDMF mesh metadata"));
+    assert!(svg.contains("grids=1"));
+    assert!(svg.contains("attributes=1"));
+    assert!(!svg.contains("private.h5"));
+    assert!(!svg.contains("PrivateTemperature"));
+    let extensionless = temporary.path().join("mesh-metadata");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xdmf
+    );
+}
+
+#[test]
+fn converts_pvd_without_opening_vtk_sidecars() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.pvd");
+    let output = temporary.path().join("pvd-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Pvd);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("VTK PVD collection"));
+    assert!(svg.contains("remoteRefs=1"));
+    assert!(!svg.contains("mesh_0000.vtu"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("vtk-collection");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Pvd
+    );
+}
+
+#[test]
+fn converts_fds_without_running_fire_simulation() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fds");
+    let output = temporary.path().join("fds-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Fds);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("FDS input deck"));
+    assert!(svg.contains("MESH"));
+    assert!(svg.contains("OBST"));
+    assert!(!svg.contains("private-fire"));
+    assert!(!svg.contains("private-device"));
+    let extensionless = temporary.path().join("fire-input");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Fds
+    );
+}
+
+#[test]
+fn converts_abiword_without_exposing_document_text() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.abw");
+    let output = temporary.path().join("abw-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Abiword);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("AbiWord document"));
+    assert!(svg.contains("paragraphs=2"));
+    assert!(svg.contains("tables=1"));
+    assert!(!svg.contains("Private paragraph"));
+    assert!(!svg.contains("private link"));
+    let extensionless = temporary.path().join("word-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Abiword
+    );
+}
+
+#[test]
+fn converts_neuroml_without_exposing_model_values() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.nml");
+    let output = temporary.path().join("neuroml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Neuroml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("NeuroML model"));
+    assert!(svg.contains("morphologies=1"));
+    assert!(svg.contains("populations=1"));
+    assert!(!svg.contains("private.cell.nml"));
+    assert!(!svg.contains("tauRise"));
+    let extensionless = temporary.path().join("neural-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Neuroml
+    );
+}
+
+#[test]
+fn converts_biopax_without_resolving_owl_or_pathway_links() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.biopax.xml");
+    let output = temporary.path().join("biopax-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Biopax);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("BioPAX pathway"));
+    assert!(svg.contains("pathways=1"));
+    assert!(svg.contains("proteins=1"));
+    assert!(svg.contains("Reactions"));
+    assert!(!svg.contains("private-pathway"));
+    assert!(!svg.contains("Private protein"));
+    assert!(!svg.contains("biopax-level3.owl"));
+    let extensionless = temporary.path().join("pathway-data");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Biopax
+    );
+}
+
+#[test]
+fn converts_xsd_without_fetching_schema_dependencies() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xsd");
+    let output = temporary.path().join("xsd-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xsd);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XML Schema definition"));
+    assert!(svg.contains("complexTypes=1"));
+    assert!(svg.contains("imports=1"));
+    assert!(!svg.contains("private-common.xsd"));
+    assert!(!svg.contains("secret.xsd"));
+    assert!(!svg.contains("private"));
+    let extensionless = temporary.path().join("schema-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xsd
+    );
+}
+
+#[test]
+fn converts_xslt_without_executing_templates_or_xpath() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xsl");
+    let output = temporary.path().join("xslt-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xslt);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XSLT stylesheet"));
+    assert!(svg.contains("templates=2"));
+    assert!(svg.contains("applyTemplates=1"));
+    assert!(!svg.contains("private-import.xsl"));
+    assert!(!svg.contains("private-template"));
+    assert!(!svg.contains("private"));
+    let extensionless = temporary.path().join("transform-stylesheet");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xslt
+    );
+}
+
+#[test]
+fn converts_xsl_fo_without_running_formatter_or_loading_media() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.fo");
+    let output = temporary.path().join("xslfo-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::XslFo);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XSL-FO layout"));
+    assert!(svg.contains("Pages"));
+    assert!(svg.contains("Tables"));
+    assert!(!svg.contains("private paragraph"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("fo-layout");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::XslFo
+    );
+}
+
+#[test]
+fn converts_xproc_without_running_pipeline_steps() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xproc");
+    let output = temporary.path().join("xproc-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xproc);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XProc pipeline"));
+    assert!(svg.contains("inputs=2"));
+    assert!(svg.contains("httpOps=0"));
+    assert!(!svg.contains("private.xml"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("pipeline-document");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xproc
+    );
+}
+
+#[test]
+fn converts_wadl_without_contacting_endpoints() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.wadl");
+    let output = temporary.path().join("wadl-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Wadl);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("WADL web application"));
+    assert!(svg.contains("methods=1"));
+    assert!(svg.contains("representations=1"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("private"));
+    let extensionless = temporary.path().join("rest-description");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Wadl
+    );
+}
+
+#[test]
+fn converts_opensearch_without_search_requests() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.osdd");
+    let output = temporary.path().join("opensearch-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::OpenSearch);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("OpenSearch description"));
+    assert!(svg.contains("Search URLs"));
+    assert!(!svg.contains("Private Search"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("search-description");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::OpenSearch
+    );
+}
+
+#[test]
+fn converts_saml_metadata_without_exposing_endpoints_or_certificates() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.saml.xml");
+    let output = temporary.path().join("saml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Saml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("SAML metadata"));
+    assert!(svg.contains("IdP=1"));
+    assert!(svg.contains("certificates=1"));
+    assert!(!svg.contains("example.invalid"));
+    assert!(!svg.contains("private-certificate"));
+    let extensionless = temporary.path().join("identity-metadata");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Saml
+    );
+}
+
+#[test]
+fn converts_xacml_without_evaluating_authorization_policy() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.xacml");
+    let output = temporary.path().join("xacml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Xacml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("XACML policy"));
+    assert!(svg.contains("policies=1"));
+    assert!(svg.contains("rules=1"));
+    assert!(svg.contains("targets=1"));
+    assert!(!svg.contains("private-policy"));
+    assert!(!svg.contains("private-value"));
+    assert!(!svg.contains("example.invalid"));
+    let extensionless = temporary.path().join("authorization-policy");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Xacml
+    );
+}
+
+#[test]
+fn converts_legacy_openoffice_xml_packages_through_odf_engines() {
+    let temporary = TempDir::new().unwrap();
+    let manifest = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let cases = [
+        ("sample.sxw", SourceFormat::Odt),
+        ("sample.sxc", SourceFormat::Ods),
+        ("sample.sxi", SourceFormat::Odp),
+    ];
+    for (filename, expected) in cases {
+        let input = manifest.join(filename);
+        let output = temporary.path().join(filename);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, expected, "{filename}");
+        assert!(report.page_count >= 1, "{filename}");
+    }
+}
+
+#[test]
+fn converts_legacy_visio_binary_container_without_decoding_opaque_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.vsd");
+    let output = temporary.path().join("vsd-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Vsd);
+    assert_eq!(report.page_count, 1);
+    assert_eq!(report.warnings.len(), 2);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Legacy Visio binary document"));
+    assert!(svg.contains("VisioDocument"));
+    assert!(svg.contains("Pages/Page1"));
+    assert!(!svg.contains("opaque page payload"));
+    let extensionless = temporary.path().join("legacy-visio");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Vsd
+    );
+}
+
+#[test]
+fn converts_hdf5_and_cgns_superblocks_without_reading_dataset_payloads() {
+    let temporary = TempDir::new().unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    for (filename, expected) in [
+        ("sample.h5", SourceFormat::Hdf5),
+        ("sample.cgns", SourceFormat::Cgns),
+        ("sample.exo", SourceFormat::Exodus),
+    ] {
+        let input = root.join(filename);
+        let output = temporary.path().join(filename);
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, expected, "{filename}");
+        assert_eq!(report.page_count, 1, "{filename}");
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(
+            svg.contains(if expected == SourceFormat::Exodus {
+                "Dimensions"
+            } else {
+                "Superblock version"
+            }),
+            "{filename}"
+        );
+        if expected != SourceFormat::Exodus {
+            assert!(svg.contains("Signature offset"), "{filename}");
+        }
+    }
+    let extensionless = temporary.path().join("scientific-container");
+    fs::copy(root.join("sample.h5"), &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Hdf5
+    );
+    let user_block = temporary.path().join("user-block.h5");
+    let mut wrapped = vec![0u8; 512];
+    wrapped.extend_from_slice(&fs::read(root.join("sample.h5")).unwrap());
+    fs::write(&user_block, wrapped).unwrap();
+    let wrapped_output = temporary.path().join("user-block-out");
+    let wrapped_report =
+        convert_path(&user_block, &wrapped_output, &ConvertOptions::default()).unwrap();
+    assert_eq!(wrapped_report.source_format, SourceFormat::Hdf5);
+    let wrapped_svg = fs::read_to_string(wrapped_output.join("page-0001.svg")).unwrap();
+    assert!(wrapped_svg.contains("512"));
+    let exodus_alias = temporary.path().join("mesh.e");
+    fs::copy(root.join("sample.exo"), &exodus_alias).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&exodus_alias).unwrap(),
+        SourceFormat::Exodus
+    );
+}
+
+#[test]
+fn converts_iwork_packages_without_decoding_opaque_iwa_records() {
+    let temporary = TempDir::new().unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    for (extension, title) in [
+        ("pages", "Apple Pages package"),
+        ("numbers", "Apple Numbers package"),
+        ("key", "Apple Keynote package"),
+    ] {
+        let input = root.join(format!("sample.{extension}"));
+        let output = temporary.path().join(format!("{extension}-out"));
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::Iwork, "{extension}");
+        assert_eq!(report.page_count, 1, "{extension}");
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(svg.contains(title), "{extension}");
+        assert!(!svg.contains("opaque"), "{extension}");
+    }
+    let extensionless = temporary.path().join("iwork-package");
+    fs::copy(root.join("sample.pages"), &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Iwork
+    );
+}
+
+#[test]
+fn converts_dwg_header_without_loading_binary_object_sections() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.dwg");
+    let output = temporary.path().join("dwg-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dwg);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("AC1027"));
+    assert!(svg.contains("AutoCAD 2013"));
+    let extensionless = temporary.path().join("drawing");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Dwg
+    );
+}
+
+#[test]
+fn converts_rhino_3dm_marker_without_loading_binary_model_chunks() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.3dm");
+    let output = temporary.path().join("3dm-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Rhino3dm);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Rhino 3DM header"));
+    assert!(svg.contains("3D Geometry File Format"));
+    let extensionless = temporary.path().join("rhino-model");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Rhino3dm
+    );
+}
+
+#[test]
+fn converts_access_ace_and_jet_headers_without_opening_database_objects() {
+    let temporary = TempDir::new().unwrap();
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    for extension in ["accdb", "mdb"] {
+        let input = root.join(format!("sample.{extension}"));
+        let output = temporary.path().join(format!("{extension}-out"));
+        let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+        assert_eq!(report.source_format, SourceFormat::Access, "{extension}");
+        assert_eq!(report.page_count, 1, "{extension}");
+        let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+        assert!(
+            svg.contains("Microsoft Access database header"),
+            "{extension}"
+        );
+        assert!(svg.contains(if extension == "accdb" {
+            "ACE / ACCDB"
+        } else {
+            "Jet / MDB"
+        }));
+    }
+    let extensionless = temporary.path().join("access-database");
+    fs::copy(root.join("sample.accdb"), &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::Access
+    );
+}
+
+#[test]
+fn converts_3dxml_manifest_and_product_structure_without_decoding_reps() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.3dxml");
+    let output = temporary.path().join("3dxml-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::ThreeDXml);
+    assert_eq!(report.page_count, 1);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert!(svg.contains("Dassault 3DXML package"));
+    assert!(svg.contains("Reference3D"));
+    assert!(svg.contains("ProductStructure.3dxml"));
+    assert!(!svg.contains("opaque tessellation"));
+    let extensionless = temporary.path().join("cad-package");
+    fs::copy(&input, &extensionless).unwrap();
+    assert_eq!(
+        SourceFormat::detect(&extensionless).unwrap(),
+        SourceFormat::ThreeDXml
+    );
 }

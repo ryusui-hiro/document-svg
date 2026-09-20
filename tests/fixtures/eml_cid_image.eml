@@ -1,0 +1,17 @@
+From: Alice <alice@example.test>
+Subject: Inline image
+MIME-Version: 1.0
+Content-Type: multipart/related; boundary=eml; type="text/html"
+
+--eml
+Content-Type: text/html; charset=utf-8
+
+<html><body><p>Before image.</p><img src="cid:eml-logo" alt="brand logo"><img src="https://example.invalid/eml-logo.png" alt="location logo"><img src="https://example.invalid/tracker.png"><script>must not render</script></body></html>
+--eml
+Content-Type: image/png
+Content-ID: <eml-logo>
+Content-Location: https://example.invalid/eml-logo.png
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAIAAAD4YuoOAAAAIklEQVR4nGP4z8BAEiJR+X9SlY9aMGrBqAWjFoxaMCAWAABQpv4QX+h4RQAAAABJRU5ErkJggg==
+--eml--

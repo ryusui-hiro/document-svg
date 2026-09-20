@@ -29,10 +29,15 @@ def run_json(arguments):
     return json.loads(subprocess.check_output(arguments, cwd=ROOT, text=True))
 
 
+def normalize_license_text(text):
+    """Remove line-ending whitespace from redistributable notice copies only."""
+    return "\n".join(line.rstrip() for line in text.splitlines()).rstrip() + "\n"
+
+
 def license_files(package):
     directory = Path(package['manifest_path']).parent
     files = {path for path in directory.iterdir()
-             if path.is_file() and re.match(r'(?i)^(licen[sc]e|copying|copyright|notice|authors)', path.name)}
+             if path.is_file() and re.search(r'(?i)(?:^|[-_.])(licen[sc]e|copying|copyright|notice|authors)(?:$|[-_.])', path.name)}
     if package.get('license_file'):
         files.add(directory / package['license_file'])
     for subdirectory in ('licenses', 'LICENSES'):
@@ -52,6 +57,85 @@ def license_files(package):
         if 'Independent JPEG Group' not in header:
             raise ValueError('JPEG implementation notice changed; review required')
         notices.append(('src/fdct.rs (license header)', header))
+    if package.get('license') == 'CC0-1.0' and not notices:
+        # Some upstream encoding-index crates publish SPDX metadata but omit
+        # a license file. Bundle the exact official CC0 1.0 text from the
+        # repository's tracked copy rather than silently accepting the label.
+        cc0_path = ROOT / 'licenses/CC0-1.0.txt'
+        notices.append(('licenses/CC0-1.0.txt (official CC0 text)',
+                        cc0_path.read_text(encoding='utf-8')))
+    if not notices and package.get('repository') == 'https://github.com/Enet4/dicom-rs':
+        # DICOM-rs 0.10.0 crate archives omit the workspace license files.
+        # Fetch the exact release-tagged MIT/Apache texts, not a moving branch.
+        tag = f'v{package["version"]}'
+        if tag != 'v0.10.0' or package.get('license') != 'MIT OR Apache-2.0':
+            raise ValueError(f'{package["name"]}: unreviewed DICOM-rs version or license expression')
+        for filename, marker in (
+            ('LICENSE-MIT', 'Permission is hereby granted, free of charge'),
+            ('LICENSE-APACHE', 'Apache License'),
+        ):
+            url = f'https://raw.githubusercontent.com/Enet4/dicom-rs/{tag}/{filename}'
+            with urllib.request.urlopen(url, timeout=30) as response:
+                data = response.read(512 * 1024 + 1)
+            if len(data) > 512 * 1024:
+                raise ValueError('upstream DICOM-rs license size requires manual review')
+            text = data.decode('utf-8')
+            if marker not in text:
+                raise ValueError(f'{package["name"]}: upstream {filename} requires manual review')
+            notices.append((url, text))
+    if not notices and package['name'] == 'pulp-wasm-simd-flag':
+        if package['version'] != '0.1.1' or package.get('license') != 'MIT':
+            raise ValueError('pulp-wasm-simd-flag: unreviewed version or license expression')
+        vcs = json.loads((directory / '.cargo_vcs_info.json').read_text())
+        commit = vcs['git']['sha1']
+        if commit != '5eb07fd7b68edf0a5e19f71737d315f72a510295':
+            raise ValueError('pulp-wasm-simd-flag: unexpected upstream source revision')
+        url = f'https://raw.githubusercontent.com/sarah-quinones/pulp/{commit}/LICENSE'
+        with urllib.request.urlopen(url, timeout=30) as response:
+            data = response.read(64 * 1024 + 1)
+        if len(data) > 64 * 1024:
+            raise ValueError('upstream PULP license size requires manual review')
+        text = data.decode('utf-8')
+        if 'MIT License' not in text or 'Permission is hereby granted' not in text:
+            raise ValueError('upstream PULP license requires manual review')
+        notices.append((url, text))
+    if not notices and package['name'] == 'zune-inflate':
+        if package['version'] != '0.2.54' or package.get('license') != 'MIT OR Apache-2.0 OR Zlib':
+            raise ValueError('zune-inflate: unreviewed version or license expression')
+        vcs = json.loads((directory / '.cargo_vcs_info.json').read_text())
+        commit = vcs['git']['sha1']
+        if commit != '69502ce83fdfecdd0beefd677e2abb3781b29d98':
+            raise ValueError('zune-inflate: unexpected upstream source revision')
+        # Select the package's Zlib alternative; the SPDX expression permits it.
+        for filename, marker in (
+            ('LICENSE.md', 'zune-image developers'),
+            ('LICENSE-ZLIB', 'Permission is granted to anyone to use this software'),
+        ):
+            url = f'https://raw.githubusercontent.com/etemesi254/zune-image/{commit}/{filename}'
+            with urllib.request.urlopen(url, timeout=30) as response:
+                data = response.read(64 * 1024 + 1)
+            if len(data) > 64 * 1024:
+                raise ValueError('upstream Zune license size requires manual review')
+            text = data.decode('utf-8')
+            if marker not in text:
+                raise ValueError(f'upstream {filename} requires manual review')
+            notices.append((url, text))
+    if not notices and package['name'] == 'rsqlite-vfs':
+        if package['version'] != '0.1.1' or package.get('license') != 'MIT':
+            raise ValueError('rsqlite-vfs: unreviewed version or license expression')
+        vcs = json.loads((directory / '.cargo_vcs_info.json').read_text())
+        commit = vcs['git']['sha1']
+        if commit != '1bb309784f25c401ddf95131dcde4c4cdad7aee7':
+            raise ValueError('rsqlite-vfs: unexpected upstream source revision')
+        url = f'https://raw.githubusercontent.com/Spxg/sqlite-wasm-rs/{commit}/LICENSE'
+        with urllib.request.urlopen(url, timeout=30) as response:
+            data = response.read(64 * 1024 + 1)
+        if len(data) > 64 * 1024:
+            raise ValueError('upstream rsqlite-vfs license size requires manual review')
+        text = data.decode('utf-8')
+        if 'MIT License' not in text or 'Copyright (c) 2024 Spxg' not in text:
+            raise ValueError('upstream rsqlite-vfs license requires manual review')
+        notices.append((url, text))
     if not notices and package.get('repository') == 'https://github.com/napi-rs/napi-rs':
         # These published workspace crates omit the repository-level LICENSE.
         # Recover it from the exact source commit recorded in their archive.
@@ -91,10 +175,12 @@ def main():
                       source=f'https://crates.io/crates/{package["name"]}/{package["version"]}',
                       notice_files=[])
         for file, text in license_files(package):
-            digest = hashlib.sha256(text.encode()).hexdigest()
-            group = texts.setdefault(digest, dict(text=text, packages=[]))
+            source_digest = hashlib.sha256(text.encode()).hexdigest()
+            bundled_text = normalize_license_text(text)
+            digest = hashlib.sha256(bundled_text.encode()).hexdigest()
+            group = texts.setdefault(digest, dict(text=bundled_text, packages=[]))
             group['packages'].append(f'{package["name"]} {package["version"]} — {file}')
-            record['notice_files'].append(dict(path=file, sha256=digest))
+            record['notice_files'].append(dict(path=file, sha256=source_digest))
         inventory.append(record)
 
     afm_notice = (ROOT / 'licenses/Adobe-Core14-AFM.txt').read_text(encoding='utf-8')
@@ -116,6 +202,7 @@ def main():
             if line.startswith(('Comment Copyright', 'Notice Copyright')) and line not in afm_notice:
                 raise ValueError(f'{font}: missing original copyright/trademark notice')
         afm_records.append(dict(font=font, source=url, sha256=hashlib.sha256(data).hexdigest(), glyph_count=len(actual)))
+    afm_notice = normalize_license_text(afm_notice)
     texts[hashlib.sha256(afm_notice.encode()).hexdigest()] = dict(
         text=afm_notice, packages=['Adobe Core 14 AFM-derived widths — src/pdf_base14.rs'])
 
@@ -169,7 +256,8 @@ This software is based in part on the work of the Independent JPEG Group.
     for digest, group in sorted(texts.items(), key=lambda item: item[1]['packages'][0]):
         sections.append('\n'.join(group['packages']) + f'\nText SHA-256: {digest}\n\n' + group['text'].rstrip() + '\n')
     bundle = header + ('\n' + '=' * 72 + '\n\n').join(sections)
-    for directory in (ROOT, ROOT / 'bindings/node', ROOT / 'bindings/python', ROOT / 'bindings/python/legal'):
+    for directory in (ROOT, ROOT / 'bindings/node', ROOT / 'bindings/python',
+                      ROOT / 'bindings/python/legal', ROOT / 'bindings/wasm'):
         destination = directory / 'THIRD_PARTY_LICENSES.txt'
         if args.check:
             if destination.read_text(encoding='utf-8') != bundle:

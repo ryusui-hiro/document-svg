@@ -1,0 +1,19 @@
+{
+  "objects": [
+    {
+      "id": "indicator--00000000-0000-4000-8000-000000000001",
+      "date_added": "2024-01-01T00:00:00.000Z",
+      "version": "2024-01-02T00:00:00.000Z",
+      "media_type": "application/stix+json;version=2.1",
+      "url": "https://private.example.invalid/stix"
+    },
+    {
+      "id": "relationship--00000000-0000-4000-8000-000000000002",
+      "date_added": "2024-01-01T00:00:00.000Z",
+      "version": "2024-01-03T00:00:00.000Z",
+      "media_type": "application/stix+json;version=2.1"
+    }
+  ],
+  "more": false,
+  "next": "https://private.example.invalid/next"
+}

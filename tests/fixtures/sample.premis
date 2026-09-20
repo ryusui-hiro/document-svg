@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<premis xmlns="http://www.loc.gov/premis/v3" version="3.0">
+  <object xsi:type="premis:file" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <objectIdentifier><objectIdentifierType>local</objectIdentifierType><objectIdentifierValue>file-001</objectIdentifierValue></objectIdentifier>
+    <objectCategory>file</objectCategory>
+    <objectCharacteristics><compositionLevel>0</compositionLevel><fixity><messageDigestAlgorithm>SHA-256</messageDigestAlgorithm><messageDigest>private-checksum</messageDigest></fixity><size>1048576</size></objectCharacteristics>
+    <linkingEventIdentifier><linkingEventIdentifierType>local</linkingEventIdentifierType><linkingEventIdentifierValue>event-001</linkingEventIdentifierValue></linkingEventIdentifier>
+  </object>
+  <event>
+    <eventIdentifier><eventIdentifierType>local</eventIdentifierType><eventIdentifierValue>event-001</eventIdentifierValue></eventIdentifier>
+    <eventType>validation</eventType><eventDateTime>2026-09-16T10:00:00Z</eventDateTime>
+    <eventDetailInformation>private command and environment</eventDetailInformation>
+    <linkingObjectIdentifier><linkingObjectIdentifierType>local</linkingObjectIdentifierType><linkingObjectIdentifierValue>file-001</linkingObjectIdentifierValue></linkingObjectIdentifier>
+    <linkingAgentIdentifier><linkingAgentIdentifierType>local</linkingAgentIdentifierType><linkingAgentIdentifierValue>agent-001</linkingAgentIdentifierValue></linkingAgentIdentifier>
+  </event>
+  <agent><agentIdentifier><agentIdentifierType>local</agentIdentifierType><agentIdentifierValue>agent-001</agentIdentifierValue></agentIdentifier><agentType>software</agentType><agentName>Document Validator</agentName></agent>
+  <rightsStatement><rightsStatementIdentifier><rightsStatementIdentifierType>local</rightsStatementIdentifierType><rightsStatementIdentifierValue>rights-001</rightsStatementIdentifierValue></rightsStatementIdentifier><rightsBasis>license</rightsBasis><rightsGranted><act>use</act><startDate>2026-01-01</startDate><endDate>2026-12-31</endDate></rightsGranted><rightsExtension>private rights payload</rightsExtension></rightsStatement>
+</premis>

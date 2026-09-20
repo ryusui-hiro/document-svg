@@ -1,0 +1,14 @@
+{
+  "generator": "LibreOffice 26.2.2.2 MS PowerPoint 97-2003 export filter",
+  "source_files": [
+    "tests/fixtures/sample_strict.pptx"
+  ],
+  "sha256": {
+    "tests/fixtures/sample_legacy.ppt": "f79c40e69dac6efc447ca79a741f8316ac566b76198f8ee7b5a6b290b3b7a22c"
+  },
+  "source_sha256": {
+    "tests/fixtures/sample_strict.pptx": "b9fc15810a6fcb89b5e66b04a5edc47ca8fe431968a88ac67760fcb96b05dc8e"
+  },
+  "license": "MIT OR Apache-2.0",
+  "content": "Synthetic conversion guide presentation text; no personal or third-party content."
+}

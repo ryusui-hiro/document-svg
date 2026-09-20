@@ -1,0 +1,12 @@
+From: Flowed Sender <flowed@example.invalid>
+Subject: Flowed preview
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed; delsp=yes
+
+A flowed line with a preserved  
+word.
+ From this sender.
+> quoted words  
+> continue.
+-- 
+Signature line.

@@ -1,0 +1,27 @@
+TN:Preview suite
+SF:/private/workspace/src/main.rs
+FN:10,main
+FNDA:4,main
+FN:25,helper
+FNDA:0,helper
+FNF:2
+FNH:1
+DA:10,4
+DA:11,0
+DA:25,0
+LF:3
+LH:1
+BRDA:10,0,0,1
+BRDA:10,0,1,-
+BRF:2
+BRH:1
+end_of_record
+TN:Preview suite
+SF:C:\private\workspace\src\lib.rs
+FNF:1
+FNH:1
+DA:1,3
+DA:2,2
+LF:2
+LH:2
+end_of_record

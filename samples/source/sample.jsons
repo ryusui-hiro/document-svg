@@ -1,0 +1,4 @@
+{"event":"ingest","source":"field report","features":14}
+{"rows":[{"id":"A-1","value":12.5},{"id":"B-2","value":8.75}]}
+["validated","rendered","exported"]
+42

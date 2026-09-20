@@ -7,16 +7,24 @@
 
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::io::{BufWriter, Write};
+use std::io::{BufWriter, Cursor, Write};
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+
+static SYSTEM_FONTDB: OnceLock<resvg::usvg::fontdb::Database> = OnceLock::new();
 
 use base64::Engine;
+use flate2::Compression;
+use flate2::write::ZlibEncoder;
+use image_webp::WebPEncoder;
+use lopdf::{Document, Object, Stream, dictionary};
 use quick_xml::Reader;
 use quick_xml::events::Event;
 use serde::Serialize;
 use zip::ZipWriter;
 use zip::write::SimpleFileOptions;
 
+use crate::convert::read_limited_file;
 use crate::error::{Error, Result};
 use crate::ooxml::{attribute, decode_xml_reference, local_name};
 
@@ -32,23 +40,88 @@ pub enum ReverseFormat {
     Pptx,
     Docx,
     Xlsx,
+    Pdf,
     Drawio,
+    Dxf,
+    Dot,
+    Mermaid,
+    Markdown,
+    Csv,
+    Tex,
+    Jsx,
+    Tsx,
+    Vue,
+    DataUri,
+    Png,
+    Gcode,
+    Gerber,
+    Hpgl,
+    Excellon,
+    Stl,
+    Obj,
+    Ply,
+    Step,
+    Gmsh,
+    Vtk,
+    ThreeMf,
+    Iges,
+    Svelte,
+    PathData,
+    Html,
+    Webp,
 }
 
 impl ReverseFormat {
     fn detect(path: &Path) -> Result<Self> {
+        let filename = path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if filename.ends_with(".chart.json") {
+            return Ok(Self::Csv);
+        }
         let extension = path
             .extension()
             .and_then(|value| value.to_str())
             .map(str::to_ascii_lowercase)
             .ok_or_else(|| Error::InvalidInput("output has no file extension".into()))?;
         match extension.as_str() {
-            "pptx" => Ok(Self::Pptx),
-            "docx" => Ok(Self::Docx),
-            "xlsx" => Ok(Self::Xlsx),
+            "pptx" | "pptm" | "potx" | "potm" | "ppsx" | "ppam" | "sldx" | "sldm" => Ok(Self::Pptx),
+            "docx" | "docm" | "dotx" | "dotm" => Ok(Self::Docx),
+            "xlsx" | "xlsm" | "xltx" | "xltm" | "xlam" => Ok(Self::Xlsx),
             "drawio" | "dio" => Ok(Self::Drawio),
+            "dxf" => Ok(Self::Dxf),
+            "gcode" | "nc" | "ngc" | "tap" | "gco" | "cnc" => Ok(Self::Gcode),
+            "gbr" | "gerber" | "gtl" | "gbl" | "gts" | "gbs" | "gto" | "gbo" | "gko" | "gm1"
+            | "gm2" | "art" | "pho" => Ok(Self::Gerber),
+            "plt" | "hpgl" | "hpg" | "gl2" | "prn" => Ok(Self::Hpgl),
+            "drl" | "drd" | "xln" | "exc" => Ok(Self::Excellon),
+            "stl" => Ok(Self::Stl),
+            "obj" => Ok(Self::Obj),
+            "ply" => Ok(Self::Ply),
+            "3mf" => Ok(Self::ThreeMf),
+            "step" | "stp" | "p21" | "stpnc" => Ok(Self::Step),
+            "iges" | "igs" => Ok(Self::Iges),
+            "msh" => Ok(Self::Gmsh),
+            "vtk" | "vtu" => Ok(Self::Vtk),
+            "dot" | "gv" => Ok(Self::Dot),
+            "mmd" | "mermaid" | "puml" | "plantuml" | "pu" | "wsd" => Ok(Self::Mermaid),
+            "md" | "markdown" | "mdown" | "mkd" | "mdx" | "txt" => Ok(Self::Markdown),
+            "csv" | "tsv" | "tab" | "chart" => Ok(Self::Csv),
+            "tex" | "latex" | "ltx" => Ok(Self::Tex),
+            "jsx" => Ok(Self::Jsx),
+            "tsx" => Ok(Self::Tsx),
+            "vue" => Ok(Self::Vue),
+            "svelte" => Ok(Self::Svelte),
+            "path" | "icon" => Ok(Self::PathData),
+            "datauri" => Ok(Self::DataUri),
+            "png" => Ok(Self::Png),
+            "pdf" => Ok(Self::Pdf),
+            "html" | "htm" => Ok(Self::Html),
+            "webp" => Ok(Self::Webp),
             _ => Err(Error::Unsupported(format!(
-                "output extension .{extension}; expected PPTX, DOCX, XLSX, or DRAWIO"
+                "output extension .{extension}; expected PPTX, DOCX, XLSX, PDF, DRAWIO, DXF, GCODE, GERBER, HPGL, EXCELLON, STL, OBJ, PLY, 3MF, STEP, IGES, MSH, VTK, DOT, MERMAID, MD, CSV, TEX, JSX, TSX, VUE, SVELTE, PATH/ICON, DATAURI, PNG, HTML, or WEBP"
             ))),
         }
     }
@@ -56,7 +129,10 @@ impl ReverseFormat {
     /// Whether the output embeds each page as a picture that a viewer without
     /// SVG support still has to be able to show.
     const fn needs_raster_fallback(self) -> bool {
-        !matches!(self, Self::Drawio)
+        matches!(
+            self,
+            Self::Pptx | Self::Docx | Self::Xlsx | Self::Pdf | Self::Png | Self::Webp
+        )
     }
 }
 
@@ -66,7 +142,35 @@ impl Display for ReverseFormat {
             Self::Pptx => "PPTX",
             Self::Docx => "DOCX",
             Self::Xlsx => "XLSX",
+            Self::Pdf => "PDF",
             Self::Drawio => "DRAWIO",
+            Self::Dxf => "DXF",
+            Self::Dot => "DOT",
+            Self::Mermaid => "MERMAID",
+            Self::Markdown => "MARKDOWN",
+            Self::Csv => "CSV",
+            Self::Tex => "TEX",
+            Self::Jsx => "JSX",
+            Self::Tsx => "TSX",
+            Self::Vue => "VUE",
+            Self::DataUri => "DATAURI",
+            Self::Png => "PNG",
+            Self::Gcode => "GCODE",
+            Self::Gerber => "GERBER",
+            Self::Hpgl => "HPGL",
+            Self::Excellon => "EXCELLON",
+            Self::Stl => "STL",
+            Self::Obj => "OBJ",
+            Self::Ply => "PLY",
+            Self::Step => "STEP",
+            Self::Gmsh => "GMSH",
+            Self::Vtk => "VTK",
+            Self::ThreeMf => "3MF",
+            Self::Iges => "IGES",
+            Self::Svelte => "SVELTE",
+            Self::PathData => "PATH",
+            Self::Html => "HTML",
+            Self::Webp => "WEBP",
         })
     }
 }
@@ -102,6 +206,7 @@ pub struct ReverseReport {
 struct SvgPage {
     bytes: Vec<u8>,
     fallback_png: Vec<u8>,
+    fallback_webp: Vec<u8>,
     width_points: f64,
     height_points: f64,
     /// The `<diagram>` elements of the draw.io source this page was exported
@@ -132,6 +237,7 @@ pub fn svg_to_document(
     let mut render_options = None;
     for path in paths {
         let metadata = fs::metadata(&path)?;
+        let previous_bytes = input_bytes;
         input_bytes = input_bytes.saturating_add(metadata.len());
         if input_bytes > options.max_input_bytes {
             return Err(Error::LimitExceeded(format!(
@@ -139,7 +245,12 @@ pub fn svg_to_document(
                 options.max_input_bytes
             )));
         }
-        let bytes = fs::read(&path)?;
+        let bytes = read_limited_file(
+            &path,
+            options.max_input_bytes.saturating_sub(previous_bytes),
+            "SVG input",
+        )?;
+        input_bytes = previous_bytes.saturating_add(bytes.len() as u64);
         let diagrams = if format == ReverseFormat::Drawio {
             embedded_diagrams(&bytes)?
         } else {
@@ -154,19 +265,40 @@ pub fn svg_to_document(
             validate_svg_document(&bytes, 0)?;
         }
         let (width_points, height_points) = svg_dimensions(&bytes)?;
-        let fallback_png = if format.needs_raster_fallback() {
+        let fallback_png = if format.needs_raster_fallback() && format != ReverseFormat::Webp {
             let render_options = render_options.get_or_insert_with(|| {
                 let mut options = resvg::usvg::Options::default();
-                options.fontdb_mut().load_system_fonts();
+                let db = SYSTEM_FONTDB.get_or_init(|| {
+                    let mut db = resvg::usvg::fontdb::Database::new();
+                    db.load_system_fonts();
+                    db
+                });
+                *options.fontdb_mut() = db.clone();
                 options
             });
             render_svg_fallback(&bytes, width_points, height_points, render_options)?
         } else {
             Vec::new()
         };
+        let fallback_webp = if format == ReverseFormat::Webp {
+            let render_options = render_options.get_or_insert_with(|| {
+                let mut options = resvg::usvg::Options::default();
+                let db = SYSTEM_FONTDB.get_or_init(|| {
+                    let mut db = resvg::usvg::fontdb::Database::new();
+                    db.load_system_fonts();
+                    db
+                });
+                *options.fontdb_mut() = db.clone();
+                options
+            });
+            render_svg_webp(&bytes, width_points, height_points, render_options)?
+        } else {
+            Vec::new()
+        };
         pages.push(SvgPage {
             bytes,
             fallback_png,
+            fallback_webp,
             width_points,
             height_points,
             diagrams,
@@ -189,6 +321,224 @@ pub fn svg_to_document(
         let mut writer = BufWriter::new(temporary.as_file_mut());
         writer.write_all(write_drawio(&pages).as_bytes())?;
         writer.flush()?;
+    } else if format == ReverseFormat::Dxf {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::dxf::writer::write_svg_to_dxf(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Gcode {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::gcode::writer::write_svg_to_gcode(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Gerber {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::gerber::writer::write_svg_to_gerber(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Hpgl {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::hpgl::writer::write_svg_to_hpgl(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Excellon {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::excellon::writer::write_svg_to_excellon(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Stl {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::stl::writer::write_svg_to_stl(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Obj {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::obj::writer::write_svg_to_obj(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Ply {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::ply::writer::write_svg_to_ply(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Step {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::step::writer::write_svg_to_step(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::ThreeMf {
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::threemf::write_svg_to_threemf(svg_str, temporary.as_file_mut())?;
+        }
+    } else if format == ReverseFormat::Iges {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::iges::write_svg_to_iges(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Gmsh {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::simulation::writer::write_svg_to_gmsh(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Vtk {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svg_str = std::str::from_utf8(&page.bytes)
+                .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
+            crate::cad::simulation::writer::write_svg_to_vtk(svg_str, &mut writer)?;
+        }
+        writer.flush()?;
+    } else if matches!(format, ReverseFormat::Dot | ReverseFormat::Mermaid) {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let dot = crate::diagram::extract_diagram_from_svg(&page.bytes)?;
+            writer.write_all(dot.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Markdown {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let md = crate::table::extract_markdown_table_from_svg(&page.bytes)?;
+            writer.write_all(md.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Csv {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        let embedded_csv = pages.iter().find_map(|page| {
+            (crate::svg::reader::extract_source_format(&page.bytes).as_deref() == Some("csv"))
+                .then(|| crate::svg::reader::extract_embedded_source(&page.bytes))
+                .flatten()
+        });
+        if let Some(csv) = embedded_csv {
+            writer.write_all(csv.as_bytes())?;
+        } else {
+            for page in &pages {
+                let csv = crate::chart::extract_csv_from_chart_svg(&page.bytes)?;
+                writer.write_all(csv.as_bytes())?;
+            }
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Tex {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let tex = crate::math::extract_latex_from_svg(&page.bytes)?;
+            writer.write_all(tex.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if matches!(format, ReverseFormat::Jsx | ReverseFormat::Tsx) {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        let comp_name = output
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("SvgIcon");
+        let mut comp = String::new();
+        let mut capitalize = true;
+        for c in comp_name.chars() {
+            if c == '-' || c == '_' {
+                capitalize = true;
+            } else if capitalize {
+                comp.extend(c.to_uppercase());
+                capitalize = false;
+            } else {
+                comp.push(c);
+            }
+        }
+        if comp.is_empty() || comp.chars().next().is_some_and(|c| !c.is_alphabetic()) {
+            comp = format!("Icon{comp}");
+        }
+        for page in &pages {
+            let jsx = crate::code::svg_to_jsx(&page.bytes, &comp, format == ReverseFormat::Tsx)?;
+            writer.write_all(jsx.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Vue {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let vue = crate::code::svg_to_vue(&page.bytes)?;
+            writer.write_all(vue.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Svelte {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let svelte = crate::code::svg_to_svelte(&page.bytes)?;
+            writer.write_all(svelte.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::PathData {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let path_data = crate::code::svg_to_path_data(&page.bytes)?;
+            writer.write_all(path_data.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::DataUri {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        for page in &pages {
+            let uri = crate::code::svg_to_data_uri(&page.bytes)?;
+            writer.write_all(uri.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Png {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        if let Some(page) = pages.first() {
+            writer.write_all(&page.fallback_png)?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Html {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        let doc_title = output
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("Document SVG");
+        for page in &pages {
+            let html = crate::code::svg_to_html(&page.bytes, doc_title)?;
+            writer.write_all(html.as_bytes())?;
+        }
+        writer.flush()?;
+    } else if format == ReverseFormat::Pdf {
+        write_pdf(&pages, temporary.as_file_mut())?;
+    } else if format == ReverseFormat::Webp {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        if let Some(page) = pages.first() {
+            writer.write_all(&page.fallback_webp)?;
+        }
+        writer.flush()?;
     } else {
         let writer = BufWriter::new(temporary.as_file_mut());
         let mut package = Package::new(writer);
@@ -196,7 +546,37 @@ pub fn svg_to_document(
             ReverseFormat::Pptx => write_pptx(&mut package, &pages)?,
             ReverseFormat::Docx => write_docx(&mut package, &pages)?,
             ReverseFormat::Xlsx => write_xlsx(&mut package, &pages)?,
-            ReverseFormat::Drawio => unreachable!("drawio is written without a package"),
+            ReverseFormat::Drawio
+            | ReverseFormat::Dxf
+            | ReverseFormat::Dot
+            | ReverseFormat::Mermaid
+            | ReverseFormat::Markdown
+            | ReverseFormat::Csv
+            | ReverseFormat::Tex
+            | ReverseFormat::Jsx
+            | ReverseFormat::Tsx
+            | ReverseFormat::Vue
+            | ReverseFormat::DataUri
+            | ReverseFormat::Png
+            | ReverseFormat::Pdf
+            | ReverseFormat::Html
+            | ReverseFormat::Webp
+            | ReverseFormat::Gcode
+            | ReverseFormat::Gerber
+            | ReverseFormat::Hpgl
+            | ReverseFormat::Excellon
+            | ReverseFormat::Stl
+            | ReverseFormat::Obj
+            | ReverseFormat::Ply
+            | ReverseFormat::Step
+            | ReverseFormat::Gmsh
+            | ReverseFormat::Vtk
+            | ReverseFormat::ThreeMf
+            | ReverseFormat::Iges
+            | ReverseFormat::Svelte
+            | ReverseFormat::PathData => {
+                unreachable!("non-package formats are written directly")
+            }
         }
         package.finish()?;
     }
@@ -215,6 +595,94 @@ pub fn svg_to_document(
         (ReverseFormat::Drawio, restored, total) => vec![format!(
             "{restored} of {total} page(s) were restored from the diagram source the SVG carries; the rest are embedded as pictures"
         )],
+        (ReverseFormat::Dxf, _, _) => vec![
+            "SVG vector shapes and text were converted to AutoCAD DXF entities"
+                .into(),
+        ],
+        (ReverseFormat::Gcode, _, _) => vec![
+            "SVG vector paths were converted to CNC G-code toolpath commands"
+                .into(),
+        ],
+        (ReverseFormat::Gerber, _, _) => vec![
+            "SVG pads, lines, and filled polygons were converted to Gerber RS-274X PCB artwork"
+                .into(),
+        ],
+        (ReverseFormat::Hpgl, _, _) => vec![
+            "SVG vector paths and circles were converted to HP-GL plotter commands"
+                .into(),
+        ],
+        (ReverseFormat::Excellon, _, _) => vec![
+            "SVG circles and drill pads were converted to Excellon NC drill commands"
+                .into(),
+        ],
+        (ReverseFormat::Stl, _, _) => vec![
+            "SVG vector contours were extruded into a 3D printable STL triangle mesh"
+                .into(),
+        ],
+        (ReverseFormat::Obj, _, _) => vec![
+            "SVG vector contours were extruded into a 3D Wavefront OBJ polygonal mesh"
+                .into(),
+        ],
+        (ReverseFormat::Ply, _, _) => vec![
+            "SVG vector contours were extruded into a Stanford PLY 3D mesh"
+                .into(),
+        ],
+        (ReverseFormat::Step, _, _) => vec![
+            "SVG vector elements were converted to ISO 10303-21 STEP mechanical CAD wireframe entities"
+                .into(),
+        ],
+        (ReverseFormat::Gmsh, _, _) => vec![
+            "SVG vector geometry was converted to a Gmsh 2.2 finite element mesh"
+                .into(),
+        ],
+        (ReverseFormat::Vtk, _, _) => vec![
+            "SVG vector polygons were converted to a VTK Legacy polygonal dataset"
+                .into(),
+        ],
+        (ReverseFormat::ThreeMf, _, _) => vec![
+            "SVG vector contours were extruded into a 3MF 3D manufacturing package"
+                .into(),
+        ],
+        (ReverseFormat::Iges, _, _) => vec![
+            "SVG vector elements were converted to ANSI IGES mechanical CAD entities"
+                .into(),
+        ],
+        (ReverseFormat::Dot | ReverseFormat::Mermaid, _, _) => vec![
+            "SVG shapes and text were extracted into a graph structure; topology is approximated from geometric elements"
+                .into(),
+        ],
+        (ReverseFormat::Markdown, _, _) => vec![
+            "SVG table grid lines and cell text were extracted into a Markdown table"
+                .into(),
+        ],
+        (ReverseFormat::Csv, _, _) => vec![
+            "SVG chart elements and text were extracted into tabular CSV data"
+                .into(),
+        ],
+        (ReverseFormat::Tex, _, _) => vec![
+            "SVG mathematical elements were reconstructed into LaTeX math expressions"
+                .into(),
+        ],
+        (ReverseFormat::Jsx | ReverseFormat::Tsx, _, _) => vec![
+            "SVG element structure was compiled into a React component"
+                .into(),
+        ],
+        (ReverseFormat::Vue, _, _) => vec![
+            "SVG element structure was compiled into a Vue 3 component template"
+                .into(),
+        ],
+        (ReverseFormat::DataUri, _, _) => vec![
+            "SVG was base64-encoded into a Data URI"
+                .into(),
+        ],
+        (ReverseFormat::Png, _, _) => vec![
+            "SVG was rendered directly to a raster PNG image"
+                .into(),
+        ],
+        (ReverseFormat::Pdf, _, _) => vec![
+            "SVG pages were packaged into a PDF document with exact page dimensions and raster imagery"
+                .into(),
+        ],
         _ => vec![
             "SVG pages are embedded as vector images; original document semantics are not reconstructed"
                 .into(),
@@ -646,12 +1114,12 @@ fn validate_css_references(value: &str) -> Result<()> {
     Ok(())
 }
 
-fn render_svg_fallback(
+fn render_svg_to_pixmap(
     bytes: &[u8],
     width_points: f64,
     height_points: f64,
     options: &resvg::usvg::Options<'_>,
-) -> Result<Vec<u8>> {
+) -> Result<resvg::tiny_skia::Pixmap> {
     let tree = resvg::usvg::Tree::from_data(bytes, options)
         .map_err(|error| Error::InvalidInput(format!("SVG fallback parse failed: {error}")))?;
     let (pixel_width, pixel_height) = fallback_pixel_size(width_points, height_points);
@@ -666,9 +1134,57 @@ fn render_svg_fallback(
         pixel_height as f32 / source.height(),
     );
     resvg::render(&tree, transform, &mut pixmap.as_mut());
+    Ok(pixmap)
+}
+
+fn render_svg_fallback(
+    bytes: &[u8],
+    width_points: f64,
+    height_points: f64,
+    options: &resvg::usvg::Options<'_>,
+) -> Result<Vec<u8>> {
+    let pixmap = render_svg_to_pixmap(bytes, width_points, height_points, options)?;
     pixmap
         .encode_png()
         .map_err(|error| Error::InvalidInput(format!("SVG fallback PNG encoding failed: {error}")))
+}
+
+fn render_svg_webp(
+    bytes: &[u8],
+    width_points: f64,
+    height_points: f64,
+    options: &resvg::usvg::Options<'_>,
+) -> Result<Vec<u8>> {
+    let pixmap = render_svg_to_pixmap(bytes, width_points, height_points, options)?;
+    let w = pixmap.width();
+    let h = pixmap.height();
+    let raw = pixmap.data();
+    let mut unpremul = Vec::with_capacity(raw.len());
+    for chunk in raw.chunks_exact(4) {
+        let r = chunk[0];
+        let g = chunk[1];
+        let b = chunk[2];
+        let a = chunk[3];
+        if a == 0 {
+            unpremul.extend_from_slice(&[0, 0, 0, 0]);
+        } else if a == 255 {
+            unpremul.extend_from_slice(&[r, g, b, 255]);
+        } else {
+            let fa = a as u32;
+            let ur = ((r as u32 * 255 + fa / 2) / fa).min(255) as u8;
+            let ug = ((g as u32 * 255 + fa / 2) / fa).min(255) as u8;
+            let ub = ((b as u32 * 255 + fa / 2) / fa).min(255) as u8;
+            unpremul.extend_from_slice(&[ur, ug, ub, a]);
+        }
+    }
+    let mut out = Vec::new();
+    let encoder = WebPEncoder::new(&mut out);
+    encoder
+        .encode(&unpremul, w, h, image_webp::ColorType::Rgba8)
+        .map_err(|error| {
+            Error::InvalidInput(format!("SVG fallback WebP encoding failed: {error}"))
+        })?;
+    Ok(out)
 }
 
 fn fallback_pixel_size(width_points: f64, height_points: f64) -> (u32, u32) {
@@ -1156,5 +1672,163 @@ fn push_style_text(buffer: &mut String, value: &str) -> Result<()> {
         )));
     }
     buffer.push_str(value);
+    Ok(())
+}
+
+fn write_pdf(pages: &[SvgPage], writer: &mut std::fs::File) -> Result<()> {
+    let mut document = Document::with_version("1.4");
+    let pages_id = document.add_object(lopdf::Dictionary::new());
+    let mut page_ids = Vec::with_capacity(pages.len());
+
+    for page in pages {
+        let width_pts = if page.width_points > 0.0 {
+            page.width_points
+        } else {
+            612.0
+        };
+        let height_pts = if page.height_points > 0.0 {
+            page.height_points
+        } else {
+            792.0
+        };
+
+        if page.fallback_png.is_empty() {
+            return Err(Error::InvalidInput(
+                "missing raster fallback for PDF page".into(),
+            ));
+        }
+
+        let decoder = png::Decoder::new(Cursor::new(page.fallback_png.as_slice()));
+        let mut reader = decoder.read_info().map_err(|e| {
+            Error::InvalidInput(format!("failed to read fallback PNG info for PDF: {e}"))
+        })?;
+        let output_size = reader
+            .output_buffer_size()
+            .ok_or_else(|| Error::InvalidInput("PNG output buffer size overflow".into()))?;
+        let mut img_buf = vec![0u8; output_size];
+        let info = reader.next_frame(&mut img_buf).map_err(|e| {
+            Error::InvalidInput(format!("failed to decode fallback PNG frame for PDF: {e}"))
+        })?;
+        let img_bytes = &img_buf[..info.buffer_size()];
+
+        let mut rgb = Vec::with_capacity((info.width * info.height * 3) as usize);
+        let mut alpha = Vec::with_capacity((info.width * info.height) as usize);
+        let mut has_transparency = false;
+
+        match info.color_type {
+            png::ColorType::Rgba => {
+                for chunk in img_bytes.chunks_exact(4) {
+                    rgb.push(chunk[0]);
+                    rgb.push(chunk[1]);
+                    rgb.push(chunk[2]);
+                    let a = chunk[3];
+                    if a < 255 {
+                        has_transparency = true;
+                    }
+                    alpha.push(a);
+                }
+            }
+            png::ColorType::Rgb => {
+                rgb.extend_from_slice(img_bytes);
+            }
+            png::ColorType::GrayscaleAlpha => {
+                for chunk in img_bytes.chunks_exact(2) {
+                    let g = chunk[0];
+                    rgb.push(g);
+                    rgb.push(g);
+                    rgb.push(g);
+                    let a = chunk[1];
+                    if a < 255 {
+                        has_transparency = true;
+                    }
+                    alpha.push(a);
+                }
+            }
+            png::ColorType::Grayscale => {
+                for &g in img_bytes {
+                    rgb.push(g);
+                    rgb.push(g);
+                    rgb.push(g);
+                }
+            }
+            _ => {
+                rgb.extend_from_slice(img_bytes);
+            }
+        }
+
+        let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+        encoder.write_all(&rgb)?;
+        let compressed_rgb = encoder.finish()?;
+
+        let mut image_dict = lopdf::dictionary! {
+            "Type" => "XObject",
+            "Subtype" => "Image",
+            "Width" => info.width as i64,
+            "Height" => info.height as i64,
+            "ColorSpace" => "DeviceRGB",
+            "BitsPerComponent" => 8,
+            "Filter" => "FlateDecode",
+        };
+
+        if has_transparency {
+            let mut smask_encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+            smask_encoder.write_all(&alpha)?;
+            let compressed_alpha = smask_encoder.finish()?;
+
+            let smask_dict = lopdf::dictionary! {
+                "Type" => "XObject",
+                "Subtype" => "Image",
+                "Width" => info.width as i64,
+                "Height" => info.height as i64,
+                "ColorSpace" => "DeviceGray",
+                "BitsPerComponent" => 8,
+                "Filter" => "FlateDecode",
+            };
+            let smask_stream = Stream::new(smask_dict, compressed_alpha);
+            let smask_id = document.add_object(smask_stream);
+            image_dict.set("SMask", Object::Reference(smask_id));
+        }
+
+        let image_stream = Stream::new(image_dict, compressed_rgb);
+        let image_id = document.add_object(image_stream);
+
+        let content_ops = format!(
+            "q {:.2} 0 0 {:.2} 0 0 cm /Im1 Do Q\n",
+            width_pts, height_pts
+        );
+        let content_stream = Stream::new(lopdf::Dictionary::new(), content_ops.into_bytes());
+        let content_id = document.add_object(content_stream);
+
+        let page_dict = lopdf::dictionary! {
+            "Type" => "Page",
+            "Parent" => Object::Reference(pages_id),
+            "MediaBox" => vec![0.into(), 0.into(), width_pts.into(), height_pts.into()],
+            "Contents" => Object::Reference(content_id),
+            "Resources" => lopdf::dictionary! {
+                "XObject" => lopdf::dictionary! {
+                    "Im1" => Object::Reference(image_id),
+                },
+            },
+        };
+        let page_id = document.add_object(page_dict);
+        page_ids.push(page_id);
+    }
+
+    let pages_dict = lopdf::dictionary! {
+        "Type" => "Pages",
+        "Kids" => page_ids.into_iter().map(Object::Reference).collect::<Vec<_>>(),
+        "Count" => pages.len() as i64,
+    };
+    document.set_object(pages_id, pages_dict);
+
+    let catalog_dict = lopdf::dictionary! {
+        "Type" => "Catalog",
+        "Pages" => Object::Reference(pages_id),
+    };
+    let catalog_id = document.add_object(catalog_dict);
+    document.trailer.set("Root", Object::Reference(catalog_id));
+
+    document.save_to(writer)?;
+
     Ok(())
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+           xmlns:us-gaap="http://fasb.org/us-gaap/2025"
+           xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+           xmlns:link="http://www.xbrl.org/2003/linkbase"
+           xmlns:xlink="http://www.w3.org/1999/xlink">
+  <link:schemaRef xlink:type="simple" xlink:href="https://private.example.invalid/taxonomy.xsd"/>
+  <xbrli:context id="C-2026">
+    <xbrli:entity><xbrli:identifier scheme="https://private.example.invalid/entity">EXAMPLE-ENTITY</xbrli:identifier></xbrli:entity>
+    <xbrli:period><xbrli:startDate>2026-01-01</xbrli:startDate><xbrli:endDate>2026-06-30</xbrli:endDate></xbrli:period>
+    <xbrli:scenario><xbrldi:explicitMember xmlns:xbrldi="http://xbrl.org/2006/xbrldi" dimension="us-gaap:ProductAxis">us-gaap:WidgetMember</xbrldi:explicitMember></xbrli:scenario>
+  </xbrli:context>
+  <xbrli:context id="C-INSTANT"><xbrli:entity><xbrli:identifier scheme="http://example.invalid/entity">EXAMPLE-ENTITY</xbrli:identifier></xbrli:entity><xbrli:period><xbrli:instant>2026-06-30</xbrli:instant></xbrli:period></xbrli:context>
+  <xbrli:unit id="USD"><xbrli:measure>iso4217:USD</xbrli:measure></xbrli:unit>
+  <xbrli:unit id="shares"><xbrli:measure>xbrli:shares</xbrli:measure></xbrli:unit>
+  <us-gaap:Revenue contextRef="C-2026" unitRef="USD" decimals="-3">1250000</us-gaap:Revenue>
+  <us-gaap:Assets contextRef="C-INSTANT" unitRef="USD" decimals="0">3400000</us-gaap:Assets>
+  <us-gaap:CommonStockSharesIssued contextRef="C-INSTANT" unitRef="shares" decimals="0">10000</us-gaap:CommonStockSharesIssued>
+  <us-gaap:EntityName contextRef="C-INSTANT">Example Holdings</us-gaap:EntityName>
+  <us-gaap:ReportTuple><us-gaap:MemberCount>3</us-gaap:MemberCount></us-gaap:ReportTuple>
+  <link:footnoteLink xlink:type="extended"><link:footnote id="private-footnote">private footnote payload</link:footnote></link:footnoteLink>
+</xbrli:xbrl>

@@ -1,0 +1,32 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample-elevation.asc",
+  "source_format": "esri_ascii_grid",
+  "output_directory": "samples/svg/asc",
+  "elapsed_ms": 0,
+  "input_bytes": 443,
+  "page_count": 1,
+  "largest_page_ir_bytes": 29200,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 1220.0,
+      "height_points": 600.0,
+      "node_count": 51,
+      "warning_count": 3,
+      "warnings": [
+        "ESRI ASCII Grid values use a deterministic continuous color ramp; data classification breaks and color tables are not read",
+        "The raster is displayed in grid coordinates; CRS reprojection and map overlays are not performed",
+        "8 NODATA_VALUE cells were rendered transparent"
+      ],
+      "estimated_ir_bytes": 29200
+    }
+  ],
+  "warnings": [
+    "ESRI ASCII Grid values use a deterministic continuous color ramp; data classification breaks and color tables are not read",
+    "The raster is displayed in grid coordinates; CRS reprojection and map overlays are not performed",
+    "8 NODATA_VALUE cells were rendered transparent"
+  ]
+}

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tt xmlns="http://www.w3.org/ns/ttml"
+    xmlns:ttp="http://www.w3.org/ns/ttml#parameter"
+    xmlns:tts="http://www.w3.org/ns/ttml#styling"
+    ttp:timeBase="media" xml:lang="en">
+  <head>
+    <styling>
+      <style xml:id="emphasis" tts:fontWeight="bold"/>
+    </styling>
+    <layout>
+      <region xml:id="lower" tts:origin="10% 80%" tts:extent="80% 15%"/>
+    </layout>
+  </head>
+  <body>
+    <div>
+      <p xml:id="intro" begin="00:00:01.250" end="00:00:03.500" region="lower">Welcome <span style="emphasis">aboard</span>.<br/>安全な字幕</p>
+      <p begin="3.5s" dur="1s">Literal &lt;script&gt; stays text.</p>
+    </div>
+  </body>
+</tt>

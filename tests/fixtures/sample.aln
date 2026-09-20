@@ -1,0 +1,11 @@
+CLUSTAL W (2.1) multiple sequence alignment
+
+       1  8
+seq1    AC-G 4
+seq2    ACGG 4
+         ** *
+
+      9  12
+seq1    TT.. 8
+seq2    TT-- 8
+         ** *

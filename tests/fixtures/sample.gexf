@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gexf xmlns="http://gexf.net/1.3" version="1.3">
+  <graph mode="static" defaultedgetype="directed" id="workflow">
+    <nodes>
+      <node id="start" label="Start order"/>
+      <node id="review"><label>Review</label></node>
+      <node id="done" label="Complete"/>
+    </nodes>
+    <edges>
+      <edge id="e1" source="start" target="review" label="submit"/>
+      <edge id="e2" source="review" target="done" label="approve"/>
+    </edges>
+  </graph>
+</gexf>

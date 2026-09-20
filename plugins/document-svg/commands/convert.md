@@ -1,13 +1,12 @@
 ---
-description: Convert a PDF, PPTX, XLSX, DOCX or draw.io file into per-page SVG files and report the conversion warnings.
+description: Convert documents, diagrams, CAD, 3D, mesh, charts, geospatial, math, or data files into per-page SVG files.
 argument-hint: <input-document> [output-directory]
 allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/document-svg/scripts/*), Read, Glob
 ---
 
 Convert `$1` into per-page SVG files.
 
-1. Resolve `$1` to a local `.pdf`, `.pptx`, `.xlsx`, `.docx` or `.drawio` file. Ask the user
-   if it is ambiguous rather than guessing.
+1. Resolve `$1` to any supported document (PDF, Office, Markdown, text, emails, subtitles), diagram (draw.io, Mermaid, Graphviz, PlantUML, D2), CAD/mesh (DXF, Gerber, STL, OBJ, STEP, IFC), chart (.chart.json), geospatial (GeoJSON, GPKG, Shapefile), math (.tex), or data (CSV, JSON) file. Ask the user if it is ambiguous rather than guessing.
 2. Use `$2` as the output directory when given; otherwise use `<input-stem>-svg`
    beside the input. Never write into a directory that already has content
    unless the user explicitly asked for that.

@@ -1,0 +1,29 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Sample App 1.0\n"
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#. Label on the main menu
+#: src/main.rs:12
+msgctxt "main-menu"
+msgid "Welcome"
+msgstr "Bienvenue"
+
+msgid "One file"
+msgid_plural "%d files"
+msgstr[0] "Un fichier"
+msgstr[1] "%d fichiers"
+
+msgid "Press \"OK\""
+msgstr "Appuyez sur \"OK\""
+
+msgid "Untranslated entry"
+msgstr ""
+
+#, fuzzy
+msgid "Review me"
+msgstr "À vérifier"
+
+#~ msgid "Obsolete source text"
+#~ msgstr "Ancienne traduction"

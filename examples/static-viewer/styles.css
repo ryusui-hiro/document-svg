@@ -1,0 +1,60 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172033;
+  background: #f7f9fc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+body { min-width: 320px; margin: 0; }
+
+.site-header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px clamp(16px, 5vw, 72px);
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 8px;
+  background: #2458c6;
+  color: #fff;
+}
+
+.privacy-badge { color: #246344; font-size: 13px; }
+.privacy-badge span { margin-right: 5px; font-size: 9px; }
+
+main { width: min(1440px, calc(100% - 32px)); margin: 0 auto; padding: 34px 0 44px; }
+.intro { max-width: 740px; margin-bottom: 22px; }
+.eyebrow { margin: 0 0 9px; color: #2458c6; font-size: 12px; font-weight: 750; letter-spacing: .12em; }
+h1 { margin: 0; font-size: clamp(28px, 4vw, 42px); letter-spacing: -.035em; line-height: 1.12; }
+.intro > p:last-child { max-width: 680px; margin: 12px 0 0; color: #58657a; font-size: 16px; }
+.footnote { margin: 13px 2px 0; color: #58657a; font-size: 13px; }
+
+@media (max-width: 560px) {
+  .site-header { min-height: 56px; padding-inline: 16px; }
+  .privacy-badge { max-width: 145px; font-size: 11px; text-align: right; }
+  main { width: min(100% - 20px, 1440px); padding-top: 24px; }
+  .intro > p:last-child { font-size: 14px; }
+}
+

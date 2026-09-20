@@ -3,17 +3,17 @@ name = "document-svg"
 version = "0.1.1"
 edition = "2024"
 rust-version = "1.88"
-description = "Bounded PDF/OOXML/draw.io to SVG conversion and SVG to OOXML packaging in Rust"
+description = "Bounded document, diagram, CAD/CAE, and image archive conversion to SVG in Rust"
 license = "MIT OR Apache-2.0"
 publish = ["crates-io"]
 documentation = "https://docs.rs/document-svg"
-keywords = ["svg", "pdf", "docx", "pptx", "preview"]
+keywords = ["svg", "document-conversion", "pdf", "cad", "geospatial"]
 categories = ["command-line-utilities", "multimedia::images"]
 repository = "https://github.com/ryusui-hiro/document-svg"
-include = ["/src/**", "/tests/*.rs", "/examples/custom_ir.rs", "/Cargo.toml", "/Cargo.lock", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE", "/README.md", "/THIRD_PARTY_NOTICES.md", "/THIRD_PARTY_LICENSES.txt", "/licenses/**", "/docs/DEPENDENCY_LICENSES.json", "/docs/LICENSE_AUDIT.md", "/docs/SUPPORT.md", "/docs/ARCHITECTURE.md", "/docs/AI_USAGE_GUIDE.md"]
+include = ["/src/**", "/tests/*.rs", "/tests/common/**", "/tests/fixtures/**", "/examples/custom_ir.rs", "/Cargo.toml", "/Cargo.lock", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE", "/README.md", "/THIRD_PARTY_NOTICES.md", "/THIRD_PARTY_LICENSES.txt", "/licenses/**", "/docs/DEPENDENCY_LICENSES.json", "/docs/LICENSE_AUDIT.md", "/docs/SUPPORT.md", "/docs/ARCHITECTURE.md", "/docs/AI_USAGE_GUIDE.md"]
 
 [workspace]
-members = ["bindings/node", "bindings/python"]
+members = ["bindings/node", "bindings/python", "bindings/wasm"]
 resolver = "3"
 
 [lib]
@@ -27,16 +27,24 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.104"
 base64 = "0.23.1"
+calamine = "0.36.1"
+chrono = { version = "0.4.45", default-features = false, features = ["std"] }
+cfb = "0.14.0"
 clap = { version = "4.6.6", features = ["derive"] }
+encoding_rs = "0.8.35"
 emf-core = { version = "0.1.0", default-features = false, features = ["svg"] }
+e57 = { version = "0.11.13", default-features = false }
 flate2 = { version = "1.1.9", default-features = false, features = ["zlib-rs"] }
+gif = "0.14.2"
 hayro-ccitt = "0.3.0"
+image-webp = "0.2.4"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png"] }
 jpeg-decoder = "0.3.2"
 jpeg-encoder = "0.6.1"
 lopdf = { version = "0.44.0", default-features = false }
+mail-parser = "0.11.9"
 png = "0.18.1"
 quick-xml = "0.41.0"
-rayon = "1.12.0"
 resvg = "0.48.1"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
@@ -44,6 +52,27 @@ stet-fonts = "0.4.1"
 skrifa = { version = "0.44.0", default-features = false, features = ["std"] }
 tempfile = "3.27.0"
 zip = { version = "8.1.0", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+tiff = "0.11.3"
+toml = { version = "1.1.6", default-features = false, features = ["parse", "serde"] }
+url = "2.5.8"
+yaml-rust2 = { version = "0.13.0", default-features = false }
+las = { version = "0.11.1", features = ["laz"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# `lopdf`'s encryption/recovery dependencies use `getrandom` for wasm-only
+# paths. The browser build runs in a Worker where Web Crypto is available.
+getrandom = { version = "0.4.3", features = ["wasm_js"] }
+web-time = "1.1.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rusqlite = { version = "0.40.2", features = ["bundled", "limits", "hooks"] }
+rayon = "1.12.0"
+dicom-encoding = "0.10.0"
+dicom-object = "0.10.0"
+dicom-parser = "0.10.0"
+dicom-pixeldata = { version = "0.10.0", default-features = false, features = ["image", "jpeg", "rle", "openjp2"] }
+dicom-transfer-syntax-registry = { version = "0.10.0", default-features = false }
+jpeg2k = { version = "0.10.1", default-features = false, features = ["openjp2"] }
 
 [profile.release]
 codegen-units = 1

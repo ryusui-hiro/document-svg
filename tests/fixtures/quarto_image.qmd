@@ -1,0 +1,20 @@
+---
+title: Quarto image preview
+author: Analysis Team
+---
+
+# Findings
+
+The report includes a local figure and a reference-style figure.
+
+![Local Quarto image](assets/red%2Dblue.png)
+
+![Reference Quarto image][figure]
+
+[figure]: <assets/red%2Dblue.png>
+
+![Remote image](https://example.invalid/remote.png)
+
+```{r}
+plot(c(1, 2, 3))
+```

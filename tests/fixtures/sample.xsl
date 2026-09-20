@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="3.0"><xsl:import href="private-import.xsl"/><xsl:include href="https://example.invalid/include.xsl"/><xsl:output method="html"/><xsl:template match="/"><xsl:apply-templates/><xsl:variable name="secret">private</xsl:variable></xsl:template><xsl:template name="private-template"><xsl:call-template name="other"/><xsl:for-each select="//private"><xsl:if test="@secret"><xsl:value-of select="private"/></xsl:if></xsl:for-each></xsl:template><xsl:key name="private-key" match="private" use="@id"/></xsl:stylesheet>
+

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="https://www.omg.org/spec/DMN/20230324/MODEL/"
+ id="Definitions_Loan" name="Loan review" namespace="https://example.invalid/loan">
+  <inputData id="ApplicantAge" name="Applicant age">
+    <variable id="ApplicantAgeVariable" name="Applicant age" typeRef="number" />
+  </inputData>
+  <inputData id="CreditScore" name="Credit score">
+    <variable id="CreditScoreVariable" name="Credit score" typeRef="number" />
+  </inputData>
+  <decision id="LoanDecision" name="Loan approval">
+    <informationRequirement><requiredInput href="#ApplicantAge" /></informationRequirement>
+    <informationRequirement><requiredInput href="#CreditScore" /></informationRequirement>
+    <decisionTable id="LoanRules" hitPolicy="FIRST">
+      <input id="AgeInput" label="Age">
+        <inputExpression id="AgeExpression" typeRef="number"><text>Applicant age</text></inputExpression>
+      </input>
+      <input id="ScoreInput" label="Score">
+        <inputExpression id="ScoreExpression" typeRef="number"><text>Credit score</text></inputExpression>
+      </input>
+      <output id="ApprovalOutput" name="Approval" label="Approval" typeRef="string" />
+      <output id="ReasonOutput" name="Reason" label="Reason" typeRef="string" />
+      <rule id="Rule_Minor">
+        <inputEntry><text>&lt; 18</text></inputEntry>
+        <inputEntry><text>-</text></inputEntry>
+        <outputEntry><text>"declined"</text></outputEntry>
+        <outputEntry><text>"Applicant is a minor"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Approve">
+        <inputEntry><text>&gt;= 18</text></inputEntry>
+        <inputEntry><text>&gt;= 700</text></inputEntry>
+        <outputEntry><text>"approved"</text></outputEntry>
+        <outputEntry><text>"Score meets threshold"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Review">
+        <inputEntry><text>&gt;= 18</text></inputEntry>
+        <inputEntry><text>&lt; 700</text></inputEntry>
+        <outputEntry><text>"manual review"</text></outputEntry>
+        <outputEntry><text>"Additional review required"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+</definitions>

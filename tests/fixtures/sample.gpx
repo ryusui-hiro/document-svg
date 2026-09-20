@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="docsvg test" xmlns="http://www.topografix.com/GPX/1/1" xmlns:ext="https://example.test/extensions">
+  <metadata>
+    <name>Harbor loop</name>
+    <desc>Metadata is omitted from the preview.</desc>
+    <link href="https://example.invalid/map">
+      <text>Remote map</text><type>text/html</type>
+    </link>
+  </metadata>
+  <wpt lat="37.4222899" lon="-122.0822035">
+    <ele>12.5</ele><time>2026-01-01T00:00:00Z</time><name>Start</name><sym>Flag</sym>
+  </wpt>
+  <rte>
+    <name>Coastal route</name>
+    <rtept lat="37.4100" lon="-122.0900"><ele>2</ele></rtept>
+    <rtept lat="37.4200" lon="-122.0800"/>
+    <rtept lat="37.4150" lon="-122.0700"/>
+    <rtept xmlns="https://example.test/extensions" lat="0" lon="0"/>
+  </rte>
+  <trk>
+    <name>GPS track with a reception gap</name>
+    <trkseg>
+      <trkpt lat="37.4120" lon="-122.0870"><time>2026-01-01T00:00:01Z</time></trkpt>
+      <trkpt lat="37.4160" lon="-122.0830"><time>2026-01-01T00:00:02Z</time></trkpt>
+    </trkseg>
+    <trkseg>
+      <trkpt lat="37.4240" lon="-122.0780"/>
+      <trkpt lat="37.4280" lon="-122.0740"/>
+    </trkseg>
+    <extensions><ext:track><ext:trkpt lat="0" lon="0"/></ext:track></extensions>
+  </trk>
+</gpx>

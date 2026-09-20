@@ -1,0 +1,19 @@
+ID   DEMO0001; SV 1; linear; genomic DNA; STD; SYN; 12 BP.
+XX
+DE   Demonstration EMBL record.
+     Description continuation remains inert text.
+AC   DEMO0001;
+KW   demo.
+FT   source          1..12
+FT                   /organism="synthetic construct"
+FT   CDS             1..9
+SQ   Sequence 12 BP; 4 A; 2 C; 3 G; 3 T; 0 other;
+     atgcgtaaccgg     12
+//
+ID   DEMO0002; SV 1; circular; mRNA; STD; SYN; 6 BP.
+DE   A second EMBL record.
+AC   DEMO0002;
+FT   source          1..6
+SQ   Sequence 6 BP; 2 A; 1 C; 1 G; 2 T; 0 other;
+     aacgtt           6
+//

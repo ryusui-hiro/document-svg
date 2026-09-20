@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.landxml.org/schema/LandXML-1.2 https://private.example.invalid/LandXML-1.2.xsd" version="1.2" date="2026-09-16" time="12:00:00" readOnly="false">
+  <Units><Metric linearUnit="meter" areaUnit="squareMeter" volumeUnit="cubicMeter" temperatureUnit="celsius"/></Units>
+  <CgPoints>
+    <CgPoint name="P1" desc="private survey point">100.0 200.0 5.0</CgPoint>
+    <CgPoint name="P2">110.0 200.0 5.5</CgPoint>
+    <CgPoint name="P3">100.0 210.0 6.0</CgPoint>
+  </CgPoints>
+  <Surfaces>
+    <Surface name="Existing Ground" desc="private terrain">
+      <Definition surfType="TIN"><Pnts><P id="1">100 200 5</P><P id="2">110 200 5.5</P><P id="3">100 210 6</P></Pnts><Faces><F>1 2 3</F></Faces></Definition>
+    </Surface>
+  </Surfaces>
+  <Alignments><Alignment name="Main Road" length="100"><CoordGeom><Line><Start>100 200</Start><End>110 200</End></Line><Curve rot="cw" radius="25"><Start>110 200</Start><PI>115 205</PI><End>120 210</End></Curve></CoordGeom></Alignment></Alignments>
+  <Parcels><Parcel name="Lot 1" desc="private parcel"><Center>105 205</Center><CoordGeom><Line><Start>100 200</Start><End>110 200</End></Line></CoordGeom></Parcel></Parcels>
+  <PipeNetworks><PipeNetwork name="Storm"><Struct name="MH-1"/><Pipe name="P-1"/></PipeNetwork></PipeNetworks>
+</LandXML>

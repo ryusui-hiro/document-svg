@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="190pt" height="228pt" viewBox="0 0 190 228" data-source-format="sequence_diagram" data-source-page="1" content="@startuml&#10;interface AuthGateway&#10;database Storage&#10;class AuthController&#10;&#10;Storage &lt;|-- AuthController&#10;AuthGateway &lt;|.. AuthController&#10;AuthController ..&gt; Storage : read user&#10;@enduml&#10;">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":5,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="190" height="228" fill="#FFFFFF" data-role="page-background"/>
+  <path id="" d="M 95.0,66.0 L 95.0,162.0" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+  <path id="" d="M 44.0,30.0 h 102.0 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -102.0 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="95" y="52" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Storage</tspan>
+  </text>
+  <path id="" d="M 44.0,162.0 h 102.0 a 4 4 0 0 1 4 4 v 28.0 a 4 4 0 0 1 -4 4 h -102.0 a 4 4 0 0 1 -4 -4 v -28.0 a 4 4 0 0 1 4 -4 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f1f5f9" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="95" y="184" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="12" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">Storage</tspan>
+  </text>
+</svg>

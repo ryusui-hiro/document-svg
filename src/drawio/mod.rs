@@ -36,7 +36,7 @@ use base64::Engine;
 use quick_xml::Reader;
 use quick_xml::events::Event;
 
-use crate::convert::{ConvertOptions, PageConsumer};
+use crate::convert::{ConvertOptions, PageConsumer, read_limited_file};
 use crate::error::{Error, Result};
 use crate::ir::{
     ClipPath, GradientStop, IDENTITY, LineCap, LineJoin, LinearGradient, Matrix, Node, Page, Paint,
@@ -76,7 +76,7 @@ pub(crate) fn convert(
     options: &ConvertOptions,
     sink: &mut dyn PageConsumer,
 ) -> Result<Vec<String>> {
-    let bytes = std::fs::read(path)?;
+    let bytes = read_limited_file(path, options.max_input_bytes, "drawio file")?;
     let (diagrams, root) = split_diagrams(&bytes, options)?;
     if diagrams.is_empty() {
         // Naming what the file actually is saves the caller from guessing: a
@@ -85,6 +85,9 @@ pub(crate) fn convert(
         return Err(match root.as_str() {
             "mxlibrary" => Error::Unsupported(
                 "input is a draw.io shape library, not a diagram; it holds shapes to place, not pages to convert".into(),
+            ),
+            "shapes" => Error::Unsupported(
+                "input is a draw.io shape library (<shapes>), not a diagram; pass it via --stencils".into(),
             ),
             "" => Error::InvalidInput(
                 "input has no XML root element; expected an mxfile with at least one diagram, or a bare mxGraphModel".into(),

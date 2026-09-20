@@ -1,5 +1,5 @@
-use quick_xml::events::BytesStart;
 use quick_xml::XmlVersion;
+use quick_xml::events::BytesStart;
 use quick_xml::events::attributes::Attribute;
 
 pub(crate) fn local_name(name: &[u8]) -> &[u8] {

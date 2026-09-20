@@ -1,0 +1,32 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.topojson",
+  "source_format": "topojson",
+  "output_directory": "samples/svg/topojson",
+  "elapsed_ms": 0,
+  "input_bytes": 1587,
+  "page_count": 1,
+  "largest_page_ir_bytes": 1906,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 1200.0,
+      "height_points": 800.0,
+      "node_count": 2,
+      "warning_count": 3,
+      "warnings": [
+        "TopoJSON object properties, identifiers, bounding boxes, and topology metadata are omitted",
+        "TopoJSON coordinates are treated as WGS 84 longitude/latitude; no CRS metadata or reprojection is available",
+        "TopoJSON longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"
+      ],
+      "estimated_ir_bytes": 1906
+    }
+  ],
+  "warnings": [
+    "TopoJSON object properties, identifiers, bounding boxes, and topology metadata are omitted",
+    "TopoJSON coordinates are treated as WGS 84 longitude/latitude; no CRS metadata or reprojection is available",
+    "TopoJSON longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"
+  ]
+}

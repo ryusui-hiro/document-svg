@@ -1,0 +1,17 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:private-bom",
+  "version": 1,
+  "metadata": {
+    "component": {"type": "application", "name": "Preview App", "version": "2.0"}
+  },
+  "components": [
+    {"type": "library", "name": "serde", "version": "1.0.210", "purl": "pkg:cargo/serde@1.0.210", "hashes": [{"alg": "SHA-256", "content": "very-secret"}], "licenses": [{"license": {"id": "MIT"}}]},
+    {"type": "framework", "name": "Tokio", "version": "1.40.0", "scope": "required", "components": [{"type": "library", "name": "bytes", "version": "1.7.1"}]}
+  ],
+  "dependencies": [{"ref": "serde", "dependsOn": ["bytes"]}],
+  "vulnerabilities": [{"id": "CVE-private", "description": "private vulnerability details"}],
+  "services": [{"name": "api", "endpoints": [{"url": "https://private.example"}]}]
+}

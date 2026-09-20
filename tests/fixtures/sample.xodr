@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenDRIVE>
+  <header revMajor="1" revMinor="8" name="Preview network" version="1.00" date="2024-01-01T00:00:00Z" />
+  <road name="Main Road" length="30" id="1" junction="-1">
+    <link><successor elementType="road" elementId="2" contactPoint="start" /></link>
+    <planView>
+      <geometry s="0" x="0" y="0" hdg="0" length="10"><line /></geometry>
+      <geometry s="10" x="10" y="0" hdg="0" length="20"><arc curvature="0.05" /></geometry>
+      <geometry s="30" x="26.829" y="8.414" hdg="1" length="5"><spiral curvStart="0" curvEnd="0.02" /></geometry>
+    </planView>
+    <lanes><laneSection s="0"><left><lane id="1" type="driving" /></left></laneSection></lanes>
+    <signals><signal id="sig-secret" s="12" t="2" /></signals>
+  </road>
+  <junction id="10" name="Main Junction" />
+</OpenDRIVE>

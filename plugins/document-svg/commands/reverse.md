@@ -1,15 +1,15 @@
 ---
-description: Package SVG pages back into a PPTX, DOCX, XLSX or draw.io file.
-argument-hint: <svg-file-or-directory> <output.pptx|docx|xlsx|drawio>
+description: Package SVG pages back into a PPTX, DOCX, XLSX, PDF, draw.io, HTML viewer, or WebP file.
+argument-hint: <svg-file-or-directory> <output.pptx|docx|xlsx|pdf|drawio|html|webp>
 allowed-tools: Bash(${CLAUDE_PLUGIN_ROOT}/skills/document-svg/scripts/*), Read, Glob
 ---
 
-Package `$1` into the Office or draw.io file `$2`.
+Package `$1` into the target file `$2`.
 
 1. Resolve `$1` to one `.svg` file or a directory of SVG pages. Directory pages
    are ordered lexicographically, so `page-NNNN.svg` names give the intended
    order; check the names before running and warn if the order looks wrong.
-2. `$2` must not already exist and must end in `.pptx`, `.docx`, `.xlsx` or `.drawio`.
+2. `$2` must not already exist and must end in `.pptx`, `.docx`, `.xlsx`, `.pdf`, `.drawio`, `.html` or `.webp`.
 3. Run:
 
    ```bash
