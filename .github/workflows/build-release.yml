@@ -136,7 +136,8 @@ jobs:
         working-directory: bindings/node
         run: |
           if [[ "${{ matrix.libc }}" == "musl" ]]; then
-            docker run --rm -v "$PWD:/work" -w /work node:24-alpine node --test tests/*.test.js
+            docker run --rm -v "$GITHUB_WORKSPACE:/work" -w /work/bindings/node \
+              node:24-alpine node --test tests/*.test.js
           else
             npm test
           fi

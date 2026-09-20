@@ -1881,11 +1881,10 @@ def test_converts_rtf_with_embedded_png_picture(tmp_path: Path) -> None:
 def test_converts_ical_event(tmp_path: Path) -> None:
     source = tmp_path / "calendar.ics"
     output = tmp_path / "out"
-    source.write_text(
-        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
-        "UID:event-1\r\nDTSTART:20241012T090000Z\r\n"
-        "SUMMARY:Calendar API event\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n",
-        encoding="utf-8",
+    source.write_bytes(
+        b"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+        b"UID:event-1\r\nDTSTART:20241012T090000Z\r\n"
+        b"SUMMARY:Calendar API event\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n"
     )
 
     report = convert(source, output)
