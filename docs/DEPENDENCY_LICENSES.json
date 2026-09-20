@@ -1755,14 +1755,6 @@
         {
           "path": "LICENSES/MIT.txt",
           "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
-        },
-        {
-          "path": "licenses/Apache-2.0.txt",
-          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
-        },
-        {
-          "path": "licenses/MIT.txt",
-          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
         }
       ]
     },
@@ -2366,14 +2358,6 @@
         },
         {
           "path": "LICENSES/MIT.txt",
-          "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
-        },
-        {
-          "path": "licenses/Apache-2.0.txt",
-          "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2"
-        },
-        {
-          "path": "licenses/MIT.txt",
           "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
         }
       ]

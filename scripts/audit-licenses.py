@@ -40,10 +40,13 @@ def license_files(package):
              if path.is_file() and re.search(r'(?i)(?:^|[-_.])(licen[sc]e|copying|copyright|notice|authors)(?:$|[-_.])', path.name)}
     if package.get('license_file'):
         files.add(directory / package['license_file'])
-    for subdirectory in ('licenses', 'LICENSES'):
-        folder = directory / subdirectory
-        if folder.is_dir():
-            files.update(path for path in folder.rglob('*') if path.is_file())
+    license_directories = sorted(
+        (path for path in directory.iterdir()
+         if path.is_dir() and path.name.casefold() == 'licenses'),
+        key=lambda path: path.name,
+    )
+    for folder in license_directories:
+        files.update(path for path in folder.rglob('*') if path.is_file())
     notices = []
     for path in sorted(files):
         if path.stat().st_size > 512 * 1024:
