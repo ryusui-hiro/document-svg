@@ -21,6 +21,36 @@ fn render_svg_with_resvg(
     };
     let mut fontdb = resvg::usvg::fontdb::Database::new();
     fontdb.load_system_fonts();
+    let fallback_family = [
+        "DejaVu Sans",
+        "Liberation Sans",
+        "Arial",
+        "Helvetica",
+        "Noto Sans",
+    ]
+    .into_iter()
+    .find(|candidate| {
+        fontdb.faces().any(|face| {
+            face.families
+                .iter()
+                .any(|(family, _)| family.eq_ignore_ascii_case(candidate))
+        })
+    })
+    .map(str::to_owned)
+    .or_else(|| {
+        fontdb
+            .faces()
+            .next()
+            .and_then(|face| face.families.first())
+            .map(|(family, _)| family.clone())
+    })
+    .ok_or("visual verification requires at least one installed font")?;
+    fontdb.set_serif_family(fallback_family.clone());
+    fontdb.set_sans_serif_family(fallback_family.clone());
+    fontdb.set_cursive_family(fallback_family.clone());
+    fontdb.set_fantasy_family(fallback_family.clone());
+    fontdb.set_monospace_family(fallback_family.clone());
+    opt.font_family = fallback_family;
     *opt.fontdb_mut() = fontdb;
     let tree = resvg::usvg::Tree::from_data(svg_bytes, &opt)?;
     let size = tree.size().to_int_size();
