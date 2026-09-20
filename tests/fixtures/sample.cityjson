@@ -1,0 +1,26 @@
+{
+  "type": "CityJSON",
+  "version": "2.0",
+  "metadata": {
+    "referenceSystem": "https://www.opengis.net/def/crs/EPSG/0/4979",
+    "geographicalExtent": [139.7, 35.6, 0, 139.8, 35.7, 100]
+  },
+  "transform": {
+    "scale": [0.01, 0.01, 0.01],
+    "translate": [139700.0, 35600.0, 0.0]
+  },
+  "CityObjects": {
+    "building-1": {
+      "type": "Building",
+      "geometry": [{"type": "Solid", "lod": "2", "boundaries": [[[0, 1, 2, 3]]]}]
+    },
+    "road-1": {
+      "type": "Road",
+      "geometry": [{"type": "MultiSurface", "lod": "0", "boundaries": [[0, 4, 5]]}]
+    }
+  },
+  "vertices": [
+    [0, 0, 0], [100, 0, 0], [100, 100, 0], [0, 100, 0], [200, 0, 0], [300, 0, 0]
+  ],
+  "extensions": {"private": {"url": "https://private.example.invalid/ext"}}
+}

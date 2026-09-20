@@ -9,17 +9,12 @@ command -v claude >/dev/null 2>&1 || {
   echo "Claude Code is required: https://code.claude.com/docs/en/setup" >&2
   exit 69
 }
-command -v cargo >/dev/null 2>&1 || {
-  echo "Rust and cargo are required: https://rustup.rs" >&2
-  exit 69
-}
-
 if ! marketplaces=$(claude plugin marketplace list --json); then
   echo "Claude Code could not read its settings. Ensure the active settings.json files contain valid JSON, then retry." >&2
   exit 78
 fi
 
-cargo install --path "$repo_root" --locked --force
+"$script_dir/ensure-cli.sh"
 
 if ! grep -Fq '"name": "document-svg"' <<<"$marketplaces"; then
   claude plugin marketplace add "$repo_root" --scope user

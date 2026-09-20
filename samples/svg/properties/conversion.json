@@ -1,0 +1,28 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.properties",
+  "source_format": "properties",
+  "output_directory": "samples/svg/properties",
+  "elapsed_ms": 0,
+  "input_bytes": 366,
+  "page_count": 1,
+  "largest_page_ir_bytes": 9272,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 595.0,
+      "height_points": 842.0,
+      "node_count": 13,
+      "warning_count": 1,
+      "warnings": [
+        "1 duplicate Java properties key(s) use their last value, matching Properties.load"
+      ],
+      "estimated_ir_bytes": 9272
+    }
+  ],
+  "warnings": [
+    "1 duplicate Java properties key(s) use their last value, matching Properties.load"
+  ]
+}

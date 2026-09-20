@@ -1,0 +1,19 @@
+sequenceDiagram
+  autonumber
+  actor User as End User
+  participant Browser as Web Browser (SPA)
+  participant AuthServer as OAuth 2.0 Auth Server
+  participant Gateway as API Gateway
+  participant ResourceAPI as Protected Resource API
+
+  User->>Browser: Navigate to Login Page
+  Browser->>AuthServer: GET /oauth/authorize?client_id=web&scope=openid
+  AuthServer-->>Browser: 302 Redirect with Auth Code
+  Browser->>Gateway: POST /api/auth/callback (code, state)
+  Gateway->>AuthServer: POST /oauth/token (code, client_secret)
+  AuthServer-->>Gateway: 200 OK (access_token, id_token, refresh_token)
+  Gateway-->>Browser: Set-Cookie: session_jwt (HttpOnly, Secure)
+  Browser->>Gateway: GET /api/v1/user/profile (Cookie: session_jwt)
+  Gateway->>ResourceAPI: Forward Request (X-User-Id: 42)
+  ResourceAPI-->>Gateway: 200 OK { id: 42, name: "Alice", role: "admin" }
+  Gateway-->>Browser: JSON User Profile Response

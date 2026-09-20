@@ -1,0 +1,44 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.gpkg",
+  "source_format": "geopackage",
+  "output_directory": "samples/svg/gpkg",
+  "elapsed_ms": 0,
+  "input_bytes": 57344,
+  "page_count": 2,
+  "largest_page_ir_bytes": 12249,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 1200.0,
+      "height_points": 800.0,
+      "node_count": 1,
+      "warning_count": 2,
+      "warnings": [
+        "GeoPackage feature attributes and identifiers are not shown",
+        "GeoPackage longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"
+      ],
+      "estimated_ir_bytes": 1281
+    },
+    {
+      "number": 2,
+      "svg": "page-0002.svg",
+      "width_points": 1200.0,
+      "height_points": 800.0,
+      "node_count": 1,
+      "warning_count": 2,
+      "warnings": [
+        "GeoPackage feature attributes and identifiers are not shown",
+        "GeoPackage raster tiles are decoded and re-encoded as PNG; ICC color management is not applied"
+      ],
+      "estimated_ir_bytes": 12249
+    }
+  ],
+  "warnings": [
+    "GeoPackage feature attributes and identifiers are not shown",
+    "GeoPackage longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied",
+    "GeoPackage raster tiles are decoded and re-encoded as PNG; ICC color management is not applied"
+  ]
+}

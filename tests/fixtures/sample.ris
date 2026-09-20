@@ -1,0 +1,23 @@
+TY  - JOUR
+TI  - Safe document conversion
+AU  - Doe, Jane
+AU  - Smith, John
+PY  - 2026/09/16
+JO  - Journal of Vector Data
+SP  - 1
+EP  - 12
+DO  - 10.1234/example.1
+UR  - https://example.invalid/paper/1
+KW  - SVG
+KW  - security
+AB  - Abstract text is inert and remains local.
+      Continued abstract text.
+ZZ  - producer extension
+ER  -
+TY  - BOOK
+T1  - A second citation
+A1  - Doe, Jane
+Y1  - 2025
+T2  - Example Press
+UR  - https://example.invalid/book
+ER  -

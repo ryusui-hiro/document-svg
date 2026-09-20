@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<martif type="TBX" xmlns="urn:iso:std:iso:30042:ed-2">
+  <martifHeader><fileDesc><sourceDesc>private glossary</sourceDesc></fileDesc></martifHeader>
+  <text><body>
+    <termEntry id="secret-entry">
+      <langSet xml:lang="en"><tig><term>gearbox</term><descrip type="definition">private definition</descrip></tig></langSet>
+      <langSet xml:lang="ja"><tig><term>ギアボックス</term></tig></langSet>
+      <note>internal note</note>
+      <transacGrp><transac>created</transac></transacGrp>
+      <ref target="https://example.invalid/term"/>
+    </termEntry>
+  </body></text>
+</martif>
+

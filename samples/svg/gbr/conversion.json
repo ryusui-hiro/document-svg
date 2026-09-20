@@ -1,0 +1,24 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.gbr",
+  "source_format": "gerber",
+  "output_directory": "samples/svg/gbr",
+  "elapsed_ms": 0,
+  "input_bytes": 529,
+  "page_count": 1,
+  "largest_page_ir_bytes": 7937,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 1200.0,
+      "height_points": 962.8458498023715,
+      "node_count": 2,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 7937
+    }
+  ],
+  "warnings": []
+}

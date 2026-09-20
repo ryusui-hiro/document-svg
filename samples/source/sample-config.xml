@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="urn:example:application" version="2" environment="production">
+  <!-- Values are previewed as data; no setting is executed. -->
+  <service id="catalog-api">
+    <endpoint>https://api.example.invalid/v1</endpoint>
+    <listen host="127.0.0.1" port="8080" />
+    <limits requests-per-minute="1200" burst="50" />
+  </service>
+  <feature name="search" enabled="true">full-text &amp; faceted</feature>
+  <feature name="exports" enabled="false" />
+</application>

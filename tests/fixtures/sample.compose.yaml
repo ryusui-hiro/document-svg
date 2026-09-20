@@ -1,0 +1,47 @@
+name: preview-demo
+services:
+  web:
+    image: nginx:1.27
+    ports:
+      - "8080:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - web-assets:/usr/share/nginx/html:ro
+    networks:
+      - frontend
+    secrets:
+      - app_token
+    command: ["/bin/sh", "-c", "echo very-secret"]
+  db:
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    expose:
+      - "5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    secrets:
+      - db_password
+    environment:
+      POSTGRES_PASSWORD: super-secret-value
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+volumes:
+  web-assets: {}
+  db-data:
+    driver: local
+networks:
+  frontend: {}
+  backend: {}
+secrets:
+  app_token:
+    file: ./secrets/app-token.txt
+  db_password:
+    environment: POSTGRES_PASSWORD
+configs:
+  nginx_config:
+    file: ./nginx.conf

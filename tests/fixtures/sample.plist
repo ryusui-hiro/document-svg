@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0">
+  <dict>
+    <key>CFBundleName</key><string>Document SVG</string>
+    <key>ServerURL</key><string>https://private.example.invalid/api</string>
+    <key>password</key><string>do-not-render</string>
+    <key>Enabled</key><true/>
+    <key>Window</key><dict><key>Width</key><integer>595</integer><key>Height</key><real>842.0</real></dict>
+    <key>RecentFiles</key><array><string>first.pdf</string><string>second.pdf</string></array>
+    <key>Blob</key><data>U0VOU0lUSVZF</data>
+  </dict>
+</plist>

@@ -1,0 +1,36 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "Preview SBOM",
+  "documentNamespace": "https://private.example/spdx/preview",
+  "creationInfo": {"created": "2026-09-16T00:00:00Z", "creators": ["Tool: Example"]},
+  "dataLicense": "CC0-1.0",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-Serde",
+      "name": "serde",
+      "versionInfo": "1.0.210",
+      "downloadLocation": "https://private.example/serde",
+      "licenseConcluded": "MIT",
+      "licenseDeclared": "MIT",
+      "supplier": "Organization: Private",
+      "checksums": [{"algorithm": "SHA256", "checksumValue": "very-secret"}],
+      "externalRefs": [{"referenceType": "purl", "referenceLocator": "pkg:cargo/serde@1.0.210"}]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-Tokio",
+      "name": "tokio",
+      "versionInfo": "1.40.0",
+      "licenseConcluded": "MIT"
+    }
+  ],
+  "files": [
+    {"SPDXID": "SPDXRef-File-Lib", "fileName": "src/lib.rs", "licenseConcluded": "NOASSERTION", "checksums": [{"algorithm": "SHA256", "checksumValue": "private-file"}]}
+  ],
+  "relationships": [
+    {"spdxElementId": "SPDXRef-DOCUMENT", "relationshipType": "DESCRIBES", "relatedSpdxElement": "SPDXRef-Package-Serde"},
+    {"spdxElementId": "SPDXRef-Package-Serde", "relationshipType": "DEPENDS_ON", "relatedSpdxElement": "SPDXRef-Package-Tokio"}
+  ],
+  "annotations": [{"SPDXID": "SPDXRef-Package-Serde", "annotationType": "REVIEW", "comment": "private review"}],
+  "externalDocumentRefs": [{"externalDocumentId": "DocumentRef-other", "spdxDocument": "https://private.example/other.spdx", "checksum": {"algorithm": "SHA256", "checksumValue": "private"}}]
+}

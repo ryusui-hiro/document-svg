@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Document SVG CI" tests="5" failures="1" errors="1" skipped="1" time="2.75">
+  <testsuite name="converter" tests="3" failures="1" errors="0" skipped="1" time="1.25" timestamp="2026-09-16T02:00:00Z">
+    <properties><property name="branch" value="main"/><property name="token" value="very-secret"/></properties>
+    <testcase classname="conversion" name="pdf" time="0.20"/>
+    <testcase classname="conversion" name="security"><failure message="secret failure details">very-secret stack trace</failure></testcase>
+    <testcase classname="conversion" name="optional"><skipped reason="not on platform"/></testcase>
+    <system-out>password=very-secret</system-out>
+  </testsuite>
+  <testsuite name="bindings" tests="2" failures="0" errors="1" skipped="0" time="1.50">
+    <testcase classname="node" name="api" time="0.80"/>
+    <testcase classname="python" name="api"><error message="private error">private traceback</error></testcase>
+    <system-err>Authorization: Bearer very-secret</system-err>
+  </testsuite>
+</testsuites>

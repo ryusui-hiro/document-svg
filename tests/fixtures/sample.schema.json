@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/catalog.json",
+  "title": "Catalog record",
+  "description": "Safe schema preview <script>kept as text</script>",
+  "type": "object",
+  "properties": {
+    "name": {"type": "string", "minLength": 1, "maxLength": 80},
+    "price": {"type": "number", "minimum": 0},
+    "tags": {"type": "array", "items": {"$ref": "#/$defs/tag"}}
+  },
+  "required": ["name", "price"],
+  "$defs": {
+    "tag": {"type": "string", "pattern": "^[a-z]+$"}
+  }
+}

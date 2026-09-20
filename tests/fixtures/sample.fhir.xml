@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bundle xmlns="http://hl7.org/fhir">
+  <id value="private-bundle"/>
+  <type value="collection"/>
+  <entry>
+    <resource>
+      <Patient><id value="patient-secret"/><name><family value="Doe"/></name><text><status value="generated"/><div xmlns="http://www.w3.org/1999/xhtml">private narrative</div></text><extension url="https://example.invalid/private"><valueString value="secret"/></extension></Patient>
+    </resource>
+  </entry>
+  <entry><resource><Observation><id value="obs-1"/><valueString value="private result"/></Observation></resource></entry>
+</Bundle>
+

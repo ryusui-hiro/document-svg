@@ -1,0 +1,18 @@
+{
+  "eventTypes": [
+    {"name": "create-order", "attributes": [{"name": "total", "type": "integer"}]},
+    {"name": "ship-order", "attributes": [{"name": "carrier", "type": "string"}]}
+  ],
+  "objectTypes": [
+    {"name": "order", "attributes": [{"name": "state", "type": "string"}]},
+    {"name": "item", "attributes": []}
+  ],
+  "events": [
+    {"id": "e1", "type": "create-order", "time": "2024-01-01T00:00:00Z", "attributes": [{"name": "total", "value": 7}], "relationships": [{"objectId": "o1", "qualifier": "order"}, {"objectId": "i1", "qualifier": "item"}]},
+    {"id": "e2", "type": "ship-order", "time": "2024-01-02T00:00:00Z", "attributes": [{"name": "carrier", "value": "private carrier"}], "relationships": [{"objectId": "o1", "qualifier": "order"}]}
+  ],
+  "objects": [
+    {"id": "o1", "type": "order", "attributes": [{"name": "state", "time": "2024-01-02T00:00:00Z", "value": "secret state"}], "relationships": [{"objectId": "i1", "qualifier": "contains"}]},
+    {"id": "i1", "type": "item", "attributes": []}
+  ]
+}

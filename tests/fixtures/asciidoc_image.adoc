@@ -1,0 +1,11 @@
+= Image appendix
+
+:imagesdir: assets
+
+This paragraph comes before the figure.
+
+image::red-blue.png[Red and blue test image,200,100]
+
+image::https://example.invalid/remote.png[Remote image]
+
+This paragraph comes after the figure.

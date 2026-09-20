@@ -1,0 +1,30 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Catalog API",
+    "version": "1.2.0",
+    "description": "Bounded API description <script>kept as text</script>"
+  },
+  "servers": [{"url": "https://api.example.invalid/v1"}],
+  "paths": {
+    "/pets": {
+      "get": {
+        "operationId": "listPets",
+        "summary": "List pets",
+        "tags": ["pets"],
+        "parameters": [{"name": "limit", "in": "query"}],
+        "responses": {"200": {"description": "ok"}, "default": {"description": "error"}}
+      },
+      "post": {
+        "operationId": "createPet",
+        "summary": "Create a pet",
+        "responses": {"201": {"description": "created"}}
+      }
+    }
+  },
+  "components": {
+    "schemas": {"Pet": {"$ref": "https://evil.example.invalid/schema.json#/Pet"}},
+    "securitySchemes": {"bearerAuth": {"type": "http", "scheme": "bearer"}}
+  },
+  "externalDocs": {"url": "https://docs.example.invalid"}
+}

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<abiword fileformat="1.0" xmlns="http://www.abisource.com/awml"><section><p><c props="bold">Private paragraph</c></p><table><cell><p><c>Private cell</c></p></cell></table><bookmark name="private-bookmark"/><hyperlink xlink:href="https://example.invalid" xmlns:xlink="http://www.w3.org/1999/xlink">private link</hyperlink><image dataid="private-image"/></section></abiword>
+

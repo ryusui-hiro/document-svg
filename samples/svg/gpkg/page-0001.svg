@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="800pt" viewBox="0 0 1200 800" data-source-format="geopackage" data-source-page="1">
+  <title>GeoPackage Feature Layer 1</title>
+  <desc>GeoPackage Feature Layer 1 map with 2 features, 2 geometries, and 15 positions</desc>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":1,"warnings":["GeoPackage feature attributes and identifiers are not shown","GeoPackage longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"]}</metadata>
+  <rect x="0" y="0" width="1200" height="800" fill="#FFFFFF" data-role="page-background"/>
+  <path id="geopackage-polygons" d="M 192.298 760.000 L 774.729 760.000 L 774.729 40.000 L 192.298 40.000 L 192.298 760.000 Z M 396.149 510.067 L 396.149 294.088 L 570.878 294.088 L 570.878 510.067 L 396.149 510.067 Z M 832.973 653.151 L 1007.702 653.151 L 1007.702 438.256 L 832.973 438.256 L 832.973 653.151 Z " fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#BFDBFE" fill-opacity="1" stroke="#2563EB" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-content-kind="geopackage-polygon" data-semantic-role="geopackage:polygon"/>
+</svg>

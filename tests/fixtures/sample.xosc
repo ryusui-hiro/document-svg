@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSCENARIO xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="OpenScenario.xsd">
+  <FileHeader revMajor="1" revMinor="3" date="2024-01-01T00:00:00Z" description="private scenario description" author="secret author" />
+  <ParameterDeclarations><ParameterDeclaration name="Speed" parameterType="double" value="13.9" /></ParameterDeclarations>
+  <CatalogLocations><VehicleCatalog><Directory path="/private/catalog" /></VehicleCatalog></CatalogLocations>
+  <RoadNetwork><LogicFile filepath="roads.xodr" /><SceneGraphFile filepath="scene.osgb" /></RoadNetwork>
+  <Entities>
+    <ScenarioObject name="Ego"><CatalogReference catalogName="VehicleCatalog" entryName="secret-car" /></ScenarioObject>
+    <ScenarioObject name="Target"><CatalogReference catalogName="VehicleCatalog" entryName="target-car" /></ScenarioObject>
+  </Entities>
+  <Storyboard>
+    <Init><Actions><PrivateAction /></Actions></Init>
+    <Story name="Overtake">
+      <Act name="Pass"><ManeuverGroup name="Group"><Actors><EntityRef entityRef="Ego" /></Actors><Maneuver name="LaneChange"><Event name="Start"><Action name="ChangeLane"><PrivateAction /></Action></Event></Maneuver></ManeuverGroup></Act>
+    </Story>
+    <StopTrigger><ConditionGroup><Condition name="End" /></ConditionGroup></StopTrigger>
+  </Storyboard>
+</OpenSCENARIO>

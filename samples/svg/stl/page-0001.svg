@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="1085.14286pt" viewBox="0 0 1200 1085.14286" data-source-format="stl" data-source-page="1">
+  <title>STL Cross-Section Slice (Z=20.00mm)</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":3,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="1085.14286" fill="#FFFFFF" data-role="page-background"/>
+  <path id="slice-background" d="M 0 0 L 1200 0 L 1200 1085.143 L 0 1085.143 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#0f172a" fill-opacity="1" stroke="none" data-semantic-role="stl:background"/>
+  <g id="slice-contours" transform="matrix(1 0 0 1 0 0)" opacity="0.85" data-semantic-role="stl:slice">
+    <path id="" d="M 385.714 790.286 L 814.286 790.286 L 600 419.143 L 385.714 790.286 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#0284c7" fill-opacity="1" stroke="#38bdf8" stroke-opacity="1" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <text id="slice-label" x="20" y="1065.14286" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="monospace, monospace" font-size="14" font-weight="700" font-style="normal" baseline-shift="0" fill="#94a3b8" fill-opacity="1">STL Slicer | Z-Height: 20.00 mm | Triangles: 4</tspan>
+  </text>
+</svg>

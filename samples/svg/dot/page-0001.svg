@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1060pt" height="656pt" viewBox="0 0 1060 656" data-source-format="diagram" data-source-page="1" content="digraph CloudMicroservices {&#10;  rankdir=LR;&#10;  node [shape=box, style=filled, fillcolor=&quot;#f8fafc&quot;, color=&quot;#64748b&quot;, fontname=&quot;sans-serif&quot;];&#10;  edge [color=&quot;#475569&quot;, fontname=&quot;sans-serif&quot;, fontsize=10];&#10;&#10;  Client [label=&quot;Client (Web/Mobile)&quot;, shape=ellipse, fillcolor=&quot;#e0e7ff&quot;, color=&quot;#4338ca&quot;];&#10;  CDN [label=&quot;Cloud CDN &amp; WAF&quot;, fillcolor=&quot;#e0f2fe&quot;, color=&quot;#0284c7&quot;];&#10;  Gateway [label=&quot;API Gateway&quot;, fillcolor=&quot;#dbeafe&quot;, color=&quot;#2563eb&quot;];&#10;&#10;  AuthService [label=&quot;Auth Service (OAuth2/JWT)&quot;, fillcolor=&quot;#fef3c7&quot;, color=&quot;#d97706&quot;];&#10;  UserService [label=&quot;User Service&quot;, fillcolor=&quot;#f1f5f9&quot;, color=&quot;#475569&quot;];&#10;  OrderService [label=&quot;Order &amp; Checkout Service&quot;, fillcolor=&quot;#f1f5f9&quot;, color=&quot;#475569&quot;];&#10;  PaymentService [label=&quot;Payment Gateway Service&quot;, fillcolor=&quot;#fee2e2&quot;, color=&quot;#dc2626&quot;];&#10;&#10;  UserDB [label=&quot;User DB (PostgreSQL)&quot;, shape=cylinder, fillcolor=&quot;#ecfdf5&quot;, color=&quot;#059669&quot;];&#10;  OrderDB [label=&quot;Order DB (PostgreSQL)&quot;, shape=cylinder, fillcolor=&quot;#ecfdf5&quot;, color=&quot;#059669&quot;];&#10;  RedisCache [label=&quot;Redis Cache Cluster&quot;, shape=box, fillcolor=&quot;#fef2f2&quot;, color=&quot;#ef4444&quot;];&#10;  MsgQueue [label=&quot;Kafka Message Queue&quot;, shape=cds, fillcolor=&quot;#fefce8&quot;, color=&quot;#ca8a04&quot;];&#10;  AnalyticsWorker [label=&quot;Analytics &amp; Event Consumer&quot;, fillcolor=&quot;#f3e8ff&quot;, color=&quot;#7e22ce&quot;];&#10;&#10;  Client -&gt; CDN [label=&quot;HTTPS / TLS 1.3&quot;];&#10;  CDN -&gt; Gateway [label=&quot;Reverse Proxy&quot;];&#10;  Gateway -&gt; AuthService [label=&quot;Validate Token&quot;];&#10;  Gateway -&gt; UserService [label=&quot;REST /users&quot;];&#10;  Gateway -&gt; OrderService [label=&quot;REST /orders&quot;];&#10;  OrderService -&gt; PaymentService [label=&quot;gRPC /charge&quot;];&#10;&#10;  UserService -&gt; UserDB [label=&quot;Read / Write&quot;];&#10;  UserService -&gt; RedisCache [label=&quot;Query Cache&quot;];&#10;  OrderService -&gt; OrderDB [label=&quot;ACID Transactions&quot;];&#10;  OrderService -&gt; MsgQueue [label=&quot;Emit OrderCreated&quot;];&#10;  MsgQueue -&gt; AnalyticsWorker [label=&quot;Consume Events&quot;];&#10;}&#10;">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":67,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1060" height="656" fill="#FFFFFF" data-role="page-background"/>
+  <path id="" d="M 275.00,86.00 C 275.00,116.00 530.00,116.00 530.00,142.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 530.00,146.00 L 526.00,139.00 L 534.00,139.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="402.5" y="112" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">HTTPS / TLS 1.3</tspan>
+  </text>
+  <path id="" d="M 530.00,192.00 C 530.00,222.00 530.00,222.00 530.00,248.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 530.00,252.00 L 526.00,245.00 L 534.00,245.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="530" y="218" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">Reverse Proxy</tspan>
+  </text>
+  <path id="" d="M 530.00,298.00 C 530.00,328.00 360.00,328.00 360.00,354.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 360.00,358.00 L 356.00,351.00 L 364.00,351.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="445" y="324" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">Validate Token</tspan>
+  </text>
+  <path id="" d="M 530.00,298.00 C 530.00,328.00 530.00,328.00 530.00,354.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 530.00,358.00 L 526.00,351.00 L 534.00,351.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="530" y="324" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">REST /users</tspan>
+  </text>
+  <path id="" d="M 530.00,298.00 C 530.00,328.00 700.00,328.00 700.00,354.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 700.00,358.00 L 696.00,351.00 L 704.00,351.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="615" y="324" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">REST /orders</tspan>
+  </text>
+  <path id="" d="M 700.00,404.00 C 700.00,434.00 530.00,434.00 530.00,460.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 530.00,464.00 L 526.00,457.00 L 534.00,457.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="615" y="430" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">gRPC /charge</tspan>
+  </text>
+  <path id="" d="M 530.00,404.00 C 530.00,434.00 190.00,434.00 190.00,460.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 190.00,464.00 L 186.00,457.00 L 194.00,457.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="360" y="430" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">Read / Write</tspan>
+  </text>
+  <path id="" d="M 530.00,404.00 C 530.00,434.00 360.00,434.00 360.00,460.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 360.00,464.00 L 356.00,457.00 L 364.00,457.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="445" y="430" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">Query Cache</tspan>
+  </text>
+  <path id="" d="M 700.00,404.00 C 700.00,434.00 700.00,434.00 700.00,460.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 700.00,464.00 L 696.00,457.00 L 704.00,457.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="700" y="430" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">ACID Transactions</tspan>
+  </text>
+  <path id="" d="M 700.00,404.00 C 700.00,434.00 870.00,434.00 870.00,460.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 870.00,464.00 L 866.00,457.00 L 874.00,457.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="785" y="430" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">Emit OrderCreated</tspan>
+  </text>
+  <path id="" d="M 870.00,510.00 C 870.00,540.00 530.00,540.00 530.00,566.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 530.00,570.00 L 526.00,563.00 L 534.00,563.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="700" y="536" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">Consume Events</tspan>
+  </text>
+  <path id="" d="M 48.00,40.00 L 162.00,40.00 Q 170.00,40.00 170.00,48.00 L 170.00,78.00 Q 170.00,86.00 162.00,86.00 L 48.00,86.00 Q 40.00,86.00 40.00,78.00 L 40.00,48.00 Q 40.00,40.00 48.00,40.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="105" y="67.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">=</tspan>
+  </text>
+  <path id="" d="M 465.00,570.00 L 595.00,570.00 L 595.00,616.00 L 465.00,616.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="530" y="597.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Analytics &amp; Event Consumer</tspan>
+  </text>
+  <path id="" d="M 295.00,358.00 L 425.00,358.00 L 425.00,404.00 L 295.00,404.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="360" y="385.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Auth Service (OAuth2/JWT)</tspan>
+  </text>
+  <path id="" d="M 465.00,146.00 L 595.00,146.00 L 595.00,192.00 L 465.00,192.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="530" y="173.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Cloud CDN &amp; WAF</tspan>
+  </text>
+  <path id="" d="M 275.00,40.00 C 287.70,40.00 298.00,50.30 298.00,63.00 C 298.00,75.70 287.70,86.00 275.00,86.00 C 262.30,86.00 252.00,75.70 252.00,63.00 C 252.00,50.30 262.30,40.00 275.00,40.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="275" y="67.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Client (Web/Mobile)</tspan>
+  </text>
+  <path id="" d="M 465.00,252.00 L 595.00,252.00 L 595.00,298.00 L 465.00,298.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="530" y="279.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">API Gateway</tspan>
+  </text>
+  <path id="" d="M 388.00,40.00 L 502.00,40.00 Q 510.00,40.00 510.00,48.00 L 510.00,78.00 Q 510.00,86.00 502.00,86.00 L 388.00,86.00 Q 380.00,86.00 380.00,78.00 L 380.00,48.00 Q 380.00,40.00 388.00,40.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="445" y="67.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">LR</tspan>
+  </text>
+  <path id="" d="M 805.00,464.00 L 935.00,464.00 L 935.00,510.00 L 805.00,510.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="870" y="491.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Kafka Message Queue</tspan>
+  </text>
+  <path id="" d="M 635.00,470.00 C 635.00,462.02 765.00,462.02 765.00,470.00 C 765.00,477.98 635.00,477.98 635.00,470.00 L 635.00,504.00 C 635.00,511.98 765.00,511.98 765.00,504.00 C 765.00,496.02 635.00,496.02 635.00,504.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="700" y="491.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Order DB (PostgreSQL)</tspan>
+  </text>
+  <path id="" d="M 635.00,358.00 L 765.00,358.00 L 765.00,404.00 L 635.00,404.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="700" y="385.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Order &amp; Checkout Service</tspan>
+  </text>
+  <path id="" d="M 465.00,464.00 L 595.00,464.00 L 595.00,510.00 L 465.00,510.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="530" y="491.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Payment Gateway Service</tspan>
+  </text>
+  <path id="" d="M 295.00,464.00 L 425.00,464.00 L 425.00,510.00 L 295.00,510.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="360" y="491.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Redis Cache Cluster</tspan>
+  </text>
+  <path id="" d="M 125.00,470.00 C 125.00,462.02 255.00,462.02 255.00,470.00 C 255.00,477.98 125.00,477.98 125.00,470.00 L 125.00,504.00 C 125.00,511.98 255.00,511.98 255.00,504.00 C 255.00,496.02 125.00,496.02 125.00,504.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="190" y="491.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">User DB (PostgreSQL)</tspan>
+  </text>
+  <path id="" d="M 465.00,358.00 L 595.00,358.00 L 595.00,404.00 L 465.00,404.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="530" y="385.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">User Service</tspan>
+  </text>
+  <path id="" d="M 550.00,40.00 L 680.00,40.00 L 680.00,86.00 L 550.00,86.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="615" y="67.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">edge</tspan>
+  </text>
+  <path id="" d="M 720.00,40.00 L 850.00,40.00 L 850.00,86.00 L 720.00,86.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="785" y="67.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">node</tspan>
+  </text>
+  <path id="" d="M 898.00,40.00 L 1012.00,40.00 Q 1020.00,40.00 1020.00,48.00 L 1020.00,78.00 Q 1020.00,86.00 1012.00,86.00 L 898.00,86.00 Q 890.00,86.00 890.00,78.00 L 890.00,48.00 Q 890.00,40.00 898.00,40.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="955" y="67.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">rankdir</tspan>
+  </text>
+</svg>

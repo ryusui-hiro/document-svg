@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns" xmlns:y="http://www.yworks.com/xml/graphml">
+  <graph id="workflow" edgedefault="directed">
+    <node id="start">
+      <data key="d"><y:ShapeNode><y:NodeLabel>Start order</y:NodeLabel><y:Shape type="ellipse"/></y:ShapeNode></data>
+    </node>
+    <node id="review"><data key="d"><y:NodeLabel>Review</y:NodeLabel></data></node>
+    <node id="done"><data key="d"><y:NodeLabel>Complete</y:NodeLabel><y:Shape type="roundrectangle"/></data></node>
+    <edge id="e1" source="start" target="review"><data key="label">submit</data></edge>
+    <edge id="e2" source="review" target="done"><data key="label">approve</data></edge>
+  </graph>
+</graphml>

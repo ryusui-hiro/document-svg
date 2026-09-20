@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0"
+             xmlns:xlink="http://www.w3.org/1999/xlink">
+  <description>
+    <title-info>
+      <book-title>FictionBook Preview</book-title>
+      <author><first-name>Doc</first-name><last-name>SVG</last-name></author>
+    </title-info>
+  </description>
+  <body>
+    <section>
+      <title><p>Chapter One</p></title>
+      <p>A bounded FictionBook body with <strong>safe text</strong>.</p>
+      <image xlink:href="#red-blue.png" />
+      <p>After the embedded figure.</p>
+      <table>
+        <tr><th>Name</th><th>State</th></tr>
+        <tr><td>Preview</td><td>Ready</td></tr>
+      </table>
+    </section>
+  </body>
+  <body name="notes"><section><p>Notes are not part of the main flow.</p></section></body>
+  <binary id="red-blue.png" content-type="image/png">iVBORw0KGgoAAAANSUhEUgAAACAAAAAQCAIAAAD4YuoOAAAAIklEQVR4nGP4z8BAEiJR+X9SlY9aMGrBqAWjFoxaMCAWAABQpv4QX+h4RQAAAABJRU5ErkJggg==</binary>
+</FictionBook>

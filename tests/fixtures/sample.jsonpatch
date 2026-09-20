@@ -1,0 +1,8 @@
+[
+  {"op": "add", "path": "/metadata/owner", "value": "Alice"},
+  {"op": "replace", "path": "/config/retries", "value": 4},
+  {"op": "move", "from": "/old/name", "path": "/new/name"},
+  {"op": "copy", "from": "/labels/version", "path": "/metadata/version"},
+  {"op": "test", "path": "/status", "value": "very-secret"},
+  {"op": "remove", "path": "/temporary"}
+]

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Research feed</title>
+  <id>urn:uuid:private-feed</id>
+  <updated>2026-09-16T10:00:00Z</updated>
+  <link rel="self" href="https://private.example.invalid/atom" />
+  <entry>
+    <title>Paper one</title>
+    <id>urn:uuid:private-entry</id>
+    <updated>2026-09-16T09:00:00Z</updated>
+    <author><name>Researcher</name><email>author@private.example.invalid</email></author>
+    <link href="https://private.example.invalid/paper" />
+    <summary>private abstract</summary>
+  </entry>
+</feed>

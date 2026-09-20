@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alto xmlns="http://www.loc.gov/standards/alto/ns-v3#" VERSION="3.1">
+  <Description><MeasurementUnit>pixel</MeasurementUnit><sourceImageInformation><fileName>https://private.example.invalid/scan/page-001.jpg</fileName></sourceImageInformation></Description>
+  <Layout>
+    <Page ID="P1" PHYSICAL_IMG_NR="1" WIDTH="1200" HEIGHT="1600">
+      <PrintSpace HPOS="0" VPOS="0" WIDTH="1200" HEIGHT="1600">
+        <TextBlock ID="B1"><TextLine ID="L1"><String CONTENT="The" WC="0.99"/><SP/><String CONTENT="first" WC="0.95"/><SP/><String CONTENT="page" WC="0.88"/></TextLine></TextBlock>
+        <TextBlock ID="B2"><TextLine ID="L2"><String CONTENT="OCR" WC="0.75"/><SP/><String CONTENT="metadata" WC="0.91"/></TextLine></TextBlock>
+      </PrintSpace>
+    </Page>
+    <Page ID="P2" PHYSICAL_IMG_NR="2" WIDTH="1200" HEIGHT="1600">
+      <PrintSpace><TextBlock><TextLine><String CONTENT="Second" WC="0.97"/><SP/><String CONTENT="page" WC="0.96"/></TextLine></TextBlock></PrintSpace>
+    </Page>
+  </Layout>
+</alto>

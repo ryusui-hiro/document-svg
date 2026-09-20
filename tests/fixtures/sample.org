@@ -1,0 +1,34 @@
+#+TITLE: Org-mode Architecture Notes
+#+AUTHOR: Document Team
+#+OPTIONS: toc:nil
+
+* TODO Overview
+Org mode is a plain-text outline with *bold*, /emphasis/, =verbatim=, and
+[[https://example.invalid][external links]] that are shown as text only.
+
+* Components :preview:
+1. Parser
+2. Typesetter
+- Safe local assets
+
+** Implementation
+| Module | Status |
+|--------+--------|
+| Parser | Ready |
+| SVG | Ready |
+
+#+CAPTION: Local Org image caption
+#+ATTR_ORG: :width 96
+[[file:assets/red-blue.png]]
+
+#+BEGIN_SRC emacs-lisp
+(delete-file "/tmp/must-not-run")
+#+END_SRC
+
+#+BEGIN_EXPORT html
+<script>must-not-render()</script>
+#+END_EXPORT
+
+#+INCLUDE: "/etc/passwd"
+#+CALL: dangerous-block()
+

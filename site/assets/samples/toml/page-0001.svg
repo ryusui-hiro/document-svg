@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="595pt" height="842pt" viewBox="0 0 595 842" data-source-format="toml" data-source-page="1">
+  <title>TOML configuration</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":22,"warnings":["1 TOML float value(s) were normalized by numeric parsing; original spelling is not retained"]}</metadata>
+  <rect x="0" y="0" width="595" height="842" fill="#FFFFFF" data-role="page-background"/>
+  <path id="page_bg_1" d="M 0,0 h 595.00 v 842.00 h -595.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="none"/>
+  <text id="heading_1_1" x="54" y="96.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">TOML configuration</tspan>
+  </text>
+  <text id="p_1_2" x="54" y="127.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.created_at (datetime): 2026-08-03T17:20:00Z</tspan>
+  </text>
+  <text id="p_1_3" x="54" y="153.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.description (string): "Deploy the catalog API.\nConfiguration is shown as</tspan>
+  </text>
+  <text id="p_1_4" x="54" y="169.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">data and never executed."</tspan>
+  </text>
+  <text id="p_1_5" x="54" y="195.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.enabled (boolean): true</tspan>
+  </text>
+  <text id="p_1_6" x="54" y="221.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.retry_delays[0] (integer): 1</tspan>
+  </text>
+  <text id="p_1_7" x="54" y="247.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.retry_delays[1] (integer): 5</tspan>
+  </text>
+  <text id="p_1_8" x="54" y="273.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.retry_delays[2] (integer): 30</tspan>
+  </text>
+  <text id="p_1_9" x="54" y="299.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.service.limits.burst (integer): 50</tspan>
+  </text>
+  <text id="p_1_10" x="54" y="325.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.service.limits.error_rate (float): 0.25</tspan>
+  </text>
+  <text id="p_1_11" x="54" y="351.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.service.limits.requests_per_minute (integer): 1200</tspan>
+  </text>
+  <text id="p_1_12" x="54" y="377.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.service.listen (string): "127.0.0.1:8080"</tspan>
+  </text>
+  <text id="p_1_13" x="54" y="403.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.service.name (string): "catalog-api"</tspan>
+  </text>
+  <text id="p_1_14" x="54" y="429.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.service.public (boolean): false</tspan>
+  </text>
+  <text id="p_1_15" x="54" y="455.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.targets[0].name (string): "staging"</tspan>
+  </text>
+  <text id="p_1_16" x="54" y="481.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.targets[0].regions[0] (string): "us-west-2"</tspan>
+  </text>
+  <text id="p_1_17" x="54" y="507.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.targets[0].regions[1] (string): "eu-central-1"</tspan>
+  </text>
+  <text id="p_1_18" x="54" y="533.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.targets[1].name (string): "production"</tspan>
+  </text>
+  <text id="p_1_19" x="54" y="559.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.targets[1].regions[0] (string): "us-east-1"</tspan>
+  </text>
+  <text id="p_1_20" x="54" y="585.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.targets[1].regions[1] (string): "ap-northeast-1"</tspan>
+  </text>
+  <text id="p_1_21" x="54" y="611.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.title (string): "Catalog deployment"</tspan>
+  </text>
+</svg>

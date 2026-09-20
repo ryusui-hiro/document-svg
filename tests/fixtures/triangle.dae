@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <library_geometries><geometry id="triangle"><mesh>
+    <source id="positions"><float_array id="positions-array" count="9">0 0 0 100 0 0 0 100 0</float_array><technique_common><accessor source="#positions-array" count="3" stride="3"/></technique_common></source>
+    <vertices id="vertices"><input semantic="POSITION" source="#positions"/></vertices>
+    <triangles count="1"><input semantic="VERTEX" source="#vertices" offset="0"/><p>0 1 2</p></triangles>
+  </mesh></geometry></library_geometries>
+</COLLADA>

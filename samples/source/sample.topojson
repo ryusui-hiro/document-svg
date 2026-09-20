@@ -1,0 +1,130 @@
+{
+  "type": "Topology",
+  "transform": {
+    "scale": [
+      0.01,
+      0.01
+    ],
+    "translate": [
+      139.0,
+      35.0
+    ]
+  },
+  "objects": {
+    "districts": {
+      "type": "GeometryCollection",
+      "geometries": [
+        {
+          "type": "Polygon",
+          "arcs": [
+            [
+              0,
+              1,
+              2,
+              3
+            ]
+          ],
+          "properties": {
+            "name": "private west"
+          }
+        },
+        {
+          "type": "Polygon",
+          "arcs": [
+            [
+              4,
+              5,
+              6,
+              -2
+            ]
+          ],
+          "properties": {
+            "name": "private east"
+          }
+        }
+      ]
+    },
+    "stations": {
+      "type": "Point",
+      "coordinates": [
+        150,
+        50
+      ],
+      "properties": {
+        "name": "private station"
+      }
+    }
+  },
+  "arcs": [
+    [
+      [
+        0,
+        0
+      ],
+      [
+        100,
+        0
+      ]
+    ],
+    [
+      [
+        100,
+        0
+      ],
+      [
+        0,
+        100
+      ]
+    ],
+    [
+      [
+        100,
+        100
+      ],
+      [
+        -100,
+        0
+      ]
+    ],
+    [
+      [
+        0,
+        100
+      ],
+      [
+        0,
+        -100
+      ]
+    ],
+    [
+      [
+        100,
+        0
+      ],
+      [
+        100,
+        0
+      ]
+    ],
+    [
+      [
+        200,
+        0
+      ],
+      [
+        0,
+        100
+      ]
+    ],
+    [
+      [
+        200,
+        100
+      ],
+      [
+        -100,
+        0
+      ]
+    ]
+  ]
+}

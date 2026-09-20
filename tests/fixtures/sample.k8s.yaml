@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: prod
+  labels:
+    app: web
+  annotations:
+    example.invalid/note: safe text
+spec:
+  replicas: 2
+  selector: {}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: prod
+type: Opaque
+data:
+  password: c2VjcmV0
+stringData:
+  token: very-secret

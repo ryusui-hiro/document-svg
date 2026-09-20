@@ -1,0 +1,83 @@
+<mxfile host="document-svg" version="1.0">
+  <diagram id="flow" name="Conversion flow">
+    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" pageWidth="850" pageHeight="1100" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="intake" value="Upload document" style="ellipse;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="check" value="Supported<br>format?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="150" width="120" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="convert" value="Convert to SVG pages" style="rounded=1;whiteSpace=wrap;html=1;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="260" y="165" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="reject" value="Report unsupported input" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="20" y="300" width="200" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="store" value="conversion.json" style="shape=cylinder3;whiteSpace=wrap;html=1;size=12;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="290" y="300" width="120" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="yes" value="yes" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;" edge="1" parent="1" source="check" target="convert">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="no" value="no" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;" edge="1" parent="1" source="check" target="reject">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="start" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;" edge="1" parent="1" source="intake" target="check">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="record" value="warnings" style="html=1;curved=1;endArrow=open;" edge="1" parent="1" source="convert" target="store">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="lanes" name="Reader stages">
+    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" pageWidth="850" pageHeight="1100">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="lane" value="Reader" style="swimlane;html=1;startSize=26;fillColor=#E1D5E7;strokeColor=#9673A6;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="380" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="parse" value="Parse" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane">
+          <mxGeometry x="30" y="50" width="120" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="layout" value="Build page IR" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="lane">
+          <mxGeometry x="210" y="50" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="writer" value="SVG writer" style="shape=process;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="130" y="220" width="180" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="step" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;" edge="1" parent="1" source="parse" target="layout">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="emit" value="one page" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;" edge="1" parent="1" source="layout" target="writer">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="shapes" name="Shape libraries">
+    <mxGraphModel dx="900" dy="700" grid="1" gridSize="10" pageWidth="850" pageHeight="1100">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="gauge" value="From a library" style="shape=mxgraph.docsvg.gauge;html=1;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="100" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="tray" value="Also from a library" style="shape=mxgraph.docsvg.tray;html=1;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="200" y="60" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="inline" value="Carried by this file" style="shape=stencil(fZBBEoMgDEVPw15hegJr74GYloyUOEC1vX1h4rTiwg2Tl/x8/kSoLlo9g5CNFeoqpGyb/GRca9RxBpO4t+iAenDAk5gCTbDimDYH9BYCpjJVvVCdIe/zLpKPQt64N2gzPQK9/Mg867JdqictJc2bvbbfP1WYzcOh3ykvlfJE2J55GkcRfpSLf7AMx9R3ClAxOsfn2FscVbnFN1f9Fw==);html=1;verticalLabelPosition=bottom;verticalAlign=top;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="420" y="60" width="100" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="The first two need --stencils; the third needs nothing." style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="480" height="30" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

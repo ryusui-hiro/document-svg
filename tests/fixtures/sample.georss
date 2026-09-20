@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:georss="http://www.georss.org/georss" xmlns:gml="http://www.opengis.net/gml">
+  <channel>
+    <title>Harbor alerts</title>
+    <link>https://example.invalid/feed</link>
+    <item>
+      <title>Beacon</title>
+      <link>https://example.invalid/beacon</link>
+      <georss:point>37.422, -122.082</georss:point>
+      <georss:elev>12</georss:elev>
+    </item>
+    <item>
+      <title>Coastal route</title>
+      <georss:line>37.410 -122.090, 37.420 -122.080</georss:line>
+    </item>
+    <item>
+      <title>Park boundary</title>
+      <georss:polygon>37.400 -122.100 37.400 -122.060 37.440 -122.060 37.440 -122.100 37.400 -122.100</georss:polygon>
+    </item>
+    <item>
+      <title>Alert area</title>
+      <georss:box>37.400 -122.070, 37.420 -122.050</georss:box>
+    </item>
+    <item>
+      <title>GeoRSS GML point</title>
+      <georss:where><gml:Point srsDimension="3"><gml:pos>37.4 -122.1 12</gml:pos></gml:Point></georss:where>
+    </item>
+    <item>
+      <title>GML envelope box</title>
+      <georss:where><gml:Envelope srsName="CRS:84"><gml:lowerCorner>-122.07 37.41</gml:lowerCorner><gml:upperCorner>-122.05 37.43</gml:upperCorner></gml:Envelope></georss:where>
+    </item>
+    <item>
+      <title>Unsupported GML curve</title>
+      <georss:where><gml:Curve/></georss:where>
+    </item>
+  </channel>
+</rss>

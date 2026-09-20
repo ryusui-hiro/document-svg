@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<topic id="intro" xml:lang="en" xmlns="http://dita.oasis-open.org/architecture/1.3/">
+  <title>DITA Preview</title>
+  <shortdesc>A safe technical topic preview.</shortdesc>
+  <body>
+    <section>
+      <title>Overview</title>
+      <p>DITA topics are modular and reusable <b>technical content</b>.</p>
+      <ul><li>First topic item</li><li>Second topic item</li></ul>
+      <ol><li>Ordered topic item</li></ol>
+      <codeblock>echo "safe source"
+never executed</codeblock>
+      <fig>
+        <title>Color figure</title>
+        <image href="assets/red-blue.png" alt="red and blue"/>
+      </fig>
+      <simpletable>
+        <sthead><strow><stentry>Name</stentry><stentry>Value</stentry></strow></sthead>
+        <strow><stentry>Ready</stentry><stentry>Yes</stentry></strow>
+      </simpletable>
+    </section>
+  </body>
+</topic>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<JDF xmlns="http://www.CIP4.org/JDFSchema_1_1" Version="1.8" Type="Product" Status="Waiting" ID="private-job">
+  <NodeInfo NodeID="private-node"/>
+  <ResourcePool>
+    <Component ID="component-1" Amount="100"/>
+    <Media ID="media-1" Brand="Private brand"/>
+    <RunList ID="runlist-1"><LayoutElement>private-layout</LayoutElement></RunList>
+  </ResourcePool>
+  <ResourceLinkPool><ComponentLink rRef="component-1"/></ResourceLinkPool>
+  <JDF Type="DigitalPrinting" Status="Ready" ID="process-private">
+    <Device DeviceID="private-device"/>
+    <FileSpec URL="https://private.example.invalid/job.pdf"/>
+  </JDF>
+  <Audit><Created TimeStamp="2026-09-17T10:00:00"/></Audit>
+</JDF>

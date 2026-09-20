@@ -18,6 +18,7 @@ doctest = false
 document-svg = { path = "../.." }
 pyo3 = { version = "0.29.2", features = ["abi3-py310", "extension-module"] }
 serde_json = "1.0.151"
+tempfile = "3.27.0"
 
 [lints.rust]
 unsafe_code = "forbid"

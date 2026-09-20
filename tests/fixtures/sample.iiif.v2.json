@@ -1,0 +1,17 @@
+{
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://private.example.invalid/iiif/v2/manifest",
+  "@type": "sc:Manifest",
+  "label": "Legacy presentation",
+  "sequences": [{
+    "@type": "sc:Sequence",
+    "canvases": [{
+      "@id": "https://private.example.invalid/canvas/legacy-1",
+      "@type": "sc:Canvas",
+      "label": "Legacy page",
+      "width": 800,
+      "height": 600,
+      "images": [{"@type": "oa:Annotation", "motivation": "sc:painting", "resource": {"@id": "https://private.example.invalid/image/full/full/0/default.jpg", "@type": "dctypes:Image"}}]
+    }]
+  }]
+}

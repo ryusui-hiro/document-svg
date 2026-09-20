@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QIFDocument xmlns="http://qifstandards.org/xsd/qif3" version="3.0">
+  <Header><FileVersion>3.0</FileVersion></Header>
+  <Product id="product-private"><ProductId>PRIVATE-PRODUCT</ProductId></Product>
+  <ProductDefinition id="definition-1"/>
+  <MeasurementPlan id="plan-1"/>
+  <MeasurementResults id="results-1">
+    <MeasuredFeatures><FeatureMeasurement id="feature-1"><MeasuredValue>PRIVATE-MEASURED-VALUE</MeasuredValue></FeatureMeasurement></MeasuredFeatures>
+    <ExternalFileReferences><ExternalFileReference>https://private.example.invalid/photo.png</ExternalFileReference></ExternalFileReferences>
+  </MeasurementResults>
+  <CharacteristicDefinition id="char-1"/>
+  <Datum id="datum-1"/>
+  <InspectionTraceability id="trace-1"/>
+</QIFDocument>

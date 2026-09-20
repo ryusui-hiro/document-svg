@@ -1,0 +1,56 @@
+name: Document preview
+description: Convert the PDF and Office files changed by a pull request into reviewable SVG pages.
+author: document-svg contributors
+branding:
+  icon: image
+  color: blue
+inputs:
+  base:
+    description: Base revision of the comparison.
+    required: true
+  head:
+    description: Head revision of the comparison.
+    required: false
+    default: HEAD
+  output:
+    description: Directory that receives one SVG page directory per document.
+    required: false
+    default: document-svg-preview
+  summary:
+    description: Path of the generated markdown report.
+    required: false
+    default: preview-report.md
+  max-documents:
+    description: Maximum number of changed documents to convert.
+    required: false
+    default: '20'
+  docsvg:
+    description: docsvg executable to use.
+    required: false
+    default: docsvg
+outputs:
+  report:
+    description: Path of the generated markdown report.
+    value: ${{ inputs.summary }}
+  document-count:
+    description: Number of converted documents.
+    value: ${{ steps.convert.outputs.document-count }}
+runs:
+  using: composite
+  steps:
+    - id: convert
+      shell: bash
+      env:
+        PREVIEW_BASE: ${{ inputs.base }}
+        PREVIEW_HEAD: ${{ inputs.head }}
+        PREVIEW_OUTPUT: ${{ inputs.output }}
+        PREVIEW_SUMMARY: ${{ inputs.summary }}
+        PREVIEW_MAX: ${{ inputs.max-documents }}
+        DOCSVG_BIN: ${{ inputs.docsvg }}
+      run: |
+        python3 "$GITHUB_ACTION_PATH/../../../scripts/preview-changed-documents.py" \
+          --base "$PREVIEW_BASE" \
+          --head "$PREVIEW_HEAD" \
+          --output "$PREVIEW_OUTPUT" \
+          --summary "$PREVIEW_SUMMARY" \
+          --max-documents "$PREVIEW_MAX"

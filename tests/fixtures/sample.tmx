@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tmx version="1.4">
+  <header creationtool="demo" srclang="en"/>
+  <body>
+    <tu tuid="secret-1">
+      <tuv xml:lang="en"><seg>Hello world</seg></tuv>
+      <tuv xml:lang="ja"><seg>こんにちは世界</seg></tuv>
+      <note>private note</note>
+    </tu>
+    <tu>
+      <tuv xml:lang="en"><seg>Second source</seg></tuv>
+      <tuv xml:lang="de"><seg>Zweite Quelle</seg></tuv>
+    </tu>
+  </body>
+</tmx>
+

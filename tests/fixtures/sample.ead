@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ead xmlns="urn:isbn:1-931666-22-9" audience="external">
+  <eadheader><eadid identifier="private-finding-aid">MS-001</eadid><filedesc><titlestmt><titleproper>Example Finding Aid</titleproper></titlestmt></filedesc></eadheader>
+  <archdesc level="collection"><did><repository>Example Archive</repository><unittitle>Private Research Papers</unittitle><unitdate normal="1900/1950">1900-1950</unitdate><unitid>COLL-001</unitid></did>
+    <scopecontent><p>private scope description</p></scopecontent>
+    <dao href="https://private.example.invalid/digital/root" />
+    <dsc>
+      <c01 level="series"><did><unittitle>Series One</unittitle><unitdate>1900-1920</unitdate></did><arrangement><p>Letters and notes</p></arrangement>
+        <c02 level="file"><did><unittitle>Correspondence</unittitle><unitdate>1910</unitdate><unitid>FILE-001</unitid></did><dao href="https://private.example.invalid/digital/file" /></c02>
+      </c01>
+      <c01 level="series"><did><unittitle>Series Two</unittitle></did></c01>
+    </dsc>
+  </archdesc>
+</ead>

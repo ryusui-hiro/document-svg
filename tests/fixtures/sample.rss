@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:georss="http://www.georss.org/georss">
+  <channel>
+    <title>Engineering updates</title>
+    <link>https://private.example.invalid/engineering</link>
+    <description>private channel description</description>
+    <lastBuildDate>Wed, 16 Sep 2026 10:00:00 GMT</lastBuildDate>
+    <item>
+      <title>Release 1.2</title>
+      <link>https://private.example.invalid/releases/1.2</link>
+      <guid>release-1.2</guid>
+      <pubDate>Wed, 16 Sep 2026 09:00:00 GMT</pubDate>
+      <author>owner@private.example.invalid</author>
+      <description>private article body</description>
+      <content:encoded><![CDATA[<script>alert('secret')</script><p>private HTML</p>]]></content:encoded>
+      <enclosure url="https://private.example.invalid/releases/1.2.tar.gz" length="42" type="application/gzip" />
+    </item>
+    <item>
+      <title>Maintenance window</title>
+      <pubDate>Tue, 15 Sep 2026 08:00:00 GMT</pubDate>
+      <description>maintenance details</description>
+    </item>
+  </channel>
+</rss>

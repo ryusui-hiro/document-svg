@@ -1,0 +1,16 @@
+data_demo
+_cell.length_a 10
+loop_
+_atom_site.group_PDB
+_atom_site.id
+_atom_site.type_symbol
+_atom_site.label_atom_id
+_atom_site.label_alt_id
+_atom_site.Cartn_x
+_atom_site.Cartn_y
+_atom_site.Cartn_z
+_atom_site.pdbx_PDB_model_num
+ATOM 1 C CA . 0.000 0.000 0.000 1
+ATOM 2 O O . 100.000 0.000 0.000 1
+ATOM 3 N N . 0.000 100.000 0.000 2
+#

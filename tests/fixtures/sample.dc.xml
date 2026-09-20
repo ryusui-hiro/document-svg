@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <dc:title>A Safe Dublin Core Record</dc:title>
+  <dc:creator>Example Author</dc:creator>
+  <dc:subject>Document conversion</dc:subject>
+  <dc:subject>Digital preservation</dc:subject>
+  <dc:publisher>Example Press</dc:publisher>
+  <dc:date>2026-09-16</dc:date>
+  <dc:type>Text</dc:type>
+  <dc:format>application/xml</dc:format>
+  <dc:language>en</dc:language>
+  <dc:identifier>https://private.example.invalid/record/001</dc:identifier>
+  <dc:relation>https://private.example.invalid/related</dc:relation>
+  <dc:rights>private rights text</dc:rights>
+  <dc:description>private description payload</dc:description>
+</oai_dc:dc>

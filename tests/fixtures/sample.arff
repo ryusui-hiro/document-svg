@@ -1,0 +1,8 @@
+% Small Weka-style dataset used by conversion tests.
+@relation weather
+@attribute outlook {sunny,overcast,rainy}
+@attribute temperature numeric
+@attribute play {yes,no}
+@data
+sunny,25,yes
+{1 18, 2 no}

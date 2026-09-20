@@ -1,0 +1,12 @@
+{
+  "specversion": "1.0",
+  "type": "com.example.order.created",
+  "source": "https://events.example.invalid/orders?token=very-secret&tenant=private",
+  "id": "evt-123",
+  "time": "2024-05-12T10:00:00Z",
+  "subject": "orders/42",
+  "datacontenttype": "application/json",
+  "dataschema": "https://schema.example.invalid/order.json",
+  "traceparent": "00-very-secret",
+  "data": {"order_id": 42, "customer": "private customer"}
+}

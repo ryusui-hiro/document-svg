@@ -1,0 +1,20 @@
+{
+  "@context": {
+    "name": "https://schema.org/name",
+    "author": "https://schema.org/author"
+  },
+  "@graph": [
+    {
+      "@id": "urn:book:1",
+      "@type": "Book",
+      "name": "A bounded JSON-LD title",
+      "author": {"@id": "urn:person:1"}
+    },
+    {
+      "@id": "urn:graph:1",
+      "@graph": [
+        {"@id": "urn:book:2", "name": {"@value": "Deux", "@language": "fr"}}
+      ]
+    }
+  ]
+}

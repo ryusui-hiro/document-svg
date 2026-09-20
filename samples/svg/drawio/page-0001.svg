@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="330pt" height="262.5pt" viewBox="0 0 330 262.5" data-source-format="drawio" data-source-page="1">
+  <title>Conversion flow</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":1,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="330" height="262.5" fill="#FFFFFF" data-role="page-background"/>
+  <g id="drawio-page" transform="matrix(0.75 0 0 0.75 -7.5 -22.5)" opacity="1" data-content-kind="drawio-page">
+    <path id="drawio-background" d="M 10 30 H 450 V 380 H 10 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFFFFF" fill-opacity="1" stroke="none" data-content-kind="drawio-background"/>
+    <path id="drawio-intake" d="M 40 70 A 80 30 0 1 0 200 70 A 80 30 0 1 0 40 70 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#D5E8D4" fill-opacity="1" stroke="#82B366" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="intake" data-semantic-role="ellipse"/>
+    <text id="drawio-intake-label-0" x="120" y="73.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="intake">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Upload document</tspan>
+    </text>
+    <path id="drawio-check" d="M 120 150 L 180 195 L 120 240 L 60 195 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFF2CC" fill-opacity="1" stroke="#D6B656" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="check" data-semantic-role="rhombus"/>
+    <text id="drawio-check-label-0" x="120" y="191.4" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="check">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Supported</tspan>
+    </text>
+    <text id="drawio-check-label-1" x="120" y="205.8" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="check">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">format?</tspan>
+    </text>
+    <path id="drawio-convert-shadow" d="M 269 165 H 431 A 9 9 0 0 1 440 174 V 216 A 9 9 0 0 1 431 225 H 269 A 9 9 0 0 1 260 216 V 174 A 9 9 0 0 1 269 165 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 2 3)" fill="#808080" fill-opacity="1" stroke="#808080" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shadow"/>
+    <path id="drawio-convert" d="M 269 165 H 431 A 9 9 0 0 1 440 174 V 216 A 9 9 0 0 1 431 225 H 269 A 9 9 0 0 1 260 216 V 174 A 9 9 0 0 1 269 165 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FFFFFF" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="convert" data-semantic-role="rectangle"/>
+    <text id="drawio-convert-label-0" x="350" y="198.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="convert">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Convert to SVG pages</tspan>
+    </text>
+    <path id="drawio-reject" d="M 29 300 H 211 A 9 9 0 0 1 220 309 V 351 A 9 9 0 0 1 211 360 H 29 A 9 9 0 0 1 20 351 V 309 A 9 9 0 0 1 29 300 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#F8CECC" fill-opacity="1" stroke="#B85450" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="reject" data-semantic-role="rectangle"/>
+    <text id="drawio-reject-label-0" x="120" y="333.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="reject">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">Report unsupported input</tspan>
+    </text>
+    <path id="drawio-store" d="M 290 312 A 60 12 0 0 1 410 312 L 410 358 A 60 12 0 0 1 290 358 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#DAE8FC" fill-opacity="1" stroke="#6C8EBF" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape" data-source-id="store" data-semantic-role="cylinder"/>
+    <path id="drawio-store-detail-0" d="M 290 312 A 60 12 0 0 0 410 312" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#6C8EBF" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-shape-detail" data-source-id="store" data-semantic-role="cylinder"/>
+    <text id="drawio-store-label-0" x="350" y="338.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="store">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">conversion.json</tspan>
+    </text>
+    <path id="drawio-yes" d="M 180 195 L 254.75 195" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" data-content-kind="drawio-edge" data-source-id="yes"/>
+    <path id="drawio-yes-end-0" d="M 260 195 L 253 198.5 L 254.75 195 L 253 191.5 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#000000" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-edge-marker" data-source-id="yes"/>
+    <text id="drawio-yes-label-0" x="220" y="198.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="yes">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">yes</tspan>
+    </text>
+    <path id="drawio-no" d="M 120 240 L 120 294.75" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="round" stroke-miterlimit="4" stroke-dasharray="3 3" stroke-dashoffset="0" data-content-kind="drawio-edge" data-source-id="no"/>
+    <path id="drawio-no-end-0" d="M 120 300 L 116.5 293 L 120 294.75 L 123.5 293 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#000000" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-edge-marker" data-source-id="no"/>
+    <text id="drawio-no-label-0" x="120" y="273.6" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="no">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">no</tspan>
+    </text>
+    <path id="drawio-start" d="M 120 100 L 120 144.75" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" data-content-kind="drawio-edge" data-source-id="start"/>
+    <path id="drawio-start-end-0" d="M 120 150 L 116.5 143 L 120 144.75 L 123.5 143 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#000000" fill-opacity="1" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-edge-marker" data-source-id="start"/>
+    <path id="drawio-record" d="M 350 225 L 350 300" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" data-content-kind="drawio-edge" data-source-id="record"/>
+    <path id="drawio-record-end-0" d="M 346.5 293 L 350 300 L 353.5 293" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="4" data-content-kind="drawio-edge-marker" data-source-id="record"/>
+    <text id="drawio-record-label-0" x="350" y="266.1" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-content-kind="drawio-label" data-source-id="record">
+      <tspan xml:space="preserve" font-family="Helvetica, Arial, &apos;Hiragino Sans&apos;, &apos;Yu Gothic&apos;, sans-serif" font-size="12" font-weight="400" font-style="normal" baseline-shift="0" fill="#000000" fill-opacity="1">warnings</tspan>
+    </text>
+  </g>
+</svg>

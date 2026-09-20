@@ -2,17 +2,28 @@
 
 [日本語](preview.ja.md) · [English](preview.en.md) · [简体中文](preview.zh-CN.md)
 
-`document-svg` is a Node.js module that turns PDF, PowerPoint, Excel, and Word files into page-by-page SVG previews. Its Rust-native conversion runs on a Node.js worker, so it does not block the event loop.
+`document-svg` is a Node.js module that turns supported PDF, Office/OpenDocument/Visio (`.vsdx`, `.vsdm`, `.vstx`, `.vstm`, `.vdx`), iCalendar (`.ics`), legacy vCalendar (`.vcs`), vCard contacts (`.vcf`, `.vcard`), MIME e-mail (`.eml`), Apple Mail messages (`.emlx`), Outlook messages (`.msg`), MBOX archives (`.mbox`), MHTML web archives (`.mht`, `.mhtml`), DocBook 4/5 (`.dbk`, `.docbook`), DITA topics/maps (`.dita`, `.ditamap`), PDB coordinate models (`.pdb`, `.ent`), HWPX (`.hwpx`), COLLADA (`.dae`), X3D (`.x3d`), XMind (`.xmind`), NIfTI (`.nii`, `.nii.gz`), FITS (`.fits`, `.fit`, `.fts`, `.fits.gz`), MRC (`.mrc`, `.map`, `.mrc.gz`), SQLite (`.sqlite`, `.sqlite3`, `.db`), mmCIF/PDBx (`.cif`, `.mmcif`), MOL2 (`.mol2`), RDF Turtle (`.ttl`, `.nt`, `.nq`), EPS/PostScript (`.eps`, `.ps`), DICOM medical images (`.dcm`, `.dicom`), Jupyter notebooks, Quarto/R Markdown, reStructuredText (`.rst`, `.rest`), Org-mode (`.org`), GNU gettext catalogs (`.po`, `.pot`), BibTeX bibliographies (`.bib`, `.bibtex`), web/text, ARFF datasets (`.arff`), JSON-LD 1.1 (`.jsonld`, `.json-ld`), NetCDF classic (`.nc`, `.nc3`, `.cdf`), GraphML (`.graphml`), GEXF (`.gexf`), XGMML (`.xgmml`), Graph Modeling Language (`.gml`), CSV/TSV tables, TOML configuration (`.toml`), YAML 1.2 configuration (`.yaml`, `.yml`), generic XML (`.xml` fallback), Java Properties (`.properties`), BPMN 2.0 (`.bpmn`, `.bpmn2`), CMMN case plans (`.cmmn`), DMN decision tables (`.dmn`), ReqIF requirements (`.reqif`), XMI models (`.xmi`), diagram, CAD, simulation, glTF/GLB, raster PNG/JPEG/BMP/GIF/WebP, CBZ comic archives, standalone JPEG 2000 (`.jp2`, `.j2k`, `.j2c`, `.jpc`, `.jpx`), multi-page TIFF/BigTIFF, OFF polygon meshes, ASCII XYZ, PCL PCD, ASTM E57, Leica PTS/PTX and ASPRS LAS/LAZ point clouds, Abaqus, LS-DYNA, MEDIT ASCII/binary and Nastran mesh decks, GeoJSON, GeoRSS, GML, GPX, KML/KMZ, ESRI Shapefile, dBASE III/III+ tables, and WKT/EWKT maps into page-by-page SVG previews. Its Rust-native conversion runs on a Node.js worker, so it does not block the event loop.
+
+DICOMDIR media directories (`DICOMDIR` or `.dicomdir`) follow directory-record offsets and resolve File IDs only inside the DICOMDIR folder.
+
+BCFZIP issue packages (`.bcfzip`) render buildingSMART project/topic metadata and bounded markup counts. Snapshot images, IFC/model payloads, document URLs and collaboration actions remain inert; package entries are never executed or dereferenced.
+
+Flat OPC packages (`.flatopc`, `.fopc`, `.flatopc.xml`) are validated and reconstructed in memory before using the existing DOCX/XLSX/PPTX renderers. Macros, external relationships, URLs, active content and filesystem extraction remain inert.
+
+AASX packages (`.aasx`) render bounded Asset Administration Shell relationship and specification metadata. Supplementary CAD/manual files, identifiers, values, URLs, signatures and encryption material remain inert.
 
 ## What it can do
 
-- Convert PDF, PPTX, XLSX, and DOCX files into complete SVG strings, one per page
+- Convert supported inputs such as PDF, legacy Word Binary `.doc`/`.dot`, text-only legacy PowerPoint Binary `.ppt`, legacy Excel `.xls` and Excel Binary Workbook `.xlsb`, PPTX, XLSX, DOCX, Flat OPC (`.flatopc`, `.fopc`, `.flatopc.xml`), AASX (`.aasx`), OpenSCAD (`.scad`), AMF (`.amf`), PLMXML (`.plmxml`, `.plm.xml`), STEP-XML (`.stepxml`, `.stpx`), QIF (`.qif`, `.qif.xml`), B2MML/JDF/XJDF (`.b2mml`, `.jdf`, `.xjdf`), CDA/CCD (`.cda`, `.cda.xml`), ISO 20022 (`.iso20022.xml`), SBML (`.sbml`), CellML (`.cellml`), OCEL XML (`.xmlocel`), EnergyPlus IDF/EPW (`.idf`, `.epw`), RINEX (`.rnx`, `.obs`, `.nav`) and ACIS SAT (`.sat`), TMX/TBX (`.tmx`, `.tbx`), gbXML (`.gbxml`), FHIR XML (`.fhir.xml`) and Adobe IDML (`.idml`), ODT/ODS, Visio `.vsdx`/`.vsdm`/`.vstx`/`.vstm` and `.vdx`, iCalendar `.ics`, vCalendar `.vcs`, vCard `.vcf`/`.vcard`, EML `.eml`, Apple Mail `.emlx`, Outlook `.msg`, MBOX `.mbox`, MHTML `.mht`/`.mhtml`, HTML, DocBook 4/5 `.dbk`/`.docbook`, EPUB, Jupyter `.ipynb`, Quarto `.qmd`, R Markdown `.Rmd`, reStructuredText `.rst`/`.rest`, Org-mode `.org`, GNU gettext `.po`/`.pot`, BibTeX `.bib`/`.bibtex`, raster PNG/JPEG/BMP/GIF/WebP, CBZ comic archives, multi-page TIFF/BigTIFF, glTF/GLB `.gltf`/`.glb`, OFF `.off`, IFC4 BIM `.ifc`/`.ifczip`, buildingSMART BCFZIP `.bcfzip`, KiCad PCB `.kicad_pcb`, ASCII XYZ, ASTM E57 and Leica PTS/PTX point clouds, Abaqus `.inp`, LS-DYNA `.k`/`.key`, MEDIT `.mesh`/`.meshb`, Nastran `.bdf`/`.nas`, SU2 CFD `.su2`, OpenFOAM `.foam`, draw.io, quoted CSV/TSV tables, ESRI ASCII Grid rasters (`.asc`), dBASE III/III+ tables (`.dbf`), GeoJSON/GeoRSS/GML/GPX/KML/KMZ, WKT/EWKT maps, VTK and CAD files into complete SVG strings, one per page
 - Produce in-memory previews without retaining output files
 - Run in Node.js servers, Electron main processes, and server-side TypeScript
 - Create Blob URLs or Data URLs for an `<img>`
 - Copy an SVG image or its exact XML source to the clipboard
 - Surface conversion warnings through `needsReview`
 - Package SVG pages into PPTX, DOCX, or XLSX as vector images
+
+For Jupyter notebooks, the preview displays stored code and saved outputs; it never starts a kernel or runs notebook code.
+Quarto and R Markdown source chunks are also displayed without evaluating code or YAML execution options.
 
 This is not a browser-only WASM converter. Run document conversion in Node.js and use only `document-svg/preview-ui` in a renderer or browser context.
 

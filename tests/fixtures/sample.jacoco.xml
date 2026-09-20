@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<report name="Preview JaCoCo">
+  <sessioninfo id="private-session" start="1" dump="2"/>
+  <package name="com/example/app">
+    <class name="com/example/app/App" sourcefilename="App.java">
+      <method name="main" desc="([Ljava/lang/String;)V" line="10"><counter type="INSTRUCTION" missed="1" covered="4"/></method>
+      <counter type="METHOD" missed="1" covered="3"/>
+    </class>
+    <sourcefile name="private-source.java"><line nr="10" mi="0" ci="4" mb="0" cb="1"/></sourcefile>
+    <counter type="LINE" missed="2" covered="5"/>
+    <counter type="BRANCH" missed="1" covered="3"/>
+    <counter type="METHOD" missed="1" covered="3"/>
+  </package>
+  <package name="com/example/unused">
+    <class name="com/example/unused/Unused" sourcefilename="Unused.java"/>
+    <counter type="LINE" missed="10" covered="0"/>
+    <counter type="BRANCH" missed="0" covered="0"/>
+    <counter type="METHOD" missed="2" covered="0"/>
+  </package>
+</report>

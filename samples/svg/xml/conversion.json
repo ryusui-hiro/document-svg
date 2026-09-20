@@ -1,0 +1,30 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.project.xml",
+  "source_format": "projectxml",
+  "output_directory": "samples/svg/xml",
+  "elapsed_ms": 0,
+  "input_bytes": 1997,
+  "page_count": 1,
+  "largest_page_ir_bytes": 29231,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 792.0,
+      "height_points": 612.0,
+      "node_count": 46,
+      "warning_count": 2,
+      "warnings": [
+        "tasks without both Start and Finish dates are shown without a schedule bar",
+        "predecessor relationships are drawn as simple arrows; calendars, lag, and dependency types are not recalculated"
+      ],
+      "estimated_ir_bytes": 29231
+    }
+  ],
+  "warnings": [
+    "tasks without both Start and Finish dates are shown without a schedule bar",
+    "predecessor relationships are drawn as simple arrows; calendars, lag, and dependency types are not recalculated"
+  ]
+}

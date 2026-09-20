@@ -3,11 +3,28 @@ use std::fs;
 use document_svg::{
     ConversionReport as CoreConversionReport, ConvertOptions as CoreConvertOptions,
     PageReport as CorePageReport, ReverseOptions as CoreReverseOptions,
-    ReverseReport as CoreReverseReport,
+    ReverseReport as CoreReverseReport, SourceFormat,
 };
 use napi::bindgen_prelude::{AsyncTask, Result, Task};
 use napi::{Env, Error, Status};
 use napi_derive::napi;
+
+fn source_format_name(source_format: SourceFormat) -> String {
+    match source_format {
+        SourceFormat::ProjectXml => "projectxml".into(),
+        SourceFormat::Properties => "properties".into(),
+        SourceFormat::KicadPcb => "kicad_pcb".into(),
+        SourceFormat::KicadSchLegacy => "kicad_sch_legacy".into(),
+        SourceFormat::KicadSch => "kicad_sch".into(),
+        SourceFormat::LtspiceAsc => "ltspice_asc".into(),
+        SourceFormat::EagleSch => "eagle_sch".into(),
+        SourceFormat::Ifc => "ifc".into(),
+        SourceFormat::EsriAsciiGrid => "esri_ascii_grid".into(),
+        SourceFormat::Iso19115 => "iso19115".into(),
+        SourceFormat::DicomSr => "dicom-sr".into(),
+        other => other.to_string().to_ascii_lowercase(),
+    }
+}
 
 #[napi(object)]
 pub struct ConvertOptions {
@@ -19,12 +36,25 @@ pub struct ConvertOptions {
     pub precision: Option<f64>,
     pub jobs: Option<f64>,
     pub outline_embedded_pdf_text: Option<bool>,
+    pub embed_drawio_source: Option<bool>,
+    pub stencil_paths: Option<Vec<String>>,
 }
 
 #[napi(object)]
 pub struct ReverseOptions {
     pub max_input_bytes: Option<f64>,
     pub max_pages: Option<f64>,
+}
+
+#[napi(object)]
+pub struct TransformOptions {
+    pub minify: Option<bool>,
+    pub monochrome: Option<String>,
+    pub responsive: Option<bool>,
+    pub precision: Option<f64>,
+    pub remove_metadata: Option<bool>,
+    pub clean_paths: Option<bool>,
+    pub strip_empty_groups: Option<bool>,
 }
 
 /// Options for an in-memory SVG preview.
@@ -41,6 +71,8 @@ pub struct PreviewOptions {
     pub precision: Option<f64>,
     pub jobs: Option<f64>,
     pub outline_embedded_pdf_text: Option<bool>,
+    pub embed_drawio_source: Option<bool>,
+    pub stencil_paths: Option<Vec<String>>,
     /// Maximum UTF-8 byte length of one returned SVG. Default: 64 MiB.
     pub max_svg_bytes: Option<f64>,
     /// Maximum UTF-8 byte length of all returned SVG pages. Default: 256 MiB.
@@ -218,7 +250,7 @@ impl Task for ReverseTask {
     type JsValue = ReverseReport;
 
     fn compute(&mut self) -> Result<Self::Output> {
-        document_svg::svg_to_openxml(&self.input_path, &self.output_path, &self.options)
+        document_svg::svg_to_document(&self.input_path, &self.output_path, &self.options)
             .map_err(document_error)
     }
 
@@ -244,9 +276,9 @@ pub fn convert(
     }))
 }
 
-/// Package one SVG or a directory of SVG pages as PPTX, DOCX, or XLSX.
+/// Package one SVG or a directory of SVG pages as PPTX, DOCX, XLSX, draw.io, or CAD (DXF, G-code, Gerber, HP-GL).
 ///
-/// SVG pages remain vector images; Office semantic structure is not reconstructed.
+/// SVG pages remain vector images/geometry; Office semantic structure is not reconstructed.
 #[napi]
 pub fn reverse(
     input_path: String,
@@ -264,7 +296,7 @@ pub fn reverse(
     }))
 }
 
-/// Convert a PDF/PPTX/XLSX/DOCX file and return complete SVG markup for UI
+/// Convert a PDF/PPTX/XLSX/DOCX/drawio file and return complete SVG markup for UI
 /// preview without leaving output files behind.
 ///
 /// This runs on a libuv worker. It is intended for Node.js, Electron main
@@ -285,6 +317,36 @@ pub fn preview(
         PreviewConfig::try_from,
     )?;
     Ok(AsyncTask::new(PreviewTask { input_path, config }))
+}
+
+/// Transform and optimize an SVG string (minify, monochrome, responsive scaling, precision rounding, and metadata stripping).
+#[napi]
+pub fn transform(svg: String, options: Option<TransformOptions>) -> Result<String> {
+    let opts = options.unwrap_or(TransformOptions {
+        minify: None,
+        monochrome: None,
+        responsive: None,
+        precision: None,
+        remove_metadata: None,
+        clean_paths: None,
+        strip_empty_groups: None,
+    });
+    let core_options = document_svg::TransformOptions {
+        minify: opts.minify.unwrap_or(false),
+        monochrome: opts.monochrome,
+        responsive: opts.responsive.unwrap_or(false),
+        precision: opts.precision.map(|p| p as usize),
+        remove_metadata: opts.remove_metadata.unwrap_or(false),
+        clean_paths: opts.clean_paths.unwrap_or(false),
+        strip_empty_groups: opts.strip_empty_groups.unwrap_or(false),
+    };
+    let res = document_svg::transform_svg(svg.as_bytes(), &core_options).map_err(document_error)?;
+    String::from_utf8(res).map_err(|e| {
+        Error::new(
+            Status::GenericFailure,
+            format!("transformed SVG is not valid UTF-8: {e}"),
+        )
+    })
 }
 
 impl TryFrom<ConvertOptions> for CoreConvertOptions {
@@ -315,6 +377,12 @@ impl TryFrom<ConvertOptions> for CoreConvertOptions {
         }
         if let Some(outline) = value.outline_embedded_pdf_text {
             options.outline_embedded_pdf_text = outline;
+        }
+        if let Some(embed) = value.embed_drawio_source {
+            options.embed_drawio_source = embed;
+        }
+        if let Some(paths) = value.stencil_paths {
+            options.stencil_paths = paths.into_iter().map(std::path::PathBuf::from).collect();
         }
         Ok(options)
     }
@@ -363,6 +431,12 @@ impl TryFrom<PreviewOptions> for PreviewConfig {
         }
         if let Some(outline) = value.outline_embedded_pdf_text {
             convert.outline_embedded_pdf_text = outline;
+        }
+        if let Some(embed) = value.embed_drawio_source {
+            convert.embed_drawio_source = embed;
+        }
+        if let Some(paths) = value.stencil_paths {
+            convert.stencil_paths = paths.into_iter().map(std::path::PathBuf::from).collect();
         }
         let max_svg_bytes = value
             .max_svg_bytes
@@ -432,7 +506,7 @@ impl From<CoreConversionReport> for ConversionReport {
             converter: report.converter.to_owned(),
             version: report.version.to_owned(),
             source: report.source,
-            source_format: report.source_format.to_string().to_ascii_lowercase(),
+            source_format: source_format_name(report.source_format),
             output_directory: report.output_directory,
             elapsed_ms: report.elapsed_ms as f64,
             input_bytes: report.input_bytes as f64,
@@ -483,7 +557,7 @@ impl From<CorePreviewReport> for PreviewReport {
             converter: report.converter.to_owned(),
             version: report.version.to_owned(),
             source: report.source,
-            source_format: report.source_format.to_string().to_ascii_lowercase(),
+            source_format: source_format_name(report.source_format),
             elapsed_ms: report.elapsed_ms as f64,
             input_bytes: report.input_bytes as f64,
             page_count: report.page_count as f64,

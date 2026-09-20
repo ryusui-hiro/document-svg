@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="792pt" height="612pt" viewBox="0 0 792 612" data-source-format="msproject" data-source-page="1">
+  <title>Website Refresh Plan — tasks 1–6</title>
+  <desc>Microsoft Project schedule page 1 with 6 task rows</desc>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":46,"warnings":["tasks without both Start and Finish dates are shown without a schedule bar","predecessor relationships are drawn as simple arrows; calendars, lag, and dependency types are not recalculated"]}</metadata>
+  <rect x="0" y="0" width="792" height="612" fill="#FFFFFF" data-role="page-background"/>
+  <text id="project-title" x="32" y="34" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-title">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="18" font-weight="700" font-style="normal" baseline-shift="0" fill="#172554" fill-opacity="1">Website Refresh Plan</tspan>
+  </text>
+  <text id="project-range" x="32" y="54" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-metadata">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="9" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">2026-09-01 – 2026-09-14  ·  6 tasks</tspan>
+  </text>
+  <text id="task-column-heading" x="32" y="91" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-column-heading">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="9" font-weight="700" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Task</tspan>
+  </text>
+  <text id="progress-column-heading" x="251" y="91" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-column-heading">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="9" font-weight="700" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">%</tspan>
+  </text>
+  <path id="timeline-grid-0" d="M 296 105 L 296 536" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#CBD5E1" stroke-opacity="1" stroke-width="0.55" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="timeline-label-0" x="296" y="91" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-date-label">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">2026-09-01</tspan>
+  </text>
+  <path id="timeline-grid-1" d="M 412 105 L 412 536" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#CBD5E1" stroke-opacity="1" stroke-width="0.55" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="timeline-label-1" x="387" y="91" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-date-label">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">2026-09-04</tspan>
+  </text>
+  <path id="timeline-grid-2" d="M 528 105 L 528 536" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#CBD5E1" stroke-opacity="1" stroke-width="0.55" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="timeline-label-2" x="503" y="91" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-date-label">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">2026-09-08</tspan>
+  </text>
+  <path id="timeline-grid-3" d="M 644 105 L 644 536" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#CBD5E1" stroke-opacity="1" stroke-width="0.55" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="timeline-label-3" x="619" y="91" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-date-label">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">2026-09-11</tspan>
+  </text>
+  <path id="timeline-grid-4" d="M 760 105 L 760 536" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#CBD5E1" stroke-opacity="1" stroke-width="0.55" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="timeline-label-4" x="735" y="91" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-date-label">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">2026-09-14</tspan>
+  </text>
+  <path id="dependency-1-0" d="M 378.392523364486 136 H 384.392523364486 V 153 H 400.0747663551402" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#64748B" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-semantic-role="office:project-dependency"/>
+  <path id="dependency-1-0-arrow" d="M 400.0747663551402 153 L 397.0747663551402 150 L 397.0747663551402 156 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#64748B" fill-opacity="1" stroke="none" data-semantic-role="office:project-dependency-arrow"/>
+  <path id="dependency-1-1" d="M 551.8504672897196 153 H 545.8504672897196 V 170 H 538.8411214953271" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#64748B" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-semantic-role="office:project-dependency"/>
+  <path id="dependency-1-1-arrow" d="M 538.8411214953271 170 L 541.8411214953271 167 L 541.8411214953271 173 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#64748B" fill-opacity="1" stroke="none" data-semantic-role="office:project-dependency-arrow"/>
+  <path id="dependency-1-2" d="M 690.6168224299065 170 H 696.6168224299065 V 187 H 748.436137071651" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#64748B" stroke-opacity="1" stroke-width="0.75" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-semantic-role="office:project-dependency"/>
+  <path id="dependency-1-2-arrow" d="M 748.436137071651 187 L 745.436137071651 184 L 745.436137071651 190 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#64748B" fill-opacity="1" stroke="none" data-semantic-role="office:project-dependency-arrow"/>
+  <path id="task-row-1-0" d="M 32 128 L 760 128" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#E2E8F0" stroke-opacity="1" stroke-width="0.45" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="task-label-1-0" x="32" y="123" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-task">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8.5" font-weight="700" font-style="normal" baseline-shift="0" fill="#1E293B" fill-opacity="1">Website Refresh</tspan>
+  </text>
+  <text id="task-progress-1-0" x="251" y="123" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-progress">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">45%</tspan>
+  </text>
+  <path id="summary-bar-1-0" d="M 296 119 V 124 M 296 119 H 760 M 760 119 V 124" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#334155" stroke-opacity="1" stroke-width="1.8" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-semantic-role="office:project-summary-bar"/>
+  <path id="task-row-1-1" d="M 32 145 L 760 145" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#E2E8F0" stroke-opacity="1" stroke-width="0.45" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="task-label-1-1" x="39" y="140" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-task">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">User &amp; stakeholder discovery</tspan>
+  </text>
+  <text id="task-progress-1-1" x="251" y="140" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-progress">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">100%</tspan>
+  </text>
+  <path id="task-bar-1-1" d="M 296 132.5 H 378.392523364486 V 139.5 H 296 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#60A5FA" fill-opacity="1" stroke="none" data-semantic-role="office:project-task-bar"/>
+  <path id="task-progress-bar-1-1" d="M 296 132.5 H 378.392523364486 V 139.5 H 296 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2563EB" fill-opacity="1" stroke="none" data-semantic-role="office:project-task-bar"/>
+  <path id="task-row-1-2" d="M 32 162 L 760 162" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#E2E8F0" stroke-opacity="1" stroke-width="0.45" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="task-label-1-2" x="39" y="157" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-task">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Visual design</tspan>
+  </text>
+  <text id="task-progress-1-2" x="251" y="157" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-progress">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">70%</tspan>
+  </text>
+  <path id="task-bar-1-2" d="M 400.0747663551402 149.5 H 551.8504672897196 V 156.5 H 400.0747663551402 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#60A5FA" fill-opacity="1" stroke="none" data-semantic-role="office:project-task-bar"/>
+  <path id="task-progress-bar-1-2" d="M 400.0747663551402 149.5 H 506.31775700934577 V 156.5 H 400.0747663551402 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2563EB" fill-opacity="1" stroke="none" data-semantic-role="office:project-task-bar"/>
+  <path id="task-row-1-3" d="M 32 179 L 760 179" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#E2E8F0" stroke-opacity="1" stroke-width="0.45" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="task-label-1-3" x="39" y="174" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-task">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Prototype and review</tspan>
+  </text>
+  <text id="task-progress-1-3" x="251" y="174" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-progress">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">20%</tspan>
+  </text>
+  <path id="task-bar-1-3" d="M 538.8411214953271 166.5 H 690.6168224299065 V 173.5 H 538.8411214953271 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#60A5FA" fill-opacity="1" stroke="none" data-semantic-role="office:project-task-bar"/>
+  <path id="task-progress-bar-1-3" d="M 538.8411214953271 166.5 H 569.196261682243 V 173.5 H 538.8411214953271 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2563EB" fill-opacity="1" stroke="none" data-semantic-role="office:project-task-bar"/>
+  <path id="task-row-1-4" d="M 32 196 L 760 196" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#E2E8F0" stroke-opacity="1" stroke-width="0.45" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="task-label-1-4" x="39" y="191" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-task">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Launch</tspan>
+  </text>
+  <text id="task-progress-1-4" x="251" y="191" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-progress">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">0%</tspan>
+  </text>
+  <path id="milestone-1-4" d="M 748.436137071651 183 L 752.436137071651 187 L 748.436137071651 191 L 744.436137071651 187 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#DC2626" fill-opacity="1" stroke="none" data-semantic-role="office:project-milestone"/>
+  <path id="task-row-1-5" d="M 32 213 L 760 213" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#E2E8F0" stroke-opacity="1" stroke-width="0.45" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="task-label-1-5" x="39" y="208" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-task">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8.5" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">Unscheduled follow-up</tspan>
+  </text>
+  <text id="task-progress-1-5" x="251" y="208" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="office:project-progress">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="8" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">0%</tspan>
+  </text>
+</svg>

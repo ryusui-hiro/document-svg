@@ -5,9 +5,10 @@ build-backend = "maturin"
 [project]
 name = "document-svg"
 version = "0.1.1"
-description = "Fast PDF/OOXML to SVG conversion and SVG to OOXML packaging powered by Rust"
+description = "Convert documents, diagrams, CAD/CAE, and image archives to SVG with Rust"
 readme = "README.md"
 requires-python = ">=3.10"
+keywords = ["svg", "pdf", "office", "doc", "dot", "msdoc", "legacy-word", "msppt", "legacy-powerpoint", "kicad", "kicad-pcb", "eda", "pcb", "ppt", "ooxml-strict", "msproject", "mspdi", "gantt", "visio", "vsdx", "vdx", "email", "eml", "emlx", "apple-mail", "outlook", "msg", "mbox", "mhtml", "mht", "icalendar", "ics", "vcalendar", "vcs", "vcard", "vcf", "tiff", "dicom", "dcm", "dicomdir", "jpeg2000", "jp2", "j2k", "medical-imaging", "webp", "gif", "raster", "cbz", "cad", "cae", "ifc", "ifczip", "su2", "cfd", "computational-fluid-dynamics", "openfoam", "foam", "poly-mesh", "tecplot", "tecplot-ascii", "ensight", "ensight-gold", "plot3d", "plot3d-ascii", "structured-grid", "vrml", "vrml97", "netpbm", "pnm", "ppm", "pgm", "pbm", "pam", "dif", "data-interchange-format", "fasta", "fastq", "bioinformatics", "sequence", "gff", "gff3", "gtf", "genome-annotation", "bed", "bedgraph", "genome-interval", "vcf", "variant-call-format", "genomics", "sam", "samtools", "alignment", "wig", "wiggle", "genome-signal", "maf", "multiple-alignment", "genome-alignment", "newick", "phylogenetic-tree", "phylo", "stockholm", "multiple-sequence-alignment", "nexus", "nexus-format", "phylogenetic-data", "genbank", "genbank-flatfile", "embl", "embl-bank", "uniprot", "swissprot", "uniprotkb", "ris", "research-information-systems", "bibliography", "spice", "ngspice", "circuit-netlist", "eda-netlist", "kicad-schematic", "eeschema", "legacy-kicad", "kicad_sch", "modern-kicad-schematic", "ltspice", "ltspice-asc", "circuit-schematic", "eagle", "eagle-sch", "eagle-xml", "clustal", "clustalw", "aln", "bim", "industry-foundation-classes", "unv", "uff", "finite-element", "medit", "mesh", "meshb", "geospatial", "geopackage", "gpkg", "dbase", "dbf", "arff", "json-ld", "graphml", "gexf", "xgmml", "gml-graph", "netcdf", "cdf", "toml", "yaml", "yml", "xml", "properties", "java-properties", "bpmn", "bpmn2", "business-process", "dmn", "decision-table", "decision-model", "cmmn", "case-management", "reqif", "requirements-interchange", "xmi", "model-interchange", "sysml", "configuration", "geojson", "geojsonseq", "geojsons", "json-seq", "jsonseq", "jsons", "topojson", "georss", "gml", "gpx", "kml", "kmz", "shapefile", "wkt", "ewkt", "restructuredtext", "rst", "org-mode", "org", "gettext", "po", "pot", "bibtex", "bib", "subtitle", "subrip", "srt", "webvtt", "vtt", "ttml", "dfxp", "xliff", "xlf", "chemical", "molecule", "mol", "sdf", "molfile", "ctfile", "rxn", "reaction", "document-conversion", "e57", "lidar", "point-cloud", "pts", "ptx", "xyz"]
 license = "MIT OR Apache-2.0"
 license-files = ["legal/LICENSE", "legal/LICENSE-MIT", "legal/LICENSE-APACHE", "legal/THIRD_PARTY_NOTICES.md", "legal/THIRD_PARTY_LICENSES.txt"]
 authors = []
@@ -19,6 +20,12 @@ classifiers = [
   "Operating System :: Microsoft :: Windows",
   "Operating System :: POSIX :: Linux",
 ]
+
+[project.urls]
+Homepage = "https://github.com/ryusui-hiro/document-svg"
+Repository = "https://github.com/ryusui-hiro/document-svg"
+Issues = "https://github.com/ryusui-hiro/document-svg/issues"
+"Node.js package" = "https://www.npmjs.com/package/document-svg"
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]

@@ -5,38 +5,94 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use base64::Engine;
+#[cfg(not(target_arch = "wasm32"))]
+use jpeg2k::{ColorSpace as Jpeg2000ColorSpace, Image as Jpeg2000Image};
 use lopdf::content::{Content, Operation};
 use lopdf::{Dictionary, Document, Object, ObjectId, Stream};
+#[cfg(not(target_arch = "wasm32"))]
 use rayon::prelude::*;
 use skrifa::instance::{LocationRef, Size};
 use skrifa::outline::DrawSettings;
 use skrifa::raw::TableProvider;
-use skrifa::{FontRef, MetadataProvider};
+use skrifa::{FontRef, MetadataProvider, Tag};
 
-use crate::convert::{ConvertOptions, PageConsumer};
+use crate::convert::{ConvertOptions, PageConsumer, read_limited_file};
 use crate::error::{Error, Result};
 use crate::ir::{
     GradientStop, IDENTITY, LineCap, LineJoin, LinearGradient, Matrix, Node, Page, Paint,
     RadialGradient, SourceMeta, Stroke, TextAnchor, TextRun, TilingPatternDefinition, compose,
     transform_point,
 };
+use crate::jpeg2000::{jpx_media_type, parse_jpx_header};
 use crate::pdf_base14::standard_metrics;
 
 const MAX_GRAPHICS_STACK: usize = 256;
 const MAX_FORM_DEPTH: usize = 32;
 const MAX_PAGE_MESH_TRIANGLES: usize = 50_000;
+const MAX_PDF_ANNOTATIONS_PER_PAGE: usize = 10_000;
+const MAX_PDF_PAGE_NODES: usize = 250_000;
+const MAX_PDF_CHOICE_OPTIONS: usize = 10_000;
+const MAX_PDF_CHOICE_TEXT_BYTES: usize = 2 * 1024 * 1024;
+const MAX_PDF_FORM_VALUE_BYTES: usize = 2 * 1024 * 1024;
+const MAX_PDF_DEFAULT_APPEARANCE_BYTES: usize = 64 * 1024;
+const MAX_PDF_JPX_PIXELS: usize = 20_000_000;
+const MAX_PDF_JPX_DECODED_SAMPLE_BYTES: usize = 128 * 1024 * 1024;
+const MAX_PDF_JPX_PNG_BYTES: usize = 64 * 1024 * 1024;
+
+#[derive(Clone, Debug)]
+struct PdfChoiceOption {
+    export_value: Vec<u8>,
+    display_value: Vec<u8>,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct JpxSampleLayout {
+    row_bytes: usize,
+    width: usize,
+    height: usize,
+    components: usize,
+    bits: usize,
+}
+
+/// Image compression filters without a decoder in this crate.
+/// `JPXDecode` is handled separately by the bounded JPEG 2000 path below.
+const UNDECODABLE_IMAGE_FILTERS: &[&[u8]] = &[b"JBIG2Decode"];
 
 pub(crate) fn convert(
     path: &Path,
     options: &ConvertOptions,
     sink: &mut dyn PageConsumer,
 ) -> Result<Vec<String>> {
-    let (document, recovery_warning) = load_document(path, options.max_zip_entry_bytes)?;
+    let bytes = read_limited_file(path, options.max_input_bytes, "PDF input")?;
+    convert_bytes(&bytes, options, sink)
+}
+
+/// Convert a bounded PDF byte buffer without routing it through a temporary
+/// file. Container formats such as DICOM can safely reuse the PDF renderer
+/// after validating and extracting an embedded PDF stream.
+pub(crate) fn convert_bytes(
+    bytes: &[u8],
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
+    if bytes.len() as u64 > options.max_input_bytes {
+        return Err(Error::LimitExceeded(format!(
+            "PDF input exceeds maximum limit of {} bytes",
+            options.max_input_bytes
+        )));
+    }
+    let (document, recovery_warning) =
+        load_document_bytes(bytes, options.max_zip_entry_bytes, options.max_input_bytes)?;
     if document.is_encrypted() {
         return Err(Error::Unsupported(
             "encrypted PDFs are rejected; access controls are not bypassed".into(),
         ));
     }
+    // A document that declared /Encrypt but no longer carries it was unlocked
+    // with the empty user password while loading. lopdf discards per-object
+    // decryption failures, so streams can survive that pass still encrypted;
+    // `render_page` uses this to explain a page that decodes to nothing.
+    let decrypted_in_place = document.was_encrypted();
     let pages = document.get_pages().into_iter().collect::<Vec<_>>();
     if pages.len() > options.max_pages {
         return Err(Error::LimitExceeded(format!(
@@ -50,6 +106,7 @@ pub(crate) fn convert(
         .min(usize::MAX / 2);
     let mut warnings = Vec::new();
     warnings.extend(recovery_warning);
+    #[cfg(not(target_arch = "wasm32"))]
     if options.jobs > 1 && pages.len() > 1 {
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(options.jobs)
@@ -68,6 +125,7 @@ pub(crate) fn convert(
                             *page_id,
                             page_content_limit,
                             options.outline_embedded_pdf_text,
+                            decrypted_in_place,
                         )
                     })
                     .collect::<Vec<_>>()
@@ -78,20 +136,127 @@ pub(crate) fn convert(
                 sink.consume(page)?;
             }
         }
-    } else {
-        for (page_number, page_id) in pages {
-            let page = render_page(
-                &document,
-                page_number as usize,
-                page_id,
-                page_content_limit,
-                options.outline_embedded_pdf_text,
-            )?;
-            warnings.extend(page.warnings.iter().cloned());
-            sink.consume(page)?;
-        }
+        return Ok(deduplicate(warnings));
+    }
+    for (page_number, page_id) in pages {
+        let page = render_page(
+            &document,
+            page_number as usize,
+            page_id,
+            page_content_limit,
+            options.outline_embedded_pdf_text,
+            decrypted_in_place,
+        )?;
+        warnings.extend(page.warnings.iter().cloned());
+        sink.consume(page)?;
     }
     Ok(deduplicate(warnings))
+}
+
+/// Decodes an `ASCIIHexDecode`-filtered byte stream (PDF32000 §7.4.2): pairs
+/// of ASCII hex digits, with any other whitespace/formatting bytes ignored,
+/// terminated by an `>` (a missing terminator just means "read to the end");
+/// a trailing unpaired digit is padded with an implicit trailing zero.
+fn decode_ascii_hex(input: &[u8]) -> Vec<u8> {
+    let mut nibbles = Vec::with_capacity(input.len());
+    for &byte in input {
+        if byte == b'>' {
+            break;
+        }
+        if let Some(value) = (byte as char).to_digit(16) {
+            nibbles.push(value as u8);
+        }
+    }
+    if nibbles.len() % 2 == 1 {
+        nibbles.push(0);
+    }
+    nibbles
+        .chunks_exact(2)
+        .map(|pair| (pair[0] << 4) | pair[1])
+        .collect()
+}
+
+/// Decodes a stream the same way `Document::get_page_content_with_limit`
+/// does: on any decode error other than exceeding `remaining`, fall back to
+/// the stream's raw (still-encoded) bytes -- still bounded by `remaining` --
+/// rather than propagating the error. lopdf itself relies on this leniency
+/// for content streams using a filter it has no decoder for at all (some
+/// real-world files declare a filter like `JBIG2Decode` on what is, in
+/// effect, throwaway/junk page content); losing that leniency here would
+/// turn an already-tolerated oddity into a hard conversion failure.
+fn decode_stream_leniently(
+    stream: &Stream,
+    remaining: usize,
+    content_limit: usize,
+) -> Result<Vec<u8>> {
+    match stream.decompressed_content_with_limit(remaining) {
+        Ok(data) => Ok(data),
+        Err(lopdf::Error::Decompress(lopdf::DecompressError::MemoryLimitExceeded { .. })) => {
+            Err(Error::LimitExceeded(format!(
+                "PDF page content stream exceeds {content_limit} bytes"
+            )))
+        }
+        Err(_) => {
+            if stream.content.len() > remaining {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF page content stream exceeds {content_limit} bytes"
+                )));
+            }
+            Ok(stream.content.clone())
+        }
+    }
+}
+
+/// Like `Document::get_page_content_with_limit`, but also decodes an
+/// `ASCIIHexDecode`-filtered content stream ourselves. lopdf's own stream
+/// decoder only implements `FlateDecode`/`LZWDecode`/`ASCII85Decode`, and on
+/// any other filter it silently falls back to the RAW, still-encoded stream
+/// bytes rather than propagating an error -- so an ASCIIHexDecode content
+/// stream's literal hex-digit text would otherwise be fed straight into the
+/// content-operator tokenizer as garbage. We peel a leading ASCIIHexDecode
+/// layer off ourselves and let lopdf decode whatever filters remain.
+fn page_content_with_limit(
+    document: &Document,
+    page_id: ObjectId,
+    content_limit: usize,
+) -> Result<Vec<u8>> {
+    let mut content = Vec::new();
+    for object_id in document.get_page_contents(page_id) {
+        let Ok(stream) = document.get_object(object_id).and_then(Object::as_stream) else {
+            continue;
+        };
+        let remaining = content_limit.saturating_sub(content.len());
+        let filters = stream.filters().unwrap_or_default();
+        let data = if filters.first() == Some(&b"ASCIIHexDecode".as_slice()) {
+            let decoded = decode_ascii_hex(&stream.content);
+            if filters.len() == 1 {
+                if decoded.len() > remaining {
+                    return Err(Error::LimitExceeded(format!(
+                        "PDF page content stream exceeds {content_limit} bytes"
+                    )));
+                }
+                decoded
+            } else {
+                let mut rest = stream.clone();
+                rest.dict.set(
+                    "Filter",
+                    Object::Array(
+                        filters[1..]
+                            .iter()
+                            .map(|filter| Object::Name(filter.to_vec()))
+                            .collect(),
+                    ),
+                );
+                rest.content = decoded;
+                decode_stream_leniently(&rest, remaining, content_limit)?
+            }
+        } else {
+            decode_stream_leniently(stream, remaining, content_limit)?
+        };
+        content.extend_from_slice(&data);
+        content.push(b'\n');
+    }
+    Ok(content)
 }
 
 fn render_page(
@@ -100,6 +265,7 @@ fn render_page(
     page_id: ObjectId,
     content_limit: usize,
     outline_embedded_pdf_text: bool,
+    decrypted_in_place: bool,
 ) -> Result<Page> {
     let box_values = inherited_page_array(document, page_id, b"CropBox")
         .or_else(|| inherited_page_array(document, page_id, b"MediaBox"))
@@ -122,7 +288,7 @@ fn render_page(
     );
     let mut page = Page::new(page_number, width, height, "pdf");
     page.description = format!("PDF page {page_number} converted from content operators");
-    let content_bytes = document.get_page_content_with_limit(page_id, content_limit)?;
+    let content_bytes = page_content_with_limit(document, page_id, content_limit)?;
     let operations = decode_content_operations(&content_bytes, content_limit, &mut page)?;
     let fonts = build_font_decoders(document, page_id, content_limit, &mut page)?;
     let mut interpreter = Interpreter {
@@ -145,6 +311,9 @@ fn render_page(
         visited_forms: HashSet::new(),
         visited_patterns: HashSet::new(),
         mesh_output_count: Rc::new(Cell::new(0)),
+        hidden_ocgs: hidden_optional_content_groups(document),
+        marked_content_hidden: false,
+        marked_content_stack: Vec::new(),
         content_limit,
         outline_embedded_pdf_text,
     };
@@ -153,6 +322,28 @@ fn render_page(
         interpreter
             .page
             .warn("PDF graphics-state stack was not balanced at end of page");
+    }
+    interpreter.render_annotations()?;
+    // A page that consumed a content stream yet drew nothing is indistinguishable
+    // from a genuinely empty page in the SVG, so say which one it was. The most
+    // common cause is a stream that survived loading still encrypted: lopdf
+    // ignores per-object decryption failures, and the resulting bytes decode as
+    // a few meaningless operators rather than as an error.
+    let content_is_blank = content_bytes
+        .iter()
+        .all(|byte| byte.is_ascii_whitespace() || *byte == 0);
+    if page.nodes.is_empty() && !content_is_blank {
+        if decrypted_in_place {
+            page.warn(format!(
+                "PDF page {page_number} drew nothing from {} byte(s) of content; the document was encrypted and this stream was probably not decrypted",
+                content_bytes.len()
+            ));
+        } else {
+            page.warn(format!(
+                "PDF page {page_number} drew nothing from {} byte(s) of content",
+                content_bytes.len()
+            ));
+        }
     }
     Ok(page)
 }
@@ -166,7 +357,7 @@ fn decode_content_operations(
     let mut position = 0usize;
     while let Some(inline_start) = find_pdf_syntax_token(data, position, b"BI") {
         if inline_start > position {
-            operations.extend(Content::decode(&data[position..inline_start])?.operations);
+            operations.extend(decode_pdf_content(&data[position..inline_start])?.operations);
         }
         let dictionary_start = inline_start + 2;
         let Some(id_position) = find_pdf_syntax_token(data, dictionary_start, b"ID") else {
@@ -176,15 +367,43 @@ fn decode_content_operations(
         };
         let spec = InlineImageSpec::parse(&data[dictionary_start..id_position]);
         let data_start = skip_inline_separator(data, id_position + 2);
-        let mut search_position = data_start;
         let mut decoded = None::<(Stream, usize)>;
-        while let Some(ei_position) = find_pdf_token(data, search_position, b"EI") {
-            let raw_end = trim_inline_data_end(data, data_start, ei_position);
-            if let Some(stream) = spec.decode(&data[data_start..raw_end], content_limit) {
-                decoded = Some((stream, ei_position + 2));
-                break;
+        // An unfiltered inline image's byte length is fully determined by
+        // its own dictionary (row-padded, like any other raster image), so
+        // this checks that exact position before falling back to a generic
+        // scan for "EI". The PDF spec recommends, but does not require, a
+        // white-space byte between the last data byte and EI; real-world
+        // encoders sometimes omit it, which defeats the scan below whenever
+        // that last data byte does not itself happen to be a PDF delimiter
+        // (pdf.js's own bug1513120_reduced.pdf and issue10388_reduced.pdf
+        // both ship 1-bit image masks built exactly this way).
+        if spec.filter.is_none()
+            && let Some(length) = spec.unfiltered_byte_length()
+        {
+            let candidate_end = data_start.saturating_add(length);
+            if candidate_end <= data.len() {
+                let after_data = skip_inline_separator(data, candidate_end);
+                if data.get(after_data..after_data + 2) == Some(b"EI")
+                    && data
+                        .get(after_data + 2)
+                        .is_none_or(|byte| is_pdf_delimiter(*byte))
+                {
+                    decoded = spec
+                        .decode(&data[data_start..candidate_end], content_limit)
+                        .map(|stream| (stream, after_data + 2));
+                }
             }
-            search_position = ei_position + 2;
+        }
+        if decoded.is_none() {
+            let mut search_position = data_start;
+            while let Some(ei_position) = find_pdf_token(data, search_position, b"EI") {
+                let raw_end = trim_inline_data_end(data, data_start, ei_position);
+                if let Some(stream) = spec.decode(&data[data_start..raw_end], content_limit) {
+                    decoded = Some((stream, ei_position + 2));
+                    break;
+                }
+                search_position = ei_position + 2;
+            }
         }
         if let Some((stream, next_position)) = decoded {
             operations.push(Operation::new("BI", vec![Object::Stream(stream)]));
@@ -202,9 +421,89 @@ fn decode_content_operations(
         }
     }
     if position < data.len() {
-        operations.extend(Content::decode(&data[position..])?.operations);
+        operations.extend(decode_pdf_content(&data[position..])?.operations);
     }
     Ok(operations)
+}
+
+/// Decodes a PDF content stream, first stripping `%` comments ourselves.
+///
+/// A `%` comment that trails a real operator on the same line -- rather
+/// than sitting alone on its own line -- made `lopdf::content::Content`'s
+/// own parser drop every operation in the stream silently, turning an
+/// otherwise ordinary page into a blank one with no warning anywhere: the
+/// content is well past "malformed" by any reasonable definition, it is
+/// just formatted with a trailing `%` per line for visual column
+/// alignment, which the PDF grammar allows (a comment runs to the next
+/// end of line; an empty one is legal). This is `Content::decode`'s only
+/// caller, so every caller of *this* function gets the same robustness.
+fn decode_pdf_content(data: &[u8]) -> Result<Content> {
+    Ok(Content::decode(&strip_pdf_content_comments(data))?)
+}
+
+/// Removes `%...` PDF comments (up to but excluding the next CR or LF)
+/// from a content stream, leaving literal strings `(...)` and hex strings
+/// `<...>` untouched even if a `%` happens to appear inside one -- there
+/// it is just a character, not a comment marker. `<<`, a dictionary
+/// delimiter rather than a hex string's `<`, is recognized and copied
+/// through without entering hex-string state.
+fn strip_pdf_content_comments(data: &[u8]) -> Vec<u8> {
+    let mut output = Vec::with_capacity(data.len());
+    let mut position = 0;
+    let mut literal_depth = 0usize;
+    let mut in_hex_string = false;
+    while position < data.len() {
+        let byte = data[position];
+        if in_hex_string {
+            output.push(byte);
+            in_hex_string = byte != b'>';
+            position += 1;
+            continue;
+        }
+        if literal_depth > 0 {
+            if byte == b'\\' && position + 1 < data.len() {
+                output.push(byte);
+                output.push(data[position + 1]);
+                position += 2;
+                continue;
+            }
+            output.push(byte);
+            match byte {
+                b'(' => literal_depth += 1,
+                b')' => literal_depth -= 1,
+                _ => {}
+            }
+            position += 1;
+            continue;
+        }
+        match byte {
+            b'(' => {
+                literal_depth = 1;
+                output.push(byte);
+                position += 1;
+            }
+            b'<' if data.get(position + 1) == Some(&b'<') => {
+                output.push(byte);
+                output.push(data[position + 1]);
+                position += 2;
+            }
+            b'<' => {
+                in_hex_string = true;
+                output.push(byte);
+                position += 1;
+            }
+            b'%' => {
+                while position < data.len() && !matches!(data[position], b'\r' | b'\n') {
+                    position += 1;
+                }
+            }
+            _ => {
+                output.push(byte);
+                position += 1;
+            }
+        }
+    }
+    output
 }
 
 fn find_pdf_syntax_token(data: &[u8], start: usize, token: &[u8]) -> Option<usize> {
@@ -348,6 +647,7 @@ struct InlineImageSpec {
     black_is_one: bool,
     damaged_rows_before_error: usize,
     interpolate: bool,
+    image_mask: bool,
 }
 
 impl InlineImageSpec {
@@ -385,7 +685,32 @@ impl InlineImageSpec {
             black_is_one: boolean(&["/BlackIs1"], false),
             damaged_rows_before_error: integer(&["/DamagedRowsBeforeError"], 0).max(0) as usize,
             interpolate: boolean(&["/I", "/Interpolate"], false),
+            image_mask: boolean(&["/IM", "/ImageMask"], false),
         }
+    }
+
+    fn components(&self) -> usize {
+        match self.color_space.as_str() {
+            "/RGB" | "/DeviceRGB" => 3,
+            "/CMYK" | "/DeviceCMYK" => 4,
+            _ => 1,
+        }
+    }
+
+    /// The exact byte length of an *unfiltered* inline image's own raw data,
+    /// row-padded like any other raster image, or `None` if the width or
+    /// height is not yet known. Filtered data has no such fixed length here
+    /// (its compressed size does not follow from the pixel dimensions).
+    fn unfiltered_byte_length(&self) -> Option<usize> {
+        if self.width == 0 || self.height == 0 {
+            return None;
+        }
+        let row_bytes = self
+            .width
+            .saturating_mul(self.components())
+            .saturating_mul(self.bits)
+            .div_ceil(8);
+        Some(row_bytes.saturating_mul(self.height))
     }
 
     fn decode(&self, raw: &[u8], content_limit: usize) -> Option<Stream> {
@@ -412,11 +737,7 @@ impl InlineImageSpec {
                 .decompressed_content_with_limit(content_limit)
                 .ok()?
         };
-        let components = match self.color_space.as_str() {
-            "/RGB" | "/DeviceRGB" => 3,
-            "/CMYK" | "/DeviceCMYK" => 4,
-            _ => 1,
-        };
+        let components = self.components();
         let expected = self
             .width
             .saturating_mul(self.height)
@@ -447,6 +768,9 @@ impl InlineImageSpec {
             }),
         );
         dictionary.set("Interpolate", self.interpolate);
+        if self.image_mask {
+            dictionary.set("ImageMask", true);
+        }
         Some(Stream::new(dictionary, pixels))
     }
 
@@ -541,6 +865,7 @@ fn ccitt_spec_from_stream(stream: &Stream, width: usize, height: usize) -> Inlin
             .get(b"Interpolate")
             .and_then(Object::as_bool)
             .unwrap_or(false),
+        image_mask: false,
     }
 }
 
@@ -897,10 +1222,18 @@ struct PathBuilder {
     has_content: bool,
     current_point: Option<(f64, f64)>,
     subpath_start: Option<(f64, f64)>,
+    /// `Some([x, y, width, height])` exactly when the path so far consists
+    /// of nothing but a single `re` rectangle -- reset to `None` by any
+    /// other path-construction call. Lets a fill notice a degenerate
+    /// (zero-width or zero-height) rectangle specifically, without
+    /// misfiring on a complex path that coincidentally has a zero-area
+    /// bounding box for unrelated reasons (an even-odd "hole" fill, say).
+    bare_rect: Option<[f64; 4]>,
 }
 
 impl PathBuilder {
     fn command(&mut self, operator: &str, values: &[f64]) {
+        self.bare_rect = None;
         if self.has_content {
             self.data.push(' ');
         }
@@ -927,10 +1260,25 @@ impl PathBuilder {
         }
     }
 
+    /// Adds a `re` rectangle, tracking it as a `bare_rect` when it is the
+    /// path's only content so far.
+    fn add_rect(&mut self, x: f64, y: f64, width: f64, height: f64) {
+        let is_first = !self.has_content;
+        self.command("M", &[x, y]);
+        self.command("L", &[x + width, y]);
+        self.command("L", &[x + width, y + height]);
+        self.command("L", &[x, y + height]);
+        self.command("Z", &[]);
+        if is_first {
+            self.bare_rect = Some([x, y, width, height]);
+        }
+    }
+
     fn take(&mut self) -> String {
         self.has_content = false;
         self.current_point = None;
         self.subpath_start = None;
+        self.bare_rect = None;
         std::mem::take(&mut self.data)
     }
 
@@ -939,6 +1287,32 @@ impl PathBuilder {
         self.has_content = false;
         self.current_point = None;
         self.subpath_start = None;
+        self.bare_rect = None;
+    }
+}
+
+/// A Type 1 font program parsed once per decoder.
+///
+/// `parse_type1` decrypts the eexec section and scans the whole program, so
+/// running it for every text-showing operator dominated conversion of
+/// Type 1-heavy PDFs. Cloning a decoder starts an empty cache rather than
+/// duplicating the parse: clones are made per pattern or soft mask, not per
+/// glyph.
+#[derive(Default)]
+struct Type1Cache(std::cell::OnceCell<Option<Box<stet_fonts::type1_parser::Type1Font>>>);
+
+impl Clone for Type1Cache {
+    fn clone(&self) -> Self {
+        Self::default()
+    }
+}
+
+impl std::fmt::Debug for Type1Cache {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Type1Cache")
+            .field("parsed", &self.0.get().is_some())
+            .finish()
     }
 }
 
@@ -956,6 +1330,17 @@ struct FontDecoder {
     widths: HashMap<u32, f64>,
     default_width: f64,
     type3: Option<Arc<Type3Font>>,
+    type1: Type1Cache,
+    /// `true` for a Type0 font using Identity-H/V encoding, where the raw
+    /// character code already *is* the CID (per PDF32000 9.7.5.2) rather
+    /// than a value that must go through the font's own cmap to find a
+    /// Unicode character first.
+    identity_cid: bool,
+    /// A CIDFontType2's own `/CIDToGIDMap` stream when present: CID `n`'s
+    /// glyph ID is the big-endian `u16` at byte offset `2 * n`. `None`
+    /// means the map is `/Identity` (the default, and by far the most
+    /// common case): CID and GID are the same value.
+    cid_to_gid_map: Option<Arc<[u8]>>,
 }
 
 #[derive(Clone, Debug)]
@@ -969,6 +1354,39 @@ struct Type3Font {
 enum FontFallback {
     OneByte,
     Utf16Be,
+}
+
+/// Strips PFB (Printer Font Binary) segment framing from a Type1 font
+/// program, when present. PDF32000 9.9's own `/FontFile` format is a plain
+/// concatenation of the font's cleartext header, its encrypted binary
+/// portion, and a zero-padding trailer -- no segment framing at all -- but
+/// some producers instead embed the raw PFB container format verbatim. Its
+/// interleaved 6-byte `0x80 <type> <u32 length>` segment headers land
+/// squarely inside the encrypted portion, corrupting eexec decryption's
+/// running cipher state (which carries across the whole ciphertext) from
+/// that point on, and every glyph after it decrypts to garbage.
+fn strip_pfb_segments(data: &[u8]) -> std::borrow::Cow<'_, [u8]> {
+    if data.first() != Some(&0x80) {
+        return std::borrow::Cow::Borrowed(data);
+    }
+    let mut out = Vec::with_capacity(data.len());
+    let mut offset = 0;
+    while data.get(offset) == Some(&0x80) {
+        match data.get(offset + 1) {
+            Some(1 | 2) => {
+                let Some(length_bytes) = data.get(offset + 2..offset + 6) else {
+                    break;
+                };
+                let length = u32::from_le_bytes(length_bytes.try_into().unwrap()) as usize;
+                let start = offset + 6;
+                let end = start.saturating_add(length).min(data.len());
+                out.extend_from_slice(&data[start..end]);
+                offset = end;
+            }
+            _ => break,
+        }
+    }
+    std::borrow::Cow::Owned(out)
 }
 
 impl FontDecoder {
@@ -1108,35 +1526,82 @@ impl FontDecoder {
         let charmap = face.charmap();
         let cmap = face.cmap().ok();
         let outlines = face.outline_glyphs();
+        // A simple TrueType font with no cmap table at all -- legal, and
+        // not even unusual for a subsetted font used only through a PDF
+        // /Differences encoding -- leaves every cmap-based lookup above
+        // with nothing to search. The font's own `post` table (when it
+        // carries real glyph names, version 1.0 or 2.0) is the spec's own
+        // fallback (PDF32000 9.6.6.2): look the PDF encoding's glyph name
+        // up there directly, the same way CFF/Type1 already resolve a
+        // glyph through their own name tables regardless of cmap.
+        let post_glyph_ids: Option<HashMap<String, skrifa::GlyphId>> =
+            face.post().ok().map(|post| {
+                (0..post.num_names() as u16)
+                    .filter_map(|gid| {
+                        post.glyph_name(skrifa::raw::types::GlyphId16::new(gid))
+                            .map(|name| (name.to_string(), skrifa::GlyphId::from(gid)))
+                    })
+                    .collect()
+            });
         let code_length = if matches!(self.fallback_kind, FontFallback::Utf16Be) {
             self.code_lengths.first().copied().unwrap_or(2).max(1)
         } else {
             1
         };
+        // A CIDFontType0 (CFF-keyed CID font) can legally be embedded as a
+        // full OpenType wrapper (`/FontFile3 /Subtype /OpenType`) rather
+        // than a bare CIDFontType0C table -- and unlike CIDFontType2
+        // (TrueType-based), its CID is never the same as its internal glyph
+        // index: a CID-keyed CFF's own `charset` table is what actually maps
+        // GID -> CID, and that mapping is font-specific, not identity, for
+        // real-world CJK subsets. Treating the CID as a GID directly (as is
+        // correct for CIDFontType2's raw code) resolves to an unrelated --
+        // often out-of-range -- glyph. Detect this by the presence of the
+        // sfnt's own `CFF ` table and resolve through the same CFF-charset
+        // reverse map (`cid_to_gid`) the bare-CFF path below already uses.
+        let cff_cid_to_gid = self
+            .identity_cid
+            .then(|| {
+                face.data_for_tag(Tag::new(b"CFF "))
+                    .and_then(|table| stet_fonts::cff_parser::parse_cff(table.as_bytes()).ok())
+                    .and_then(|fonts| fonts.into_iter().next())
+                    .map(|font| font.cid_to_gid)
+            })
+            .flatten();
         let mut builder = SvgGlyphOutline::new(units_per_em);
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
         for code in bytes.chunks(code_length) {
             let (decoded, replacement) = self.decode(code);
-            if replacement || decoded.is_empty() {
-                return Err("font code could not be mapped to Unicode");
-            }
             builder.x_offset = x_offset;
-            for character in decoded.chars() {
-                has_visible_character |= !character.is_whitespace();
-                let glyph_id = charmap
-                    .map(character)
-                    .or_else(|| {
-                        cmap.as_ref()
-                            .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+            if self.identity_cid {
+                // Identity-H/V means the raw code already is the CID
+                // (PDF32000 9.7.5.2), and CIDFontType2's own /CIDToGIDMap
+                // (or its Identity default, when absent) is what names the
+                // glyph -- not the embedded font's cmap, which a subsetted
+                // CID font commonly ships without, or with one that has no
+                // usable Unicode coverage at all. A ToUnicode gap
+                // (`replacement`) is irrelevant here: it affects only
+                // text extraction, never this lookup.
+                has_visible_character |=
+                    replacement || decoded.chars().any(|character| !character.is_whitespace());
+                let cid = bytes_to_u32(code);
+                let gid = if let Some(cid_to_gid) = cff_cid_to_gid.as_ref() {
+                    cid_to_gid
+                        .get(cid as usize)
+                        .copied()
+                        .map(u32::from)
+                        .unwrap_or(0)
+                } else {
+                    self.cid_to_gid_map.as_ref().map_or(cid, |map| {
+                        let offset = (cid as usize) * 2;
+                        map.get(offset..offset + 2)
+                            .map(|pair| u32::from(u16::from_be_bytes([pair[0], pair[1]])))
+                            .unwrap_or(0)
                     })
-                    .or_else(|| {
-                        cmap.as_ref()
-                            .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
-                    })
-                    .ok_or("Unicode character has no glyph in the embedded font")?;
+                };
                 let glyph = outlines
-                    .get(glyph_id)
+                    .get(skrifa::GlyphId::new(gid))
                     .ok_or("embedded font glyph outline is unavailable")?;
                 glyph
                     .draw(
@@ -1144,6 +1609,64 @@ impl FontDecoder {
                         &mut builder,
                     )
                     .map_err(|_| "embedded font glyph outline could not be decoded")?;
+            } else {
+                // A ToUnicode gap (`replacement`) or the total absence of a
+                // /ToUnicode map only affects text extraction, not glyph
+                // selection: a symbolic font (`glyph_names` empty) resolves
+                // through its own cmap by raw code in the branch below,
+                // trying that before it ever looks at `character`, and a
+                // non-symbolic font can still fall back to its own
+                // /Differences-named glyph via the font's post table.
+                // Bailing out here unconditionally dropped every glyph
+                // whose code had no ToUnicode entry, even when the font's
+                // own encoding could resolve it directly.
+                for character in decoded.chars() {
+                    has_visible_character |= !character.is_whitespace();
+                    // A font with no /Encoding is symbolic by the PDF spec's
+                    // own default (9.6.6.4), and a symbolic simple font
+                    // selects glyphs by raw character code through the
+                    // font's own cmap, never through Unicode. Subsetters
+                    // commonly key that cmap by sequential code (1, 2, 3,
+                    // ...) rather than true Unicode, so mapping through the
+                    // ToUnicode-decoded character first can land on an
+                    // unrelated glyph whose raw code happens to equal that
+                    // character's own codepoint.
+                    let glyph_id = if self.glyph_names.is_empty() {
+                        cmap.as_ref()
+                            .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
+                            .or_else(|| charmap.map(character))
+                            .or_else(|| {
+                                cmap.as_ref()
+                                    .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+                            })
+                    } else {
+                        charmap
+                            .map(character)
+                            .or_else(|| {
+                                cmap.as_ref()
+                                    .and_then(|cmap| map_embedded_cmap(cmap, u32::from(character)))
+                            })
+                            .or_else(|| {
+                                cmap.as_ref()
+                                    .and_then(|cmap| map_embedded_cmap(cmap, bytes_to_u32(code)))
+                            })
+                    }
+                    .or_else(|| {
+                        code.first()
+                            .and_then(|code| self.glyph_names.get(code))
+                            .and_then(|name| post_glyph_ids.as_ref()?.get(name.as_str()).copied())
+                    })
+                    .ok_or("Unicode character has no glyph in the embedded font")?;
+                    let glyph = outlines
+                        .get(glyph_id)
+                        .ok_or("embedded font glyph outline is unavailable")?;
+                    glyph
+                        .draw(
+                            DrawSettings::unhinted(Size::unscaled(), LocationRef::default()),
+                            &mut builder,
+                        )
+                        .map_err(|_| "embedded font glyph outline could not be decoded")?;
+                }
             }
             let word_spacing = if decoded == " " { word_spacing_em } else { 0.0 };
             x_offset += self
@@ -1173,27 +1696,60 @@ impl FontDecoder {
         character_spacing_em: f64,
         word_spacing_em: f64,
     ) -> std::result::Result<String, &'static str> {
-        let Ok(font) = stet_fonts::type1_parser::parse_type1(data) else {
+        let Some(font) = self
+            .type1
+            .0
+            .get_or_init(|| {
+                stet_fonts::type1_parser::parse_type1(&strip_pfb_segments(data))
+                    .ok()
+                    .map(Box::new)
+            })
+            .as_deref()
+        else {
             return self.outline_cff(data, bytes, character_spacing_em, word_spacing_em);
         };
         let lookup = |name: &str| font.charstrings.get(name).cloned();
         let mut path = String::new();
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
-        for code in bytes {
-            let (decoded, replacement) = self.decode(&[*code]);
-            if replacement {
-                return Err("font code could not be mapped to text");
-            }
+        // A CIDFontType0 descendant is only ever supposed to carry a bare
+        // CFF (CIDFontType0C) or OpenType program, never a plain Type1
+        // `/FontFile` -- but real-world producers sometimes embed one
+        // anyway. Identity-H/V still means the raw code is two bytes per
+        // PDF32000 9.7.5.2 regardless of what program type backs it, so
+        // this must chunk the same way `outline_cff` already does for the
+        // analogous bare-CFF case, or every high zero byte of a CID under
+        // 256 shows up as its own spurious one-byte lookup.
+        let code_length = if self.identity_cid { 2 } else { 1 };
+        for code in bytes.chunks(code_length) {
+            // A ToUnicode CMap that has no entry for this code (`replacement`)
+            // only means text extraction can't recover its Unicode value --
+            // it says nothing about whether the glyph itself exists. Many
+            // Type1 fonts (TeX math fonts, ligature glyphs) have codes with
+            // a real, drawable glyph but no sensible Unicode equivalent, so
+            // glyph selection is attempted via the font's own encoding
+            // below regardless, and only reported as unresolvable if that
+            // also fails.
+            let (decoded, _replacement) = self.decode(code);
             has_visible_character |= decoded.chars().any(|character| !character.is_whitespace());
-            let glyph_name = self
-                .glyph_names
-                .get(code)
-                .map(String::as_str)
-                .or_else(|| font.encoding.get(usize::from(*code)).map(String::as_str))
-                .filter(|name| !name.is_empty() && *name != ".notdef")
-                .or_else(|| (!decoded.is_empty()).then_some(decoded.as_str()))
-                .ok_or("Type1 character code has no glyph name")?;
+            let glyph_name = if self.identity_cid {
+                // No CID-keyed charset exists in a Type1 program at all;
+                // the only workable interpretation of a Type1 font pressed
+                // into service this way is that its own built-in Encoding
+                // was built to name each CID's glyph directly by that same
+                // numeric code, mirroring the non-CID lookup just below.
+                font.encoding
+                    .get(bytes_to_u32(code) as usize)
+                    .map(String::as_str)
+            } else {
+                self.glyph_names
+                    .get(&code[0])
+                    .map(String::as_str)
+                    .or_else(|| font.encoding.get(usize::from(code[0])).map(String::as_str))
+            }
+            .filter(|name| !name.is_empty() && *name != ".notdef")
+            .or_else(|| (!decoded.is_empty()).then_some(decoded.as_str()))
+            .ok_or("Type1 character code has no glyph name")?;
             if let Some(charstring) = font.charstrings.get(glyph_name) {
                 let outline = stet_fonts::charstring::execute_charstring_ex(
                     charstring,
@@ -1210,7 +1766,7 @@ impl FontDecoder {
             let word_spacing = if decoded == " " { word_spacing_em } else { 0.0 };
             x_offset += self
                 .widths
-                .get(&u32::from(*code))
+                .get(&bytes_to_u32(code))
                 .copied()
                 .unwrap_or(self.default_width)
                 / 1_000.0
@@ -1241,33 +1797,57 @@ impl FontDecoder {
         let mut path = String::new();
         let mut x_offset = 0.0;
         let mut has_visible_character = false;
-        for code in bytes {
-            let (decoded, replacement) = self.decode(&[*code]);
-            if replacement {
-                return Err("CFF character code could not be mapped to text");
-            }
+        let code_length = if self.identity_cid { 2 } else { 1 };
+        for code in bytes.chunks(code_length) {
+            // A ToUnicode CMap gap (`replacement`) means text extraction
+            // can't recover this code's Unicode value, not that the glyph
+            // is missing: math and symbol CFF fonts routinely carry glyphs
+            // with no sensible Unicode equivalent. Glyph selection below
+            // uses the font's own charset/encoding first regardless, and
+            // this is only reported as unresolvable if that also fails.
+            let (decoded, _replacement) = self.decode(code);
             has_visible_character |= decoded.chars().any(|character| !character.is_whitespace());
-            let glyph_id = self
-                .glyph_names
-                .get(code)
-                .and_then(|name| font.charset.iter().position(|candidate| candidate == name))
-                .or_else(|| {
-                    let mut characters = decoded.chars();
-                    let character = characters.next()?;
-                    if characters.next().is_some() || u32::from(character) > u32::from(u16::MAX) {
-                        return None;
-                    }
-                    font.charset.iter().position(|name| {
-                        stet_fonts::agl::glyph_name_to_unicode(name) == Some(character as u16)
+            let glyph_id = if self.identity_cid {
+                // Identity-H/V: the code already is the CID (PDF32000
+                // 9.7.5.2). A CID-keyed CFF's own charset maps GID -> CID,
+                // not GID -> name, so the name-/Unicode-based lookup below
+                // has nothing to match against; font.cid_to_gid is the
+                // parser's own reverse of that map, using 0xFFFF (not 0) as
+                // its own sentinel for "this CID has no entry" -- GID 0 is
+                // conventionally .notdef, but nothing stops a real
+                // subsetter from storing an actually-used glyph's outline
+                // there while leaving the charset's own placeholder name
+                // for it as ".notdef" regardless; treating a resolved GID
+                // of exactly 0 as "not found" then discarded that glyph
+                // outright even though its charstring draws real content.
+                font.cid_to_gid
+                    .get(bytes_to_u32(code) as usize)
+                    .copied()
+                    .map(usize::from)
+                    .filter(|glyph_id| *glyph_id != 0xFFFF)
+            } else {
+                self.glyph_names
+                    .get(&code[0])
+                    .and_then(|name| font.charset.iter().position(|candidate| candidate == name))
+                    .or_else(|| {
+                        let mut characters = decoded.chars();
+                        let character = characters.next()?;
+                        if characters.next().is_some() || u32::from(character) > u32::from(u16::MAX)
+                        {
+                            return None;
+                        }
+                        font.charset.iter().position(|name| {
+                            stet_fonts::agl::glyph_name_to_unicode(name) == Some(character as u16)
+                        })
                     })
-                })
-                .or_else(|| {
-                    font.encoding
-                        .get(usize::from(*code))
-                        .copied()
-                        .map(usize::from)
-                        .filter(|glyph_id| *glyph_id != 0)
-                });
+                    .or_else(|| {
+                        font.encoding
+                            .get(usize::from(code[0]))
+                            .copied()
+                            .map(usize::from)
+                            .filter(|glyph_id| *glyph_id != 0)
+                    })
+            };
             if let Some(glyph_id) = glyph_id {
                 let charstring = font
                     .char_strings
@@ -1307,14 +1887,54 @@ impl FontDecoder {
                     false,
                 )
                 .map_err(|_| "CFF Type2 glyph outline could not be decoded")?;
-                append_stet_path(&mut path, &outline.path, font_matrix, x_offset);
+                if let Some((adx, ady, base_code, accent_code)) = outline.seac {
+                    // Deprecated Type 1/2 "seac" composition (Adobe TN#5177
+                    // Appendix C): this glyph's own charstring is nothing
+                    // but `adx ady bchar achar endchar`, composing it from
+                    // two other glyphs of this same font -- named by
+                    // StandardEncoding code, never by this PDF's own
+                    // /Differences encoding -- placed at the glyph origin
+                    // and at (adx, ady) respectively. Common in older
+                    // CFF/Type 1 fonts for accented Latin letters (an
+                    // accent mark glyph composed onto a base letter), and
+                    // without this, such a glyph has no outline at all.
+                    for (code, dx, dy) in [(base_code, 0.0, 0.0), (accent_code, adx, ady)] {
+                        let Some(name) = stet_fonts::encoding::standard_encoding_name(code) else {
+                            continue;
+                        };
+                        let Some(component_id) = font
+                            .charset
+                            .iter()
+                            .position(|candidate| candidate.as_str() == name)
+                        else {
+                            continue;
+                        };
+                        let Some(component_charstring) = font.char_strings.get(component_id) else {
+                            continue;
+                        };
+                        let Ok(component) = stet_fonts::type2_charstring::execute_type2_charstring(
+                            component_charstring,
+                            local_subrs,
+                            &font.global_subrs,
+                            default_width,
+                            nominal_width,
+                            false,
+                        ) else {
+                            continue;
+                        };
+                        let component_matrix = compose(font_matrix, [1.0, 0.0, 0.0, 1.0, dx, dy]);
+                        append_stet_path(&mut path, &component.path, component_matrix, x_offset);
+                    }
+                } else {
+                    append_stet_path(&mut path, &outline.path, font_matrix, x_offset);
+                }
             } else if !decoded.chars().all(char::is_whitespace) {
                 return Err("CFF character code has no glyph");
             }
             let word_spacing = if decoded == " " { word_spacing_em } else { 0.0 };
             x_offset += self
                 .widths
-                .get(&u32::from(*code))
+                .get(&bytes_to_u32(code))
                 .copied()
                 .unwrap_or(self.default_width)
                 / 1_000.0
@@ -1479,6 +2099,9 @@ struct Interpreter<'a, 'page> {
     visited_forms: HashSet<ObjectId>,
     visited_patterns: HashSet<ObjectId>,
     mesh_output_count: Rc<Cell<usize>>,
+    hidden_ocgs: HashSet<ObjectId>,
+    marked_content_hidden: bool,
+    marked_content_stack: Vec<bool>,
     content_limit: usize,
     outline_embedded_pdf_text: bool,
 }
@@ -1491,6 +2114,12 @@ impl Interpreter<'_, '_> {
             )));
         }
         for operation in operations {
+            if self.node_counter >= MAX_PDF_PAGE_NODES - MAX_PAGE_MESH_TRIANGLES {
+                self.page.warn(
+                    "PDF page reached its bounded content-node budget; remaining content operators were omitted to reserve mesh-rendering capacity",
+                );
+                break;
+            }
             self.operator(operation, depth)?;
         }
         Ok(())
@@ -1580,11 +2209,7 @@ impl Interpreter<'_, '_> {
                 let values = numbers(operands, 4);
                 if values.len() == 4 {
                     let [x, y, width, height] = [values[0], values[1], values[2], values[3]];
-                    self.path.command("M", &[x, y]);
-                    self.path.command("L", &[x + width, y]);
-                    self.path.command("L", &[x + width, y + height]);
-                    self.path.command("L", &[x, y + height]);
-                    self.path.command("Z", &[]);
+                    self.path.add_rect(x, y, width, height);
                 }
             }
             "W" => self.pending_clip_rule = Some("nonzero".into()),
@@ -1727,12 +2352,38 @@ impl Interpreter<'_, '_> {
             "ID" | "EI" => {}
             "ET" => self.apply_pending_text_clips(),
             "T_s" | "T_w" | "T_L" | "T_c" => {}
+            "BDC" => {
+                let tag = name(operands.first()).unwrap_or_default();
+                let hidden_here = if tag == b"OC" {
+                    match operands.get(1) {
+                        Some(Object::Name(property_name)) => self
+                            .lookup_named_resource_with_id(b"Properties", property_name)
+                            .is_some_and(|(object_id, object)| {
+                                !self.is_oc_visible(object_id, &object)
+                            }),
+                        Some(dictionary_operand @ Object::Dictionary(_)) => {
+                            !self.is_oc_visible(None, dictionary_operand)
+                        }
+                        _ => false,
+                    }
+                } else {
+                    false
+                };
+                let now_hidden = self.marked_content_hidden || hidden_here;
+                self.marked_content_stack.push(now_hidden);
+                self.marked_content_hidden = now_hidden;
+            }
+            "BMC" => {
+                self.marked_content_stack.push(self.marked_content_hidden);
+            }
+            "EMC" => {
+                self.marked_content_stack.pop();
+                self.marked_content_hidden =
+                    self.marked_content_stack.last().copied().unwrap_or(false);
+            }
             unsupported
                 if self.compatibility_depth == 0
-                    && !matches!(
-                        unsupported,
-                        "ri" | "i" | "d0" | "d1" | "BMC" | "BDC" | "EMC" | "MP" | "DP"
-                    ) =>
+                    && !matches!(unsupported, "ri" | "i" | "d0" | "d1" | "MP" | "DP") =>
             {
                 self.page
                     .warn(format!("PDF operator {unsupported} is not yet implemented"));
@@ -1916,6 +2567,24 @@ impl Interpreter<'_, '_> {
             .get(b"ShadingType")
             .and_then(Object::as_i64)
             .unwrap_or(0);
+        if shading_type == 1 {
+            return self.function_shading_pattern_paint(
+                pattern_name,
+                pattern_dictionary,
+                shading_dictionary,
+                opacity,
+            );
+        }
+        if matches!(shading_type, 4..=7) {
+            return self.mesh_shading_pattern_paint(
+                pattern_name,
+                pattern_dictionary,
+                shading_object,
+                shading_dictionary,
+                shading_type,
+                opacity,
+            );
+        }
         if !matches!(shading_type, 2 | 3) {
             self.page.warn(format!(
                 "PDF shading PatternType 2 uses unsupported shading type {shading_type}"
@@ -2086,6 +2755,223 @@ impl Interpreter<'_, '_> {
         ))
     }
 
+    /// Paints a PDF shading pattern (`PatternType 2`) whose `ShadingType` is
+    /// 1 (function-based) -- a case with no SVG gradient equivalent, unlike
+    /// the axial/radial types above. The tessellated cells (same
+    /// tessellation as the `sh` operator uses) are captured into a
+    /// [`TilingPatternDefinition`] sized to the shading's own `/Domain`,
+    /// which becomes an SVG `<pattern>` any path can reference as a fill.
+    fn function_shading_pattern_paint(
+        &mut self,
+        pattern_name: &[u8],
+        pattern_dictionary: &Dictionary,
+        shading_dictionary: &Dictionary,
+        opacity: f64,
+    ) -> Option<(Paint, Option<PatternClip>)> {
+        let function = shading_dictionary.get(b"Function").ok()?;
+        let domain = shading_dictionary
+            .get(b"Domain")
+            .and_then(Object::as_array)
+            .ok()
+            .map(|values| numbers(values, 4))
+            .filter(|values| values.len() == 4)
+            .unwrap_or_else(|| vec![0.0, 1.0, 0.0, 1.0]);
+        let color_space = shading_dictionary.get(b"ColorSpace").ok();
+        let pattern_matrix = pattern_dictionary
+            .get(b"Matrix")
+            .and_then(Object::as_array)
+            .ok()
+            .and_then(|values| matrix_operands(values))
+            .unwrap_or(IDENTITY);
+        let pattern_matrix = inverse_matrix(self.state.ctm)
+            .map(|inverse| compose(inverse, compose(self.content_base_ctm, pattern_matrix)))
+            .unwrap_or(pattern_matrix);
+        let transform_key = pattern_matrix
+            .iter()
+            .map(|value| format!("{:x}", value.to_bits()))
+            .collect::<Vec<_>>()
+            .join("-");
+        let id = format!(
+            "pdf-shading-pattern-{}-{transform_key}",
+            pattern_name
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        );
+        let opacity = opacity.clamp(0.0, 1.0);
+        // A tessellated pattern's tile only ever covers the shading's own
+        // domain; unlike a real PDF shading pattern, an SVG <pattern> tiles
+        // to cover whatever it fills, so without this clip a fill path
+        // larger than the domain would show repeated copies of it.
+        let pattern_clip = Some(PatternClip {
+            bbox: [domain[0], domain[2], domain[1], domain[3]],
+            matrix: pattern_matrix,
+        });
+        if self.page.patterns.iter().any(|pattern| pattern.id == id) {
+            return Some((Paint::PatternRef { id, opacity }, pattern_clip));
+        }
+        let Some((nodes, truncated)) = build_function_shading_cell_nodes(
+            self.document,
+            function,
+            &domain,
+            IDENTITY,
+            color_space,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            None,
+            self.page.number,
+            "pdf-function-pattern-cell",
+            &String::from_utf8_lossy(pattern_name),
+        ) else {
+            self.page.warn(format!(
+                "PDF shading pattern {} uses an unsupported function",
+                String::from_utf8_lossy(pattern_name)
+            ));
+            return None;
+        };
+        if truncated {
+            self.page.warn(format!(
+                "PDF shading pattern {} is too fine-grained to render exactly; showing a lower-resolution approximation",
+                String::from_utf8_lossy(pattern_name)
+            ));
+        }
+        let width = (domain[1] - domain[0]).abs().max(1e-6);
+        let height = (domain[3] - domain[2]).abs().max(1e-6);
+        self.page.patterns.push(TilingPatternDefinition {
+            id: id.clone(),
+            x: domain[0],
+            y: domain[2],
+            width: width + pattern_tile_margin(width),
+            height: height + pattern_tile_margin(height),
+            transform: pattern_matrix,
+            nodes,
+        });
+        Some((Paint::PatternRef { id, opacity }, pattern_clip))
+    }
+
+    /// Paints a PDF shading pattern (`PatternType 2`) whose `ShadingType` is
+    /// 4-7 (a free-form, lattice-form, Coons-patch or tensor-patch mesh) --
+    /// another case with no SVG gradient equivalent. The mesh's own
+    /// triangles (the same tessellation the `sh` operator uses) are
+    /// captured into a [`TilingPatternDefinition`] sized to their actual
+    /// vertex bounds, becoming an SVG `<pattern>` any path can reference.
+    fn mesh_shading_pattern_paint(
+        &mut self,
+        pattern_name: &[u8],
+        pattern_dictionary: &Dictionary,
+        shading_object: &Object,
+        shading_dictionary: &Dictionary,
+        shading_type: i64,
+        opacity: f64,
+    ) -> Option<(Paint, Option<PatternClip>)> {
+        let pattern_matrix = pattern_dictionary
+            .get(b"Matrix")
+            .and_then(Object::as_array)
+            .ok()
+            .and_then(|values| matrix_operands(values))
+            .unwrap_or(IDENTITY);
+        let pattern_matrix = inverse_matrix(self.state.ctm)
+            .map(|inverse| compose(inverse, compose(self.content_base_ctm, pattern_matrix)))
+            .unwrap_or(pattern_matrix);
+        let transform_key = pattern_matrix
+            .iter()
+            .map(|value| format!("{:x}", value.to_bits()))
+            .collect::<Vec<_>>()
+            .join("-");
+        let id = format!(
+            "pdf-shading-pattern-{}-{transform_key}",
+            pattern_name
+                .iter()
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>()
+        );
+        let opacity = opacity.clamp(0.0, 1.0);
+        // Unlike the other pattern kinds, a mesh pattern is not cached by
+        // id and re-skipped on a repeat fill: its bounding box (needed for
+        // the clip below) only falls out of parsing the mesh data, so a
+        // second reference just re-tessellates rather than tracking bounds
+        // on the side for what is, in practice, a rare pattern to reuse.
+        let parsed = parse_mesh_shading_triangles(
+            self.document,
+            shading_object,
+            shading_dictionary,
+            shading_type,
+            self.content_limit,
+            self.mesh_output_count.get(),
+            pattern_name,
+            self.page,
+        );
+        let (triangles, subdivisions, color_space) = match parsed {
+            Ok(Some(parsed)) => parsed,
+            Ok(None) => return None,
+            Err(error) => {
+                self.page.warn(format!(
+                    "PDF shading pattern {} was skipped: {error}",
+                    String::from_utf8_lossy(pattern_name)
+                ));
+                return None;
+            }
+        };
+        let mut min_x = f64::INFINITY;
+        let mut max_x = f64::NEG_INFINITY;
+        let mut min_y = f64::INFINITY;
+        let mut max_y = f64::NEG_INFINITY;
+        for triangle in &triangles {
+            for vertex in &triangle.0 {
+                min_x = min_x.min(vertex.x);
+                max_x = max_x.max(vertex.x);
+                min_y = min_y.min(vertex.y);
+                max_y = max_y.max(vertex.y);
+            }
+        }
+        if !min_x.is_finite() || !max_x.is_finite() || !min_y.is_finite() || !max_y.is_finite() {
+            return None;
+        }
+        let nodes = build_mesh_triangle_nodes(
+            self.document,
+            &triangles,
+            subdivisions,
+            color_space.as_ref(),
+            IDENTITY,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            None,
+            self.page.number,
+            "pdf-mesh-pattern-cell",
+            &String::from_utf8_lossy(pattern_name),
+            &self.mesh_output_count,
+        );
+        if nodes.is_empty() {
+            return None;
+        }
+        // A tessellated pattern's tile only ever covers the mesh's own
+        // vertex bounds; unlike a real PDF shading pattern, an SVG
+        // <pattern> tiles to cover whatever it fills, so without this clip
+        // a fill path larger than those bounds would show repeated copies.
+        let pattern_clip = Some(PatternClip {
+            bbox: [min_x, min_y, max_x, max_y],
+            matrix: pattern_matrix,
+        });
+        if !self.page.patterns.iter().any(|pattern| pattern.id == id) {
+            let width = (max_x - min_x).max(1e-6);
+            let height = (max_y - min_y).max(1e-6);
+            self.page.patterns.push(TilingPatternDefinition {
+                id: id.clone(),
+                x: min_x,
+                y: min_y,
+                width: width + pattern_tile_margin(width),
+                height: height + pattern_tile_margin(height),
+                transform: pattern_matrix,
+                nodes,
+            });
+        }
+        Some((Paint::PatternRef { id, opacity }, pattern_clip))
+    }
+
     fn tiling_pattern_paint(
         &mut self,
         pattern_name: &[u8],
@@ -2239,17 +3125,18 @@ impl Interpreter<'_, '_> {
                 return None;
             }
         };
-        let decoded = match Content::decode(&content) {
-            Ok(decoded) => decoded,
-            Err(error) => {
-                if let Some(object_id) = object_id {
-                    self.visited_patterns.remove(&object_id);
+        let decoded =
+            match decode_content_operations(&content, self.content_limit, &mut pattern_page) {
+                Ok(decoded) => decoded,
+                Err(error) => {
+                    if let Some(object_id) = object_id {
+                        self.visited_patterns.remove(&object_id);
+                    }
+                    self.page
+                        .warn(format!("PDF tiling pattern content is invalid: {error}"));
+                    return None;
                 }
-                self.page
-                    .warn(format!("PDF tiling pattern content is invalid: {error}"));
-                return None;
-            }
-        };
+            };
         let mut pattern_interpreter = Interpreter {
             document: self.document,
             page: &mut pattern_page,
@@ -2270,10 +3157,13 @@ impl Interpreter<'_, '_> {
             visited_forms: self.visited_forms.clone(),
             visited_patterns: self.visited_patterns.clone(),
             mesh_output_count: Rc::clone(&self.mesh_output_count),
+            hidden_ocgs: self.hidden_ocgs.clone(),
+            marked_content_hidden: false,
+            marked_content_stack: Vec::new(),
             content_limit: self.content_limit,
             outline_embedded_pdf_text: self.outline_embedded_pdf_text,
         };
-        let interpretation = pattern_interpreter.interpret(&decoded.operations, 1);
+        let interpretation = pattern_interpreter.interpret(&decoded, 1);
         self.node_counter = pattern_interpreter.node_counter;
         self.clip_counter = pattern_interpreter.clip_counter;
         self.mask_counter = pattern_interpreter.mask_counter;
@@ -2322,8 +3212,20 @@ impl Interpreter<'_, '_> {
         }
         self.page.patterns.push(TilingPatternDefinition {
             id: id.clone(),
-            x: 0.0,
-            y: 0.0,
+            // The pattern's own content stream draws in absolute BBox-space
+            // coordinates (PDF32000 8.7.3.1), which need not start at the
+            // origin at all -- a producer is free to declare e.g. `/BBox
+            // [35.4 396.6 287.4 588]`, matching wherever on the page the
+            // pattern's own designer happened to lay it out. The SVG
+            // `<pattern>` element's own x/y set where THAT content lands
+            // within the tile it repeats, so leaving it hardcoded at (0, 0)
+            // shifted every BBox with a nonzero origin clean out of its own
+            // tile: content clipped correctly to the BBox rectangle, drawn
+            // at its own real coordinates, but that rectangle no longer
+            // overlapped the pattern's assumed [0, width] x [0, height]
+            // viewport at all.
+            x: bbox[0],
+            y: bbox[1],
             width: x_step.abs(),
             height: y_step.abs(),
             transform: pattern_matrix,
@@ -2386,27 +3288,69 @@ impl Interpreter<'_, '_> {
         if !self.path.has_content {
             return;
         }
+        // A filled rectangle with zero width or zero height has no area to
+        // fill -- literally invisible in any correct vector renderer --
+        // but real-world PDFs (CAD exports, ruled grids, table borders)
+        // commonly use exactly this to draw a hairline instead of a
+        // stroke, relying on every mainstream viewer's rasterizer to give
+        // a degenerate fill a sliver of coverage. Matching that
+        // expectation means drawing it as an actual thin stroke along the
+        // rectangle's degenerate axis instead of leaving it a true
+        // zero-area (and so invisible) fill. A path that is also stroked
+        // already gets its own visible outline, so this only applies to a
+        // bare fill.
+        let hairline = (fill && !stroke)
+            .then_some(self.path.bare_rect)
+            .flatten()
+            .and_then(|[x, y, width, height]| {
+                let zero_width = width == 0.0;
+                let zero_height = height == 0.0;
+                if zero_width == zero_height {
+                    return None; // an ordinary rect, or a zero-area point
+                }
+                let scale = matrix_maximum_scale(self.state.ctm).max(1e-12);
+                let stroke_width = 1.0 / scale;
+                let (x2, y2) = if zero_width {
+                    (x, y + height)
+                } else {
+                    (x + width, y)
+                };
+                let line = format!("M {} {} L {} {}", fmt(x), fmt(y), fmt(x2), fmt(y2));
+                Some((line, stroke_width))
+            });
         let d = self.path.take();
         self.install_clip(&d);
+        if self.marked_content_hidden {
+            return;
+        }
         let pattern_clip = self.selected_pattern_clip(fill, stroke);
         let clip_id = self.install_pattern_bbox_clip(pattern_clip);
         self.node_counter += 1;
-        self.page.nodes.push(Node::Path {
-            id: format!("pdf-path-{}-{}", self.page.number, self.node_counter),
-            d,
-            fill_rule: fill_rule.into(),
-            fill: if fill {
-                self.state.fill.clone()
-            } else {
-                Paint::None
-            },
-            stroke: Stroke {
-                paint: if stroke {
+        let (d, fill_paint, stroke_paint, stroke_width) = match hairline {
+            Some((line, width)) => (line, Paint::None, self.state.fill.clone(), width),
+            None => (
+                d,
+                if fill {
+                    self.state.fill.clone()
+                } else {
+                    Paint::None
+                },
+                if stroke {
                     self.state.stroke.clone()
                 } else {
                     Paint::None
                 },
-                width: self.state.line_width,
+                self.state.line_width,
+            ),
+        };
+        self.page.nodes.push(Node::Path {
+            id: format!("pdf-path-{}-{}", self.page.number, self.node_counter),
+            d,
+            fill_rule: fill_rule.into(),
+            fill: fill_paint,
+            stroke: Stroke {
+                paint: stroke_paint,
+                width: stroke_width,
                 line_cap: self.state.line_cap,
                 line_join: self.state.line_join,
                 miter_limit: self.state.miter_limit,
@@ -2500,11 +3444,19 @@ impl Interpreter<'_, '_> {
                 String::from_utf8_lossy(&self.text.font_name)
             ));
         }
-        if self.text.rendering_mode == 3 {
+        if self.marked_content_hidden {
             self.advance_text_bytes(bytes, &text);
             return;
         }
         if let Some(type3) = decoder.and_then(|decoder| decoder.type3.clone()) {
+            // A CharProc always paints, so mode 3 (invisible) is the one
+            // mode this glyph program cannot approximate: draw nothing
+            // rather than a visible glyph an invisible-text mode promised
+            // would not appear.
+            if self.text.rendering_mode == 3 {
+                self.advance_text_bytes(bytes, &text);
+                return;
+            }
             if self.text.rendering_mode != 0 {
                 self.page.warn(format!(
                     "PDF Type3 text rendering mode {} is approximated by its CharProc paint operators",
@@ -2537,36 +3489,41 @@ impl Interpreter<'_, '_> {
             compose(self.state.ctm, compose(self.text.text_matrix, compensation)),
         );
         let mut outline_failure = None;
-        let explicit_fidelity_outline = decoder.is_some_and(|decoder| {
-            !decoder.requires_outline
-                && should_outline_pdf_text(
-                    decoder.requires_outline,
-                    decoder.font_data.is_some(),
-                    self.outline_embedded_pdf_text,
-                )
-                && stable_symbol.is_none()
-        });
-        let outline_path = decoder
-            .filter(|decoder| {
-                should_outline_pdf_text(
-                    decoder.requires_outline,
-                    decoder.font_data.is_some(),
-                    self.outline_embedded_pdf_text,
-                ) && stable_symbol.is_none()
-            })
-            .and_then(|decoder| {
-                match decoder.outline_path(
-                    bytes,
-                    self.text.character_spacing / self.text.font_size.max(1e-12),
-                    self.text.word_spacing / self.text.font_size.max(1e-12),
-                ) {
-                    Ok(path) => Some(path),
-                    Err(reason) => {
-                        outline_failure = Some(reason);
-                        None
-                    }
-                }
+        let explicit_fidelity_outline = self.text.rendering_mode != 3
+            && decoder.is_some_and(|decoder| {
+                !decoder.requires_outline
+                    && should_outline_pdf_text(
+                        decoder.requires_outline,
+                        decoder.font_data.is_some(),
+                        self.outline_embedded_pdf_text,
+                    )
+                    && stable_symbol.is_none()
             });
+        let outline_path = if self.text.rendering_mode == 3 {
+            None
+        } else {
+            decoder
+                .filter(|decoder| {
+                    should_outline_pdf_text(
+                        decoder.requires_outline,
+                        decoder.font_data.is_some(),
+                        self.outline_embedded_pdf_text,
+                    ) && stable_symbol.is_none()
+                })
+                .and_then(|decoder| {
+                    match decoder.outline_path(
+                        bytes,
+                        self.text.character_spacing / self.text.font_size.max(1e-12),
+                        self.text.word_spacing / self.text.font_size.max(1e-12),
+                    ) {
+                        Ok(path) => Some(path),
+                        Err(reason) => {
+                            outline_failure = Some(reason);
+                            None
+                        }
+                    }
+                })
+        };
         if let Some(path_data) = outline_path {
             if path_data.is_empty() {
                 self.advance_text_bytes(bytes, &text);
@@ -2652,7 +3609,10 @@ impl Interpreter<'_, '_> {
             self.advance_text_bytes(bytes, &text);
             return;
         }
-        if decoder.is_some_and(|decoder| decoder.requires_outline) && stable_symbol.is_none() {
+        if self.text.rendering_mode != 3
+            && decoder.is_some_and(|decoder| decoder.requires_outline)
+            && stable_symbol.is_none()
+        {
             self.page.warn(format!(
                 "embedded custom font {} is emitted as editable fallback text: {}",
                 decoder.map_or("unknown", |decoder| decoder.family.as_str()),
@@ -2819,14 +3779,15 @@ impl Interpreter<'_, '_> {
                     continue;
                 }
             };
-            let decoded = match Content::decode(&content) {
-                Ok(decoded) => decoded,
-                Err(error) => {
-                    self.page
-                        .warn(format!("PDF Type3 glyph content is invalid: {error}"));
-                    continue;
-                }
-            };
+            let decoded =
+                match decode_content_operations(&content, self.content_limit, &mut glyph_page) {
+                    Ok(decoded) => decoded,
+                    Err(error) => {
+                        self.page
+                            .warn(format!("PDF Type3 glyph content is invalid: {error}"));
+                        continue;
+                    }
+                };
             let mut initial_state = self.state.clone();
             initial_state.ctm = IDENTITY;
             initial_state.clip_id = None;
@@ -2852,10 +3813,13 @@ impl Interpreter<'_, '_> {
                 visited_forms: self.visited_forms.clone(),
                 visited_patterns: self.visited_patterns.clone(),
                 mesh_output_count: Rc::clone(&self.mesh_output_count),
+                hidden_ocgs: self.hidden_ocgs.clone(),
+                marked_content_hidden: false,
+                marked_content_stack: Vec::new(),
                 content_limit: self.content_limit,
                 outline_embedded_pdf_text: self.outline_embedded_pdf_text,
             };
-            let interpretation = glyph_interpreter.interpret(&decoded.operations, 1);
+            let interpretation = glyph_interpreter.interpret(&decoded, 1);
             self.node_counter = glyph_interpreter.node_counter;
             self.clip_counter = glyph_interpreter.clip_counter;
             self.mask_counter = glyph_interpreter.mask_counter;
@@ -2953,6 +3917,9 @@ impl Interpreter<'_, '_> {
             ));
             return Ok(());
         };
+        if self.marked_content_hidden || !self.xobject_oc_visible(&stream.dict) {
+            return Ok(());
+        }
         let subtype = stream
             .dict
             .get(b"Subtype")
@@ -3018,8 +3985,8 @@ impl Interpreter<'_, '_> {
                 pushed_resources = true;
             }
             let content = stream.decompressed_content_with_limit(self.content_limit)?;
-            let decoded = Content::decode(&content)?;
-            let interpret_result = self.interpret(&decoded.operations, depth + 1);
+            let decoded = decode_content_operations(&content, self.content_limit, self.page)?;
+            let interpret_result = self.interpret(&decoded, depth + 1);
             if pushed_resources {
                 self.resources.pop();
             }
@@ -3109,7 +4076,795 @@ impl Interpreter<'_, '_> {
         Ok(())
     }
 
+    fn render_annotations(&mut self) -> Result<()> {
+        let Ok(page_dict) = self.document.get_dictionary(self.page_id) else {
+            return Ok(());
+        };
+        let Ok(annots_obj) = page_dict.get_deref(b"Annots", self.document) else {
+            return Ok(());
+        };
+        let Ok(annots) = annots_obj.as_array() else {
+            return Ok(());
+        };
+        if annots.len() > MAX_PDF_ANNOTATIONS_PER_PAGE {
+            self.page.warn(format!(
+                "PDF page has {} annotations; only the first {MAX_PDF_ANNOTATIONS_PER_PAGE} were considered",
+                annots.len()
+            ));
+        }
+        for annot_ref in annots.iter().take(MAX_PDF_ANNOTATIONS_PER_PAGE) {
+            if self.node_counter >= MAX_PDF_PAGE_NODES {
+                self.page.warn(format!(
+                    "PDF page output reached the {MAX_PDF_PAGE_NODES}-node annotation limit; remaining annotations were omitted"
+                ));
+                break;
+            }
+            let Ok((_, annot_obj)) = self.document.dereference(annot_ref) else {
+                continue;
+            };
+            let Ok(annot_dict) = annot_obj.as_dict() else {
+                continue;
+            };
+            let subtype = annot_dict
+                .get_deref(b"Subtype", self.document)
+                .ok()
+                .and_then(|o| o.as_name().ok())
+                .unwrap_or_default();
+            if subtype == b"Popup" {
+                continue;
+            }
+            let flags = annot_dict
+                .get(b"F")
+                .ok()
+                .and_then(|o| o.as_i64().ok())
+                .unwrap_or(0);
+            if flags & 1 != 0 || flags & 2 != 0 || flags & 32 != 0 {
+                continue;
+            }
+            if subtype == b"Link" {
+                // A Link's own /AP, when it has one, is still never drawn --
+                // a Link is conventionally just an invisible active area --
+                // but one with no appearance at all may still fall back to
+                // a synthesized border below.
+                let has_appearance = annot_dict
+                    .get_deref(b"AP", self.document)
+                    .ok()
+                    .and_then(|o| o.as_dict().ok())
+                    .is_some();
+                if !has_appearance {
+                    self.draw_link_annotation_border(annot_dict);
+                }
+                continue;
+            }
+            let normal_ap = annot_dict
+                .get_deref(b"AP", self.document)
+                .ok()
+                .and_then(|object| object.as_dict().ok())
+                .and_then(|appearance| appearance.get_deref(b"N", self.document).ok());
+            let stream = normal_ap.and_then(|normal_ap| match normal_ap {
+                Object::Stream(stream) => Some(stream.clone()),
+                Object::Dictionary(subdict) => {
+                    let as_state = annot_dict
+                        .get(b"AS")
+                        .ok()
+                        .and_then(|object| object.as_name().ok());
+                    let state_obj = as_state
+                        .and_then(|key| subdict.get_deref(key, self.document).ok())
+                        .or_else(|| {
+                            subdict.iter().find_map(|(_, value)| {
+                                self.document
+                                    .dereference(value)
+                                    .ok()
+                                    .map(|(_, value)| value)
+                            })
+                        });
+                    match state_obj {
+                        Some(Object::Stream(stream)) => Some(stream.clone()),
+                        _ => None,
+                    }
+                }
+                _ => None,
+            });
+            if let Some(stream) = stream {
+                let rect = annot_dict
+                    .get_deref(b"Rect", self.document)
+                    .ok()
+                    .and_then(|object| object.as_array().ok())
+                    .map(|array| numbers(array, 4))
+                    .unwrap_or_default();
+                if rect.len() == 4 {
+                    self.draw_annotation_appearance(&stream, &rect)?;
+                }
+            } else if subtype == b"FreeText" {
+                self.draw_freetext_annotation_fallback(annot_dict)?;
+            } else if subtype == b"Widget" {
+                self.draw_widget_text_fallback(annot_dict)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Draws a Link annotation's own fallback border when it has no
+    /// appearance stream of its own. PDF32000 12.5.4 leaves this entirely to
+    /// the reader's discretion; poppler draws one whenever the annotation
+    /// declares both a positive border width and an explicit `/C` colour,
+    /// which this mirrors -- narrowly, since the overwhelmingly common case
+    /// is a Link with neither set at all (most real documents rely on the
+    /// *absence* of a visible border here), and drawing one regardless would
+    /// put a spurious box around ordinary hyperlinks everywhere.
+    fn draw_link_annotation_border(&mut self, annot_dict: &Dictionary) {
+        let Ok(rect) = annot_dict
+            .get_deref(b"Rect", self.document)
+            .and_then(Object::as_array)
+        else {
+            return;
+        };
+        let rect = numbers(rect, 4);
+        if rect.len() != 4 {
+            return;
+        }
+        let width = annot_dict
+            .get_deref(b"BS", self.document)
+            .and_then(Object::as_dict)
+            .ok()
+            .and_then(|bs| number(bs.get(b"W").ok()))
+            .or_else(|| {
+                annot_dict
+                    .get_deref(b"Border", self.document)
+                    .and_then(Object::as_array)
+                    .ok()
+                    .and_then(|border| numbers(border, 3).get(2).copied())
+            });
+        let Some(width) = width.filter(|width| *width > 0.0) else {
+            return;
+        };
+        let Ok(color) = annot_dict
+            .get_deref(b"C", self.document)
+            .and_then(Object::as_array)
+        else {
+            return;
+        };
+        let components = numbers(color, usize::MAX);
+        if components.is_empty() {
+            return;
+        }
+        let color_space = match components.len() {
+            1 => Object::Name(b"DeviceGray".to_vec()),
+            4 => Object::Name(b"DeviceCMYK".to_vec()),
+            _ => Object::Name(b"DeviceRGB".to_vec()),
+        };
+        let color = components_to_color(self.document, Some(&color_space), &components);
+        let x = rect[0].min(rect[2]);
+        let y = rect[1].min(rect[3]);
+        let box_width = (rect[2] - rect[0]).abs();
+        let box_height = (rect[3] - rect[1]).abs();
+        self.node_counter += 1;
+        self.page.nodes.push(Node::Path {
+            id: format!("pdf-link-border-{}-{}", self.page.number, self.node_counter),
+            d: rectangle_path(x, y, box_width, box_height),
+            fill_rule: "nonzero".into(),
+            fill: Paint::None,
+            stroke: Stroke {
+                paint: Paint::solid(color),
+                width,
+                line_cap: LineCap::Butt,
+                line_join: LineJoin::Miter,
+                miter_limit: 10.0,
+                dash_array: Vec::new(),
+                dash_offset: 0.0,
+            },
+            transform: self.page_matrix,
+            clip_id: None,
+            meta: SourceMeta {
+                kind: "annotation-border".into(),
+                source_id: format!("page:{}:annotation:link", self.page.number),
+                ..SourceMeta::default()
+            },
+        });
+    }
+
+    fn draw_freetext_annotation_fallback(&mut self, annot_dict: &Dictionary) -> Result<()> {
+        let Some(rect) = annotation_rect(annot_dict, self.document) else {
+            return Ok(());
+        };
+        let Some(contents) = annot_dict
+            .get_deref(b"Contents", self.document)
+            .ok()
+            .and_then(|object| string_bytes(Some(object)))
+        else {
+            return Ok(());
+        };
+        if contents.len() > MAX_PDF_FORM_VALUE_BYTES {
+            self.page.warn(format!(
+                "PDF FreeText annotation contents exceed {MAX_PDF_FORM_VALUE_BYTES} bytes and were omitted"
+            ));
+            return Ok(());
+        }
+        let appearance = annot_dict
+            .get_deref(b"DA", self.document)
+            .ok()
+            .and_then(|object| string_bytes(Some(object)))
+            .filter(|appearance| appearance.len() <= MAX_PDF_DEFAULT_APPEARANCE_BYTES)
+            .unwrap_or_default();
+        if annot_dict
+            .get_deref(b"DA", self.document)
+            .ok()
+            .and_then(|object| string_bytes(Some(object)))
+            .is_some_and(|appearance| appearance.len() > MAX_PDF_DEFAULT_APPEARANCE_BYTES)
+        {
+            self.page.warn(format!(
+                "PDF FreeText DA exceeds {MAX_PDF_DEFAULT_APPEARANCE_BYTES} bytes; default text styling was used"
+            ));
+        }
+        let quadding = integer(annot_dict.get(b"Q").ok()).unwrap_or(0);
+        self.draw_variable_text_fallback(
+            &rect,
+            decode_pdf_annotation_text(contents),
+            appearance,
+            quadding,
+            "freetext",
+            "PDF FreeText annotation without a normal appearance was rendered from Contents/DA with approximate layout",
+        )?;
+        if annot_dict.get(b"RC").is_ok() {
+            self.page
+                .warn("PDF FreeText rich-text RC styling was not applied");
+        }
+        Ok(())
+    }
+
+    fn draw_widget_text_fallback(&mut self, annot_dict: &Dictionary) -> Result<()> {
+        let mut current = Some(annot_dict);
+        let mut visited_parents = HashSet::new();
+        let mut field_type = None;
+        let mut value = None;
+        let mut value_array = None;
+        let mut value_limit_exceeded = false;
+        let mut value_name = None;
+        let mut choice_options = None;
+        let mut choice_options_seen = false;
+        let mut appearance = None;
+        let mut appearance_limit_exceeded = false;
+        let mut flags = None;
+        let mut quadding = None;
+        let mut rich_text = false;
+        let appearance_state = annot_dict
+            .get_deref(b"AS", self.document)
+            .ok()
+            .and_then(|object| object.as_name().ok())
+            .map(ToOwned::to_owned);
+        for _ in 0..64 {
+            let Some(dictionary) = current else {
+                break;
+            };
+            if field_type.is_none() {
+                field_type = dictionary
+                    .get_deref(b"FT", self.document)
+                    .ok()
+                    .and_then(|object| object.as_name().ok())
+                    .map(ToOwned::to_owned);
+            }
+            if value.is_none()
+                && value_array.is_none()
+                && let Ok(object) = dictionary.get_deref(b"V", self.document)
+            {
+                if let Some(bytes) = string_bytes(Some(object)) {
+                    if bytes.len() <= MAX_PDF_FORM_VALUE_BYTES {
+                        value = Some(bytes.to_vec());
+                    } else {
+                        value_limit_exceeded = true;
+                    }
+                } else if let Ok(array) = object.as_array() {
+                    value_array = pdf_string_array(self.document, array);
+                    value_limit_exceeded = value_array.is_none();
+                } else if let Object::Stream(stream) = object {
+                    match stream.decompressed_content_with_limit(MAX_PDF_FORM_VALUE_BYTES) {
+                        Ok(bytes) => value = Some(bytes),
+                        Err(_) => value_limit_exceeded = true,
+                    }
+                }
+            }
+            if value_name.is_none() {
+                value_name = dictionary
+                    .get_deref(b"V", self.document)
+                    .ok()
+                    .and_then(|object| object.as_name().ok())
+                    .map(ToOwned::to_owned);
+            }
+            if appearance.is_none()
+                && let Some(bytes) = dictionary
+                    .get_deref(b"DA", self.document)
+                    .ok()
+                    .and_then(|object| string_bytes(Some(object)))
+            {
+                if bytes.len() <= MAX_PDF_DEFAULT_APPEARANCE_BYTES {
+                    appearance = Some(bytes.to_vec());
+                } else {
+                    appearance_limit_exceeded = true;
+                }
+            }
+            if flags.is_none() {
+                flags = dictionary
+                    .get_deref(b"Ff", self.document)
+                    .ok()
+                    .and_then(|object| integer(Some(object)));
+            }
+            if quadding.is_none() {
+                quadding = dictionary
+                    .get_deref(b"Q", self.document)
+                    .ok()
+                    .and_then(|object| integer(Some(object)));
+            }
+            if !choice_options_seen && let Ok(object) = dictionary.get_deref(b"Opt", self.document)
+            {
+                choice_options_seen = true;
+                choice_options = pdf_choice_options(self.document, object);
+            }
+            rich_text |= dictionary.get_deref(b"RV", self.document).is_ok();
+            let Some(parent_id) = dictionary
+                .get(b"Parent")
+                .ok()
+                .and_then(|object| object.as_reference().ok())
+            else {
+                break;
+            };
+            if !visited_parents.insert(parent_id) {
+                break;
+            }
+            current = self.document.get_dictionary(parent_id).ok();
+        }
+        let Some(field_type) = field_type else {
+            return Ok(());
+        };
+        if value_limit_exceeded
+            && (field_type.as_slice() == b"Tx" || field_type.as_slice() == b"Ch")
+        {
+            self.page.warn(format!(
+                "PDF form field value or selection list exceeds the {MAX_PDF_FORM_VALUE_BYTES}-byte budget and was omitted"
+            ));
+            return Ok(());
+        }
+        if field_type.as_slice() == b"Btn" {
+            let flags = flags.unwrap_or(0);
+            if flags & (1 << 16) != 0 {
+                return Ok(());
+            }
+            let radio = flags & (1 << 15) != 0;
+            let state = appearance_state
+                .as_deref()
+                .or_else(|| (!radio).then_some(value_name.as_deref()).flatten());
+            return self.draw_button_widget_fallback(annot_dict, radio, state);
+        }
+        if field_type.as_slice() == b"Ch" {
+            let values = value_array
+                .or_else(|| value.map(|value| vec![value]))
+                .unwrap_or_default();
+            if values.is_empty() {
+                return Ok(());
+            }
+            let mut text = String::new();
+            for (index, selected) in values.iter().enumerate() {
+                if index > 0 {
+                    text.push('\n');
+                }
+                let display = choice_options
+                    .as_deref()
+                    .and_then(|options| pdf_choice_display_value(options, selected))
+                    .unwrap_or(selected);
+                text.push_str(&decode_pdf_annotation_text(display));
+                if text.len() > MAX_PDF_CHOICE_TEXT_BYTES {
+                    self.page.warn(format!(
+                        "PDF choice Widget selected text exceeds {MAX_PDF_CHOICE_TEXT_BYTES} bytes and was omitted"
+                    ));
+                    return Ok(());
+                }
+            }
+            let (appearance, form_appearance_over_limit) =
+                bounded_form_appearance(appearance, self.document);
+            if appearance_limit_exceeded || form_appearance_over_limit {
+                self.page.warn(format!(
+                    "PDF choice Widget DA exceeds {MAX_PDF_DEFAULT_APPEARANCE_BYTES} bytes; default text styling was used"
+                ));
+            }
+            let Some(rect) = annotation_rect(annot_dict, self.document) else {
+                return Ok(());
+            };
+            let result = self.draw_variable_text_fallback(
+                &rect,
+                text,
+                &appearance,
+                quadding.unwrap_or(0),
+                "widget-choice",
+                "PDF choice Widget without a normal appearance was rendered from V/Opt/DA with approximate layout",
+            );
+            if choice_options_seen && choice_options.is_none() {
+                self.page
+                    .warn("PDF choice Widget Opt entries were invalid or over the resource limit");
+            }
+            return result;
+        }
+        if field_type.as_slice() != b"Tx" {
+            return Ok(());
+        }
+        let Some(value) = value else {
+            return Ok(());
+        };
+        let password = flags.is_some_and(|flags| flags & (1 << 13) != 0);
+        rich_text |= flags.is_some_and(|flags| flags & (1 << 25) != 0);
+        let mut text = decode_pdf_annotation_text(&value);
+        if password {
+            let masked_length = text.chars().count().min(100_000);
+            text = "•".repeat(masked_length);
+            self.page
+                .warn("PDF password Widget value was masked in the preview");
+        }
+        let (appearance, form_appearance_over_limit) =
+            bounded_form_appearance(appearance, self.document);
+        if appearance_limit_exceeded || form_appearance_over_limit {
+            self.page.warn(format!(
+                "PDF text Widget DA exceeds {MAX_PDF_DEFAULT_APPEARANCE_BYTES} bytes; default text styling was used"
+            ));
+        }
+        let Some(rect) = annotation_rect(annot_dict, self.document) else {
+            return Ok(());
+        };
+        let result = self.draw_variable_text_fallback(
+            &rect,
+            text,
+            &appearance,
+            quadding.unwrap_or(0),
+            "widget-text",
+            "PDF text Widget without a normal appearance was rendered from V/DA with approximate layout",
+        );
+        if rich_text {
+            self.page
+                .warn("PDF rich-text Widget RV styling was not applied");
+        }
+        result
+    }
+
+    fn draw_button_widget_fallback(
+        &mut self,
+        annotation: &Dictionary,
+        radio: bool,
+        state: Option<&[u8]>,
+    ) -> Result<()> {
+        if self.node_counter >= MAX_PDF_PAGE_NODES {
+            return Ok(());
+        }
+        let Some(rect) = annotation_rect(annotation, self.document) else {
+            return Ok(());
+        };
+        let left = rect[0].min(rect[2]);
+        let right = rect[0].max(rect[2]);
+        let bottom = rect[1].min(rect[3]);
+        let top = rect[1].max(rect[3]);
+        let width = right - left;
+        let height = top - bottom;
+        if width <= 0.0 || height <= 0.0 {
+            return Ok(());
+        }
+        let selected = state.is_some_and(|state| !state.eq_ignore_ascii_case(b"Off"));
+        let border = if radio {
+            let radius = width.min(height) * 0.5;
+            let center_x = (left + right) * 0.5;
+            let center_y = (bottom + top) * 0.5;
+            format!(
+                "M {:.3} {:.3} a{radius:.3} {radius:.3} 0 1 0 {:.3} 0 a{radius:.3} {radius:.3} 0 1 0 -{:.3} 0 Z",
+                center_x - radius,
+                center_y,
+                radius * 2.0,
+                radius * 2.0,
+            )
+        } else {
+            rectangle_path(left, bottom, width, height)
+        };
+        self.node_counter += 1;
+        self.page.nodes.push(Node::Path {
+            id: format!(
+                "pdf-widget-border-{}-{}",
+                self.page.number, self.node_counter
+            ),
+            d: border,
+            fill_rule: "nonzero".into(),
+            fill: Paint::None,
+            stroke: Stroke {
+                paint: Paint::solid("#334155"),
+                width: 1.0,
+                line_cap: LineCap::Round,
+                line_join: LineJoin::Round,
+                ..Default::default()
+            },
+            transform: self.page_matrix,
+            clip_id: None,
+            meta: SourceMeta {
+                kind: "annotation-widget-button".into(),
+                source_id: format!("page:{}:annotation:widget-button", self.page.number),
+                ..SourceMeta::default()
+            },
+        });
+        if selected {
+            if self.node_counter >= MAX_PDF_PAGE_NODES {
+                self.page.warn(format!(
+                    "PDF page output reached the {MAX_PDF_PAGE_NODES}-node annotation limit; widget state mark was omitted"
+                ));
+                return Ok(());
+            }
+            let mark = if radio {
+                let radius = width.min(height) * 0.23;
+                let center_x = (left + right) * 0.5;
+                let center_y = (bottom + top) * 0.5;
+                format!(
+                    "M {:.3} {:.3} a{radius:.3} {radius:.3} 0 1 0 {:.3} 0 a{radius:.3} {radius:.3} 0 1 0 -{:.3} 0 Z",
+                    center_x - radius,
+                    center_y,
+                    radius * 2.0,
+                    radius * 2.0,
+                )
+            } else {
+                format!(
+                    "M {:.3} {:.3} L {:.3} {:.3} L {:.3} {:.3}",
+                    left + width * 0.2,
+                    bottom + height * 0.52,
+                    left + width * 0.43,
+                    bottom + height * 0.25,
+                    left + width * 0.82,
+                    bottom + height * 0.78,
+                )
+            };
+            self.node_counter += 1;
+            self.page.nodes.push(Node::Path {
+                id: format!("pdf-widget-mark-{}-{}", self.page.number, self.node_counter),
+                d: mark,
+                fill_rule: "nonzero".into(),
+                fill: if radio {
+                    Paint::solid("#334155")
+                } else {
+                    Paint::None
+                },
+                stroke: if radio {
+                    Stroke::default()
+                } else {
+                    Stroke {
+                        paint: Paint::solid("#334155"),
+                        width: width.min(height).mul_add(0.04, 0.8),
+                        line_cap: LineCap::Round,
+                        line_join: LineJoin::Round,
+                        ..Default::default()
+                    }
+                },
+                transform: self.page_matrix,
+                clip_id: None,
+                meta: SourceMeta {
+                    kind: "annotation-widget-button-mark".into(),
+                    source_id: format!("page:{}:annotation:widget-button", self.page.number),
+                    ..Default::default()
+                },
+            });
+        }
+        self.page.warn(
+            "PDF button Widget without a normal appearance was rendered as a simple checkbox/radio marker",
+        );
+        Ok(())
+    }
+
+    fn draw_variable_text_fallback(
+        &mut self,
+        rect: &[f64],
+        mut text: String,
+        appearance: &[u8],
+        quadding: i64,
+        kind: &str,
+        warning: &str,
+    ) -> Result<()> {
+        const MAX_FREETEXT_CHARS: usize = 100_000;
+        const MAX_FREETEXT_LINES: usize = 2_048;
+        let left = rect[0].min(rect[2]);
+        let right = rect[0].max(rect[2]);
+        let bottom = rect[1].min(rect[3]);
+        let top = rect[1].max(rect[3]);
+        let width = right - left;
+        let height = top - bottom;
+        if width <= 0.0 || height <= 0.0 {
+            return Ok(());
+        }
+        let char_count = text.chars().count();
+        if char_count > MAX_FREETEXT_CHARS {
+            text = text.chars().take(MAX_FREETEXT_CHARS).collect();
+        }
+        let default_size = (height * 0.6).clamp(6.0, 18.0);
+        let (font_family, font_size, fill, anchor) =
+            free_text_appearance_style(appearance, quadding, default_size);
+        let inner_width = (width - 8.0).max(1.0);
+        let max_chars = (inner_width / (font_size * 0.55).max(1.0))
+            .floor()
+            .clamp(1.0, 512.0) as usize;
+        let geometry_lines = ((height - 4.0).max(font_size) / (font_size * 1.2).max(1.0))
+            .floor()
+            .clamp(1.0, MAX_FREETEXT_LINES as f64) as usize;
+        let remaining_nodes = MAX_PDF_PAGE_NODES.saturating_sub(self.node_counter);
+        let max_lines = geometry_lines.min(remaining_nodes);
+        if max_lines == 0 {
+            self.page.warn(format!(
+                "PDF page output reached the {MAX_PDF_PAGE_NODES}-node annotation limit; annotation text was omitted"
+            ));
+            return Ok(());
+        }
+        let (lines, was_truncated) = wrap_free_text_annotation(&text, max_chars, max_lines);
+        if lines.is_empty() {
+            return Ok(());
+        }
+        let x = match anchor {
+            TextAnchor::Start => left + 4.0,
+            TextAnchor::Middle => (left + right) / 2.0,
+            TextAnchor::End => right - 4.0,
+        };
+        for (index, line) in lines.iter().enumerate() {
+            self.node_counter += 1;
+            self.page.nodes.push(Node::Text {
+                id: format!("pdf-freetext-{}-{}", self.page.number, self.node_counter),
+                x,
+                y: top - 2.0 - font_size - index as f64 * font_size * 1.2,
+                runs: vec![TextRun {
+                    text: line.clone(),
+                    font_family: font_family.clone(),
+                    font_size,
+                    fill: fill.clone(),
+                    ..TextRun::default()
+                }],
+                anchor,
+                transform: self.page_matrix,
+                opacity: 1.0,
+                stroke: Stroke::default(),
+                clip_id: None,
+                meta: SourceMeta {
+                    kind: format!("annotation-{kind}"),
+                    source_id: format!("page:{}:annotation:{kind}", self.page.number),
+                    ..SourceMeta::default()
+                },
+            });
+        }
+        self.page.warn(warning.to_owned());
+        if was_truncated || char_count > MAX_FREETEXT_CHARS {
+            self.page
+                .warn("PDF annotation text was truncated to fit safety limits or its rectangle");
+        }
+        Ok(())
+    }
+
+    fn draw_annotation_appearance(&mut self, stream: &Stream, rect: &[f64]) -> Result<()> {
+        let bbox = stream
+            .dict
+            .get(b"BBox")
+            .and_then(Object::as_array)
+            .ok()
+            .map(|arr| numbers(arr, 4))
+            .unwrap_or_default();
+        let form_matrix = stream
+            .dict
+            .get(b"Matrix")
+            .and_then(Object::as_array)
+            .ok()
+            .and_then(|matrix| matrix_operands(matrix))
+            .unwrap_or(IDENTITY);
+        let map_matrix = if bbox.len() == 4 {
+            // PDF32000 12.5.5: BBox is mapped to Rect only after first
+            // applying the appearance's own Matrix to its four corners --
+            // and since Matrix can rotate or skew, the transformed box is
+            // whatever axis-aligned box encloses those four transformed
+            // points, not just two of them. Mapping Rect from the raw,
+            // un-transformed BBox values instead left any translation in
+            // Matrix uncancelled, offsetting the whole appearance instead
+            // of drawing it inside Rect.
+            let corners = [
+                (bbox[0], bbox[1]),
+                (bbox[2], bbox[1]),
+                (bbox[2], bbox[3]),
+                (bbox[0], bbox[3]),
+            ]
+            .map(|(x, y)| transform_point(form_matrix, x, y));
+            let txmin = corners
+                .iter()
+                .map(|point| point.0)
+                .fold(f64::INFINITY, f64::min);
+            let txmax = corners
+                .iter()
+                .map(|point| point.0)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let tymin = corners
+                .iter()
+                .map(|point| point.1)
+                .fold(f64::INFINITY, f64::min);
+            let tymax = corners
+                .iter()
+                .map(|point| point.1)
+                .fold(f64::NEG_INFINITY, f64::max);
+            let bw = txmax - txmin;
+            let bh = tymax - tymin;
+            let rw = (rect[2] - rect[0]).abs();
+            let rh = (rect[3] - rect[1]).abs();
+            let sx = if bw > 1e-6 { rw / bw } else { 1.0 };
+            let sy = if bh > 1e-6 { rh / bh } else { 1.0 };
+            let tx = rect[0].min(rect[2]) - sx * txmin;
+            let ty = rect[1].min(rect[3]) - sy * tymin;
+            [sx, 0.0, 0.0, sy, tx, ty]
+        } else {
+            [1.0, 0.0, 0.0, 1.0, rect[0], rect[1]]
+        };
+
+        let previous_state = self.state.clone();
+        let previous_content_base_ctm = self.content_base_ctm;
+        self.state = GraphicsState::default();
+        self.state.ctm = compose(map_matrix, form_matrix);
+        self.content_base_ctm = self.state.ctm;
+
+        let form_resources = stream
+            .dict
+            .get_deref(b"Resources", self.document)
+            .and_then(Object::as_dict)
+            .ok()
+            .cloned();
+        let form_fonts = build_resource_font_decoders(
+            self.document,
+            form_resources.as_ref(),
+            self.content_limit,
+            self.page,
+        );
+        let mut previous_fonts = Vec::with_capacity(form_fonts.len());
+        for (font_name, decoder) in form_fonts {
+            let previous = self.fonts.insert(font_name.clone(), decoder);
+            previous_fonts.push((font_name, previous));
+        }
+        let mut pushed_resources = false;
+        if let Some(resources) = form_resources {
+            self.resources.push(resources.clone());
+            pushed_resources = true;
+        }
+        let content = stream.decompressed_content_with_limit(self.content_limit)?;
+        let decoded = decode_content_operations(&content, self.content_limit, self.page)?;
+        let interpret_result = self.interpret(&decoded, 0);
+        if pushed_resources {
+            self.resources.pop();
+        }
+        for (font_name, previous) in previous_fonts {
+            if let Some(previous) = previous {
+                self.fonts.insert(font_name, previous);
+            } else {
+                self.fonts.remove(&font_name);
+            }
+        }
+        self.content_base_ctm = previous_content_base_ctm;
+        self.state = previous_state;
+        interpret_result?;
+        Ok(())
+    }
+
+    /// Draw one image XObject or inline image.
+    ///
+    /// A single unusable image must not abort a document that is otherwise
+    /// renderable, so decoding problems are recorded as page warnings and the
+    /// image is skipped. See [`Self::draw_image_inner`] for the decode itself.
     fn draw_image(&mut self, stream: &Stream, name: &[u8]) -> Result<()> {
+        if self.marked_content_hidden {
+            return Ok(());
+        }
+        match self.draw_image_inner(stream, name) {
+            Ok(()) => Ok(()),
+            // Every failure below is local to this image's bytes: the stream is
+            // already in memory, so nothing here indicates a corrupt document
+            // or an exhausted process. Propagating would discard every other
+            // page, which is worse than a page that is missing one image.
+            Err(error @ (Error::LimitExceeded(_) | Error::InvalidInput(_) | Error::Pdf(_))) => {
+                self.page.warn(format!(
+                    "PDF image {} was skipped: {error}",
+                    String::from_utf8_lossy(name)
+                ));
+                Ok(())
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    fn draw_image_inner(&mut self, stream: &Stream, name: &[u8]) -> Result<()> {
         let width = stream
             .dict
             .get(b"Width")
@@ -3128,15 +4883,26 @@ impl Interpreter<'_, '_> {
                 String::from_utf8_lossy(name)
             ))
         })?;
+        // Budget the samples this image actually expands to rather than
+        // assuming RGBA. A 600 DPI bilevel scan is one byte per pixel once
+        // unpacked, so charging it four would reject ordinary scanned pages.
+        let bytes_per_pixel = self.image_expansion_bytes_per_pixel(stream);
+        let expanded_bytes = pixel_count.checked_mul(bytes_per_pixel).ok_or_else(|| {
+            Error::LimitExceeded(format!(
+                "PDF image {} dimensions overflow",
+                String::from_utf8_lossy(name)
+            ))
+        })?;
         if width > u32::MAX as usize
             || height > u32::MAX as usize
-            || pixel_count > self.content_limit / 4
+            || expanded_bytes > self.content_limit
         {
             return Err(Error::LimitExceeded(format!(
-                "PDF image {} expands to {}x{} pixels; RGBA limit is {} bytes",
+                "PDF image {} expands to {}x{} pixels at {} byte(s) per pixel; limit is {} bytes",
                 String::from_utf8_lossy(name),
                 width,
                 height,
+                bytes_per_pixel,
                 self.content_limit
             )));
         }
@@ -3147,6 +4913,7 @@ impl Interpreter<'_, '_> {
             .and_then(Object::as_bool)
             .unwrap_or(false);
         let has_dct = filters.iter().any(|filter| *filter == b"DCTDecode");
+        let has_jpx = filters.iter().any(|filter| *filter == b"JPXDecode");
         let jpeg_color_space = stream
             .dict
             .get(b"ColorSpace")
@@ -3166,16 +4933,57 @@ impl Interpreter<'_, '_> {
                 )
             });
         let (mime, bytes) = if jpeg_passthrough {
-            ("image/jpeg", stream.content.clone())
-        } else if filters.iter().any(|filter| *filter == b"JPXDecode") {
-            ("image/jp2", stream.content.clone())
+            (
+                "image/jpeg",
+                image_codec_content(stream, self.content_limit)?,
+            )
+        } else if has_jpx {
+            let jpx_bytes = image_codec_content(stream, self.content_limit)?;
+            if let Some(png_bytes) = self.decode_jpx_pdf_image(
+                stream,
+                name,
+                width,
+                height,
+                &jpx_bytes,
+                jpeg_color_space.as_ref(),
+            )? {
+                ("image/png", png_bytes)
+            } else {
+                #[cfg(not(target_arch = "wasm32"))]
+                self.page.warn(format!(
+                    "PDF JPX image {} has color, mask, or alpha features that could not be safely normalized; its original JPX data was embedded, so PDF-level masks may not be preserved and a JPX-capable viewer may be required",
+                    String::from_utf8_lossy(name)
+                ));
+                #[cfg(target_arch = "wasm32")]
+                self.page.warn(format!(
+                    "PDF JPX image {} could not be decoded in the browser build; its original JPEG 2000 data was embedded, so image display and PDF-level masks may not be preserved",
+                    String::from_utf8_lossy(name)
+                ));
+                (jpx_media_type(&jpx_bytes), jpx_bytes)
+            }
         } else {
             let ccitt = filters.iter().any(|filter| *filter == b"CCITTFaxDecode");
+            // Report the filter by name rather than letting the decoder's
+            // "missing feature" text reach the report. JBIG2 in particular is
+            // common in scanned manuals and needs a decoder this crate does
+            // not carry.
+            if let Some(filter) = filters
+                .iter()
+                .copied()
+                .find(|filter| UNDECODABLE_IMAGE_FILTERS.contains(filter))
+            {
+                self.page.warn(format!(
+                    "PDF image {} uses the unsupported {} filter and was skipped",
+                    String::from_utf8_lossy(name),
+                    String::from_utf8_lossy(filter)
+                ));
+                return Ok(());
+            }
             let pixels = if has_dct {
                 decode_pdf_jpeg_content(stream, width, height, self.content_limit)?
             } else if ccitt {
                 ccitt_spec_from_stream(stream, width, height)
-                    .decode_ccitt(&stream.content)
+                    .decode_ccitt(&image_codec_content(stream, self.content_limit)?)
                     .ok_or_else(|| {
                         Error::InvalidInput(format!(
                             "PDF CCITT image {} could not be decoded",
@@ -3183,7 +4991,7 @@ impl Interpreter<'_, '_> {
                         ))
                     })?
             } else {
-                stream.decompressed_content_with_limit(self.content_limit)?
+                decode_predicted_content(self.document, stream, self.content_limit)?
             };
             let bits = if ccitt || has_dct {
                 8
@@ -3217,7 +5025,7 @@ impl Interpreter<'_, '_> {
                 .get(b"ImageMask")
                 .and_then(Object::as_bool)
                 .unwrap_or(false);
-            let (color_type, output_pixels) = if image_mask {
+            let (color_type, output_pixels, width, height) = if image_mask {
                 let Some(decoded) = decode_stencil_image(
                     stream,
                     &pixels,
@@ -3232,7 +5040,7 @@ impl Interpreter<'_, '_> {
                     ));
                     return Ok(());
                 };
-                (png::ColorType::Rgba, decoded)
+                (png::ColorType::Rgba, decoded, width, height)
             } else {
                 let color_space = stream
                     .dict
@@ -3306,6 +5114,7 @@ impl Interpreter<'_, '_> {
         };
         self.node_counter += 1;
         let image_flip = [1.0, 0.0, 0.0, -1.0, 0.0, 1.0];
+        let placement = compose(self.page_matrix, compose(self.state.ctm, image_flip));
         self.page.nodes.push(Node::Image {
             id: format!("pdf-image-{}-{}", self.page.number, self.node_counter),
             href: format!(
@@ -3316,7 +5125,7 @@ impl Interpreter<'_, '_> {
             y: 0.0,
             width: 1.0,
             height: 1.0,
-            transform: compose(self.page_matrix, compose(self.state.ctm, image_flip)),
+            transform: placement,
             opacity: 1.0,
             clip_id: self.state.clip_id.clone(),
             meta: SourceMeta {
@@ -3329,15 +5138,594 @@ impl Interpreter<'_, '_> {
                 blend_mode: self.state.blend_mode.clone(),
                 mask_id: self.state.mask_id.clone().unwrap_or_default(),
                 alpha_is_shape: self.state.alpha_is_shape,
-                image_rendering: if interpolate {
-                    "auto".into()
-                } else {
-                    "pixelated".into()
-                },
+                image_rendering: image_rendering_hint(interpolate, width, height, placement),
                 ..SourceMeta::default()
             },
         });
         Ok(())
+    }
+
+    fn decode_jpx_pdf_image(
+        &mut self,
+        stream: &Stream,
+        name: &[u8],
+        width: usize,
+        height: usize,
+        encoded: &[u8],
+        color_space: Option<&Object>,
+    ) -> Result<Option<Vec<u8>>> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = (stream, name, width, height, encoded, color_space);
+            // The OpenJPEG Rust port links its internal C allocator functions
+            // through the `env` import module and is not browser-WASM safe.
+            // Keep the validated codestream as a warned SVG image fallback.
+            Ok(None)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let smask_in_data = stream
+                .dict
+                .get(b"SMaskInData")
+                .and_then(Object::as_i64)
+                .unwrap_or(0);
+            let has_external_soft_mask = stream.dict.get(b"SMask").is_ok();
+            if stream
+            .dict
+            .get(b"ImageMask")
+            .and_then(Object::as_bool)
+            .unwrap_or(false)
+            || stream.dict.get(b"Mask").is_ok()
+            // Mode 2 stores colors preblended against a matte. It is decoded
+            // only for directly-supported gray/RGB color spaces with a valid
+            // Matte array below; all other combinations remain on the warned
+            // JPEG 2000 fallback path.
+            || !(0..=2).contains(&smask_in_data)
+            // PDF 32000 requires an external SMask to be absent whenever
+            // SMaskInData is nonzero. Separate soft masks are composited below
+            // only when they are simple, bounded DeviceGray image streams.
+            || (has_external_soft_mask
+                && (smask_in_data != 0
+                    || self
+                        .jpx_external_soft_mask_dimensions(stream, width, height)
+                        .is_none()))
+            {
+                return Ok(None);
+            }
+            if encoded.len() > self.content_limit {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF JPX image stream exceeds {} bytes",
+                    self.content_limit
+                )));
+            }
+            let header = parse_jpx_header(encoded)?;
+            let declared_width = u32::try_from(width)
+                .map_err(|_| Error::LimitExceeded("PDF JPX width exceeds 32-bit range".into()))?;
+            let declared_height = u32::try_from(height)
+                .map_err(|_| Error::LimitExceeded("PDF JPX height exceeds 32-bit range".into()))?;
+            if header.width != declared_width || header.height != declared_height {
+                return Err(Error::InvalidInput(format!(
+                    "PDF JPX image is {}x{}; image dictionary declares {}x{}",
+                    header.width, header.height, width, height
+                )));
+            }
+            let pixel_count = width
+                .checked_mul(height)
+                .ok_or_else(|| Error::LimitExceeded("PDF JPX pixel count overflowed".into()))?;
+            if pixel_count > MAX_PDF_JPX_PIXELS {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF JPX image contains {pixel_count} pixels; maximum is {MAX_PDF_JPX_PIXELS}"
+                )));
+            }
+            let component_count = header.components.len();
+            let expected_components = match color_space {
+                Some(Object::Name(value)) if value == b"DeviceGray" || value == b"G" => Some(1),
+                Some(Object::Name(value)) if value == b"DeviceRGB" || value == b"RGB" => Some(3),
+                Some(Object::Array(values)) => {
+                    match values.first().and_then(|value| value.as_name().ok()) {
+                        Some(b"CalGray") => Some(1),
+                        Some(b"CalRGB") => Some(3),
+                        _ => return Ok(None),
+                    }
+                }
+                None => None,
+                _ => return Ok(None),
+            };
+            if !matches!(component_count, 1..=4) {
+                return Ok(None);
+            }
+            if let Some(expected_components) = expected_components
+                && (if smask_in_data != 0 {
+                    component_count != expected_components + 1
+                } else {
+                    component_count != expected_components
+                        && component_count != expected_components + 1
+                })
+            {
+                return Err(Error::InvalidInput(format!(
+                    "PDF JPX has {component_count} components, inconsistent with its color space and embedded mask"
+                )));
+            }
+            let bits = header.components[0].precision;
+            if !matches!(bits, 1..=16)
+                || header.components.iter().any(|component| {
+                    component.precision != bits
+                        || component.signed
+                        || component.width != declared_width
+                        || component.height != declared_height
+                })
+            {
+                return Ok(None);
+            }
+            let decoded_sample_bytes = pixel_count
+                .checked_mul(component_count)
+                .and_then(|value| value.checked_mul(std::mem::size_of::<i32>()))
+                .ok_or_else(|| {
+                    Error::LimitExceeded("PDF JPX decoded sample size overflowed".into())
+                })?;
+            if decoded_sample_bytes > self.content_limit.min(MAX_PDF_JPX_DECODED_SAMPLE_BYTES) {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF JPX image needs {decoded_sample_bytes} decoded sample bytes; limit is {}",
+                    self.content_limit.min(MAX_PDF_JPX_DECODED_SAMPLE_BYTES)
+                )));
+            }
+
+            let image = match Jpeg2000Image::from_bytes(encoded) {
+                Ok(image) => image,
+                Err(_) => return Ok(None),
+            };
+            if image.width() as usize != width
+                || image.height() as usize != height
+                || image.components().len() != component_count
+            {
+                return Err(Error::InvalidInput(
+                    "PDF JPX decoder dimensions/components do not match the validated header"
+                        .into(),
+                ));
+            }
+            let alpha_components = image
+                .components()
+                .iter()
+                .enumerate()
+                .filter_map(|(index, component)| component.is_alpha().then_some(index))
+                .collect::<Vec<_>>();
+            let alpha_component = match (smask_in_data, alpha_components.as_slice()) {
+                (1 | 2, [index]) => Some(*index),
+                (1 | 2, []) => match expected_components {
+                    Some(color_components) if component_count == color_components + 1 => {
+                        Some(component_count - 1)
+                    }
+                    None if matches!(component_count, 2 | 4) => Some(component_count - 1),
+                    _ => return Ok(None),
+                },
+                (1 | 2, _) => return Ok(None),
+                // A JPX alpha channel is ignored by default. This is also how a
+                // PDF explicitly sets /SMaskInData to 0.
+                (0, []) => match expected_components {
+                    Some(color_components) if component_count == color_components + 1 => {
+                        Some(component_count - 1)
+                    }
+                    _ => None,
+                },
+                (0, [index]) => Some(*index),
+                _ => return Ok(None),
+            };
+            let color_component_indices = (0..component_count)
+                .filter(|index| Some(*index) != alpha_component)
+                .collect::<Vec<_>>();
+            let color_component_count = color_component_indices.len();
+            if !matches!(color_component_count, 1 | 3)
+                || expected_components.is_some_and(|expected| expected != color_component_count)
+            {
+                return Ok(None);
+            }
+            let colorspace_supported = matches!(
+                (color_component_count, image.color_space()),
+                (
+                    1,
+                    Jpeg2000ColorSpace::Gray
+                        | Jpeg2000ColorSpace::Unknown
+                        | Jpeg2000ColorSpace::Unspecified,
+                ) | (
+                    3,
+                    Jpeg2000ColorSpace::SRGB
+                        | Jpeg2000ColorSpace::Unknown
+                        | Jpeg2000ColorSpace::Unspecified,
+                )
+            );
+            if !colorspace_supported
+                || image
+                    .components()
+                    .iter()
+                    .enumerate()
+                    .any(|(index, component)| {
+                        (component.is_alpha() && Some(index) != alpha_component)
+                            || component.is_signed()
+                            || component.precision() != u32::from(bits)
+                            || component.width() as usize != width
+                            || component.height() as usize != height
+                    })
+            {
+                return Ok(None);
+            }
+
+            let matte_components = if smask_in_data == 2 {
+                let matte_color_space_supported = match color_space {
+                    Some(Object::Name(value))
+                        if (value == b"DeviceGray" || value == b"G")
+                            && color_component_count == 1 =>
+                    {
+                        true
+                    }
+                    Some(Object::Name(value))
+                        if (value == b"DeviceRGB" || value == b"RGB")
+                            && color_component_count == 3 =>
+                    {
+                        true
+                    }
+                    Some(Object::Array(values)) => {
+                        match values.first().and_then(|value| value.as_name().ok()) {
+                            Some(b"CalGray") => color_component_count == 1,
+                            Some(b"CalRGB") => color_component_count == 3,
+                            _ => false,
+                        }
+                    }
+                    None => matches!(
+                        (color_component_count, image.color_space()),
+                        (1, Jpeg2000ColorSpace::Gray) | (3, Jpeg2000ColorSpace::SRGB)
+                    ),
+                    _ => false,
+                };
+                if !matte_color_space_supported {
+                    return Ok(None);
+                }
+                let Some((_, matte_object)) = stream
+                    .dict
+                    .get(b"Matte")
+                    .ok()
+                    .and_then(|object| self.document.dereference(object).ok())
+                else {
+                    return Ok(None);
+                };
+                let Ok(matte_values) = matte_object.as_array() else {
+                    return Ok(None);
+                };
+                if matte_values.len() != color_component_count {
+                    return Ok(None);
+                }
+                let matte = numbers(matte_values, color_component_count);
+                if matte.len() != color_component_count
+                    || matte
+                        .iter()
+                        .any(|value| !value.is_finite() || !(0.0..=1.0).contains(value))
+                {
+                    return Ok(None);
+                }
+                Some(matte)
+            } else {
+                None
+            };
+
+            let bits = usize::from(bits);
+            let row_bits = width
+                .checked_mul(color_component_count)
+                .and_then(|value| value.checked_mul(bits))
+                .ok_or_else(|| Error::LimitExceeded("PDF JPX row size overflowed".into()))?;
+            let row_bytes = row_bits.div_ceil(8);
+            let packed_bytes = row_bytes.checked_mul(height).ok_or_else(|| {
+                Error::LimitExceeded("PDF JPX sample buffer size overflowed".into())
+            })?;
+            if packed_bytes > self.content_limit.min(MAX_PDF_JPX_DECODED_SAMPLE_BYTES) {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF JPX packed samples need {packed_bytes} bytes; limit is {}",
+                    self.content_limit.min(MAX_PDF_JPX_DECODED_SAMPLE_BYTES)
+                )));
+            }
+            let mut packed = vec![0u8; packed_bytes];
+            let maximum_sample = (1u32 << bits) - 1;
+            let component_samples = image
+                .components()
+                .iter()
+                .map(|component| component.data())
+                .collect::<Vec<_>>();
+            let color_samples = color_component_indices
+                .iter()
+                .map(|index| component_samples[*index])
+                .collect::<Vec<_>>();
+            if bits == 8 {
+                for row in 0..height {
+                    for column in 0..width {
+                        let pixel = row * width + column;
+                        for (component_index, samples) in color_samples.iter().enumerate() {
+                            let sample = samples[pixel];
+                            if !(0..=maximum_sample as i32).contains(&sample) {
+                                return Err(Error::InvalidInput(
+                                    "PDF JPX sample is outside its declared precision".into(),
+                                ));
+                            }
+                            packed[row * row_bytes
+                                + column * color_component_count
+                                + component_index] = sample as u8;
+                        }
+                    }
+                }
+            } else if bits == 16 {
+                for row in 0..height {
+                    for column in 0..width {
+                        let pixel = row * width + column;
+                        for (component_index, samples) in color_samples.iter().enumerate() {
+                            let sample = samples[pixel];
+                            if !(0..=maximum_sample as i32).contains(&sample) {
+                                return Err(Error::InvalidInput(
+                                    "PDF JPX sample is outside its declared precision".into(),
+                                ));
+                            }
+                            let offset = row * row_bytes
+                                + (column * color_component_count + component_index) * 2;
+                            packed[offset..offset + 2]
+                                .copy_from_slice(&(sample as u16).to_be_bytes());
+                        }
+                    }
+                }
+            } else {
+                for row in 0..height {
+                    let row_bit_start = row * row_bytes * 8;
+                    for column in 0..width {
+                        let pixel = row * width + column;
+                        for (component_index, samples) in color_samples.iter().enumerate() {
+                            let sample = samples[pixel];
+                            if !(0..=maximum_sample as i32).contains(&sample) {
+                                return Err(Error::InvalidInput(
+                                    "PDF JPX sample is outside its declared precision".into(),
+                                ));
+                            }
+                            let start = row_bit_start
+                                + (column * color_component_count + component_index) * bits;
+                            for bit in 0..bits {
+                                if (sample as u32 >> (bits - bit - 1)) & 1 != 0 {
+                                    let target = start + bit;
+                                    packed[target / 8] |= 1 << (7 - target % 8);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if let Some(matte) = matte_components {
+                let alpha_component = alpha_component.ok_or_else(|| {
+                    Error::InvalidInput(
+                        "PDF JPX SMaskInData=2 image has no opacity component".into(),
+                    )
+                })?;
+                unblend_jpx_matte_samples(
+                    &mut packed,
+                    JpxSampleLayout {
+                        row_bytes,
+                        width,
+                        height,
+                        components: color_component_count,
+                        bits,
+                    },
+                    component_samples[alpha_component],
+                    maximum_sample,
+                    &matte,
+                )?;
+            }
+            let mut stream_without_decode = stream.clone();
+            stream_without_decode.dict.remove(b"Decode");
+            let samples = normalize_image_samples(
+                &stream_without_decode,
+                &packed,
+                width,
+                height,
+                bits,
+                color_component_count,
+                color_space,
+            )
+            .ok_or_else(|| Error::InvalidInput("PDF JPX samples cannot be normalized".into()))?;
+            let (mut color_type, mut output, final_width, final_height) =
+                self.decode_image_samples(&stream_without_decode, samples, width, height, name)?;
+            if final_width != width || final_height != height {
+                return Err(Error::InvalidInput(
+                    "PDF JPX image dimensions changed during sample normalization".into(),
+                ));
+            }
+            if matches!(smask_in_data, 1 | 2) {
+                let color_bytes_per_pixel = match color_type {
+                    png::ColorType::Grayscale => 1usize,
+                    png::ColorType::Rgb => 3usize,
+                    _ => return Ok(None),
+                };
+                let expected_color_bytes = pixel_count
+                    .checked_mul(color_bytes_per_pixel)
+                    .ok_or_else(|| Error::LimitExceeded("PDF JPX output size overflowed".into()))?;
+                if output.len() != expected_color_bytes {
+                    return Ok(None);
+                }
+                let output_bytes_per_pixel = color_bytes_per_pixel + 1;
+                let output_bytes = pixel_count
+                    .checked_mul(output_bytes_per_pixel)
+                    .ok_or_else(|| Error::LimitExceeded("PDF JPX RGBA size overflowed".into()))?;
+                if output_bytes > self.content_limit.min(MAX_PDF_JPX_PNG_BYTES) {
+                    return Err(Error::LimitExceeded(format!(
+                        "PDF JPX image with alpha needs {output_bytes} normalized bytes; limit is {}",
+                        self.content_limit.min(MAX_PDF_JPX_PNG_BYTES)
+                    )));
+                }
+                let alpha_samples = component_samples[alpha_component.unwrap()];
+                output.resize(output_bytes, 0);
+                for pixel in (0..pixel_count).rev() {
+                    let source_start = pixel * color_bytes_per_pixel;
+                    let target_start = pixel * output_bytes_per_pixel;
+                    let alpha = alpha_samples[pixel];
+                    if !(0..=maximum_sample as i32).contains(&alpha) {
+                        return Err(Error::InvalidInput(
+                            "PDF JPX alpha sample is outside its declared precision".into(),
+                        ));
+                    }
+                    output.copy_within(
+                        source_start..source_start + color_bytes_per_pixel,
+                        target_start,
+                    );
+                    output[target_start + color_bytes_per_pixel] =
+                        ((alpha as u32 * 255 + maximum_sample / 2) / maximum_sample) as u8;
+                }
+                color_type = if color_type == png::ColorType::Grayscale {
+                    png::ColorType::GrayscaleAlpha
+                } else {
+                    png::ColorType::Rgba
+                };
+            }
+            if output.len() > self.content_limit.min(MAX_PDF_JPX_PNG_BYTES) {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF JPX normalized image exceeds {} bytes",
+                    self.content_limit.min(MAX_PDF_JPX_PNG_BYTES)
+                )));
+            }
+            if !matches!(
+                color_type,
+                png::ColorType::Grayscale
+                    | png::ColorType::Rgb
+                    | png::ColorType::GrayscaleAlpha
+                    | png::ColorType::Rgba
+            ) {
+                return Ok(None);
+            }
+            let mut png = Vec::new();
+            {
+                let mut encoder = png::Encoder::new(&mut png, width as u32, height as u32);
+                encoder.set_color(color_type);
+                encoder.set_depth(png::BitDepth::Eight);
+                let mut writer = encoder.write_header().map_err(|error| {
+                    Error::InvalidInput(format!("cannot encode PDF JPX PNG: {error}"))
+                })?;
+                writer.write_image_data(&output).map_err(|error| {
+                    Error::InvalidInput(format!("cannot encode PDF JPX PNG samples: {error}"))
+                })?;
+            }
+            if png.len() > self.content_limit.min(MAX_PDF_JPX_PNG_BYTES) {
+                return Err(Error::LimitExceeded(format!(
+                    "PDF JPX PNG exceeds {} bytes",
+                    self.content_limit.min(MAX_PDF_JPX_PNG_BYTES)
+                )));
+            }
+            Ok(Some(png))
+        }
+    }
+
+    fn jpx_external_soft_mask_dimensions(
+        &self,
+        stream: &Stream,
+        image_width: usize,
+        image_height: usize,
+    ) -> Option<(usize, usize)> {
+        let mask_reference = stream.dict.get(b"SMask").ok()?;
+        let (_, mask_object) = self.document.dereference(mask_reference).ok()?;
+        let mask = mask_object.as_stream().ok()?;
+        if mask.dict.get(b"Matte").is_ok()
+            || mask.dict.get(b"Mask").is_ok()
+            || mask.dict.get(b"SMask").is_ok()
+            || mask
+                .dict
+                .get(b"ImageMask")
+                .and_then(Object::as_bool)
+                .unwrap_or(false)
+        {
+            return None;
+        }
+        let color_space = mask
+            .dict
+            .get(b"ColorSpace")
+            .ok()
+            .map(|object| self.resolve_color_space_object(object));
+        if !matches!(
+            color_space.as_ref(),
+            Some(Object::Name(value)) if value == b"DeviceGray" || value == b"G"
+        ) {
+            return None;
+        }
+        let mask_bits = mask
+            .dict
+            .get(b"BitsPerComponent")
+            .and_then(Object::as_i64)
+            .ok()?;
+        if !matches!(mask_bits, 1 | 2 | 4 | 8 | 16) {
+            return None;
+        }
+        let mask_width =
+            usize::try_from(mask.dict.get(b"Width").and_then(Object::as_i64).ok()?).ok()?;
+        let mask_height =
+            usize::try_from(mask.dict.get(b"Height").and_then(Object::as_i64).ok()?).ok()?;
+        if mask_width == 0 || mask_height == 0 {
+            return None;
+        }
+        let mask_pixels = mask_width.checked_mul(mask_height)?;
+        let target_width = image_width.max(mask_width);
+        let target_height = image_height.max(mask_height);
+        let target_pixels = target_width.checked_mul(target_height)?;
+        let target_rgba_bytes = target_pixels.checked_mul(4)?;
+        if mask_pixels > MAX_PDF_JPX_PIXELS
+            || target_pixels > MAX_PDF_JPX_PIXELS
+            || target_rgba_bytes > self.content_limit.min(MAX_PDF_JPX_PNG_BYTES)
+        {
+            return None;
+        }
+        if mask
+            .filters()
+            .unwrap_or_default()
+            .iter()
+            .any(|filter| matches!(*filter, b"JPXDecode" | b"JBIG2Decode" | b"CCITTFaxDecode"))
+        {
+            return None;
+        }
+        Some((mask_width, mask_height))
+    }
+
+    /// Bytes of decoded sample data one pixel of `stream` can occupy.
+    ///
+    /// This mirrors what [`Self::draw_image_inner`] actually allocates: the
+    /// normalized input samples (one byte per colour component) and the encoder
+    /// input (grayscale or RGB, plus one alpha byte when a soft mask applies).
+    /// Stencil masks are painted straight to RGBA.
+    fn image_expansion_bytes_per_pixel(&mut self, stream: &Stream) -> usize {
+        if stream
+            .dict
+            .get(b"ImageMask")
+            .and_then(Object::as_bool)
+            .unwrap_or(false)
+        {
+            return 4;
+        }
+        let color_space = stream
+            .dict
+            .get(b"ColorSpace")
+            .ok()
+            .map(|object| self.resolve_color_space_object(object));
+        let input_components = pdf_color_component_count(self.document, color_space.as_ref());
+        // Indexed, Separation and DeviceN all widen to RGB on output even
+        // though they carry fewer input components; only the gray spaces stay
+        // at one byte.
+        let output_components: usize = match color_space.as_ref() {
+            Some(Object::Name(value)) if value == b"DeviceGray" || value == b"G" => 1,
+            Some(Object::Array(array))
+                if array.first().and_then(|value| value.as_name().ok()) == Some(b"CalGray") =>
+            {
+                1
+            }
+            _ => 3,
+        };
+        let alpha = usize::from(
+            stream.dict.get(b"SMask").is_ok()
+                || stream
+                    .dict
+                    .get(b"SMaskInData")
+                    .and_then(Object::as_i64)
+                    .unwrap_or(0)
+                    != 0,
+        );
+        input_components
+            .max(output_components.saturating_add(alpha))
+            .max(1)
     }
 
     fn decode_image_samples(
@@ -3347,7 +5735,7 @@ impl Interpreter<'_, '_> {
         width: usize,
         height: usize,
         name: &[u8],
-    ) -> Result<(png::ColorType, Vec<u8>)> {
+    ) -> Result<(png::ColorType, Vec<u8>, usize, usize)> {
         let pixel_count = width.saturating_mul(height);
         let color_space = stream
             .dict
@@ -3364,6 +5752,7 @@ impl Interpreter<'_, '_> {
             Some(Object::Array(array))
                 if array.first().and_then(|value| value.as_name().ok()) == Some(b"Indexed") =>
             {
+                let base = array.get(1);
                 let palette = array
                     .get(3)
                     .and_then(|value| {
@@ -3374,34 +5763,69 @@ impl Interpreter<'_, '_> {
                     })
                     .and_then(object_bytes)
                     .unwrap_or_default();
-                let components = array
-                    .get(1)
-                    .and_then(|value| {
-                        self.document
-                            .dereference(value)
-                            .ok()
-                            .map(|(_, value)| value)
-                    })
-                    .map_or(3, color_components);
+                // The base color space is not necessarily RGB/Gray/CMYK --
+                // Lab is common too, and any of Separation, DeviceN,
+                // CalGray, CalRGB or ICCBased are legal as well -- so each
+                // palette entry is resolved through the same conversion
+                // used for painted colors, rather than assumed to already
+                // be sRGB bytes.
+                let components = pdf_color_component_count(self.document, base);
                 if palette.is_empty() || components == 0 {
                     self.page.warn(format!(
                         "PDF indexed image {} has no usable palette",
                         String::from_utf8_lossy(name)
                     ));
-                    return Ok((png::ColorType::Grayscale, pixels));
+                    return Ok((png::ColorType::Grayscale, pixels, width, height));
                 }
+                let base_array = base
+                    .and_then(|value| self.document.dereference(value).ok())
+                    .and_then(|(_, value)| value.as_array().ok());
+                let is_lab = base_array
+                    .and_then(|array| array.first().and_then(|value| value.as_name().ok()))
+                    == Some(b"Lab");
+                // A palette byte's own 0..255 range maps directly onto
+                // [0, 1] for every base color space this converter
+                // supports except Lab, whose components each have their
+                // own much wider native range instead.
+                let lab_range = is_lab
+                    .then(|| {
+                        base_array
+                            .and_then(|array| array.get(1))
+                            .and_then(|value| self.document.dereference(value).ok())
+                            .and_then(|(_, value)| value.as_dict().ok())
+                            .and_then(|dictionary| {
+                                dictionary.get(b"Range").and_then(Object::as_array).ok()
+                            })
+                            .map(|values| numbers(values, 4))
+                            .filter(|values| values.len() == 4)
+                    })
+                    .flatten()
+                    .unwrap_or_else(|| vec![-100.0, 100.0, -100.0, 100.0]);
                 let mut rgb = Vec::with_capacity(pixel_count.saturating_mul(3));
                 for index in pixels {
                     let offset = usize::from(index).saturating_mul(components);
-                    let sample = palette.get(offset..offset.saturating_add(components));
-                    match (components, sample) {
-                        (1, Some(sample)) => {
-                            rgb.extend_from_slice(&[sample[0], sample[0], sample[0]]);
-                        }
-                        (3, Some(sample)) => rgb.extend_from_slice(sample),
-                        (4, Some(sample)) => rgb.extend_from_slice(&cmyk_samples_to_rgb(sample)),
-                        _ => rgb.extend_from_slice(&[0, 0, 0]),
-                    }
+                    let converted = palette
+                        .get(offset..offset.saturating_add(components))
+                        .map(|sample| {
+                            sample
+                                .iter()
+                                .enumerate()
+                                .map(|(component, value)| {
+                                    let normalized = f64::from(*value) / 255.0;
+                                    if !is_lab {
+                                        return normalized;
+                                    }
+                                    let (minimum, maximum) = match component {
+                                        0 => (0.0, 100.0),
+                                        1 => (lab_range[0], lab_range[1]),
+                                        _ => (lab_range[2], lab_range[3]),
+                                    };
+                                    minimum + normalized * (maximum - minimum)
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                        .and_then(|sample| components_to_rgb(self.document, base, &sample, 0));
+                    rgb.extend_from_slice(&converted.map(rgb_to_bytes).unwrap_or([0, 0, 0]));
                 }
                 (png::ColorType::Rgb, rgb)
             }
@@ -3437,7 +5861,7 @@ impl Interpreter<'_, '_> {
                         "PDF image {} has incompatible color-space samples",
                         String::from_utf8_lossy(name)
                     ));
-                    return Ok((png::ColorType::Rgb, pixels));
+                    return Ok((png::ColorType::Rgb, pixels, width, height));
                 }
                 let mut rgb = Vec::with_capacity(pixel_count.saturating_mul(3));
                 let is_lab = array.first().and_then(|value| value.as_name().ok()) == Some(b"Lab");
@@ -3520,6 +5944,8 @@ impl Interpreter<'_, '_> {
                 output.len()
             )));
         }
+        let mut final_width = width;
+        let mut final_height = height;
         if let Ok(mask_object) = stream.dict.get(b"SMask")
             && let Ok((_, mask_object)) = self.document.dereference(mask_object)
             && let Ok(mask) = mask_object.as_stream()
@@ -3541,8 +5967,13 @@ impl Interpreter<'_, '_> {
                 .get(b"BitsPerComponent")
                 .and_then(Object::as_i64)
                 .unwrap_or(8);
-            let alpha =
-                decode_soft_mask_content(mask, mask_width, mask_height, self.content_limit)?;
+            let alpha = decode_soft_mask_content(
+                self.document,
+                mask,
+                mask_width,
+                mask_height,
+                self.content_limit,
+            )?;
             let alpha = if matches!(mask_bits, 1 | 2 | 4 | 8 | 16) {
                 normalize_image_samples(
                     mask,
@@ -3557,21 +5988,53 @@ impl Interpreter<'_, '_> {
             } else {
                 alpha
             };
-            if mask_width == width && mask_height == height && alpha.len() == pixel_count {
-                output = add_alpha(&output, components, &alpha);
+            if alpha.len() == mask_width.saturating_mul(mask_height) {
+                // A soft mask's own pixel dimensions need not match the base
+                // image's -- each is independently mapped onto the same unit
+                // image square, so a real renderer resamples both to
+                // whatever resolution it actually draws at. Combining them
+                // into one raster here means picking a common resolution
+                // up front instead; the larger of the two keeps whichever
+                // side carries the real detail, which in practice is often
+                // the mask -- e.g. a uniform highlight colour as a tiny
+                // solid-colour base image, with the highlighted region's
+                // actual shape carried entirely by a full-resolution mask.
+                let target_width = width.max(mask_width);
+                let target_height = height.max(mask_height);
+                let target_pixels = target_width.checked_mul(target_height);
+                let output_bytes = target_pixels
+                    .and_then(|pixels| pixels.checked_mul(components.saturating_add(1)));
+                if output_bytes.is_none_or(|bytes| bytes > self.content_limit) {
+                    self.page.warn(format!(
+                        "PDF image {} soft mask output exceeds the {} byte image limit; the base image is shown without its soft mask",
+                        String::from_utf8_lossy(name),
+                        self.content_limit
+                    ));
+                    return Ok((color_type, output, final_width, final_height));
+                }
+                output = resample_image_with_alpha(
+                    &output,
+                    (width, height),
+                    components,
+                    &alpha,
+                    (mask_width, mask_height),
+                    (target_width, target_height),
+                );
                 color_type = if components == 1 {
                     png::ColorType::GrayscaleAlpha
                 } else {
                     png::ColorType::Rgba
                 };
+                final_width = target_width;
+                final_height = target_height;
             } else {
                 self.page.warn(format!(
-                    "PDF image {} soft mask dimensions do not match the source image",
+                    "PDF image {} soft mask decoded to the wrong number of samples",
                     String::from_utf8_lossy(name)
                 ));
             }
         }
-        Ok((color_type, output))
+        Ok((color_type, output, final_width, final_height))
     }
 
     fn lookup_xobject(&self, name: &[u8]) -> Option<(Option<ObjectId>, Stream)> {
@@ -3599,7 +6062,78 @@ impl Interpreter<'_, '_> {
         None
     }
 
+    /// Whether an already-resolved optional content group or membership
+    /// dictionary is visible under this document's default configuration.
+    fn is_oc_visible(&self, object_id: Option<ObjectId>, object: &Object) -> bool {
+        let Ok(dictionary) = object.as_dict() else {
+            return true;
+        };
+        let type_name = dictionary
+            .get(b"Type")
+            .and_then(Object::as_name)
+            .unwrap_or_default();
+        if type_name == b"OCMD" {
+            let policy = dictionary
+                .get(b"P")
+                .and_then(Object::as_name)
+                .unwrap_or(b"AnyOn");
+            // /OCGs names either a single OCG or an array of them (PDF32000
+            // 8.11.2.3), and either form can itself be an indirect
+            // reference. The array's own elements (or the lone OCG) must
+            // stay references here rather than being resolved to their
+            // dictionaries early: each one is re-dereferenced below
+            // specifically to keep its object ID, which the hidden-group
+            // lookup needs and an already-resolved dictionary has lost.
+            let members = match dictionary.get(b"OCGs") {
+                Ok(Object::Array(items)) => items.clone(),
+                Ok(reference @ Object::Reference(_)) => {
+                    match self.document.dereference(reference) {
+                        Ok((_, Object::Array(items))) => items.clone(),
+                        Ok(_) => vec![reference.clone()],
+                        Err(_) => Vec::new(),
+                    }
+                }
+                Ok(other) => vec![other.clone()],
+                Err(_) => Vec::new(),
+            };
+            if members.is_empty() {
+                return true;
+            }
+            let states = members
+                .iter()
+                .filter_map(|member| {
+                    self.document.dereference(member).ok().map(|(_, resolved)| {
+                        self.is_oc_visible(member.as_reference().ok(), resolved)
+                    })
+                })
+                .collect::<Vec<_>>();
+            return match policy {
+                b"AllOn" => states.iter().all(|visible| *visible),
+                b"AnyOff" => states.iter().any(|visible| !*visible),
+                b"AllOff" => states.iter().all(|visible| !*visible),
+                _ => states.iter().any(|visible| *visible),
+            };
+        }
+        object_id.is_none_or(|id| !self.hidden_ocgs.contains(&id))
+    }
+
+    /// Whether an XObject's own `/OC` entry (as opposed to a `BDC /OC`
+    /// marked-content wrapper around the `Do` that draws it) keeps it
+    /// visible.
+    fn xobject_oc_visible(&self, dictionary: &Dictionary) -> bool {
+        let Ok(reference) = dictionary.get(b"OC") else {
+            return true;
+        };
+        match self.document.dereference(reference) {
+            Ok((_, resolved)) => self.is_oc_visible(reference.as_reference().ok(), resolved),
+            Err(_) => true,
+        }
+    }
+
     fn draw_shading(&mut self, name: &[u8]) -> Result<()> {
+        if self.marked_content_hidden {
+            return Ok(());
+        }
         let Some(shading) = self.lookup_named_resource(b"Shading", name) else {
             self.page.warn(format!(
                 "PDF shading {} was not found",
@@ -3831,31 +6365,6 @@ impl Interpreter<'_, '_> {
             .and_then(|values| matrix_operands(values))
             .unwrap_or(IDENTITY);
         let transform = compose(compose(self.page_matrix, self.state.ctm), shading_matrix);
-        let field = FunctionShadingField {
-            document: self.document,
-            function,
-            transform,
-        };
-        let root = FunctionShadingBounds {
-            x0: domain[0],
-            x1: domain[1],
-            y0: domain[2],
-            y1: domain[3],
-        };
-        const MAX_CELLS: usize = 100_000;
-        let mut cells = Vec::new();
-        if !adaptive_function_shading_cells(&field, root, 0, &mut cells, MAX_CELLS) {
-            self.page.warn(format!(
-                "PDF function shading {} uses an unsupported function",
-                String::from_utf8_lossy(name)
-            ));
-            return Ok(());
-        }
-        if cells.len() >= MAX_CELLS {
-            return Err(Error::LimitExceeded(format!(
-                "PDF function shading exceeds {MAX_CELLS} vector cells"
-            )));
-        }
         let color_space = dictionary.get(b"ColorSpace").ok();
         let mut clip_id = self.state.clip_id.clone();
         if let Ok(bbox) = dictionary.get(b"BBox").and_then(Object::as_array) {
@@ -3866,7 +6375,19 @@ impl Interpreter<'_, '_> {
                 self.page.clips.push(crate::ir::ClipPath {
                     id: id.clone(),
                     d: rectangle_path(bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]),
-                    transform,
+                    // A shading's /BBox is defined in the current user space
+                    // at the time `sh` is invoked (PDF 32000-1:2008
+                    // 8.7.4.3) -- page_matrix composed with the CTM, not
+                    // additionally composed with this dictionary's own
+                    // /Matrix. /Matrix is not a standard key on a shading
+                    // dictionary at all (only on a shading *pattern*'s
+                    // dictionary); a producer that puts one there anyway,
+                    // as a real PDF does, is positioning the *function*
+                    // relative to that already-established user space, not
+                    // redefining what BBox means, and reusing the fuller
+                    // transform here shifted a BBox authored in plain page
+                    // coordinates far off the page.
+                    transform: compose(self.page_matrix, self.state.ctm),
                     fill_rule: "nonzero".into(),
                     parent_id: clip_id,
                     additional_paths: Vec::new(),
@@ -3874,34 +6395,35 @@ impl Interpreter<'_, '_> {
                 clip_id = Some(id);
             }
         }
-        for (index, cell) in cells.into_iter().enumerate() {
-            self.node_counter += 1;
-            self.page.nodes.push(Node::Path {
-                id: format!("pdf-function-cell-{}-{}", self.page.number, index + 1),
-                d: quadrilateral_path(cell.points),
-                fill_rule: "nonzero".into(),
-                fill: Paint::Solid {
-                    color: components_to_color(self.document, color_space, &cell.components),
-                    opacity: self.state.fill_alpha,
-                },
-                stroke: Stroke::default(),
-                transform: IDENTITY,
-                clip_id: clip_id.clone(),
-                meta: SourceMeta {
-                    kind: "function-shading-cell".into(),
-                    source_id: format!(
-                        "page:{}:shading:{}",
-                        self.page.number,
-                        String::from_utf8_lossy(name)
-                    ),
-                    blend_mode: self.state.blend_mode.clone(),
-                    mask_id: self.state.mask_id.clone().unwrap_or_default(),
-                    alpha_is_shape: self.state.alpha_is_shape,
-                    shape_rendering: "crispEdges".into(),
-                    ..SourceMeta::default()
-                },
-            });
+        let Some((nodes, truncated)) = build_function_shading_cell_nodes(
+            self.document,
+            function,
+            &domain,
+            transform,
+            color_space,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            clip_id,
+            self.page.number,
+            "pdf-function-cell",
+            &String::from_utf8_lossy(name),
+        ) else {
+            self.page.warn(format!(
+                "PDF function shading {} uses an unsupported function",
+                String::from_utf8_lossy(name)
+            ));
+            return Ok(());
+        };
+        if truncated {
+            self.page.warn(format!(
+                "PDF function shading {} is too fine-grained to render exactly; showing a lower-resolution approximation",
+                String::from_utf8_lossy(name)
+            ));
         }
+        self.node_counter += nodes.len();
+        self.page.nodes.extend(nodes);
         Ok(())
     }
 
@@ -4006,153 +6528,38 @@ impl Interpreter<'_, '_> {
         shading_type: i64,
         name: &[u8],
     ) -> Result<()> {
-        let Object::Stream(stream) = shading else {
-            self.page.warn(format!(
-                "PDF mesh shading {} has no stream data",
-                String::from_utf8_lossy(name)
-            ));
+        let Some((triangles, subdivisions, color_space)) = parse_mesh_shading_triangles(
+            self.document,
+            shading,
+            dictionary,
+            shading_type,
+            self.content_limit,
+            self.mesh_output_count.get(),
+            name,
+            self.page,
+        )?
+        else {
             return Ok(());
         };
-        let data = stream.decompressed_content_with_limit(self.content_limit)?;
-        let bits_per_coordinate = dictionary
-            .get(b"BitsPerCoordinate")
-            .and_then(Object::as_i64)
-            .unwrap_or(0);
-        let bits_per_component = dictionary
-            .get(b"BitsPerComponent")
-            .and_then(Object::as_i64)
-            .unwrap_or(0);
-        let bits_per_flag = dictionary
-            .get(b"BitsPerFlag")
-            .and_then(Object::as_i64)
-            .unwrap_or(0);
-        if bits_per_coordinate <= 0
-            || bits_per_component <= 0
-            || bits_per_coordinate > 32
-            || bits_per_component > 16
-        {
-            self.page.warn("PDF mesh shading has invalid bit widths");
-            return Ok(());
-        }
-        let color_space = dictionary.get(b"ColorSpace").ok();
-        let component_count = pdf_color_component_count(self.document, color_space);
-        let decode = dictionary
-            .get(b"Decode")
-            .and_then(Object::as_array)
-            .ok()
-            .map(|values| numbers(values, usize::MAX))
-            .unwrap_or_default();
-        let Some(decode) = complete_mesh_decode_ranges(&decode, component_count) else {
-            self.page
-                .warn("PDF mesh shading /Decode array is incomplete");
-            return Ok(());
-        };
-        let vertices_per_row = dictionary
-            .get(b"VerticesPerRow")
-            .and_then(Object::as_i64)
-            .unwrap_or(0)
-            .max(0) as usize;
-        let remaining_page_budget =
-            MAX_PAGE_MESH_TRIANGLES.saturating_sub(self.mesh_output_count.get());
-        if remaining_page_budget == 0 {
-            return Ok(());
-        }
-        let max_output_triangles = remaining_page_budget.min(3_000);
-        let (triangles, subdivisions) = if matches!(shading_type, 6 | 7) {
-            let (patches, has_reused_patch) = parse_patch_meshes(
-                &data,
-                shading_type,
-                bits_per_coordinate as usize,
-                bits_per_component as usize,
-                bits_per_flag.max(0) as usize,
-                component_count,
-                &decode,
-            );
-            if has_reused_patch {
-                self.page.warn(
-                    "PDF patch mesh reuse flags 1-3 are detected; only independent flag-0 patches are rendered",
-                );
-            }
-            let divisions = ((max_output_triangles / (patches.len().max(1) * 2)) as f64)
-                .sqrt()
-                .floor()
-                .clamp(1.0, 64.0) as usize;
-            (
-                patches
-                    .iter()
-                    .flat_map(|patch| tessellate_patch(patch, divisions))
-                    .collect(),
-                1,
-            )
-        } else {
-            let triangles = parse_mesh_triangles(
-                &data,
-                shading_type,
-                bits_per_coordinate as usize,
-                bits_per_component as usize,
-                bits_per_flag.max(0) as usize,
-                component_count,
-                &decode,
-                vertices_per_row,
-            );
-            let divisions = ((max_output_triangles / triangles.len().max(1)) as f64)
-                .sqrt()
-                .floor()
-                .clamp(1.0, 64.0) as usize;
-            (triangles, divisions)
-        };
-        if triangles.is_empty() {
-            self.page.warn(format!(
-                "PDF mesh shading {} produced no triangles",
-                String::from_utf8_lossy(name)
-            ));
-            return Ok(());
-        }
         let transform = compose(self.page_matrix, self.state.ctm);
-        let mut output_count = 0usize;
-        'triangles: for (triangle_index, triangle) in triangles.iter().enumerate() {
-            for micro in subdivide_mesh_triangle(triangle, subdivisions) {
-                if output_count >= max_output_triangles
-                    || self.mesh_output_count.get() >= MAX_PAGE_MESH_TRIANGLES
-                {
-                    break 'triangles;
-                }
-                output_count += 1;
-                self.mesh_output_count
-                    .set(self.mesh_output_count.get().saturating_add(1));
-                let color =
-                    components_to_color(self.document, color_space, &micro.average_components());
-                self.node_counter += 1;
-                self.page.nodes.push(Node::Path {
-                    id: format!(
-                        "pdf-mesh-{}-{}-{}",
-                        self.page.number, triangle_index, output_count
-                    ),
-                    d: micro.path_data(),
-                    fill_rule: "nonzero".into(),
-                    fill: Paint::Solid {
-                        color: color.clone(),
-                        opacity: self.state.fill_alpha,
-                    },
-                    stroke: Stroke::default(),
-                    transform,
-                    clip_id: self.state.clip_id.clone(),
-                    meta: SourceMeta {
-                        kind: "mesh-triangle".into(),
-                        source_id: format!(
-                            "page:{}:shading:{}",
-                            self.page.number,
-                            String::from_utf8_lossy(name)
-                        ),
-                        blend_mode: self.state.blend_mode.clone(),
-                        mask_id: self.state.mask_id.clone().unwrap_or_default(),
-                        alpha_is_shape: self.state.alpha_is_shape,
-                        shape_rendering: "crispEdges".into(),
-                        ..SourceMeta::default()
-                    },
-                });
-            }
-        }
+        let nodes = build_mesh_triangle_nodes(
+            self.document,
+            &triangles,
+            subdivisions,
+            color_space.as_ref(),
+            transform,
+            self.state.fill_alpha,
+            &self.state.blend_mode,
+            self.state.mask_id.as_deref().unwrap_or_default(),
+            self.state.alpha_is_shape,
+            self.state.clip_id.clone(),
+            self.page.number,
+            "pdf-mesh",
+            &String::from_utf8_lossy(name),
+            &self.mesh_output_count,
+        );
+        self.node_counter += nodes.len();
+        self.page.nodes.extend(nodes);
         Ok(())
     }
 
@@ -4333,7 +6740,7 @@ impl Interpreter<'_, '_> {
             .map(|values| numbers(values, 4))
             .filter(|values| values.len() == 4);
         let content = group_stream.decompressed_content_with_limit(self.content_limit)?;
-        let decoded = Content::decode(&content)?;
+        let decoded = decode_content_operations(&content, self.content_limit, self.page)?;
         let mut mask_page = Page::new(
             self.page.number,
             self.page.width,
@@ -4370,13 +6777,16 @@ impl Interpreter<'_, '_> {
             visited_forms: self.visited_forms.clone(),
             visited_patterns: self.visited_patterns.clone(),
             mesh_output_count: Rc::clone(&self.mesh_output_count),
+            hidden_ocgs: self.hidden_ocgs.clone(),
+            marked_content_hidden: false,
+            marked_content_stack: Vec::new(),
             content_limit: self.content_limit,
             outline_embedded_pdf_text: self.outline_embedded_pdf_text,
         };
         if let Some(group_id) = group_id {
             mask_interpreter.visited_forms.insert(group_id);
         }
-        mask_interpreter.interpret(&decoded.operations, 1)?;
+        mask_interpreter.interpret(&decoded, 1)?;
         self.node_counter = mask_interpreter.node_counter;
         self.clip_counter = mask_interpreter.clip_counter;
         self.mask_counter = mask_interpreter.mask_counter;
@@ -4459,18 +6869,45 @@ impl Interpreter<'_, '_> {
     }
 }
 
+/// Decodes the generic compression filters preceding a stream's own image
+/// codec filter (`DCTDecode`, `JPXDecode`, or `CCITTFaxDecode`), leaving
+/// that codec's own bytes untouched for its own decoder to consume.
+/// `/Filter [/FlateDecode /DCTDecode]` -- an outer Flate layer wrapped
+/// around a JPEG purely for a little extra compression -- is legal and
+/// appears in real files (pdf.js's own `comments.pdf`); `stream.content`
+/// alone is still that outer layer's compressed bytes, not the image
+/// codec's own, whenever more than one filter is present.
+fn image_codec_content(stream: &Stream, content_limit: usize) -> Result<Vec<u8>> {
+    let filters = stream.filters().unwrap_or_default();
+    if filters.len() <= 1 {
+        return Ok(stream.content.clone());
+    }
+    let mut leading = stream.clone();
+    leading.dict.set(
+        "Filter",
+        Object::Array(
+            filters[..filters.len() - 1]
+                .iter()
+                .map(|filter| Object::Name(filter.to_vec()))
+                .collect(),
+        ),
+    );
+    Ok(leading.decompressed_content_with_limit(content_limit)?)
+}
+
 fn decode_pdf_jpeg_content(
     stream: &Stream,
     expected_width: usize,
     expected_height: usize,
     content_limit: usize,
 ) -> Result<Vec<u8>> {
-    if stream.content.len() > content_limit {
+    let content = image_codec_content(stream, content_limit)?;
+    if content.len() > content_limit {
         return Err(Error::LimitExceeded(format!(
             "PDF JPEG stream exceeds {content_limit} bytes"
         )));
     }
-    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(stream.content.as_slice()));
+    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(content.as_slice()));
     decoder
         .read_info()
         .map_err(|error| Error::InvalidInput(format!("cannot read PDF JPEG metadata: {error}")))?;
@@ -4509,6 +6946,7 @@ fn decode_pdf_jpeg_content(
 }
 
 fn decode_soft_mask_content(
+    document: &Document,
     mask: &Stream,
     expected_width: usize,
     expected_height: usize,
@@ -4516,14 +6954,15 @@ fn decode_soft_mask_content(
 ) -> Result<Vec<u8>> {
     let filters = mask.filters().unwrap_or_default();
     if !filters.iter().any(|filter| *filter == b"DCTDecode") {
-        return Ok(mask.decompressed_content_with_limit(content_limit)?);
+        return decode_predicted_content(document, mask, content_limit);
     }
-    if mask.content.len() > content_limit {
+    let content = image_codec_content(mask, content_limit)?;
+    if content.len() > content_limit {
         return Err(Error::LimitExceeded(format!(
             "PDF JPEG soft mask stream exceeds {content_limit} bytes"
         )));
     }
-    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(mask.content.as_slice()));
+    let mut decoder = jpeg_decoder::Decoder::new(std::io::Cursor::new(content.as_slice()));
     decoder.read_info().map_err(|error| {
         Error::InvalidInput(format!("cannot read PDF JPEG soft mask metadata: {error}"))
     })?;
@@ -4716,6 +7155,49 @@ fn build_font_decoder(
             String::from_utf8_lossy(name)
         ));
     }
+    if subtype == b"Type0"
+        && let Ok(encoding_obj) = dictionary.get_deref(b"Encoding", document)
+    {
+        let encoding_name = match encoding_obj {
+            Object::Name(bytes) => Some(String::from_utf8_lossy(bytes).into_owned()),
+            Object::String(bytes, _) => Some(String::from_utf8_lossy(bytes).into_owned()),
+            _ => None,
+        };
+        if let Some(encoding_name) = encoding_name
+            && encoding_name != "Identity-H"
+            && encoding_name != "Identity-V"
+        {
+            page.warn(format!(
+                "Type0 font {} uses non-Identity encoding {encoding_name}; text positioning may be compromised",
+                String::from_utf8_lossy(name)
+            ));
+        }
+    }
+    let identity_cid = subtype == b"Type0"
+        && dictionary
+            .get_deref(b"Encoding", document)
+            .ok()
+            .and_then(|encoding| Object::as_name(encoding).ok())
+            .is_some_and(|encoding_name| {
+                encoding_name == b"Identity-H" || encoding_name == b"Identity-V"
+            });
+    // CIDFontType2's own /CIDToGIDMap, when it is an embedded stream rather
+    // than the default /Identity, is what actually names a CID's glyph.
+    let cid_to_gid_map = (subtype == b"Type0")
+        .then(|| {
+            dictionary
+                .get_deref(b"DescendantFonts", document)
+                .and_then(Object::as_array)
+                .ok()
+                .and_then(|array| array.first())
+                .and_then(|object| document.dereference(object).ok().map(|(_, value)| value))
+                .and_then(|object| object.as_dict().ok())
+                .and_then(|descendant| descendant.get_deref(b"CIDToGIDMap", document).ok())
+                .and_then(|object| Object::as_stream(object).ok())
+                .and_then(|stream| stream.decompressed_content_with_limit(content_limit).ok())
+                .map(Arc::<[u8]>::from)
+        })
+        .flatten();
     FontDecoder {
         family,
         bold,
@@ -4729,6 +7211,9 @@ fn build_font_decoder(
         widths,
         default_width,
         type3,
+        type1: Type1Cache::default(),
+        identity_cid,
+        cid_to_gid_map,
     }
 }
 
@@ -5826,16 +8311,317 @@ impl FunctionShadingField<'_> {
     }
 }
 
+/// Tessellates a PDF ShadingType 1 (function-based) shading into flat-color
+/// quadrilateral cells, positioned by `transform`.
+///
+/// Shared by the `sh` operator (`transform` bakes in the full device
+/// transform, and cells land directly on the page) and a shading *pattern*
+/// filling a path (`transform` covers only the shading's own space, so the
+/// cells stay in pattern-content space for a [`crate::ir::TilingPatternDefinition`]
+/// to position later).
+///
+/// `Ok(None)` means the function could not be evaluated (the caller warns
+/// with call-site-specific wording); `Err` is a genuine resource limit.
+#[allow(clippy::too_many_arguments)]
+fn build_function_shading_cell_nodes(
+    document: &Document,
+    function: &Object,
+    domain: &[f64],
+    transform: Matrix,
+    color_space: Option<&Object>,
+    fill_alpha: f64,
+    blend_mode: &str,
+    mask_id: &str,
+    alpha_is_shape: bool,
+    clip_id: Option<String>,
+    page_number: usize,
+    id_prefix: &str,
+    source_name: &str,
+) -> Option<(Vec<Node>, bool)> {
+    let field = FunctionShadingField {
+        document,
+        function,
+        transform,
+    };
+    let root = FunctionShadingBounds {
+        x0: domain[0],
+        x1: domain[1],
+        y0: domain[2],
+        y1: domain[3],
+    };
+    // A genuinely discontinuous function (a checkerboard built from floor
+    // and mod, say) can never bring a cell straddling the jump within
+    // tolerance no matter how far it is subdivided, so hitting this budget
+    // is expected on some real shadings, not just a pathological input.
+    // Keep the cells already produced -- a lower-resolution rendering of
+    // one shading beats failing the whole page -- and let the caller warn
+    // that it is approximate.
+    const MAX_CELLS: usize = 100_000;
+    let mut cells = Vec::new();
+    if !adaptive_function_shading_cells(&field, root, &mut cells, MAX_CELLS) {
+        return None;
+    }
+    let truncated = cells.len() >= MAX_CELLS;
+    Some((
+        cells
+            .into_iter()
+            .enumerate()
+            .map(|(index, cell)| Node::Path {
+                id: format!("{id_prefix}-{page_number}-{}", index + 1),
+                d: quadrilateral_path(cell.points),
+                fill_rule: "nonzero".into(),
+                fill: Paint::Solid {
+                    color: components_to_color(document, color_space, &cell.components),
+                    opacity: fill_alpha,
+                },
+                stroke: Stroke::default(),
+                transform: IDENTITY,
+                clip_id: clip_id.clone(),
+                meta: SourceMeta {
+                    kind: "function-shading-cell".into(),
+                    source_id: format!("page:{page_number}:shading:{source_name}"),
+                    blend_mode: blend_mode.into(),
+                    mask_id: mask_id.into(),
+                    alpha_is_shape,
+                    shape_rendering: "crispEdges".into(),
+                    ..SourceMeta::default()
+                },
+            })
+            .collect(),
+        truncated,
+    ))
+}
+
+/// Parses a PDF mesh shading (ShadingType 4-7) stream into triangles ready
+/// for [`build_mesh_triangle_nodes`], applying the same page-wide triangle
+/// budget the `sh` operator already enforces via `mesh_output_count`.
+///
+/// `Ok(None)` means nothing should be drawn and a warning (if any) has
+/// already been recorded on `page`; the reason varies (malformed data, an
+/// exhausted page budget, or a genuinely empty mesh) so the caller cannot
+/// usefully add its own message on top.
+#[allow(clippy::too_many_arguments, clippy::type_complexity)]
+fn parse_mesh_shading_triangles(
+    document: &Document,
+    shading: &Object,
+    dictionary: &Dictionary,
+    shading_type: i64,
+    content_limit: usize,
+    mesh_output_so_far: usize,
+    name: &[u8],
+    page: &mut Page,
+) -> Result<Option<(Vec<MeshTriangle>, usize, Option<Object>)>> {
+    let Object::Stream(stream) = shading else {
+        page.warn(format!(
+            "PDF mesh shading {} has no stream data",
+            String::from_utf8_lossy(name)
+        ));
+        return Ok(None);
+    };
+    let data = stream.decompressed_content_with_limit(content_limit)?;
+    let bits_per_coordinate = dictionary
+        .get(b"BitsPerCoordinate")
+        .and_then(Object::as_i64)
+        .unwrap_or(0);
+    let bits_per_component = dictionary
+        .get(b"BitsPerComponent")
+        .and_then(Object::as_i64)
+        .unwrap_or(0);
+    let bits_per_flag = dictionary
+        .get(b"BitsPerFlag")
+        .and_then(Object::as_i64)
+        .unwrap_or(0);
+    if bits_per_coordinate <= 0
+        || bits_per_component <= 0
+        || bits_per_coordinate > 32
+        || bits_per_component > 16
+    {
+        page.warn("PDF mesh shading has invalid bit widths");
+        return Ok(None);
+    }
+    let color_space = dictionary.get(b"ColorSpace").ok().cloned();
+    let component_count = pdf_color_component_count(document, color_space.as_ref());
+    let decode = dictionary
+        .get(b"Decode")
+        .and_then(Object::as_array)
+        .ok()
+        .map(|values| numbers(values, usize::MAX))
+        .unwrap_or_default();
+    let Some(decode) = complete_mesh_decode_ranges(&decode, component_count) else {
+        page.warn("PDF mesh shading /Decode array is incomplete");
+        return Ok(None);
+    };
+    let vertices_per_row = dictionary
+        .get(b"VerticesPerRow")
+        .and_then(Object::as_i64)
+        .unwrap_or(0)
+        .max(0) as usize;
+    let remaining_page_budget = MAX_PAGE_MESH_TRIANGLES.saturating_sub(mesh_output_so_far);
+    if remaining_page_budget == 0 {
+        return Ok(None);
+    }
+    let max_output_triangles = remaining_page_budget.min(3_000);
+    let (triangles, subdivisions) = if matches!(shading_type, 6 | 7) {
+        let (patches, has_reused_patch) = parse_patch_meshes(
+            &data,
+            shading_type,
+            bits_per_coordinate as usize,
+            bits_per_component as usize,
+            bits_per_flag.max(0) as usize,
+            component_count,
+            &decode,
+        );
+        if has_reused_patch {
+            page.warn(
+                "PDF patch mesh reuse flags 1-3 are detected; only independent flag-0 patches are rendered",
+            );
+        }
+        let divisions = ((max_output_triangles / (patches.len().max(1) * 2)) as f64)
+            .sqrt()
+            .floor()
+            .clamp(1.0, 64.0) as usize;
+        (
+            patches
+                .iter()
+                .flat_map(|patch| tessellate_patch(patch, divisions))
+                .collect(),
+            1,
+        )
+    } else {
+        let triangles = parse_mesh_triangles(
+            &data,
+            shading_type,
+            bits_per_coordinate as usize,
+            bits_per_component as usize,
+            bits_per_flag.max(0) as usize,
+            component_count,
+            &decode,
+            vertices_per_row,
+        );
+        let divisions = ((max_output_triangles / triangles.len().max(1)) as f64)
+            .sqrt()
+            .floor()
+            .clamp(1.0, 64.0) as usize;
+        (triangles, divisions)
+    };
+    if triangles.is_empty() {
+        page.warn(format!(
+            "PDF mesh shading {} produced no triangles",
+            String::from_utf8_lossy(name)
+        ));
+        return Ok(None);
+    }
+    Ok(Some((triangles, subdivisions, color_space)))
+}
+
+/// Builds flat-color mesh-triangle nodes, positioned by `transform`, from
+/// triangles [`parse_mesh_shading_triangles`] already tessellated.
+///
+/// Shared by the `sh` operator (`transform` bakes in the full device
+/// transform, and nodes land directly on the page) and a mesh shading
+/// *pattern* filling a path (`transform` is identity, so nodes stay in
+/// their raw mesh-space coordinates for a
+/// [`crate::ir::TilingPatternDefinition`] to position later).
+#[allow(clippy::too_many_arguments)]
+fn build_mesh_triangle_nodes(
+    document: &Document,
+    triangles: &[MeshTriangle],
+    subdivisions: usize,
+    color_space: Option<&Object>,
+    transform: Matrix,
+    fill_alpha: f64,
+    blend_mode: &str,
+    mask_id: &str,
+    alpha_is_shape: bool,
+    clip_id: Option<String>,
+    page_number: usize,
+    id_prefix: &str,
+    source_name: &str,
+    mesh_output_count: &Cell<usize>,
+) -> Vec<Node> {
+    let max_output_triangles = MAX_PAGE_MESH_TRIANGLES
+        .saturating_sub(mesh_output_count.get())
+        .min(3_000);
+    let mut nodes = Vec::new();
+    let mut output_count = 0usize;
+    'triangles: for (triangle_index, triangle) in triangles.iter().enumerate() {
+        for micro in subdivide_mesh_triangle(triangle, subdivisions) {
+            if output_count >= max_output_triangles
+                || mesh_output_count.get() >= MAX_PAGE_MESH_TRIANGLES
+            {
+                break 'triangles;
+            }
+            output_count += 1;
+            mesh_output_count.set(mesh_output_count.get().saturating_add(1));
+            let color = components_to_color(document, color_space, &micro.average_components());
+            nodes.push(Node::Path {
+                id: format!("{id_prefix}-{page_number}-{triangle_index}-{output_count}"),
+                d: micro.path_data(),
+                fill_rule: "nonzero".into(),
+                fill: Paint::Solid {
+                    color,
+                    opacity: fill_alpha,
+                },
+                stroke: Stroke::default(),
+                transform,
+                clip_id: clip_id.clone(),
+                meta: SourceMeta {
+                    kind: "mesh-triangle".into(),
+                    source_id: format!("page:{page_number}:shading:{source_name}"),
+                    blend_mode: blend_mode.into(),
+                    mask_id: mask_id.into(),
+                    alpha_is_shape,
+                    shape_rendering: "crispEdges".into(),
+                    ..SourceMeta::default()
+                },
+            });
+        }
+    }
+    nodes
+}
+
+/// Tessellates a function shading by splitting cells breadth-first rather
+/// than depth-first.
+///
+/// A genuinely discontinuous or cusped function (a checkerboard from floor
+/// and mod, or a radial distance function's center point) never brings a
+/// cell straddling it within tolerance, so that cell keeps splitting no
+/// matter how far down the tree it goes. Depth-first recursion visits one
+/// such cell's entire, effectively unbounded subtree before its sibling
+/// gets a turn -- so hitting the cell budget there starves every other,
+/// well-behaved region of the domain down to nothing, rather than costing
+/// only the one cusp its full resolution. Breadth-first order finishes
+/// every region that converges quickly before spending budget on regions
+/// that do not, so a budget cutoff costs only the hard regions their full
+/// resolution instead of erasing the whole shading.
 fn adaptive_function_shading_cells(
     field: &FunctionShadingField<'_>,
-    bounds: FunctionShadingBounds,
-    depth: usize,
+    root: FunctionShadingBounds,
     output: &mut Vec<FunctionShadingCell>,
     maximum: usize,
 ) -> bool {
-    if output.len() >= maximum {
-        return true;
+    let mut queue = std::collections::VecDeque::new();
+    queue.push_back((root, 0usize, None));
+    while let Some((bounds, depth, streak)) = queue.pop_front() {
+        if output.len() >= maximum {
+            return true;
+        }
+        if !adaptive_function_shading_cell(field, bounds, depth, streak, output, &mut queue) {
+            return false;
+        }
     }
+    true
+}
+
+#[allow(clippy::type_complexity)]
+fn adaptive_function_shading_cell(
+    field: &FunctionShadingField<'_>,
+    bounds: FunctionShadingBounds,
+    depth: usize,
+    streak: Option<(bool, u32)>,
+    output: &mut Vec<FunctionShadingCell>,
+    queue: &mut std::collections::VecDeque<(FunctionShadingBounds, usize, Option<(bool, u32)>)>,
+) -> bool {
     let middle_x = (bounds.x0 + bounds.x1) * 0.5;
     let middle_y = (bounds.y0 + bounds.y1) * 0.5;
     let coordinates = [
@@ -5926,52 +8712,69 @@ fn adaptive_function_shading_cells(
         });
         return true;
     }
-    let split_u = if u_change == v_change {
-        u_length >= v_length
+    let heuristic_split_u = if u_change != v_change {
+        u_change > v_change
     } else {
-        u_change >= v_change
+        u_length >= v_length
+    };
+    // Once an axis stops being split, resampling it always lands back on
+    // that same cell's own frozen endpoints -- and for a function that is
+    // symmetric about their midpoint (a distance-from-center function
+    // sampled at y=0 and y=1, both equidistant from the center at y=0.5,
+    // say), *every* value pair along that axis comes out identical by
+    // construction, not by floating-point coincidence, no matter how far
+    // the other axis is subdivided. The change heuristic above then always
+    // favors the other axis too, forever: it is not measuring "this axis
+    // doesn't vary", only "this axis doesn't vary *between these two
+    // specific, never-revisited points*". Cap how many consecutive splits
+    // may follow the heuristic before one is forced onto the neglected
+    // axis, so a symmetric function's other axis is still guaranteed to
+    // eventually get re-sampled at new points instead of being starved of
+    // the cell budget entirely.
+    const MAX_AXIS_STREAK: u32 = 4;
+    let forced_switch = matches!(streak, Some((last_was_u, count))
+        if last_was_u == heuristic_split_u && count >= MAX_AXIS_STREAK);
+    let split_u = heuristic_split_u ^ forced_switch;
+    let next_streak = match streak {
+        Some((last_was_u, count)) if last_was_u == split_u => Some((split_u, count + 1)),
+        _ => Some((split_u, 1)),
     };
     if split_u {
-        adaptive_function_shading_cells(
-            field,
+        queue.push_back((
             FunctionShadingBounds {
                 x1: middle_x,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        ) && adaptive_function_shading_cells(
-            field,
+            next_streak,
+        ));
+        queue.push_back((
             FunctionShadingBounds {
                 x0: middle_x,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        )
+            next_streak,
+        ));
     } else {
-        adaptive_function_shading_cells(
-            field,
+        queue.push_back((
             FunctionShadingBounds {
                 y1: middle_y,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        ) && adaptive_function_shading_cells(
-            field,
+            next_streak,
+        ));
+        queue.push_back((
             FunctionShadingBounds {
                 y0: middle_y,
                 ..bounds
             },
             depth + 1,
-            output,
-            maximum,
-        )
+            next_streak,
+        ));
     }
+    true
 }
 
 #[derive(Clone, Copy)]
@@ -6665,6 +9468,189 @@ impl<'a> MeshBitReader<'a> {
     }
 }
 
+/// The PNG predictor `stream` was written with, if any.
+///
+/// `/DecodeParms` may be a direct dictionary, an indirect reference, or an
+/// array running parallel to `/Filter`. lopdf only reads the first form, so the
+/// other two silently lose the predictor; `/DP` is the inline-image spelling.
+/// How an SVG renderer should resample this image.
+///
+/// PDF's `/Interpolate false` asks for no smoothing when an image is *enlarged*.
+/// CSS `pixelated` is broader than that: it also turns off the area averaging
+/// every PDF viewer applies when an image is reduced, which speckles a scan
+/// placed at a fraction of its pixel size. So `pixelated` is used only where it
+/// means what the PDF meant — an image drawn larger than its own pixel grid.
+fn image_rendering_hint(
+    interpolate: bool,
+    width: usize,
+    height: usize,
+    placement: Matrix,
+) -> String {
+    if interpolate {
+        return "auto".into();
+    }
+    let drawn_width = placement[0].hypot(placement[1]);
+    let drawn_height = placement[2].hypot(placement[3]);
+    let magnified = drawn_width > width as f64 || drawn_height > height as f64;
+    if magnified {
+        "pixelated".into()
+    } else {
+        "auto".into()
+    }
+}
+
+fn png_predictor_of(document: &Document, stream: &Stream) -> Option<PngPredictor> {
+    let raw = [b"DecodeParms".as_slice(), b"DP".as_slice()]
+        .into_iter()
+        .find_map(|key| stream.dict.get(key).ok())?;
+    let resolved = document
+        .dereference(raw)
+        .ok()
+        .map(|(_, value)| value)
+        .unwrap_or(raw);
+    let parameters = match resolved {
+        Object::Dictionary(dictionary) => dictionary.clone(),
+        Object::Array(entries) => entries
+            .iter()
+            .filter_map(|entry| {
+                document
+                    .dereference(entry)
+                    .ok()
+                    .map(|(_, value)| value)
+                    .unwrap_or(entry)
+                    .as_dict()
+                    .ok()
+                    .cloned()
+            })
+            // Predictors only apply to Flate and LZW, so the parallel entry
+            // that carries one is the entry that matters.
+            .find(|dictionary| dictionary.get(b"Predictor").is_ok())?,
+        _ => return None,
+    };
+    let predictor = parameters.get(b"Predictor").and_then(Object::as_i64).ok()?;
+    if !(10..=15).contains(&predictor) {
+        return None;
+    }
+    let colors = parameters
+        .get(b"Colors")
+        .and_then(Object::as_i64)
+        .unwrap_or(1)
+        .max(1) as usize;
+    let bits = parameters
+        .get(b"BitsPerComponent")
+        .and_then(Object::as_i64)
+        .unwrap_or(8)
+        .max(1) as usize;
+    let columns = parameters
+        .get(b"Columns")
+        .and_then(Object::as_i64)
+        .unwrap_or(1)
+        .max(1) as usize;
+    Some(PngPredictor {
+        bytes_per_pixel: (colors * bits).div_ceil(8).max(1),
+        row_bytes: (columns * colors * bits).div_ceil(8).max(1),
+    })
+}
+
+#[derive(Clone, Copy, Debug)]
+struct PngPredictor {
+    bytes_per_pixel: usize,
+    row_bytes: usize,
+}
+
+impl PngPredictor {
+    /// Undo the per-row PNG filters described in RFC 2083 section 6.
+    ///
+    /// This is done here rather than by the PDF library because lopdf 0.44's
+    /// Average filter reconstructs `left + above / 2` instead of
+    /// `(left + above) / 2`. Every Average row and everything after it until the
+    /// next unfiltered row decodes to noise, and nothing reports an error.
+    fn unfilter(&self, data: &[u8]) -> Vec<u8> {
+        let stride = self.row_bytes;
+        let bpp = self.bytes_per_pixel.min(stride);
+        let rows = data.len() / (stride + 1);
+        let mut output = Vec::with_capacity(rows * stride);
+        let mut previous = vec![0u8; stride];
+        let mut current = vec![0u8; stride];
+        for row in 0..rows {
+            let start = row * (stride + 1);
+            let filter = data[start];
+            current.copy_from_slice(&data[start + 1..start + 1 + stride]);
+            match filter {
+                1 => {
+                    for index in bpp..stride {
+                        current[index] = current[index].wrapping_add(current[index - bpp]);
+                    }
+                }
+                2 => {
+                    for index in 0..stride {
+                        current[index] = current[index].wrapping_add(previous[index]);
+                    }
+                }
+                3 => {
+                    for index in 0..stride {
+                        let left = if index >= bpp {
+                            u16::from(current[index - bpp])
+                        } else {
+                            0
+                        };
+                        let above = u16::from(previous[index]);
+                        current[index] = current[index].wrapping_add(((left + above) / 2) as u8);
+                    }
+                }
+                4 => {
+                    for index in 0..stride {
+                        let (left, upper_left) = if index >= bpp {
+                            (current[index - bpp], previous[index - bpp])
+                        } else {
+                            (0, 0)
+                        };
+                        current[index] =
+                            current[index].wrapping_add(paeth(left, previous[index], upper_left));
+                    }
+                }
+                // 0 is an unfiltered row; anything else is malformed and is
+                // best left as written rather than guessed at.
+                _ => {}
+            }
+            output.extend_from_slice(&current);
+            previous.copy_from_slice(&current);
+        }
+        output
+    }
+}
+
+fn paeth(left: u8, above: u8, upper_left: u8) -> u8 {
+    let estimate = i16::from(left) + i16::from(above) - i16::from(upper_left);
+    let distance_left = (estimate - i16::from(left)).abs();
+    let distance_above = (estimate - i16::from(above)).abs();
+    let distance_upper_left = (estimate - i16::from(upper_left)).abs();
+    if distance_left <= distance_above && distance_left <= distance_upper_left {
+        left
+    } else if distance_above <= distance_upper_left {
+        above
+    } else {
+        upper_left
+    }
+}
+
+/// Decompress an image or soft-mask stream, undoing any PNG predictor here.
+fn decode_predicted_content(
+    document: &Document,
+    stream: &Stream,
+    content_limit: usize,
+) -> Result<Vec<u8>> {
+    let Some(predictor) = png_predictor_of(document, stream) else {
+        return Ok(stream.decompressed_content_with_limit(content_limit)?);
+    };
+    // Hide the parameters so the library returns the still-filtered rows.
+    let mut raw = stream.clone();
+    raw.dict.remove(b"DecodeParms");
+    raw.dict.remove(b"DP");
+    let filtered = raw.decompressed_content_with_limit(content_limit)?;
+    Ok(predictor.unfilter(&filtered))
+}
+
 fn pdf_color_component_count(document: &Document, color_space: Option<&Object>) -> usize {
     let color_space =
         color_space.and_then(|value| document.dereference(value).ok().map(|(_, value)| value));
@@ -6807,12 +9793,27 @@ fn components_to_rgb(
                         .and_then(|value| value.get(b"Gamma").ok())
                         .and_then(|value| number(Some(value)))
                         .unwrap_or(1.0);
-                    let gray = components
-                        .first()
-                        .copied()
-                        .unwrap_or(0.0)
-                        .clamp(0.0, 1.0)
-                        .powf(gamma);
+                    // CalGray is inherently achromatic -- X, Y and Z are
+                    // always the same WhitePoint-scaled luminance -- so
+                    // the correct sRGB rendering is always a neutral
+                    // R=G=B, gamma-encoding the luminance directly, not a
+                    // full XYZ -> sRGB matrix. Routing it through that
+                    // matrix (as CalRGB and Lab below correctly do, since
+                    // their X/Y/Z can differ) would introduce a spurious
+                    // color tint whenever the declared WhitePoint isn't
+                    // exactly D65 -- as in this file's own `[1 1 1]`
+                    // "equal energy" white point. Treating A^Gamma as a
+                    // direct sRGB gray, as this used to, skipped the
+                    // encoding curve entirely and rendered every midtone
+                    // too dark.
+                    let gray = srgb_encode(
+                        components
+                            .first()
+                            .copied()
+                            .unwrap_or(0.0)
+                            .clamp(0.0, 1.0)
+                            .powf(gamma),
+                    );
                     Some([gray, gray, gray])
                 }
                 b"CalRGB" => cal_rgb_to_srgb(array.get(1), components),
@@ -6934,13 +9935,18 @@ fn xyz_to_srgb(xyz: [f64; 3]) -> Option<[f64; 3]> {
         -0.9689 * xyz[0] + 1.8758 * xyz[1] + 0.0415 * xyz[2],
         0.0557 * xyz[0] - 0.2040 * xyz[1] + 1.0570 * xyz[2],
     ];
-    Some(linear.map(|value| {
-        if value <= 0.003_130_8 {
-            12.92 * value
-        } else {
-            1.055 * value.max(0.0).powf(1.0 / 2.4) - 0.055
-        }
-    }))
+    Some(linear.map(srgb_encode))
+}
+
+/// The sRGB opto-electronic transfer function: gamma-encodes a linear
+/// light value into the nonlinear value a display (or this SVG output)
+/// actually expects.
+fn srgb_encode(value: f64) -> f64 {
+    if value <= 0.003_130_8 {
+        12.92 * value
+    } else {
+        1.055 * value.max(0.0).powf(1.0 / 2.4) - 0.055
+    }
 }
 
 fn transformed_axial_axis(
@@ -7014,6 +10020,67 @@ fn quadrilateral_path(points: [(f64, f64); 4]) -> String {
     )
 }
 
+/// The optional content groups a document's default configuration hides.
+///
+/// Per PDF 32000-1:2008 8.11.4.3, `/OCProperties /D /BaseState` (default
+/// `/ON`) sets every group's starting state, and `/ON`/`/OFF` name the
+/// exceptions to it -- so under the (overwhelmingly common) default
+/// `BaseState`, only `/OFF` matters, while a `BaseState` of `/OFF` hides
+/// every group except those `/ON` names.
+fn hidden_optional_content_groups(document: &Document) -> HashSet<ObjectId> {
+    let Some(configuration) = document
+        .catalog()
+        .ok()
+        .and_then(|catalog| catalog.get_deref(b"OCProperties", document).ok())
+        .and_then(|value| value.as_dict().ok())
+        .and_then(|properties| properties.get_deref(b"D", document).ok())
+        .and_then(|value| value.as_dict().ok())
+    else {
+        return HashSet::new();
+    };
+    // `/ON`, `/OFF` and the top-level `/OCGs` array are each just as likely
+    // to be indirect references as inline arrays -- a non-dereferencing
+    // `get` silently (via `.ok()`) treats a reference here as "absent"
+    // rather than following it, which previously hid nothing at all on a
+    // document whose `/OFF` array happens to be its own indirect object.
+    let object_ids = |key: &[u8]| -> HashSet<ObjectId> {
+        configuration
+            .get_deref(key, document)
+            .and_then(Object::as_array)
+            .ok()
+            .into_iter()
+            .flatten()
+            .filter_map(|value| value.as_reference().ok())
+            .collect()
+    };
+    let all_off = configuration
+        .get(b"BaseState")
+        .and_then(Object::as_name)
+        .ok()
+        == Some(b"OFF");
+    if all_off {
+        let all_groups = document
+            .catalog()
+            .ok()
+            .and_then(|catalog| catalog.get_deref(b"OCProperties", document).ok())
+            .and_then(|value| value.as_dict().ok())
+            .and_then(|properties| {
+                properties
+                    .get_deref(b"OCGs", document)
+                    .and_then(Object::as_array)
+                    .ok()
+            })
+            .into_iter()
+            .flatten()
+            .filter_map(|value| value.as_reference().ok())
+            .collect::<HashSet<_>>();
+        let visible = object_ids(b"ON");
+        all_groups.difference(&visible).copied().collect()
+    } else {
+        object_ids(b"OFF")
+    }
+}
+
 fn inherited_page_array(
     document: &Document,
     mut page_id: ObjectId,
@@ -7021,7 +10088,7 @@ fn inherited_page_array(
 ) -> Option<[f64; 4]> {
     for _ in 0..64 {
         let page = document.get_dictionary(page_id).ok()?;
-        if let Ok(array) = page.get(key).and_then(Object::as_array) {
+        if let Ok(array) = page.get_deref(key, document).and_then(Object::as_array) {
             let values = array
                 .iter()
                 .filter_map(|object| number(Some(object)))
@@ -7038,7 +10105,7 @@ fn inherited_page_array(
 fn inherited_page_number(document: &Document, mut page_id: ObjectId, key: &[u8]) -> Option<f64> {
     for _ in 0..64 {
         let page = document.get_dictionary(page_id).ok()?;
-        if let Ok(value) = page.get(key)
+        if let Ok(value) = page.get_deref(key, document)
             && let Some(number) = number(Some(value))
         {
             return Some(number);
@@ -7100,6 +10167,16 @@ fn page_matrix(bounds: [f64; 4], rotation: i32) -> Matrix {
     }
 }
 
+/// A small margin added to a tessellated shading pattern's tile size (but
+/// not to its clip, which stays exact), so the tile's own repeat boundary
+/// falls just outside the visibly clipped area. Without it, anti-aliasing
+/// at the clip edge can let a sliver of the adjacent repeated tile bleed
+/// through, since patterns unlike a real PDF shading pattern are shown by
+/// tiling rather than painted once.
+fn pattern_tile_margin(span: f64) -> f64 {
+    span.abs().max(1.0) * 0.002
+}
+
 fn matrix_operands(operands: &[Object]) -> Option<Matrix> {
     let values = numbers(operands, 6);
     (values.len() == 6).then(|| {
@@ -7139,6 +10216,284 @@ fn name(object: Option<&Object>) -> Option<&[u8]> {
 
 fn string_bytes(object: Option<&Object>) -> Option<&[u8]> {
     object?.as_str().ok()
+}
+
+fn pdf_string_array(document: &Document, array: &[Object]) -> Option<Vec<Vec<u8>>> {
+    if array.len() > MAX_PDF_CHOICE_OPTIONS {
+        return None;
+    }
+    let mut total_bytes = 0usize;
+    let mut values = Vec::with_capacity(array.len());
+    for item in array {
+        let value = document.dereference(item).ok()?.1;
+        let text = string_bytes(Some(value))?.to_vec();
+        total_bytes = total_bytes.saturating_add(text.len());
+        if total_bytes > MAX_PDF_CHOICE_TEXT_BYTES {
+            return None;
+        }
+        values.push(text);
+    }
+    Some(values)
+}
+
+fn pdf_choice_options(document: &Document, object: &Object) -> Option<Vec<PdfChoiceOption>> {
+    let object = document.dereference(object).ok()?.1;
+    let array = object.as_array().ok()?;
+    if array.len() > MAX_PDF_CHOICE_OPTIONS {
+        return None;
+    }
+    let mut total_bytes = 0usize;
+    let mut options = Vec::with_capacity(array.len());
+    for item in array {
+        let item = document.dereference(item).ok()?.1;
+        let (export_value, display_value) = if let Ok(bytes) = item.as_str() {
+            (bytes.to_vec(), bytes.to_vec())
+        } else if let Ok(pair) = item.as_array() {
+            if pair.len() != 2 {
+                continue;
+            }
+            let Some(export) = document
+                .dereference(&pair[0])
+                .ok()
+                .and_then(|(_, value)| string_bytes(Some(value)))
+                .map(ToOwned::to_owned)
+            else {
+                continue;
+            };
+            let Some(display) = document
+                .dereference(&pair[1])
+                .ok()
+                .and_then(|(_, value)| string_bytes(Some(value)))
+                .map(ToOwned::to_owned)
+            else {
+                continue;
+            };
+            (export, display)
+        } else {
+            continue;
+        };
+        total_bytes = total_bytes
+            .saturating_add(export_value.len())
+            .saturating_add(display_value.len());
+        if total_bytes > MAX_PDF_CHOICE_TEXT_BYTES {
+            return None;
+        }
+        options.push(PdfChoiceOption {
+            export_value,
+            display_value,
+        });
+    }
+    Some(options)
+}
+
+fn pdf_choice_display_value<'a>(
+    options: &'a [PdfChoiceOption],
+    export_value: &[u8],
+) -> Option<&'a [u8]> {
+    options
+        .iter()
+        .find(|option| option.export_value == export_value)
+        .map(|option| option.display_value.as_slice())
+}
+
+fn decode_pdf_annotation_text(bytes: &[u8]) -> String {
+    let decoded = if let Some(bytes) = bytes.strip_prefix(&[0xfe, 0xff]) {
+        if bytes.len().is_multiple_of(2) {
+            char::decode_utf16(
+                bytes
+                    .chunks_exact(2)
+                    .map(|pair| u16::from_be_bytes([pair[0], pair[1]])),
+            )
+            .map(|character| character.unwrap_or(char::REPLACEMENT_CHARACTER))
+            .collect::<String>()
+        } else {
+            String::from_utf8_lossy(bytes).into_owned()
+        }
+    } else if let Some(bytes) = bytes.strip_prefix(&[0xff, 0xfe]) {
+        if bytes.len().is_multiple_of(2) {
+            char::decode_utf16(
+                bytes
+                    .chunks_exact(2)
+                    .map(|pair| u16::from_le_bytes([pair[0], pair[1]])),
+            )
+            .map(|character| character.unwrap_or(char::REPLACEMENT_CHARACTER))
+            .collect::<String>()
+        } else {
+            String::from_utf8_lossy(bytes).into_owned()
+        }
+    } else {
+        encoding_rs::WINDOWS_1252
+            .decode_without_bom_handling(bytes)
+            .0
+            .into_owned()
+    };
+    decoded
+        .chars()
+        .map(|character| match character {
+            '\r' => '\n',
+            '\0' => '\u{fffd}',
+            other => other,
+        })
+        .collect()
+}
+
+fn wrap_free_text_annotation(
+    text: &str,
+    max_chars_per_line: usize,
+    max_lines: usize,
+) -> (Vec<String>, bool) {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    let mut line_chars = 0usize;
+    let mut truncated = false;
+    for character in text.chars() {
+        if character == '\r' {
+            continue;
+        }
+        if character == '\n' {
+            if lines.len() >= max_lines {
+                truncated = true;
+                break;
+            }
+            lines.push(std::mem::take(&mut line));
+            line_chars = 0;
+            continue;
+        }
+        let character = if character == '\t' { ' ' } else { character };
+        if character.is_control() {
+            continue;
+        }
+        if line_chars >= max_chars_per_line {
+            if lines.len() >= max_lines {
+                truncated = true;
+                break;
+            }
+            lines.push(std::mem::take(&mut line));
+            line_chars = 0;
+        }
+        line.push(character);
+        line_chars += 1;
+    }
+    if !truncated && (!line.is_empty() || lines.is_empty()) {
+        if lines.len() < max_lines {
+            lines.push(line);
+        } else {
+            truncated = true;
+        }
+    }
+    (lines, truncated)
+}
+
+fn free_text_appearance_style(
+    appearance: &[u8],
+    quadding: i64,
+    default_size: f64,
+) -> (String, f64, Paint, TextAnchor) {
+    let text = String::from_utf8_lossy(appearance);
+    let tokens = text.split_whitespace().collect::<Vec<_>>();
+    let mut font_name = "Helvetica";
+    let mut font_size = default_size;
+    let mut fill = Paint::solid("#000000");
+    for (index, token) in tokens.iter().enumerate() {
+        match *token {
+            "Tf" if index >= 2 => {
+                font_name = tokens[index - 2].trim_start_matches('/');
+                if let Ok(size) = tokens[index - 1].parse::<f64>()
+                    && size.is_finite()
+                    && size >= 0.0
+                {
+                    font_size = if size == 0.0 { default_size } else { size };
+                }
+            }
+            "g" if index >= 1 => {
+                if let Ok(gray) = tokens[index - 1].parse::<f64>() {
+                    fill = gray_paint(gray, 1.0);
+                }
+            }
+            "rg" if index >= 3 => {
+                if let Some(values) = parse_da_color_values(&tokens[index - 3..index]) {
+                    fill = rgb_paint(&values, 1.0);
+                }
+            }
+            "k" if index >= 4 => {
+                if let Some(values) = parse_da_color_values(&tokens[index - 4..index]) {
+                    let channel =
+                        |index: usize| (1.0 - (values[index] + values[3]).clamp(0.0, 1.0)) * 255.0;
+                    fill = Paint::solid(format!(
+                        "#{:02X}{:02X}{:02X}",
+                        channel(0).round() as u8,
+                        channel(1).round() as u8,
+                        channel(2).round() as u8
+                    ));
+                }
+            }
+            _ => {}
+        }
+    }
+    font_size = font_size.clamp(4.0, 72.0);
+    let font_family = match font_name {
+        name if name.starts_with("Helv") || name.starts_with("Arial") => {
+            "Arial, 'Hiragino Sans', Helvetica, sans-serif"
+        }
+        name if name.starts_with("Ti") || name.starts_with("Times") => {
+            "'Times New Roman', Times, serif"
+        }
+        name if name.starts_with("Cour") => "'Courier New', Courier, monospace",
+        _ => "Arial, 'Hiragino Sans', Helvetica, sans-serif",
+    }
+    .to_owned();
+    let anchor = match quadding {
+        1 => TextAnchor::Middle,
+        2 => TextAnchor::End,
+        _ => TextAnchor::Start,
+    };
+    (font_family, font_size, fill, anchor)
+}
+
+fn annotation_rect(annotation: &Dictionary, document: &Document) -> Option<Vec<f64>> {
+    annotation
+        .get_deref(b"Rect", document)
+        .ok()
+        .and_then(|object| object.as_array().ok())
+        .map(|array| numbers(array, 4))
+        .filter(|rect| rect.len() == 4 && rect.iter().all(|value| value.is_finite()))
+}
+
+fn acroform_default_appearance(document: &Document) -> Option<&[u8]> {
+    let root = document
+        .trailer
+        .get_deref(b"Root", document)
+        .ok()?
+        .as_dict()
+        .ok()?;
+    let acroform = root.get_deref(b"AcroForm", document).ok()?.as_dict().ok()?;
+    acroform
+        .get_deref(b"DA", document)
+        .ok()
+        .and_then(|object| string_bytes(Some(object)))
+}
+
+fn bounded_form_appearance(
+    field_appearance: Option<Vec<u8>>,
+    document: &Document,
+) -> (Vec<u8>, bool) {
+    if let Some(appearance) = field_appearance {
+        return (appearance, false);
+    }
+    match acroform_default_appearance(document) {
+        Some(appearance) if appearance.len() <= MAX_PDF_DEFAULT_APPEARANCE_BYTES => {
+            (appearance.to_vec(), false)
+        }
+        Some(_) => (Vec::new(), true),
+        None => (Vec::new(), false),
+    }
+}
+
+fn parse_da_color_values(tokens: &[&str]) -> Option<Vec<f64>> {
+    tokens
+        .iter()
+        .map(|token| token.parse::<f64>().ok().filter(|value| value.is_finite()))
+        .collect()
 }
 
 fn gray_paint(gray: f64, opacity: f64) -> Paint {
@@ -7452,20 +10807,6 @@ fn object_bytes(object: &Object) -> Option<Vec<u8>> {
     }
 }
 
-fn color_components(object: &Object) -> usize {
-    match object {
-        Object::Name(name) if name == b"DeviceGray" || name == b"G" => 1,
-        Object::Name(name) if name == b"DeviceCMYK" => 4,
-        Object::Name(_) => 3,
-        Object::Array(array) => match array.first().and_then(|value| value.as_name().ok()) {
-            Some(b"DeviceGray") => 1,
-            Some(b"DeviceCMYK") => 4,
-            _ => 3,
-        },
-        _ => 3,
-    }
-}
-
 fn cmyk_samples_to_rgb(samples: &[u8]) -> Vec<u8> {
     let mut rgb = Vec::with_capacity(samples.len() / 4 * 3);
     for sample in samples.chunks_exact(4) {
@@ -7614,6 +10955,101 @@ fn read_bits_at(data: &[u8], bit_start: usize, bits: usize) -> Option<u64> {
     Some(value)
 }
 
+/// Unblends JPX color samples for PDF `SMaskInData=2` images. The color
+/// samples and `/Matte` values are in the same directly-supported DeviceGray,
+/// DeviceRGB, CalGray, or CalRGB component space, so the PDF preblend equation can be inverted
+/// before the samples are converted to 8-bit PNG output.
+fn unblend_jpx_matte_samples(
+    packed: &mut [u8],
+    layout: JpxSampleLayout,
+    alpha_samples: &[i32],
+    maximum_sample: u32,
+    matte: &[f64],
+) -> Result<()> {
+    let JpxSampleLayout {
+        row_bytes,
+        width,
+        height,
+        components,
+        bits,
+    } = layout;
+    let pixel_count = width
+        .checked_mul(height)
+        .ok_or_else(|| Error::LimitExceeded("PDF JPX matte pixel count overflowed".into()))?;
+    let required_bytes = row_bytes
+        .checked_mul(height)
+        .ok_or_else(|| Error::LimitExceeded("PDF JPX matte packed size overflowed".into()))?;
+    if !(1..=16).contains(&bits)
+        || components == 0
+        || alpha_samples.len() != pixel_count
+        || matte.len() != components
+        || packed.len() < required_bytes
+        || maximum_sample == 0
+    {
+        return Err(Error::InvalidInput(
+            "PDF JPX matte dimensions or sample counts are inconsistent".into(),
+        ));
+    }
+    let maximum = f64::from(maximum_sample);
+    for row in 0..height {
+        let row_bit_start = row
+            .checked_mul(row_bytes)
+            .and_then(|bytes| bytes.checked_mul(8))
+            .ok_or_else(|| Error::LimitExceeded("PDF JPX matte row offset overflowed".into()))?;
+        for column in 0..width {
+            let pixel = row * width + column;
+            let alpha = alpha_samples[pixel];
+            if !(0..=maximum_sample as i32).contains(&alpha) {
+                return Err(Error::InvalidInput(
+                    "PDF JPX alpha sample is outside its declared precision".into(),
+                ));
+            }
+            let alpha = f64::from(alpha as u32) / maximum;
+            for (component, matte_component) in matte.iter().copied().enumerate() {
+                let component_index = column
+                    .checked_mul(components)
+                    .and_then(|offset| offset.checked_add(component))
+                    .ok_or_else(|| {
+                        Error::LimitExceeded("PDF JPX matte component offset overflowed".into())
+                    })?;
+                let bit_start = row_bit_start
+                    .checked_add(component_index.checked_mul(bits).ok_or_else(|| {
+                        Error::LimitExceeded("PDF JPX matte bit offset overflowed".into())
+                    })?)
+                    .ok_or_else(|| {
+                        Error::LimitExceeded("PDF JPX matte bit offset overflowed".into())
+                    })?;
+                let sample = read_bits_at(packed, bit_start, bits).ok_or_else(|| {
+                    Error::InvalidInput("PDF JPX matte sample is truncated".into())
+                })?;
+                if sample > u64::from(maximum_sample) {
+                    return Err(Error::InvalidInput(
+                        "PDF JPX sample is outside its declared precision".into(),
+                    ));
+                }
+                let preblended = sample as f64 / maximum;
+                let unblended = if alpha == 0.0 {
+                    0.0
+                } else {
+                    matte_component + (preblended - matte_component) / alpha
+                };
+                let unblended = (unblended.clamp(0.0, 1.0) * maximum).round() as u32;
+                for bit in 0..bits {
+                    let position = bit_start + bit;
+                    let bit_mask = 1 << (7 - position % 8);
+                    let sample_bit = ((unblended >> (bits - bit - 1)) & 1) as u8;
+                    if sample_bit == 0 {
+                        packed[position / 8] &= !bit_mask;
+                    } else {
+                        packed[position / 8] |= bit_mask;
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn parse_pdf_hex_color(color: &str) -> Option<[u8; 3]> {
     let color = color.trim_start_matches('#');
     if color.len() != 6 {
@@ -7626,11 +11062,47 @@ fn parse_pdf_hex_color(color: &str) -> Option<[u8; 3]> {
     ])
 }
 
-fn add_alpha(samples: &[u8], components: usize, alpha: &[u8]) -> Vec<u8> {
-    let mut output = Vec::with_capacity(alpha.len().saturating_mul(components + 1));
-    for (sample, opacity) in samples.chunks_exact(components).zip(alpha.iter()) {
-        output.extend_from_slice(sample);
-        output.push(*opacity);
+/// Resamples a packed color image and its grayscale soft mask directly into
+/// the interleaved alpha output. This avoids holding separate color and mask
+/// resample buffers while also allocating the final PNG samples.
+fn resample_image_with_alpha(
+    color: &[u8],
+    color_dimensions: (usize, usize),
+    components: usize,
+    alpha: &[u8],
+    alpha_dimensions: (usize, usize),
+    target_dimensions: (usize, usize),
+) -> Vec<u8> {
+    let (color_width, color_height) = color_dimensions;
+    let (alpha_width, alpha_height) = alpha_dimensions;
+    let (target_width, target_height) = target_dimensions;
+    let pixel_count = target_width.saturating_mul(target_height);
+    let mut output = Vec::with_capacity(pixel_count.saturating_mul(components + 1));
+    let color_width = color_width.max(1);
+    let color_height = color_height.max(1);
+    let alpha_width = alpha_width.max(1);
+    let alpha_height = alpha_height.max(1);
+    for y in 0..target_height {
+        let color_y = (y.saturating_mul(color_height) / target_height.max(1)).min(color_height - 1);
+        let alpha_y = (y.saturating_mul(alpha_height) / target_height.max(1)).min(alpha_height - 1);
+        for x in 0..target_width {
+            let color_x =
+                (x.saturating_mul(color_width) / target_width.max(1)).min(color_width - 1);
+            let alpha_x =
+                (x.saturating_mul(alpha_width) / target_width.max(1)).min(alpha_width - 1);
+            let color_start =
+                (color_y.saturating_mul(color_width) + color_x).saturating_mul(components);
+            match color.get(color_start..color_start.saturating_add(components)) {
+                Some(pixel) => output.extend_from_slice(pixel),
+                None => output.extend(std::iter::repeat_n(0u8, components)),
+            }
+            output.push(
+                alpha
+                    .get(alpha_y.saturating_mul(alpha_width) + alpha_x)
+                    .copied()
+                    .unwrap_or(0),
+            );
+        }
     }
     output
 }
@@ -7710,6 +11182,15 @@ fn pdf_font_stack(family: &str) -> String {
 
 fn is_browser_font_family(family: &str) -> bool {
     let family = family.to_ascii_lowercase();
+    // "symbol" and "zapfdingbats" are deliberately absent: this list only
+    // ever matters for an *embedded* font (`requires_outline` is already
+    // false for a non-embedded reference), and an embedded font merely
+    // named "Symbol" or "ZapfDingbats" gives no guarantee it matches any
+    // system font glyph-for-glyph. A word processor's own subsetted
+    // "Symbol"-named font commonly encodes its glyphs at Private Use Area
+    // code points that mean nothing outside that specific embedded font,
+    // and trusting the name renders as a missing-glyph box everywhere the
+    // literal PUA text is not backed by that exact font.
     [
         "arial",
         "helvetica",
@@ -7721,8 +11202,6 @@ fn is_browser_font_family(family: &str) -> bool {
         "georgia",
         "tahoma",
         "trebuchet",
-        "symbol",
-        "zapfdingbats",
         "meiryo",
         "yu gothic",
         "yugothic",
@@ -7777,22 +11256,40 @@ const MAX_RECOVERED_OBJECTS: usize = 500_000;
 /// actually there and append a conforming cross-reference section describing
 /// them. The original bytes are never rewritten in place, so object offsets
 /// recorded elsewhere in the file stay valid.
-fn load_document(path: &Path, max_stream_bytes: u64) -> Result<(Document, Option<String>)> {
+#[cfg(test)]
+fn load_document(
+    path: &Path,
+    max_stream_bytes: u64,
+    max_input_bytes: u64,
+) -> Result<(Document, Option<String>)> {
+    let bytes = read_limited_file(path, max_input_bytes, "PDF input")?;
+    load_document_bytes(&bytes, max_stream_bytes, max_input_bytes)
+}
+
+fn load_document_bytes(
+    bytes: &[u8],
+    max_stream_bytes: u64,
+    max_input_bytes: u64,
+) -> Result<(Document, Option<String>)> {
+    if bytes.len() as u64 > max_input_bytes {
+        return Err(Error::LimitExceeded(format!(
+            "PDF input exceeds maximum limit of {max_input_bytes} bytes"
+        )));
+    }
     let options = lopdf::LoadOptions {
         max_decompressed_size: usize::try_from(max_stream_bytes).ok(),
         ..Default::default()
     };
-    let error = match Document::load_with_options(path, options.clone()) {
+    let error = match Document::load_mem_with_options(bytes, options.clone()) {
         Ok(document) => return Ok((document, None)),
         Err(error) => error,
     };
-    let bytes = std::fs::read(path)?;
     // A damaged file that also claims to be encrypted must not be silently
     // rebuilt without its /Encrypt dictionary.
-    if contains_pdf_name(&bytes, b"Encrypt") {
+    if contains_pdf_name(bytes, b"Encrypt") {
         return Err(error.into());
     }
-    let Some(rebuilt) = rebuild_cross_references(&bytes) else {
+    let Some(rebuilt) = rebuild_cross_references(bytes) else {
         return Err(error.into());
     };
     let warning = format!(
@@ -7970,6 +11467,49 @@ mod tests {
     use super::*;
 
     #[test]
+    fn unblends_packed_jpx_matte_samples_at_each_supported_precision() {
+        for components in [1usize, 3] {
+            for bits in [1usize, 2, 4, 8, 16] {
+                let maximum = (1u32 << bits) - 1;
+                let alpha = if bits == 1 { maximum } else { maximum / 2 };
+                let row_bytes = (components * bits).div_ceil(8);
+                let mut packed = vec![0u8; row_bytes];
+                for component in 0..components {
+                    for bit in 0..bits {
+                        if (alpha >> (bits - bit - 1)) & 1 != 0 {
+                            let position = component * bits + bit;
+                            packed[position / 8] |= 1 << (7 - position % 8);
+                        }
+                    }
+                }
+
+                let matte = vec![0.0; components];
+                unblend_jpx_matte_samples(
+                    &mut packed,
+                    JpxSampleLayout {
+                        row_bytes,
+                        width: 1,
+                        height: 1,
+                        components,
+                        bits,
+                    },
+                    &[alpha as i32],
+                    maximum,
+                    &matte,
+                )
+                .unwrap();
+
+                for component in 0..components {
+                    assert_eq!(
+                        read_bits_at(&packed, component * bits, bits),
+                        Some(u64::from(maximum))
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn recovery_rejects_huge_object_numbers_before_expanding_xref() {
         let input = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n4294967294 0 obj <<>> endobj";
         assert!(rebuild_cross_references(input).is_none());
@@ -8004,6 +11544,18 @@ mod tests {
         assert!(!contains_pdf_name(b"/EncryptionInfo", b"Encrypt"));
     }
 
+    #[test]
+    fn invalid_pdf_recovery_honors_the_bounded_source_read() {
+        let directory = tempfile::tempdir().unwrap();
+        let path = directory.path().join("oversized.pdf");
+        std::fs::write(&path, b"not a pdf and larger than the configured budget").unwrap();
+
+        assert!(matches!(
+            load_document(&path, 1024, 8),
+            Err(Error::LimitExceeded(_))
+        ));
+    }
+
     fn test_font_decoder(data: Vec<u8>) -> FontDecoder {
         FontDecoder {
             family: "Synthetic Font".into(),
@@ -8018,6 +11570,9 @@ mod tests {
             widths: HashMap::from([(65, 500.0), (32, 250.0)]),
             default_width: 500.0,
             type3: None,
+            type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
         }
     }
 
@@ -8041,6 +11596,23 @@ mod tests {
     }
 
     #[test]
+    fn outlines_a_glyph_by_post_table_name_when_the_font_has_no_cmap() {
+        // Real-world regression (pdf.js's own TrueType_without_cmap.pdf): a
+        // simple, non-symbolic TrueType font with an embedded FontFile2 that
+        // has no `cmap` table at all -- legal, and unremarkable for a
+        // subsetted font meant to be looked up only through the PDF's own
+        // /Differences (or base) encoding -- but does carry a `post` table
+        // with real glyph names. Every cmap-based lookup has nothing to
+        // search in that case, and previously that meant every glyph in
+        // the font failed outright and fell back to placeholder text.
+        let mut decoder = test_font_decoder(font_test_data::font_without_cmap());
+        decoder.glyph_names.insert(65, "TestGlyph".into());
+        let path = decoder.outline_path(b"A", 0.0, 0.0).unwrap();
+        assert!(path.contains("M 0 0"), "{path}");
+        assert!(path.matches('L').count() >= 2, "{path}");
+    }
+
+    #[test]
     fn retains_pdf_character_code_cmap_fallback() {
         let mut decoder = test_font_decoder(font_test_data::font(None, false, false));
         decoder.unicode_map.insert(vec![65], "Z".into());
@@ -8058,6 +11630,40 @@ mod tests {
                 .unwrap()
                 .contains("L 0.5 0")
         );
+    }
+
+    #[test]
+    fn prefers_raw_pdf_code_over_to_unicode_value_for_symbolic_font_glyph_selection() {
+        // No /Encoding: glyph_names stays empty, matching a symbolic simple
+        // font per the PDF spec's own default. ToUnicode (used for text
+        // extraction, not glyph selection) claims code 66 is really "A" --
+        // exactly what a subsetter that keys its embedded cmap by
+        // sequential code rather than true Unicode can produce, since the
+        // synthetic cmap here also happens to carry a real entry at
+        // Unicode 'A' (65). Glyph selection must still follow the raw code
+        // and draw the composite glyph the cmap keys at 66, not the
+        // triangle it keys at 65.
+        let mut decoder = test_font_decoder(font_test_data::font(None, false, false));
+        decoder.unicode_map.insert(vec![66], "A".into());
+        let path = decoder.outline_path(b"B", 0.0, 0.0).unwrap();
+        assert!(path.contains("M 0.1 0.2"), "{path}");
+        assert!(!path.contains("L 0.5 0"), "{path}");
+    }
+
+    #[test]
+    fn outlines_a_symbolic_true_type_glyph_whose_code_has_no_tounicode_entry() {
+        // Real-world regression (pdf.js's own issue2017r.pdf): a symbolic
+        // simple TrueType font (no /Encoding) whose /ToUnicode CMap has no
+        // entry for a given code used to abort outlining that glyph
+        // entirely and fall back to incorrect placeholder text, even
+        // though a symbolic font resolves glyphs through its own cmap by
+        // raw code and never needed a Unicode value in the first place.
+        let mut decoder = test_font_decoder(font_test_data::font(None, false, false));
+        // unicode_map is non-empty (so decode() actually consults it) but
+        // has no entry for code 65 ('A') -- the gap this test exercises.
+        decoder.unicode_map.insert(vec![66], "B".into());
+        let path = decoder.outline_path(b"A", 0.0, 0.0).unwrap();
+        assert!(path.contains("L 0.5 0"), "{path}");
     }
 
     #[test]
@@ -8258,12 +11864,153 @@ mod tests {
             widths: HashMap::from([(65, 500.0)]),
             default_width: 500.0,
             type3: None,
+            type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
         };
         let path = decoder
             .outline_cff(&minimal_test_cff(), b"A", 0.0, 0.0)
             .unwrap();
         assert!(path.contains("M 0 0"));
         assert!(path.matches('L').count() >= 3);
+    }
+
+    #[test]
+    fn outlines_a_cff_glyph_whose_code_has_no_tounicode_entry() {
+        // Real-world regression: math/symbol CFF fonts (pdf.js's
+        // font_ascent_descent.pdf, cid_cff.pdf) commonly carry codes with a
+        // real, drawable glyph but no sensible Unicode equivalent, so their
+        // ToUnicode CMap simply omits them. A code missing from ToUnicode
+        // only means text extraction can't recover its Unicode value -- it
+        // says nothing about whether the glyph exists, and the font's own
+        // /Differences encoding (`glyph_names`) still resolves it directly.
+        let decoder = FontDecoder {
+            family: "Test CFF Gap".into(),
+            bold: false,
+            italic: false,
+            requires_outline: true,
+            font_data: None,
+            glyph_names: HashMap::from([(65, "A".into())]),
+            // Unicode_map is non-empty (so decode() actually consults it)
+            // but has no entry for code 65 -- the gap this test exercises.
+            unicode_map: HashMap::from([(vec![66], "B".into())]),
+            code_lengths: vec![1],
+            fallback_kind: FontFallback::OneByte,
+            widths: HashMap::from([(65, 500.0)]),
+            default_width: 500.0,
+            type3: None,
+            type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
+        };
+        let path = decoder
+            .outline_cff(&minimal_test_cff(), b"A", 0.0, 0.0)
+            .unwrap();
+        assert!(path.contains("M 0 0"));
+        assert!(path.matches('L').count() >= 3);
+    }
+
+    #[test]
+    fn outlines_a_cid_keyed_cff_glyph_under_identity_h() {
+        // Real-world regression (pdf.js's own bug1937438_mml_from_latex.pdf,
+        // cid_cff.pdf, and four other corpus files): a Type0 font backed by
+        // a bare CIDFontType0C (CID-keyed CFF) program under /Encoding
+        // /Identity-H, where each character code is two bytes. outline_cff
+        // iterated `bytes` one byte at a time regardless, so every high
+        // byte of a two-byte CID (0x00 for any CID under 256) showed up as
+        // its own spurious one-byte "code 0" lookup that always failed --
+        // and a CID-keyed CFF's charset maps GID to CID, not to a name, so
+        // even the real low byte could never resolve through the
+        // name-/Unicode-based lookup meant for simple fonts.
+        let decoder = FontDecoder {
+            family: "Test CID CFF".into(),
+            bold: false,
+            italic: false,
+            requires_outline: true,
+            font_data: None,
+            glyph_names: HashMap::new(),
+            unicode_map: HashMap::new(),
+            code_lengths: vec![2],
+            fallback_kind: FontFallback::Utf16Be,
+            widths: HashMap::from([(1, 500.0)]),
+            default_width: 500.0,
+            type3: None,
+            type1: Type1Cache::default(),
+            identity_cid: true,
+            cid_to_gid_map: None,
+        };
+        let path = decoder
+            .outline_cff(&minimal_test_cid_cff(), &[0x00, 0x01], 0.0, 0.0)
+            .unwrap();
+        assert!(path.contains("M 0 0"), "{path}");
+        assert!(path.matches('L').count() >= 2, "{path}");
+    }
+
+    #[test]
+    fn outlines_a_cff_glyph_composed_via_the_deprecated_seac_mechanism() {
+        // Real-world regression (pdf.js's own endchar.pdf): a Type 1/2
+        // charstring can compose an accented glyph from two other glyphs of
+        // the same font -- named by StandardEncoding code, not by this
+        // font's own charset SID or the PDF's /Differences encoding --
+        // instead of drawing its own outline: `adx ady bchar achar
+        // endchar`, the deprecated "seac" form (Adobe TN#5177 Appendix C).
+        // `execute_type2_charstring` already parses this into its own
+        // `seac` field, but outline_cff ignored it and just used the
+        // (necessarily empty, since a pure-seac glyph has no moveto/lineto
+        // operators of its own) outline that charstring alone produced --
+        // an accented Latin letter built this way had no outline at all.
+        // `endchar.pdf` -- named for this exact charstring operator -- is a
+        // single É in a font built this way; the whole page rendered blank.
+        let decoder = FontDecoder {
+            family: "Test Seac CFF".into(),
+            bold: false,
+            italic: false,
+            requires_outline: true,
+            font_data: None,
+            glyph_names: HashMap::from([(69, "Eacute".into())]),
+            unicode_map: HashMap::from([(vec![69], "Eacute".into())]),
+            code_lengths: vec![1],
+            fallback_kind: FontFallback::OneByte,
+            widths: HashMap::from([(69, 500.0)]),
+            default_width: 500.0,
+            type3: None,
+            type1: Type1Cache::default(),
+            identity_cid: false,
+            cid_to_gid_map: None,
+        };
+        let path = decoder
+            .outline_cff(&minimal_test_seac_cff(), b"E", 0.0, 0.0)
+            .unwrap();
+        // The base "E" (GID1's own rmoveto 0,0, unaffected by composition).
+        assert!(path.contains("M 0 0"), "{path}");
+        // The accent "acute" (GID2's own rmoveto 50,50), placed at the
+        // charstring's own (adx, ady) = (100, 100) and then scaled by the
+        // font's default 0.001 FontMatrix: (50+100, 50+100) * 0.001.
+        assert!(path.contains("M 0.15 0.15"), "{path}");
+    }
+
+    #[test]
+    fn converts_calgray_to_a_neutral_gamma_encoded_srgb_value() {
+        // Real-world regression (pdf.js's own calgray.pdf): CalGray's A^Gamma
+        // is a linear luminance the CIE WhitePoint scales, not an
+        // already-encoded sRGB value ready to use as-is -- returning it
+        // directly, as this used to, rendered every midtone far too dark.
+        // Found via a visual diff against poppler's own rendering: 73% of
+        // sampled pixels differed before this fix, under 2% after.
+        let document = Document::with_version("1.7");
+        let color_space = Object::Array(vec![
+            Object::Name(b"CalGray".to_vec()),
+            dictionary! {
+                "WhitePoint" => vec![Object::Integer(1), Object::Integer(1), Object::Integer(1)],
+                "Gamma" => Object::Integer(1),
+            }
+            .into(),
+        ]);
+        let [r, g, b] = components_to_rgb(&document, Some(&color_space), &[0.5], 0).unwrap();
+        assert_eq!(r, g);
+        assert_eq!(g, b);
+        let expected = 1.055 * 0.5f64.powf(1.0 / 2.4) - 0.055;
+        assert!((r - expected).abs() < 1e-9, "r={r} expected={expected}");
     }
 
     #[test]
@@ -8283,6 +12030,7 @@ mod tests {
             black_is_one: false,
             damaged_rows_before_error: 1,
             interpolate: false,
+            image_mask: false,
         };
         let encoded = [
             0x00, 0x1d, 0xb0, 0x01, 0x60, 0x02, 0x00, 0x00, 0x00, 0xe6, 0x00, 0x20, 0x02, 0x00,
@@ -8374,6 +12122,61 @@ mod tests {
             14, // endchar
             0, 0, 34, // custom charset: GID 1 = SID 34 (A)
             0, 1, 65, // custom encoding: code 65 = GID 1
+        ]
+    }
+
+    /// A minimal CID-keyed CFF font (ROS present, one FDArray entry with an
+    /// empty Private DICT, FDSelect format 0), the same triangular glyph as
+    /// `minimal_test_cff` but reached through the CID -> GID map a
+    /// CIDFontType0C program carries instead of a name-keyed charset. GID 1
+    /// is CID 1.
+    fn minimal_test_cid_cff() -> Vec<u8> {
+        vec![
+            1, 0, 4, 4, // Header
+            0, 1, 1, 1, 5, b'T', b'e', b's', b't', // Name INDEX
+            // Top DICT INDEX: count=1, offSize=1, offsets=[1,24], data (23 bytes)
+            0, 1, 1, 1, 24, 139, 139, 139, 12, 30, // ROS 0 0 0
+            28, 0, 63, 15, // charset @63
+            28, 0, 45, 17, // CharStrings @45
+            28, 0, 66, 12, 36, // FDArray @66
+            28, 0, 71, 12, 37, // FDSelect @71
+            0, 0, // String INDEX (empty)
+            0, 0, // Global Subr INDEX (empty)
+            // CharStrings INDEX @45: count=2, offSize=1, offsets=[1,2,13], data (12 bytes)
+            0, 2, 1, 1, 2, 13, 14, // GID0 .notdef: endchar
+            139, 139, 21, 239, 139, 89, 239, 89, 39, 5, 14, // GID1: triangle
+            // charset @63: format 0, CID for GID1 = 1
+            0, 0, 1,
+            // FDArray @66: count=1, offSize=1, offsets=[1,1] (empty FD Private dict)
+            0, 1, 1, 1, 1, // FDSelect @71: format 0, FD index 0 for both GIDs
+            0, 0, 0,
+        ]
+    }
+
+    /// A minimal name-keyed CFF font with three named glyphs -- "E" (a
+    /// triangle, GID1), "acute" (a single moveto at (50, 50), GID2), and
+    /// "Eacute" (GID3), whose own charstring is nothing but `adx ady bchar
+    /// achar endchar` (the deprecated Type 1/2 "seac" composition: PDF32000
+    /// via Adobe TN#5177 Appendix C), placing "acute" at (100, 100) onto
+    /// "E". `bchar`/`achar` are StandardEncoding codes 69 ('E') and 194
+    /// ('acute'), not GIDs or this font's own charset SIDs.
+    fn minimal_test_seac_cff() -> Vec<u8> {
+        vec![
+            1, 0, 4, 4, // Header
+            0, 1, 1, 1, 5, b'T', b'e', b's', b't', // Name INDEX
+            // Top DICT INDEX: count=1, offSize=1, offsets=[1,5], data (4 bytes)
+            0, 1, 1, 1, 5, 212, 15, 182, 17, // charset @73, CharStrings @43
+            // String INDEX @22: count=3, offSize=1, offsets=[1,2,7,13]
+            0, 3, 1, 1, 2, 7, 13, b'E', b'a', b'c', b'u', b't', b'e', b'E', b'a', b'c', b'u', b't',
+            b'e', // "E", "acute", "Eacute"
+            0, 0, // Global Subr INDEX (empty)
+            // CharStrings INDEX @43: count=4, offSize=1, offsets=[1,2,13,17,23]
+            0, 4, 1, 1, 2, 13, 17, 23, 14, // GID0 .notdef: endchar
+            139, 139, 21, 239, 139, 89, 239, 89, 39, 5, 14, // GID1 "E": triangle
+            189, 189, 21, 14, // GID2 "acute": 50 50 rmoveto, endchar
+            239, 239, 208, 247, 86, 14, // GID3 "Eacute": 100 100 69 194 endchar (seac)
+            // charset @73: format 0, SID 391 ("E"), 392 ("acute"), 393 ("Eacute")
+            0, 1, 135, 1, 136, 1, 137,
         ]
     }
 }

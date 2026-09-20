@@ -1,0 +1,47 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.8.5",
+  "variables": {
+    "db_password": {"value": "very-secret"}
+  },
+  "resource_changes": [
+    {
+      "address": "module.app.aws_instance.web",
+      "module_address": "module.app",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "web",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "action_reason": "replace_because_tainted",
+      "change": {
+        "actions": ["delete", "create"],
+        "before": {"user_data": "very-secret"},
+        "after": {"user_data": "very-secret"},
+        "after_unknown": {"id": true},
+        "sensitive_values": {"password": true}
+      }
+    },
+    {
+      "address": "aws_security_group.web",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "web",
+      "change": {
+        "actions": ["update"],
+        "before": {"description": "private source"},
+        "after": {"description": "private source"}
+      }
+    },
+    {
+      "address": "data.aws_ami.ubuntu",
+      "mode": "data",
+      "type": "aws_ami",
+      "name": "ubuntu",
+      "change": {"actions": ["read"]}
+    }
+  ],
+  "resource_drift": [
+    {"address": "aws_route53_record.example", "change": {"actions": ["update"]}}
+  ],
+  "output_changes": {"endpoint": {"change": {"actions": ["update"], "after": "private"}}}
+}

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:x="urn:schemas-microsoft-com:office:excel">
+  <DocumentProperties xmlns="urn:schemas-microsoft-com:office:office"><Author>Private Author</Author><LastAuthor>Private Last Author</LastAuthor></DocumentProperties>
+  <ExcelWorkbook xmlns="urn:schemas-microsoft-com:office:excel"><ProtectStructure>False</ProtectStructure></ExcelWorkbook>
+  <Worksheet ss:Name="Revenue"><Table ss:ExpandedColumnCount="3" ss:ExpandedRowCount="3">
+    <Row><Cell><Data ss:Type="String">Product</Data></Cell><Cell><Data ss:Type="Number">Units</Data></Cell><Cell><Data ss:Type="Number">Amount</Data></Cell></Row>
+    <Row><Cell><Data ss:Type="String">Widget A</Data></Cell><Cell><Data ss:Type="Number">10</Data></Cell><Cell ss:Formula="=RC[-1]*10"><Data ss:Type="Number">100</Data></Cell></Row>
+    <Row><Cell><Data ss:Type="String">Widget B</Data></Cell><Cell><Data ss:Type="Number">20</Data></Cell><Cell ss:Formula="=RC[-1]*10"><Data ss:Type="Number">200</Data></Cell></Row>
+  </Table></Worksheet>
+  <Worksheet ss:Name="Private"><Table><Row><Cell><Data ss:Type="String">https://private.example.invalid</Data></Cell></Row></Table></Worksheet>
+</Workbook>

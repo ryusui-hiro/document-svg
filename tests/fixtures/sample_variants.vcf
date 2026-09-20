@@ -1,0 +1,9 @@
+##fileformat=VCFv4.3
+##fileDate=20260916
+##reference=file:///private/reference/genome.fa
+##contig=<ID=chr1,length=1000000>
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Read depth">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE_A	SAMPLE_B
+chr1	101	rs-demo-1	A	G	42.5	PASS	DP=20	GT	0/1	1/1
+chr1	205	.	C	<DEL>	.	q10	SVTYPE=DEL;END=240	GT	0/0	./.

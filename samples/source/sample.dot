@@ -1,0 +1,33 @@
+digraph CloudMicroservices {
+  rankdir=LR;
+  node [shape=box, style=filled, fillcolor="#f8fafc", color="#64748b", fontname="sans-serif"];
+  edge [color="#475569", fontname="sans-serif", fontsize=10];
+
+  Client [label="Client (Web/Mobile)", shape=ellipse, fillcolor="#e0e7ff", color="#4338ca"];
+  CDN [label="Cloud CDN & WAF", fillcolor="#e0f2fe", color="#0284c7"];
+  Gateway [label="API Gateway", fillcolor="#dbeafe", color="#2563eb"];
+
+  AuthService [label="Auth Service (OAuth2/JWT)", fillcolor="#fef3c7", color="#d97706"];
+  UserService [label="User Service", fillcolor="#f1f5f9", color="#475569"];
+  OrderService [label="Order & Checkout Service", fillcolor="#f1f5f9", color="#475569"];
+  PaymentService [label="Payment Gateway Service", fillcolor="#fee2e2", color="#dc2626"];
+
+  UserDB [label="User DB (PostgreSQL)", shape=cylinder, fillcolor="#ecfdf5", color="#059669"];
+  OrderDB [label="Order DB (PostgreSQL)", shape=cylinder, fillcolor="#ecfdf5", color="#059669"];
+  RedisCache [label="Redis Cache Cluster", shape=box, fillcolor="#fef2f2", color="#ef4444"];
+  MsgQueue [label="Kafka Message Queue", shape=cds, fillcolor="#fefce8", color="#ca8a04"];
+  AnalyticsWorker [label="Analytics & Event Consumer", fillcolor="#f3e8ff", color="#7e22ce"];
+
+  Client -> CDN [label="HTTPS / TLS 1.3"];
+  CDN -> Gateway [label="Reverse Proxy"];
+  Gateway -> AuthService [label="Validate Token"];
+  Gateway -> UserService [label="REST /users"];
+  Gateway -> OrderService [label="REST /orders"];
+  OrderService -> PaymentService [label="gRPC /charge"];
+
+  UserService -> UserDB [label="Read / Write"];
+  UserService -> RedisCache [label="Query Cache"];
+  OrderService -> OrderDB [label="ACID Transactions"];
+  OrderService -> MsgQueue [label="Emit OrderCreated"];
+  MsgQueue -> AnalyticsWorker [label="Consume Events"];
+}

@@ -1,0 +1,42 @@
+{
+  "type": "bar",
+  "title": "2026 Fiscal Performance (USD Millions)",
+  "labels": [
+    "Q1",
+    "Q2",
+    "Q3",
+    "Q4"
+  ],
+  "series": [
+    {
+      "name": "Gross Revenue",
+      "data": [
+        145.2,
+        182.6,
+        210.4,
+        268.9
+      ],
+      "color": "#3b82f6"
+    },
+    {
+      "name": "Operating Cost",
+      "data": [
+        95.0,
+        110.5,
+        128.0,
+        142.3
+      ],
+      "color": "#ef4444"
+    },
+    {
+      "name": "Net Income",
+      "data": [
+        50.2,
+        72.1,
+        82.4,
+        126.6
+      ],
+      "color": "#10b981"
+    }
+  ]
+}

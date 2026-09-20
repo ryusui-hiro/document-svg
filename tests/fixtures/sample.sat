@@ -1,0 +1,11 @@
+ACIS SAT 2024.0
+body private-body-id
+solid private-solid-id
+lump private-lump-id
+shell private-shell-id
+face private-face-id
+loop private-loop-id
+coedge private-coedge-id
+edge private-edge-id
+vertex private-vertex-id
+

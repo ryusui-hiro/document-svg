@@ -1,0 +1,24 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.xmi",
+  "source_format": "xmi",
+  "output_directory": "samples/svg/xmi",
+  "elapsed_ms": 0,
+  "input_bytes": 1072,
+  "page_count": 1,
+  "largest_page_ir_bytes": 38778,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 595.0,
+      "height_points": 842.0,
+      "node_count": 57,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 38778
+    }
+  ],
+  "warnings": []
+}

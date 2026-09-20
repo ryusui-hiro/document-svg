@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/" xmlns:xfa="http://www.xfa.org/schema/xfa-template/3.3/" uuid="private-xdp-uuid">
+  <xdp:template timeStamp="2026-09-17T10:00:00Z">
+    <xfa:template xmlns:xfa="http://www.xfa.org/schema/xfa-template/3.3/">
+      <xfa:subform name="ApplicationForm">
+        <xfa:field name="ApplicantName"><xfa:caption><xfa:value>Private caption</xfa:value></xfa:caption></xfa:field>
+        <xfa:field name="Password"><xfa:calculate><xfa:script>private script</xfa:script></xfa:calculate></xfa:field>
+        <xfa:field name="Email"/>
+        <xfa:event name="initialize"/>
+        <xfa:submitUrl>https://private.example.invalid/submit</xfa:submitUrl>
+      </xfa:subform>
+    </xfa:template>
+  </xdp:template>
+  <xdp:datasets>
+    <xfa:data xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/"><ApplicationForm><ApplicantName>Private applicant</ApplicantName><Password>secret-value</Password></ApplicationForm></xfa:data>
+  </xdp:datasets>
+  <xdp:config><xfa:present xmlns:xfa="http://www.xfa.org/schema/xfa-config/3.3/"/></xdp:config>
+  <xdp:pdf href="https://private.example.invalid/form.pdf">private embedded PDF payload</xdp:pdf>
+</xdp:xdp>

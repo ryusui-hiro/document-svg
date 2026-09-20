@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modsCollection xmlns="http://www.loc.gov/mods/v3" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <mods version="3.6" ID="private-mods-1">
+    <titleInfo><title>Digital Preservation Handbook</title><subTitle>Safe metadata preview</subTitle></titleInfo>
+    <name type="personal"><namePart>Example Author</namePart><role><roleTerm type="text">creator</roleTerm></role></name>
+    <typeOfResource>text</typeOfResource>
+    <genre authority="marcgt">technical report</genre>
+    <originInfo><publisher>Example Press</publisher><dateIssued>2026</dateIssued></originInfo>
+    <subject><topic>Document conversion</topic></subject>
+    <identifier type="local">mods-001</identifier>
+    <identifier type="uri">https://private.example.invalid/record/mods-001</identifier>
+    <location><url usage="primaryDisplay">https://private.example.invalid/view</url></location>
+    <note>private catalog note</note>
+  </mods>
+  <mods version="3.6"><titleInfo><title>Second record</title></titleInfo><name type="corporate"><namePart>Archive Team</namePart></name></mods>
+</modsCollection>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="584pt" viewBox="0 0 1200 584" data-source-format="simulation" data-source-page="1">
+  <title>Thermal stress 2D quad mesh</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":28,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="584" fill="#FFFFFF" data-role="page-background"/>
+  <path id="sim-background" d="M 0 0 L 1200 0 L 1200 584 L 0 584 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#090d16" fill-opacity="1" stroke="none" data-semantic-role="simulation:background"/>
+  <g id="mesh-cells" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="simulation:mesh">
+    <path id="" d="M 24 560 L 560 560 L 560 24 L 24 24 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#000080" fill-opacity="1" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 560 560 L 1096 560 L 1096 24 L 560 24 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#600000" fill-opacity="1" stroke="#94a3b8" stroke-opacity="1" stroke-width="0.75" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <path id="" d="M 1135 80 H 1151 V 98.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#600000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 97.667 H 1151 V 115.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#900000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 115.333 H 1151 V 133.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#900000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 133 H 1151 V 151.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#d00000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 150.667 H 1151 V 168.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#d00000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 168.333 H 1151 V 186.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#ff2000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 186 H 1151 V 204.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#ff7000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 203.667 H 1151 V 221.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#ff7000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 221.333 H 1151 V 239.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#ffb000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 239 H 1151 V 257.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#e0e000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 256.667 H 1151 V 274.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#e0e000" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 274.333 H 1151 V 292.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#90ff00" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 292 H 1151 V 310.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#90ff00" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 309.667 H 1151 V 327.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#40ff40" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 327.333 H 1151 V 345.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#00ff90" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 345 H 1151 V 363.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#00ff90" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 362.667 H 1151 V 380.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#00e0e0" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 380.333 H 1151 V 398.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#00b0ff" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 398 H 1151 V 416.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#00b0ff" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 415.667 H 1151 V 433.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#0070ff" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 433.333 H 1151 V 451.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#0020ff" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 451 H 1151 V 469.167 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#0020ff" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 468.667 H 1151 V 486.833 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#0000d0" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 1135 486.333 H 1151 V 504.5 H 1135 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#0000d0" fill-opacity="1" stroke="none"/>
+  <text id="colorbar-max" x="1157" y="90" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="monospace, monospace" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#f8fafc" fill-opacity="1">1.80e2</tspan>
+  </text>
+  <text id="colorbar-min" x="1157" y="504" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="monospace, monospace" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#f8fafc" fill-opacity="1">2.55e1</tspan>
+  </text>
+</svg>

@@ -1,0 +1,34 @@
+{
+  "resourceType": "Bundle",
+  "id": "bundle-demo",
+  "type": "collection",
+  "timestamp": "2024-05-12T10:00:00Z",
+  "total": 2,
+  "meta": {"profile": ["https://profile.example.invalid/Bundle"]},
+  "entry": [
+    {
+      "fullUrl": "https://fhir.example.invalid/Patient/p-1?token=very-secret",
+      "resource": {
+        "resourceType": "Patient",
+        "id": "p-1",
+        "meta": {"versionId": "7", "profile": ["https://profile.example.invalid/Patient"]},
+        "text": {"status": "generated", "div": "<div>private patient narrative</div>"},
+        "identifier": [{"system": "https://id.example.invalid", "value": "secret-identifier"}],
+        "name": [{"family": "SecretFamily", "given": ["Private"]}],
+        "telecom": [{"system": "phone", "value": "+1-555-0100"}],
+        "extension": [{"url": "https://extension.example.invalid/private", "valueString": "secret extension"}]
+      }
+    },
+    {
+      "fullUrl": "urn:uuid:observation-1",
+      "resource": {
+        "resourceType": "Observation",
+        "id": "obs-1",
+        "status": "final",
+        "code": {"coding": [{"system": "http://loinc.org", "code": "3141-9", "display": "secret display"}]},
+        "subject": {"reference": "Patient/p-1"},
+        "valueQuantity": {"value": 37.2, "unit": "C"}
+      }
+    }
+  ]
+}

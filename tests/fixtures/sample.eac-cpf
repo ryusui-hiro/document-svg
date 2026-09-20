@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eac-cpf xmlns="urn:isbn:1-931666-33-7" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <control><recordId>private-authority-001</recordId><maintenanceAgency><agencyName>Example Archive</agencyName></maintenanceAgency></control>
+  <cpfDescription>
+    <identity><entityType>person</entityType><nameEntry><part>Example Researcher</part><authorizedForm>authorized</authorizedForm></nameEntry><nameEntryParallel><nameEntry><part>研究者例</part></nameEntry></nameEntryParallel></identity>
+    <description><existDates><dateSet><date>1900-1950</date></dateSet></existDates><biogHist><p>private biographical description</p></biogHist><occupation><term>Archivist</term></occupation></description>
+  </cpfDescription>
+  <relations><cpfRelation xlink:href="https://private.example.invalid/cpf/2" relationType="associative"><relationEntry>Private relation</relationEntry></cpfRelation><resourceRelation xlink:href="https://private.example.invalid/ead/1"><relationEntry>Private collection</relationEntry></resourceRelation><functionRelation xlink:href="https://private.example.invalid/function/1" /></relations>
+</eac-cpf>

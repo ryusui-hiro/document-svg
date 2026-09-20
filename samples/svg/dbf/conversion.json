@@ -1,0 +1,26 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample-parcels.dbf",
+  "source_format": "dbf",
+  "output_directory": "samples/svg/dbf",
+  "elapsed_ms": 0,
+  "input_bytes": 537,
+  "page_count": 1,
+  "largest_page_ir_bytes": 27355,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 596.875,
+      "height_points": 320.0,
+      "node_count": 40,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 27355
+    }
+  ],
+  "warnings": [
+    "1 deleted dBASE record(s) were omitted"
+  ]
+}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XJDF xmlns="http://www.CIP4.org/JDFSchema_1_1" Version="2.2" Status="Waiting" ID="private-xjdf">
+  <ProductList><Product ID="product-private"><Amount>100</Amount></Product></ProductList>
+  <ComponentParams><ProductRef rRef="product-private"/></ComponentParams>
+  <Device DeviceID="private-device"/>
+  <Media ID="private-media"/>
+  <ResourceLinkPool><ComponentLink rRef="product-private"/></ResourceLinkPool>
+</XJDF>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+         xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2"
+         xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2">
+  <cbc:UBLVersionID>2.4</cbc:UBLVersionID>
+  <cbc:CustomizationID>urn:example:private-profile</cbc:CustomizationID>
+  <cbc:ID>INV-2026-0001</cbc:ID>
+  <cbc:IssueDate>2026-09-16</cbc:IssueDate>
+  <cbc:DueDate>2026-10-16</cbc:DueDate>
+  <cbc:DocumentCurrencyCode>JPY</cbc:DocumentCurrencyCode>
+  <cac:AccountingSupplierParty><cac:Party><cbc:EndpointID>private-supplier-id</cbc:EndpointID><cac:PartyName><cbc:Name>Private Supplier</cbc:Name></cac:PartyName><cac:PostalAddress><cbc:StreetName>Private address</cbc:StreetName></cac:PostalAddress></cac:Party></cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty><cac:Party><cac:PartyName><cbc:Name>Example Buyer</cbc:Name></cac:PartyName></cac:Party></cac:AccountingCustomerParty>
+  <cac:PaymentMeans><cbc:PaymentMeansCode>30</cbc:PaymentMeansCode><cac:PayeeFinancialAccount><cbc:ID>private-bank-account</cbc:ID></cac:PayeeFinancialAccount></cac:PaymentMeans>
+  <cac:PaymentTerms><cbc:Note>private payment note</cbc:Note></cac:PaymentTerms>
+  <cac:TaxTotal><cbc:TaxAmount currencyID="JPY">1000</cbc:TaxAmount></cac:TaxTotal>
+  <cac:LegalMonetaryTotal><cbc:PayableAmount currencyID="JPY">11000</cbc:PayableAmount></cac:LegalMonetaryTotal>
+  <cac:InvoiceLine><cbc:ID>1</cbc:ID><cbc:InvoicedQuantity unitCode="EA">2</cbc:InvoicedQuantity><cbc:LineExtensionAmount currencyID="JPY">6000</cbc:LineExtensionAmount><cac:Item><cbc:Name>Widget A</cbc:Name><cbc:Description>private item description</cbc:Description></cac:Item></cac:InvoiceLine>
+  <cac:InvoiceLine><cbc:ID>2</cbc:ID><cbc:InvoicedQuantity unitCode="EA">1</cbc:InvoicedQuantity><cbc:LineExtensionAmount currencyID="JPY">5000</cbc:LineExtensionAmount><cac:Item><cbc:Name>Widget B</cbc:Name></cac:Item></cac:InvoiceLine>
+  <cac:AdditionalDocumentReference><cbc:ID>private-supporting-doc</cbc:ID><cac:Attachment><cac:ExternalReference><cbc:URI>https://private.example.invalid/invoice.pdf</cbc:URI></cac:ExternalReference></cac:Attachment></cac:AdditionalDocumentReference>
+</Invoice>

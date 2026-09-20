@@ -7,37 +7,20 @@ GitHub CLI extension for document-svg
 
 Usage:
   gh docsvg convert INPUT --output DIRECTORY [docsvg options]
-  gh docsvg reverse INPUT.svg-or-directory --output FILE.pptx|docx|xlsx [options]
+  gh docsvg reverse INPUT.svg-or-directory --output FILE.pptx|docx|xlsx|pdf|drawio|dxf|gcode|nc|gbr|plt|html|webp [options]
+  gh docsvg transform INPUT.svg --output OUTPUT.svg [options]
   gh docsvg version
 
-The convert subcommand accepts PDF, PPTX, XLSX, or DOCX input. Reverse conversion
-embeds SVG pages as vector images and does not reconstruct Office semantics.
+The convert subcommand accepts PDF, legacy Word Binary (.doc/.dot), text-only legacy PowerPoint Binary (.ppt), Microsoft Project XML (.xml/.mspdi), OOXML Transitional/Strict PPTX/XLSX/DOCX, Visio/VSDX/VDX, iCalendar ICS/vCalendar VCS, vCard contacts, EML/Apple Mail EMLX e-mail/Outlook MSG/MBOX archives, MHTML web archives, DocBook 4/5 XML (`.dbk`/`.docbook`), DITA topics/maps (`.dita`/`.ditamap`), PDB coordinate models (`.pdb`/`.ent`), HWPX (`.hwpx`), COLLADA (`.dae`), X3D (`.x3d`), XMind (`.xmind`), NIfTI (`.nii`, `.nii.gz`), FITS (`.fits`, `.fit`, `.fts`, `.fits.gz`), MRC (`.mrc`, `.map`, `.mrc.gz`), SQLite (`.sqlite`, `.sqlite3`, `.db`), mmCIF/PDBx (`.cif`, `.mmcif`), MOL2 (`.mol2`), RDF Turtle (`.ttl`, `.nt`, `.nq`), EPS/PostScript (`.eps`, `.ps`), DICOM medical images, Encapsulated PDF Storage, and DICOMDIR file sets, V2000/core V3000 MOL/SDF (.mol/.sdf/.sd) and V2000 RXN (.rxn) chemical structures/reactions, SubRip/WebVTT/TTML subtitles, XLIFF localization files, GNU gettext PO/POT catalogs, BPMN 2.0 diagrams (.bpmn/.bpmn2), CMMN 1.1 case plans (.cmmn), DMN 1.1–1.5 decision tables (.dmn), ReqIF requirements (.reqif), XMI models (.xmi), BibTeX bibliographies, TOML configuration (.toml), YAML 1.2 configuration (.yaml/.yml), Java Properties (.properties), generic XML fallback (.xml), JSON and RFC 7464 JSON Text Sequences (.jsons/.jsonseq/.jsonl), ESRI ASCII Grid (.asc)/dBASE III/III+ tables (.dbf)/GeoPackage (.gpkg)/RFC 8142 GeoJSON Text Sequences (.geojsons/.geojsonseq/.geojsonl)/TopoJSON (.topojson)/GeoJSON/GeoRSS/GML/GPX/KML/KMZ/Shapefile (.shp) maps, WKT/EWKT geometry, PNG/JPEG/BMP/GIF/WebP raster images, Jupyter, Quarto, R Markdown, reStructuredText, Org-mode, draw.io, DXF, Gerber, HP-GL,
+G-code, Excellon, STL, ASCII XYZ, PCD, ASTM E57, Leica PTS/PTX, and LAS/LAZ point clouds, glTF/GLB, STEP, OBJ/PLY, MEDIT, LS-DYNA, Nastran, IFC SPF (.ifc)/IFCXML (.ifcxml)/IFCZIP (.ifczip), KiCad PCB (.kicad_pcb), UNV/UFF, SU2 CFD mesh (.su2), OpenFOAM polyMesh (.foam), Gmsh, or VTK input. Reverse conversion embeds SVG pages
+as vector images/drawings into Office, PDF, or CAD/CAM formats, standalone HTML viewers, or WebP rasters. Transform optimizes or cleans SVG files.
 EOF
 }
 
 script_dir=$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
-resolve_docsvg() {
-  if [[ -n "${DOCSVG_BIN:-}" ]]; then
-    printf '%s\n' "$DOCSVG_BIN"
-  elif command -v docsvg >/dev/null 2>&1; then
-    command -v docsvg
-  elif [[ -x "$HOME/.cargo/bin/docsvg" ]]; then
-    printf '%s\n' "$HOME/.cargo/bin/docsvg"
-  fi
-}
-
 run_docsvg() {
-  local binary
-  binary=$(resolve_docsvg)
-  if [[ -n "$binary" ]]; then
-    exec "$binary" "$@"
-  fi
-  if [[ -f "$script_dir/Cargo.toml" ]] && command -v cargo >/dev/null 2>&1; then
-    exec cargo run --quiet --release --manifest-path "$script_dir/Cargo.toml" --bin docsvg -- "$@"
-  fi
-  echo "docsvg is unavailable; install it with 'cargo install --path <document-svg-repo> --locked'" >&2
-  exit 69
+  exec "$script_dir/plugins/document-svg/skills/document-svg/scripts/run-docsvg.sh" "$@"
 }
 
 case "${1:-help}" in
@@ -62,6 +45,14 @@ case "${1:-help}" in
       exit 64
     }
     run_docsvg reverse "$@"
+    ;;
+  transform)
+    shift
+    [[ "$#" -gt 0 ]] || {
+      usage >&2
+      exit 64
+    }
+    run_docsvg transform "$@"
     ;;
   *)
     # Keep the common forward form concise: gh docsvg INPUT --output DIRECTORY

@@ -1,15 +1,15 @@
 {
   "name": "document-svg",
   "version": "0.1.1",
-  "description": "Convert PDF and Microsoft Office documents to SVG pages and package SVG pages back into OOXML files.",
+  "description": "Convert 60+ document, diagram, CAD, 3D, mesh, chart, geospatial, math, and data formats to SVG pages, transform SVG, and package SVG into Office, draw.io, HTML, or WebP.",
   "author": {
     "name": "document-svg contributors"
   },
   "skills": "./skills/",
   "interface": {
     "displayName": "Document SVG",
-    "shortDescription": "Convert between documents and SVG pages.",
-    "longDescription": "Converts PDF, PPTX, XLSX, and DOCX files into deterministic per-page SVG files, and packages SVG pages back into PPTX, DOCX, or XLSX while preserving vector appearance.",
+    "shortDescription": "Convert between documents, data, diagrams and SVG pages.",
+    "longDescription": "Converts 60+ document, diagram, CAD, 3D, mesh, chart, geospatial, math, and data formats into deterministic per-page SVG files, transforms SVG files, and packages SVG pages back into PPTX, DOCX, XLSX, draw.io, HTML viewer, or WebP.",
     "developerName": "document-svg contributors",
     "category": "Productivity",
     "capabilities": [

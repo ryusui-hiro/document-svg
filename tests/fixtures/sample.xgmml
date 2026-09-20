@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graph xmlns:xgmml="http://www.cs.rpi.edu/XGMML" directed="1" id="workflow" label="Cytoscape workflow">
+  <node id="1" label="Start order">
+    <att name="kind" type="string" value="start"/>
+  </node>
+  <node id="2" label="Review"/>
+  <node id="3" label="Complete"/>
+  <edge id="e1" source="1" target="2" label="submit"/>
+  <edge id="e2" source="2" target="3" label="approve"/>
+</graph>

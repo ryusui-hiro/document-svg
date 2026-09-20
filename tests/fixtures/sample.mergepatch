@@ -1,0 +1,12 @@
+{
+  "title": "Hello",
+  "author": {
+    "familyName": null,
+    "givenName": "John"
+  },
+  "tags": ["example", "sample"],
+  "credentials": {
+    "token": "very-secret",
+    "password": null
+  }
+}

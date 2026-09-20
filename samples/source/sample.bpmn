@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+ xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+ id="Definitions_Order" targetNamespace="https://example.invalid/process">
+ <bpmn:process id="Process_Order" name="Order fulfillment" isExecutable="false">
+  <bpmn:startEvent id="Start_Order" name="Order received" />
+  <bpmn:userTask id="Validate_Order" name="Validate order" />
+  <bpmn:exclusiveGateway id="Stock_Check" name="In stock?" />
+  <bpmn:serviceTask id="Ship_Order" name="Ship order" />
+  <bpmn:userTask id="Notify_Customer" name="Notify customer" />
+  <bpmn:endEvent id="End_Order" name="Complete" />
+  <bpmn:sequenceFlow id="Flow_Start_Validate" sourceRef="Start_Order" targetRef="Validate_Order" />
+  <bpmn:sequenceFlow id="Flow_Validate_Stock" sourceRef="Validate_Order" targetRef="Stock_Check" />
+  <bpmn:sequenceFlow id="Flow_In_Stock" name="yes" sourceRef="Stock_Check" targetRef="Ship_Order" />
+  <bpmn:sequenceFlow id="Flow_Out_Stock" name="no" sourceRef="Stock_Check" targetRef="Notify_Customer" />
+  <bpmn:sequenceFlow id="Flow_Ship_Complete" sourceRef="Ship_Order" targetRef="End_Order" />
+  <bpmn:sequenceFlow id="Flow_Notify_Complete" sourceRef="Notify_Customer" targetRef="End_Order" />
+ </bpmn:process>
+ <bpmndi:BPMNDiagram id="Diagram_Order" name="Order fulfillment">
+  <bpmndi:BPMNPlane bpmnElement="Process_Order">
+   <bpmndi:BPMNShape id="Shape_Start" bpmnElement="Start_Order"><dc:Bounds x="40" y="180" width="36" height="36" /></bpmndi:BPMNShape>
+   <bpmndi:BPMNShape id="Shape_Validate" bpmnElement="Validate_Order"><dc:Bounds x="140" y="160" width="120" height="76" /></bpmndi:BPMNShape>
+   <bpmndi:BPMNShape id="Shape_Stock" bpmnElement="Stock_Check"><dc:Bounds x="320" y="173" width="52" height="52" /></bpmndi:BPMNShape>
+   <bpmndi:BPMNShape id="Shape_Ship" bpmnElement="Ship_Order"><dc:Bounds x="470" y="70" width="130" height="76" /></bpmndi:BPMNShape>
+   <bpmndi:BPMNShape id="Shape_Notify" bpmnElement="Notify_Customer"><dc:Bounds x="470" y="280" width="130" height="76" /></bpmndi:BPMNShape>
+   <bpmndi:BPMNShape id="Shape_End" bpmnElement="End_Order"><dc:Bounds x="690" y="190" width="36" height="36" /></bpmndi:BPMNShape>
+   <bpmndi:BPMNEdge id="Edge_Start_Validate" bpmnElement="Flow_Start_Validate"><di:waypoint x="76" y="198" /><di:waypoint x="140" y="198" /></bpmndi:BPMNEdge>
+   <bpmndi:BPMNEdge id="Edge_Validate_Stock" bpmnElement="Flow_Validate_Stock"><di:waypoint x="260" y="198" /><di:waypoint x="320" y="199" /></bpmndi:BPMNEdge>
+   <bpmndi:BPMNEdge id="Edge_In_Stock" bpmnElement="Flow_In_Stock"><di:waypoint x="360" y="173" /><di:waypoint x="410" y="108" /><di:waypoint x="470" y="108" /></bpmndi:BPMNEdge>
+   <bpmndi:BPMNEdge id="Edge_Out_Stock" bpmnElement="Flow_Out_Stock"><di:waypoint x="360" y="225" /><di:waypoint x="410" y="318" /><di:waypoint x="470" y="318" /></bpmndi:BPMNEdge>
+   <bpmndi:BPMNEdge id="Edge_Ship_Complete" bpmnElement="Flow_Ship_Complete"><di:waypoint x="600" y="108" /><di:waypoint x="650" y="108" /><di:waypoint x="708" y="190" /></bpmndi:BPMNEdge>
+   <bpmndi:BPMNEdge id="Edge_Notify_Complete" bpmnElement="Flow_Notify_Complete"><di:waypoint x="600" y="318" /><di:waypoint x="650" y="318" /><di:waypoint x="708" y="226" /></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane>
+ </bpmndi:BPMNDiagram>
+</bpmn:definitions>

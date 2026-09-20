@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::io::{Read, Seek};
 use std::path::Path;
 
 use base64::Engine;
@@ -10,8 +11,8 @@ use crate::error::{Error, Result};
 use crate::ir::{IDENTITY, Node, Page, Paint, SourceMeta, Stroke, TextAnchor, TextRun};
 use crate::ooxml::chart::{ChartData, parse_chart, render_chart};
 use crate::ooxml::{
-    Relationships, ZipPackage, attribute, color_from_hex, local_name, parse_f64, parse_i64,
-    text_advance_factor,
+    Relationships, ZipPackage, attribute, color_from_hex, decode_xml_reference, local_name,
+    parse_f64, parse_i64, sniff_image_mime, text_advance_factor,
 };
 
 const DEFAULT_COLUMN_POINTS: f64 = 48.0;
@@ -39,7 +40,24 @@ pub(crate) fn convert(
     options: &ConvertOptions,
     sink: &mut dyn PageConsumer,
 ) -> Result<Vec<String>> {
-    let mut package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    let package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+pub(crate) fn convert_bytes(
+    bytes: &[u8],
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
+    let package = ZipPackage::from_bytes(bytes, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+fn convert_package<R: Read + Seek>(
+    mut package: ZipPackage<R>,
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
     let workbook_part = "xl/workbook.xml";
     if !package.contains(workbook_part) {
         return Err(Error::InvalidInput(
@@ -49,6 +67,11 @@ pub(crate) fn convert(
     let workbook_xml = package.read(workbook_part)?;
     let workbook_relationships = package.relationships(workbook_part, options.max_xml_events)?;
     let workbook = parse_workbook(&workbook_xml, options.max_xml_events)?;
+    if workbook.sheets.is_empty() {
+        return Err(Error::InvalidInput(
+            "XLSX declares no worksheets; xl/workbook.xml has an empty sheets list".into(),
+        ));
+    }
     if workbook.sheets.len() > options.max_pages {
         return Err(Error::LimitExceeded(format!(
             "XLSX contains {} worksheets; maximum is {}",
@@ -926,6 +949,13 @@ fn is_excel_datetime_format(format_code: &str) -> bool {
 }
 
 fn format_excel_datetime(value: f64, format_code: &str, date_1904: bool) -> String {
+    // Guard against extreme values that would overflow the civil date calculation.
+    // Excel serial dates outside roughly year 0001 – 9999 are not representable.
+    const MIN_SERIAL: f64 = -693_593.0; // ~year 0001
+    const MAX_SERIAL: f64 = 2_958_465.0; // ~year 9999
+    if !value.is_finite() || !(MIN_SERIAL..=MAX_SERIAL).contains(&value) {
+        return format!("{value}");
+    }
     let serial_day = value.floor() as i64;
     let fraction = value - value.floor();
     let seconds_value = fraction * 86_400.0;
@@ -1427,7 +1457,7 @@ fn parse_drawing_objects(
     xml: &[u8],
     relationships: &Relationships,
     drawing_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
 ) -> Result<(Vec<DrawingObject>, Vec<String>)> {
     let mut reader = Reader::from_reader(xml);
@@ -1552,7 +1582,8 @@ fn parse_drawing_objects(
                                     height: finished.height,
                                     href: format!(
                                         "data:{};base64,{}",
-                                        drawing_mime_type(&media_part),
+                                        sniff_image_mime(&bytes)
+                                            .unwrap_or_else(|| drawing_mime_type(&media_part)),
                                         base64::engine::general_purpose::STANDARD.encode(bytes)
                                     ),
                                     name: finished.name.clone(),
@@ -1987,7 +2018,7 @@ fn build_formula_context(
     workbook: &WorkbookInfo,
     workbook_relationships: &Relationships,
     workbook_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     shared_strings: &[String],
     styles: &Styles,
     max_events: usize,
@@ -5021,14 +5052,7 @@ fn decode_xlsx_reference(
     reference: &quick_xml::events::BytesRef<'_>,
     context: &str,
 ) -> Result<String> {
-    let name = reference.decode().map_err(|error| {
-        Error::InvalidInput(format!("invalid XML reference in {context}: {error}"))
-    })?;
-    quick_xml::escape::unescape(&format!("&{name};"))
-        .map(|value| value.into_owned())
-        .map_err(|error| {
-            Error::InvalidInput(format!("invalid XML reference in {context}: {error}"))
-        })
+    decode_xml_reference(reference, context)
 }
 
 fn fmt(value: f64) -> String {

@@ -1,0 +1,21 @@
+[package]
+name = "document-svg-wasm"
+version = "0.1.1"
+edition = "2024"
+publish = false
+license = "MIT OR Apache-2.0"
+description = "Browser WebAssembly bindings for document-svg"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+document-svg = { path = "../.." }
+js-sys = "0.3.105"
+serde = { version = "1.0.229", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+wasm-bindgen = "0.2.128"
+console_error_panic_hook = "0.1.7"
+
+[lints.rust]
+unsafe_code = "forbid"

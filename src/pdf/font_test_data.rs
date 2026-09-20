@@ -99,6 +99,78 @@ pub(super) fn font(cff: Option<Vec<u8>>, broken: bool, quadratic: bool) -> Vec<u
             .collect();
         tables.extend([(*b"glyf", glyf), (*b"loca", loca)]);
     }
+    assemble_sfnt(tables, is_cff)
+}
+
+/// A TrueType font with a `post` table (version 2.0, real glyph names) but
+/// deliberately no `cmap` table at all -- legal, and not even unusual for a
+/// subsetted font meant to be used only through a PDF `/Differences`
+/// encoding. Glyph 1 is named `"TestGlyph"` and draws the same triangular
+/// contour as `font`'s glyph 1.
+#[allow(dead_code)]
+pub(super) fn font_without_cmap() -> Vec<u8> {
+    let mut head = vec![0; 54];
+    set_u32(&mut head, 0, 0x0001_0000);
+    set_u32(&mut head, 12, 0x5f0f_3cf5);
+    set_u16(&mut head, 18, 1000);
+    let mut hhea = vec![0; 36];
+    set_u32(&mut hhea, 0, 0x0001_0000);
+    set_u16(&mut hhea, 4, 800);
+    set_u16(&mut hhea, 6, (-200i16) as u16);
+    set_u16(&mut hhea, 10, 600);
+    set_u16(&mut hhea, 34, 2);
+    let mut maxp = vec![0; 32];
+    set_u32(&mut maxp, 0, 0x0001_0000);
+    for (offset, value) in [
+        (4, 2),
+        (6, 3),
+        (8, 1),
+        (10, 3),
+        (12, 1),
+        (14, 2),
+        (28, 1),
+        (30, 1),
+    ] {
+        set_u16(&mut maxp, offset, value);
+    }
+    let hmtx = [(0u16, 0u16), (600, 0)]
+        .into_iter()
+        .flat_map(|(advance, bearing)| [advance.to_be_bytes(), bearing.to_be_bytes()].concat())
+        .collect();
+    let mut glyf = Vec::new();
+    for value in [1i16, 0, 0, 500, 700, 2, 0] {
+        glyf.extend(value.to_be_bytes());
+    }
+    glyf.extend([1, 1, 1]);
+    for value in [0i16, 500, -500, 0, 0, 700] {
+        glyf.extend(value.to_be_bytes());
+    }
+    glyf.push(0);
+    let loca = [0u16, 0, 15]
+        .into_iter()
+        .flat_map(u16::to_be_bytes)
+        .collect();
+    let name = b"TestGlyph";
+    let mut post = vec![0u8; 38 + 1 + name.len()];
+    set_u32(&mut post, 0, 0x0002_0000);
+    set_u16(&mut post, 32, 2); // numberOfGlyphs
+    set_u16(&mut post, 34, 0); // glyph 0 -> Macintosh standard order ".notdef"
+    set_u16(&mut post, 36, 258); // glyph 1 -> first custom Pascal string
+    post[38] = name.len() as u8;
+    post[39..39 + name.len()].copy_from_slice(name);
+    let tables = vec![
+        (*b"glyf", glyf),
+        (*b"head", head),
+        (*b"hhea", hhea),
+        (*b"hmtx", hmtx),
+        (*b"loca", loca),
+        (*b"maxp", maxp),
+        (*b"post", post),
+    ];
+    assemble_sfnt(tables, false)
+}
+
+fn assemble_sfnt(mut tables: Vec<([u8; 4], Vec<u8>)>, is_cff: bool) -> Vec<u8> {
     tables.sort_by_key(|(tag, _)| *tag);
     let mut result = vec![0; 12 + 16 * tables.len()];
     result[..4].copy_from_slice(if is_cff { b"OTTO" } else { &[0, 1, 0, 0] });

@@ -1,4 +1,4 @@
-# Dependency license audit — 2026-09-09
+# Dependency license audit — 2026-09-15
 
 The audit covers the locked Rust workspace (core, Node and Python bindings, including
 build/test and target-specific dependencies), npm's complete lockfile, the Python
@@ -6,9 +6,9 @@ verification environment and the exact maturin version recorded by its wheel.
 
 | Scope | Result |
 |---|---|
-| 184 external Rust packages | `cargo-deny 0.20.2 --workspace --locked check licenses` passes the explicit permissive policy in `deny.toml` |
+| 306 external Rust packages | `cargo-deny 0.20.2 --workspace --locked check licenses` passes the explicit permissive policy in `deny.toml` |
 | 116 npm lock entries | All are development dependencies, including optional platform packages; declared licenses are MIT, Apache-2.0, ISC, 0BSD or Python-2.0 |
-| 7 Python tools/test packages | Permissive declared licenses; maturin 1.15.0 uses MIT OR Apache-2.0 |
+| 8 Python tools/test packages | Permissive declared licenses; maturin 1.15.0 uses MIT OR Apache-2.0 |
 | Python runtime dependencies | No additional Python package dependencies; the native Rust dependencies are covered above |
 | 8 standard-font metric tables | Compared every glyph advance against the pinned AFM source; original notices and permission retained |
 
@@ -22,6 +22,10 @@ audit executable under MIT OR Apache-2.0. These tools run in the build environme
 and are not included in the library distributions.
 
 ## Conditions that need more than the project license
+
+- `encoding-index-*` and `encoding_index_tests`: CC0-1.0 public-domain dedication. The upstream crates omit a license file, so the official Creative Commons legal code is retained in `licenses/CC0-1.0.txt` and the third-party notice bundle.
+- `pulp-wasm-simd-flag`: the MIT license file is omitted from its crate archive; the audit retrieves it from the exact `.cargo_vcs_info.json` source commit and records the pinned URL and checksum.
+- `zune-inflate`: its crate archive omits license files; the audit selects the declared Zlib alternative and retrieves `LICENSE-ZLIB` from the exact `.cargo_vcs_info.json` source commit.
 
 - `encoding_rs`: `(Apache-2.0 OR MIT) AND BSD-3-Clause`; the BSD notices must also remain.
 - `jpeg-encoder`: `(MIT OR Apache-2.0) AND IJG`; the IJG acknowledgement and original notice are retained.
@@ -45,7 +49,7 @@ python scripts/audit-licenses.py
 python scripts/audit-licenses.py --check
 ```
 
-The generator writes `THIRD_PARTY_LICENSES.txt` into the root and both binding
+The generator writes `THIRD_PARTY_LICENSES.txt` into the root and all binding
 directories. Cargo, npm and wheel packaging include it. Texts are deduplicated
 without removing copyright holders or changing their conditions. CI fails if the
 committed Rust/Node inventory, metric provenance or notice bundles are stale.

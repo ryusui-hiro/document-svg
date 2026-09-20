@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="595pt" height="842pt" viewBox="0 0 595 842" data-source-format="jsonseq" data-source-page="1">
+  <title>JSON Text Sequence</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":16,"warnings":["2 JSON decimal/exponent number(s) were normalized for display; original number spelling is not retained","4 JSON sequence record(s) were laid out in order as inert content"]}</metadata>
+  <rect x="0" y="0" width="595" height="842" fill="#FFFFFF" data-role="page-background"/>
+  <path id="page_bg_1" d="M 0,0 h 595.00 v 842.00 h -595.00 Z" fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#ffffff" fill-opacity="1" stroke="none"/>
+  <text id="heading_1_1" x="54" y="96.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">JSON sequence record 1</tspan>
+  </text>
+  <text id="p_1_2" x="54" y="127.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.event (string): "ingest"</tspan>
+  </text>
+  <text id="p_1_3" x="54" y="153.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.source (string): "field report"</tspan>
+  </text>
+  <text id="p_1_4" x="54" y="179.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.features (number): 14</tspan>
+  </text>
+  <text id="heading_1_5" x="54" y="238.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">JSON sequence record 2</tspan>
+  </text>
+  <text id="p_1_6" x="54" y="269.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.rows[0].id (string): "A-1"</tspan>
+  </text>
+  <text id="p_1_7" x="54" y="295.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.rows[0].value (number): 12.5</tspan>
+  </text>
+  <text id="p_1_8" x="54" y="321.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.rows[1].id (string): "B-2"</tspan>
+  </text>
+  <text id="p_1_9" x="54" y="347.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$.rows[1].value (number): 8.75</tspan>
+  </text>
+  <text id="heading_1_10" x="54" y="406.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">JSON sequence record 3</tspan>
+  </text>
+  <text id="p_1_11" x="54" y="437.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$[0] (string): "validated"</tspan>
+  </text>
+  <text id="p_1_12" x="54" y="463.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$[1] (string): "rendered"</tspan>
+  </text>
+  <text id="p_1_13" x="54" y="489.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$[2] (string): "exported"</tspan>
+  </text>
+  <text id="heading_1_14" x="54" y="548.7" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="heading-1">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="22" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">JSON sequence record 4</tspan>
+  </text>
+  <text id="p_1_15" x="54" y="579.35" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="paragraph">
+    <tspan xml:space="preserve" font-family="sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#334155" fill-opacity="1">$ (number): 42</tspan>
+  </text>
+</svg>

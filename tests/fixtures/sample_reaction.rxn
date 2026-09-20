@@ -1,0 +1,36 @@
+$RXN
+Synthetic two-reactant reaction
+docsvg
+
+  2  1
+$MOL
+Reactant carbonyl
+docsvg
+2D
+  2  1  0  0  0  0            999 V2000
+   0.0000    0.0000    0.0000 C   0  0  0  0  0  0
+   1.2000    0.0000    0.0000 O   0  0  0  0  0  0
+  1  2  2  0  0  0
+M  END
+$MOL
+Reactant hydrogen chloride
+docsvg
+2D
+  2  1  0  0  0  0            999 V2000
+   0.0000    0.0000    0.0000 H   0  0  0  0  0  0
+   1.2000    0.0000    0.0000 Cl  0  0  0  0  0  0
+  1  2  1  0  0  0
+M  END
+$MOL
+Product chloromethanol
+docsvg
+2D
+  4  3  0  0  0  0            999 V2000
+   0.0000    0.0000    0.0000 C   0  0  0  0  0  0
+   1.2000    0.0000    0.0000 O   0  0  0  0  0  0
+  -1.0000    0.8000    0.0000 H   0  0  0  0  0  0
+  -1.0000   -0.8000    0.0000 Cl  0  0  0  0  0  0
+  1  2  2  0  0  0
+  1  3  1  0  0  0
+  1  4  1  0  0  0
+M  END

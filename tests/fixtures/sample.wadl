@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://wadl.dev.java.net/2009/02"><grammars><include href="private.xsd"/></grammars><resources base="https://example.invalid/api"><resource path="/private"><method name="GET"><request><param name="secret"/></request><response><representation mediaType="application/json"/></response></method></resource></resources><resource_type id="private-type"/><doc title="Private API"/></application>
+

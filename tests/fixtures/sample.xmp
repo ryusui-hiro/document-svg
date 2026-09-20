@@ -1,0 +1,24 @@
+<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Toolkit">
+  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+    <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/"
+      xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+      xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+      xmlns:xmpGImg="http://ns.adobe.com/xap/1.0/g/img/">
+      <dc:title><rdf:Alt><rdf:li xml:lang="x-default">A Safe XMP Title</rdf:li></rdf:Alt></dc:title>
+      <dc:creator><rdf:Seq><rdf:li>Example Author</rdf:li></rdf:Seq></dc:creator>
+      <dc:subject><rdf:Bag><rdf:li>Document conversion</rdf:li></rdf:Bag></dc:subject>
+      <xmp:CreateDate>2026-09-17T10:00:00Z</xmp:CreateDate>
+      <xmp:ModifyDate>2026-09-17T10:30:00Z</xmp:ModifyDate>
+      <xmp:CreatorTool>Private Writer 1.0</xmp:CreatorTool>
+      <pdf:Producer>Safe Producer</pdf:Producer>
+      <xmp:Format>application/pdf</xmp:Format>
+      <xmp:Identifier>private-document-id</xmp:Identifier>
+      <xmp:BaseURL>https://private.example.invalid/document</xmp:BaseURL>
+      <dc:description>private description payload</dc:description>
+      <xmp:Thumbnail><xmpGImg:image>private-image-bytes</xmpGImg:image></xmp:Thumbnail>
+    </rdf:Description>
+  </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>

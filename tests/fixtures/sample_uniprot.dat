@@ -1,0 +1,23 @@
+ID   DEMO_HUMAN Reviewed; 12 AA.
+AC   P00001;
+DE   RecName: Full=Demonstration protein;
+DE       Short=Demo protein;
+GN   Name=DEMO;
+OS   Homo sapiens (Human).
+OC   Eukaryota; Metazoa.
+CC   -!- FUNCTION: Demonstration only.
+DR   RefSeq; NP_DEMO; -.
+FT   CHAIN           1..12
+FT                   /note="inert feature"
+FT   REGION          4..8
+SQ   SEQUENCE   12 AA; 1300 MW; 12345 CRC64;
+     MKTAYIAKQRQG  12
+//
+ID   DEMO_TRMBL Unreviewed; 6 AA.
+AC   Q00002;
+DE   RecName: Full=Second demo protein;
+GN   Name=DEMO2;
+OS   Synthetic construct.
+SQ   SEQUENCE   6 AA; 700 MW; 12345 CRC64;
+     ACGTXY  6
+//

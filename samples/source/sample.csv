@@ -1,0 +1,4 @@
+Metric,Target,Achieved,Status
+Throughput,1000 docs/sec,1420 docs/sec,Exceeded
+Memory Cap,64 MB,38 MB,Passed
+Test Pass Rate,100%,100%,Passed

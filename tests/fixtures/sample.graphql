@@ -1,0 +1,43 @@
+"""Catalog GraphQL API <script>kept as text</script>"""
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+type Query {
+  pets(limit: Int = 10): [Pet!]!
+  pet(id: ID!): Pet
+}
+
+type Mutation {
+  createPet(input: PetInput!): Pet!
+}
+
+type Subscription {
+  petAdded: Pet!
+}
+
+interface Node {
+  id: ID!
+}
+
+type Pet implements Node {
+  id: ID!
+  name: String!
+  status: PetStatus @deprecated(reason: "use state")
+}
+
+input PetInput {
+  name: String!
+  tags: [String!]
+}
+
+enum PetStatus {
+  ACTIVE
+  ADOPTED
+}
+
+union SearchResult = Pet
+scalar DateTime
+directive @auth(role: String) on FIELD_DEFINITION

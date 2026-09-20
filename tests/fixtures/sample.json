@@ -1,0 +1,8 @@
+{
+  "service": {
+    "enabled": true,
+    "ports": [8080, 8081]
+  },
+  "message": "<script>alert(1)</script>",
+  "empty": {}
+}

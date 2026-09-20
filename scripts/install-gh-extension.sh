@@ -8,12 +8,7 @@ command -v gh >/dev/null 2>&1 || {
   echo "GitHub CLI is required: https://cli.github.com/" >&2
   exit 69
 }
-command -v cargo >/dev/null 2>&1 || {
-  echo "Rust and cargo are required: https://rustup.rs" >&2
-  exit 69
-}
-
-cargo install --path "$repo_root" --locked --force
+"$script_dir/ensure-cli.sh"
 
 # gh derives the extension name from the local repository directory. Stage a
 # persistent symlink named gh-docsvg so installation works regardless of the

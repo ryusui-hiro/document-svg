@@ -1,0 +1,14 @@
+{
+  "generator": "scripts/generate-strict-ooxml-fixtures.py",
+  "license": "MIT OR Apache-2.0",
+  "sha256": {
+    "tests/fixtures/sample_strict.docx": "788ac32856712181283877632838113d4248317f69be1bf0f0a73382c63f243a",
+    "tests/fixtures/sample_strict.xlsx": "27e2ce584d45a18942b0b3c71082f1a1d60bb4898dee07ad15ba6f2b9a67fe7b",
+    "tests/fixtures/sample_strict.pptx": "b9fc15810a6fcb89b5e66b04a5edc47ca8fe431968a88ac67760fcb96b05dc8e"
+  },
+  "source_files": [
+    "samples/source/sample.docx",
+    "samples/source/sample.xlsx",
+    "samples/source/sample.pptx"
+  ]
+}

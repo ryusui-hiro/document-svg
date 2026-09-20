@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "User",
+  "namespace": "example.avro",
+  "doc": "private documentation should be omitted",
+  "fields": [
+    {"name": "id", "type": "long", "default": 7},
+    {"name": "email", "type": "string", "doc": "secret field docs"},
+    {"name": "profile", "type": {
+      "type": "record",
+      "name": "Profile",
+      "fields": [{"name": "active", "type": "boolean"}]
+    }},
+    {"name": "tags", "type": {"type": "array", "items": "string"}},
+    {"name": "attributes", "type": {"type": "map", "values": "string"}},
+    {"name": "status", "type": ["null", {"type": "enum", "name": "Status", "symbols": ["NEW", "DONE"]}], "default": null}
+  ]
+}

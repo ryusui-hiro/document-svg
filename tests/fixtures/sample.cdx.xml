@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bom xmlns="http://cyclonedx.org/schema/bom/1.6" serialNumber="urn:uuid:private-bom" version="1">
+  <metadata><component type="application"><name>Preview App</name><version>2.0</version></component></metadata>
+  <components>
+    <component type="library" bom-ref="serde"><name>serde</name><version>1.0.210</version><purl>pkg:cargo/serde@1.0.210</purl><hashes><hash alg="SHA-256">very-secret</hash></hashes></component>
+    <component type="framework" scope="required"><name>Tokio</name><version>1.40.0</version></component>
+  </components>
+  <dependencies><dependency ref="serde"><dependency ref="bytes"/></dependency></dependencies>
+  <vulnerabilities><vulnerability ref="serde"><description>private details</description></vulnerability></vulnerabilities>
+</bom>

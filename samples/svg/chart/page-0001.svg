@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640pt" height="400pt" viewBox="0 0 640 400" data-source-format="chart" data-source-page="1" content="{&quot;type&quot;:&quot;bar&quot;,&quot;title&quot;:&quot;2026 Fiscal Performance (USD Millions)&quot;,&quot;labels&quot;:[&quot;Q1&quot;,&quot;Q2&quot;,&quot;Q3&quot;,&quot;Q4&quot;],&quot;series&quot;:[{&quot;name&quot;:&quot;Gross Revenue&quot;,&quot;data&quot;:[145.2,182.6,210.4,268.9],&quot;color&quot;:&quot;#3b82f6&quot;},{&quot;name&quot;:&quot;Operating Cost&quot;,&quot;data&quot;:[95.0,110.5,128.0,142.3],&quot;color&quot;:&quot;#ef4444&quot;},{&quot;name&quot;:&quot;Net Income&quot;,&quot;data&quot;:[50.2,72.1,82.4,126.6],&quot;color&quot;:&quot;#10b981&quot;}]}">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":33,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="640" height="400" fill="#FFFFFF" data-role="page-background"/>
+  <text id="" x="320" y="28" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="16" font-weight="700" font-style="normal" baseline-shift="0" fill="#0f172a" fill-opacity="1">2026 Fiscal Performance (USD Millions)</tspan>
+  </text>
+  <path id="" d="M 60.0,40.0 h 10 v 10 h -10 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#3b82f6" fill-opacity="1" stroke="none"/>
+  <text id="" x="74" y="48" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">Gross Revenue</tspan>
+  </text>
+  <path id="" d="M 183.0,40.0 h 10 v 10 h -10 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#ef4444" fill-opacity="1" stroke="none"/>
+  <text id="" x="197" y="48" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">Operating Cost</tspan>
+  </text>
+  <path id="" d="M 313.0,40.0 h 10 v 10 h -10 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#10b981" fill-opacity="1" stroke="none"/>
+  <text id="" x="327" y="48" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">Net Income</tspan>
+  </text>
+  <path id="" d="M 60.00,340.00 L 600.00,340.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#94a3b8" stroke-opacity="1" stroke-width="1.2" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="52" y="344" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#64748b" fill-opacity="1">0</tspan>
+  </text>
+  <path id="" d="M 60.00,270.00 L 600.00,270.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f1f5f9" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="52" y="274" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#64748b" fill-opacity="1">78</tspan>
+  </text>
+  <path id="" d="M 60.00,200.00 L 600.00,200.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f1f5f9" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="52" y="204" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#64748b" fill-opacity="1">155</tspan>
+  </text>
+  <path id="" d="M 60.00,130.00 L 600.00,130.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f1f5f9" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="52" y="134" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#64748b" fill-opacity="1">232</tspan>
+  </text>
+  <path id="" d="M 60.00,60.00 L 600.00,60.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#f1f5f9" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0"/>
+  <text id="" x="52" y="64" text-anchor="end" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#64748b" fill-opacity="1">310</tspan>
+  </text>
+  <text id="" x="127.5" y="360" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">Q1</tspan>
+  </text>
+  <text id="" x="262.5" y="360" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">Q2</tspan>
+  </text>
+  <text id="" x="397.5" y="360" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">Q3</tspan>
+  </text>
+  <text id="" x="532.5" y="360" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#475569" fill-opacity="1">Q4</tspan>
+  </text>
+  <path id="" d="M 80.25,340.00 L 80.25,208.85 L 108.60,208.85 L 108.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#3b82f6" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 215.25,340.00 L 215.25,175.07 L 243.60,175.07 L 243.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#3b82f6" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 350.25,340.00 L 350.25,149.96 L 378.60,149.96 L 378.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#3b82f6" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 485.25,340.00 L 485.25,97.12 L 513.60,97.12 L 513.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#3b82f6" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 111.75,340.00 L 111.75,254.19 L 140.10,254.19 L 140.10,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#ef4444" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 246.75,340.00 L 246.75,240.19 L 275.10,240.19 L 275.10,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#ef4444" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 381.75,340.00 L 381.75,224.39 L 410.10,224.39 L 410.10,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#ef4444" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 516.75,340.00 L 516.75,211.47 L 545.10,211.47 L 545.10,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#ef4444" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 143.25,340.00 L 143.25,294.66 L 171.60,294.66 L 171.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#10b981" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 278.25,340.00 L 278.25,274.88 L 306.60,274.88 L 306.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#10b981" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 413.25,340.00 L 413.25,265.57 L 441.60,265.57 L 441.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#10b981" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 548.25,340.00 L 548.25,225.65 L 576.60,225.65 L 576.60,340.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#10b981" fill-opacity="1" stroke="none"/>
+</svg>

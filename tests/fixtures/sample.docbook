@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<article xmlns="http://docbook.org/ns/docbook" version="5.2">
+  <info>
+    <title>DocBook Preview</title>
+    <author><personname><firstname>Jane</firstname><surname>Reader</surname></personname></author>
+  </info>
+  <abstract><para>A bounded article summary.</para></abstract>
+  <section>
+    <title>Overview</title>
+    <para>DocBook stores structured technical prose with <emphasis>inline emphasis</emphasis>.</para>
+    <itemizedlist>
+      <listitem><para>First item</para></listitem>
+      <listitem><para>Second item</para></listitem>
+    </itemizedlist>
+    <orderedlist>
+      <listitem><para>Ordered item</para></listitem>
+    </orderedlist>
+    <programlisting language="text">echo "safe source"
+never executed</programlisting>
+    <figure xml:id="colors">
+      <title>Color figure</title>
+      <mediaobject><imageobject><imagedata fileref="assets/red-blue.png"/></imageobject></mediaobject>
+      <caption><para>Validated local image</para></caption>
+    </figure>
+  </section>
+  <table>
+    <title>Values</title>
+    <thead><tr><th>Name</th><th>Value</th></tr></thead>
+    <tbody><tr><td>Ready</td><td>Yes</td></tr></tbody>
+  </table>
+</article>

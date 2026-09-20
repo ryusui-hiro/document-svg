@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:lang="en">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt><title>A Bounded Edition</title><author><persName>Alex Researcher</persName><email>author@private.example.invalid</email></author></titleStmt>
+      <publicationStmt><publisher>Example Press</publisher><date>2026</date></publicationStmt>
+      <sourceDesc><p>private source description</p></sourceDesc>
+    </fileDesc>
+  </teiHeader>
+  <text>
+    <front><div type="preface"><head>Preface</head><p>This introduction is visible.</p></div></front>
+    <body>
+      <div type="chapter" xml:id="ch1"><head>Chapter One</head><p>First paragraph with <hi>emphasis</hi>.</p><note target="https://private.example.invalid/note">private note text</note><list type="ordered"><item>One</item><item>Two</item></list></div>
+      <div type="appendix"><head>Appendix</head><figure><graphic url="https://private.example.invalid/image.png" /></figure><table><row><cell>A</cell><cell>B</cell></row></table></div>
+    </body>
+  </text>
+</TEI>

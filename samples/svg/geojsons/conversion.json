@@ -1,0 +1,30 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.geojsons",
+  "source_format": "geojsonseq",
+  "output_directory": "samples/svg/geojsons",
+  "elapsed_ms": 0,
+  "input_bytes": 445,
+  "page_count": 1,
+  "largest_page_ir_bytes": 2365,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 1200.0,
+      "height_points": 800.0,
+      "node_count": 3,
+      "warning_count": 2,
+      "warnings": [
+        "3 GeoJSON sequence record(s) were merged into one bounded map preview; feature properties and identifiers are omitted",
+        "GeoJSON Text Sequence longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"
+      ],
+      "estimated_ir_bytes": 2365
+    }
+  ],
+  "warnings": [
+    "3 GeoJSON sequence record(s) were merged into one bounded map preview; feature properties and identifiers are omitted",
+    "GeoJSON Text Sequence longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"
+  ]
+}

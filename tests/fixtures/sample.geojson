@@ -1,0 +1,188 @@
+{
+  "type": "FeatureCollection",
+  "bbox": [
+    -122.6,
+    37.7,
+    -122.3,
+    37.9
+  ],
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "park-a",
+      "properties": {
+        "name": "Harbor Park",
+        "category": "park"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.6,
+              37.7
+            ],
+            [
+              -122.35,
+              37.7
+            ],
+            [
+              -122.35,
+              37.88
+            ],
+            [
+              -122.6,
+              37.88
+            ]
+          ],
+          [
+            [
+              -122.52,
+              37.76
+            ],
+            [
+              -122.45,
+              37.76
+            ],
+            [
+              -122.45,
+              37.82
+            ],
+            [
+              -122.52,
+              37.82
+            ],
+            [
+              -122.52,
+              37.76
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ferry Route"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.58,
+            37.72,
+            4.0
+          ],
+          [
+            -122.49,
+            37.8,
+            8.0
+          ],
+          [
+            -122.38,
+            37.84,
+            9.0
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Dock"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.42,
+          37.78,
+          3.5
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Multi-geometry fixture"
+      },
+      "geometry": {
+        "type": "GeometryCollection",
+        "geometries": [
+          {
+            "type": "MultiPoint",
+            "coordinates": [
+              [
+                -122.55,
+                37.75
+              ],
+              [
+                -122.4,
+                37.85
+              ]
+            ]
+          },
+          {
+            "type": "MultiLineString",
+            "coordinates": [
+              [
+                [
+                  -122.58,
+                  37.73
+                ],
+                [
+                  -122.5,
+                  37.78
+                ]
+              ],
+              [
+                [
+                  -122.4,
+                  37.79
+                ],
+                [
+                  -122.34,
+                  37.83
+                ]
+              ]
+            ]
+          },
+          {
+            "type": "MultiPolygon",
+            "coordinates": [
+              [
+                [
+                  [
+                    -122.34,
+                    37.71
+                  ],
+                  [
+                    -122.32,
+                    37.71
+                  ],
+                  [
+                    -122.32,
+                    37.73
+                  ],
+                  [
+                    -122.34,
+                    37.73
+                  ],
+                  [
+                    -122.34,
+                    37.71
+                  ]
+                ]
+              ]
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

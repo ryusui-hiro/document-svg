@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1220pt" height="600pt" viewBox="0 0 1220 600" data-source-format="esri_ascii_grid" data-source-page="1">
+  <title>ESRI ASCII Grid</title>
+  <desc>ESRI ASCII Grid 14×8 cells, lower-left corner (134.5, 34.5), cell size 0.01, values 12 to 43</desc>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":51,"warnings":["ESRI ASCII Grid values use a deterministic continuous color ramp; data classification breaks and color tables are not read","The raster is displayed in grid coordinates; CRS reprojection and map overlays are not performed","8 NODATA_VALUE cells were rendered transparent"]}</metadata>
+  <rect x="0" y="0" width="1220" height="600" fill="#FFFFFF" data-role="page-background"/>
+  <image id="esri-ascii-grid-raster" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAICAYAAADJEc7MAAABFElEQVR4nJ2RMU7DQBBF3yabeElsx0jZKAWRoQHRcIM0iCMg0XM7JI5Axw1oEKIIKyiCNpJNAGMTJ4tsiIAKiammmDf//xnJVx2JY+c6HisdstQhK91j1WnRyBY07BNNO6dh54is4MKdC7GGfgLvWz5FBMsNQfPN4aXQfnj5tUCuoTLWlHGf5x1Bvr1kqFM8taDIW0xthLoLCCY+lSsJyKqplCoo2Rf4u3P2RpaDyNKXObNScTXQmFCTqJBN+rVd6bpVrh7ZEGScE48sJ8Nbxt1HtMyxpeJSpZwBN0WbLPEIZj2keC1q752pT2IUxtP10HUUfSumGnOvKY0imLp6vj7O4eDU/Z2xSTBxSDNDGvsJ/ucdH4KblZAas0M0AAAAAElFTkSuQmCC" x="0" y="0" width="1050" height="600" transform="matrix(1 0 0 1 0 0)" opacity="1" preserveAspectRatio="none" data-semantic-role="esri:ascii-grid-raster" aria-label="14 by 8 cell raster"/>
+  <path id="grid-legend-band-0" d="M 1078 24 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#FDE725" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-1" d="M 1078 35.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#EFE42A" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-2" d="M 1078 47 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#E2E22F" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-3" d="M 1078 58.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#D4DF35" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-4" d="M 1078 70 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#C7DD3A" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-5" d="M 1078 81.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#B9DA3F" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-6" d="M 1078 93 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#ACD844" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-7" d="M 1078 104.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#9ED549" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-8" d="M 1078 116 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#91D34F" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-9" d="M 1078 127.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#83D054" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-10" d="M 1078 139 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#76CD59" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-11" d="M 1078 150.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#68CB5E" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-12" d="M 1078 162 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#5DC863" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-13" d="M 1078 173.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#58C366" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-14" d="M 1078 185 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#52BE6A" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-15" d="M 1078 196.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#4DBA6E" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-16" d="M 1078 208 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#48B571" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-17" d="M 1078 219.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#43B075" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-18" d="M 1078 231 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3EAB78" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-19" d="M 1078 242.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#38A67C" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-20" d="M 1078 254 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#33A27F" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-21" d="M 1078 265.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2E9D83" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-22" d="M 1078 277 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#299887" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-23" d="M 1078 288.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#24938A" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-24" d="M 1078 300 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#228E8C" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-25" d="M 1078 311.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#24898C" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-26" d="M 1078 323 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#27848C" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-27" d="M 1078 334.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#297E8C" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-28" d="M 1078 346 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2B798C" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-29" d="M 1078 357.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2D748C" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-30" d="M 1078 369 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#2F6E8B" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-31" d="M 1078 380.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#32698B" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-32" d="M 1078 392 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#34638B" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-33" d="M 1078 403.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#365E8B" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-34" d="M 1078 415 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#38598B" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-35" d="M 1078 426.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3A538B" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-36" d="M 1078 438 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3C4D87" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-37" d="M 1078 449.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3C4683" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-38" d="M 1078 461 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3D3F7E" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-39" d="M 1078 472.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3E3879" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-40" d="M 1078 484 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3F3175" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-41" d="M 1078 495.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#3F2A70" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-42" d="M 1078 507 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#40236B" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-43" d="M 1078 518.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#411D67" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-44" d="M 1078 530 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#421662" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-45" d="M 1078 541.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#420F5D" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-46" d="M 1078 553 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#430859" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <path id="grid-legend-band-47" d="M 1078 564.5 h 18 v 11.5 h -18 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#440154" fill-opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend"/>
+  <text id="grid-legend-max" x="1102" y="34" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend-label">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="9" font-weight="400" font-style="normal" baseline-shift="0" fill="#111827" fill-opacity="1">43</tspan>
+  </text>
+  <text id="grid-legend-min" x="1102" y="576" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none" data-semantic-role="esri:ascii-grid-legend-label">
+    <tspan xml:space="preserve" font-family="Arial, sans-serif" font-size="9" font-weight="400" font-style="normal" baseline-shift="0" fill="#111827" fill-opacity="1">12</tspan>
+  </text>
+</svg>

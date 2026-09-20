@@ -1,0 +1,21 @@
+{
+  "name": "preview-json",
+  "services": {
+    "api": {
+      "image": "ghcr.io/example/api:2",
+      "ports": ["9000:9000"],
+      "depends_on": ["db"],
+      "networks": ["backend"],
+      "secrets": ["api_key"],
+      "command": "run --token very-secret"
+    },
+    "db": {
+      "build": {"context": "./db"},
+      "volumes": ["db-data:/data"],
+      "healthcheck": {"test": ["CMD", "true"]}
+    }
+  },
+  "volumes": {"db-data": {}},
+  "networks": {"backend": {}},
+  "secrets": {"api_key": {"file": "./api-key"}}
+}

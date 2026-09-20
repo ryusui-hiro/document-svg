@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::f64::consts::PI;
+use std::io::{Read, Seek};
 use std::path::Path;
 
 use base64::Engine;
@@ -15,8 +16,8 @@ use crate::ir::{
 };
 use crate::ooxml::chart::{parse_chart, render_chart};
 use crate::ooxml::{
-    Relationships, ZipPackage, attribute, color_from_hex, local_name, parse_i64,
-    qualified_attribute, text_advance_factor,
+    Relationships, ZipPackage, attribute, color_from_hex, decode_xml_reference, local_name,
+    parse_i64, qualified_attribute, sniff_image_mime, text_advance_factor,
 };
 
 const EMU_PER_POINT: f64 = 12_700.0;
@@ -29,7 +30,24 @@ pub(crate) fn convert(
     options: &ConvertOptions,
     sink: &mut dyn PageConsumer,
 ) -> Result<Vec<String>> {
-    let mut package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    let package = ZipPackage::open(path, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+pub(crate) fn convert_bytes(
+    bytes: &[u8],
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
+    let package = ZipPackage::from_bytes(bytes, options.max_zip_entry_bytes)?;
+    convert_package(package, options, sink)
+}
+
+fn convert_package<R: Read + Seek>(
+    mut package: ZipPackage<R>,
+    options: &ConvertOptions,
+    sink: &mut dyn PageConsumer,
+) -> Result<Vec<String>> {
     let presentation_part = "ppt/presentation.xml";
     if !package.contains(presentation_part) {
         return Err(Error::InvalidInput(
@@ -40,6 +58,11 @@ pub(crate) fn convert(
     let presentation_relationships =
         package.relationships(presentation_part, options.max_xml_events)?;
     let (width, height, slide_ids) = parse_presentation(&presentation, options.max_xml_events)?;
+    if slide_ids.is_empty() {
+        return Err(Error::InvalidInput(
+            "PPTX declares no slides; ppt/presentation.xml has an empty p:sldIdLst".into(),
+        ));
+    }
     if slide_ids.len() > options.max_pages {
         return Err(Error::LimitExceeded(format!(
             "PPTX contains {} slides; maximum is {}",
@@ -66,6 +89,7 @@ pub(crate) fn convert(
             )));
         };
         let slide_xml = package.read(&slide_part)?;
+        let mut layout_shows_master = true;
         let relationships = package.relationships(&slide_part, options.max_xml_events)?;
         let empty_placeholders = HashMap::new();
         let mut master_page = None::<Page>;
@@ -77,6 +101,7 @@ pub(crate) fn convert(
             relationship_target_of_type(&relationships, &slide_part, "/slideLayout")
         {
             let layout_xml = package.read(&layout_part)?;
+            layout_shows_master = shows_inherited_shapes(&layout_xml);
             let layout_relationships =
                 package.relationships(&layout_part, options.max_xml_events)?;
             let mut master_placeholders = HashMap::new();
@@ -209,7 +234,15 @@ pub(crate) fn convert(
         for warning in embedded_warnings {
             slide_page.warn(warning);
         }
-        let page = merge_page_layers(master_page, layout_page, slide_page);
+        let page = merge_page_layers(
+            master_page,
+            layout_page,
+            slide_page,
+            InheritedShapes {
+                layout_shows_master,
+                slide_shows_layout: shows_inherited_shapes(&slide_xml),
+            },
+        );
         warnings.extend(page.warnings.iter().cloned());
         sink.consume(page)?;
     }
@@ -281,7 +314,7 @@ fn parse_pptx_chart_frames(
     page_number: usize,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
 ) -> Result<(Vec<Node>, Vec<String>)> {
     if !xml_contains_local_element(xml, b"chart") {
@@ -531,9 +564,7 @@ fn parse_pptx_table_frames(
                 })?);
             }
             Event::GeneralRef(reference) if stack.last().is_some_and(|item| item == "t") => {
-                text_buffer.push_str(&reference.decode().map_err(|error| {
-                    Error::InvalidInput(format!("invalid PPTX table reference: {error}"))
-                })?);
+                text_buffer.push_str(&decode_xml_reference(&reference, "PPTX table text")?);
             }
             Event::End(end) => {
                 let name = String::from_utf8_lossy(local_name(end.name().as_ref())).into_owned();
@@ -906,6 +937,77 @@ fn recover_table_metrics(values: &[f64]) -> Vec<f64> {
 }
 
 #[allow(clippy::too_many_arguments)]
+/// Lay a table cell's paragraphs out into wrapped lines.
+///
+/// Shared by the measuring pass that sizes rows and the pass that emits nodes,
+/// so a row is never sized against different wrapping than it is drawn with.
+fn table_cell_lines(
+    cell: &PptxTableCell,
+    cell_width: f64,
+    theme: &Theme,
+    header: bool,
+) -> Vec<(Vec<TextRun>, TextAnchor, f64)> {
+    let available_width = (cell_width - cell.margin_left - cell.margin_right).max(4.0);
+    let mut lines = Vec::new();
+    for paragraph in &cell.paragraphs {
+        let anchor = paragraph.alignment.unwrap_or(TextAnchor::Start);
+        let mut paragraph_runs = paragraph.runs.clone();
+        for run in &mut paragraph_runs {
+            if run.font_family.is_empty() {
+                run.font_family.clone_from(&theme.minor_font);
+            }
+            if run.font_size <= 0.0 {
+                run.font_size = 12.0;
+            }
+            if matches!(run.fill, Paint::None) {
+                run.fill = Paint::solid(if header { "#FFFFFF" } else { "#000000" });
+            }
+        }
+        for runs in wrap_pptx_runs(&paragraph_runs, available_width) {
+            if runs.is_empty() {
+                continue;
+            }
+            let font_size = runs.iter().map(|run| run.font_size).fold(10.0, f64::max);
+            lines.push((runs, anchor, font_size * 1.15));
+        }
+    }
+    lines
+}
+
+/// The height a row needs for its own text to fit.
+///
+/// `<a:tr h="...">` is a minimum: PowerPoint grows a row when its cells wrap to
+/// more lines than the declared height allows. Treating the declared height as
+/// final clipped the second line off every cell in a wrapped table.
+fn table_row_content_height(
+    row: &PptxTableRow,
+    column_positions: &[f64],
+    theme: &Theme,
+    header: bool,
+) -> f64 {
+    let mut needed: f64 = 0.0;
+    for (column_index, cell) in row.cells.iter().enumerate() {
+        if cell.horizontal_merge || cell.vertical_merge || cell.row_span > 1 {
+            continue;
+        }
+        let end_column = (column_index + cell.grid_span)
+            .min(column_positions.len().saturating_sub(1))
+            .max(column_index + 1);
+        let Some(&start) = column_positions.get(column_index) else {
+            continue;
+        };
+        let Some(&end) = column_positions.get(end_column) else {
+            continue;
+        };
+        let lines = table_cell_lines(cell, end - start, theme, header);
+        let text_height = lines.iter().map(|(_, _, height)| height).sum::<f64>();
+        needed = needed.max(cell.margin_top + text_height + cell.margin_bottom);
+    }
+    // Well past any real slide, so a malformed cell cannot stretch a table
+    // without bound.
+    needed.min(10_000.0)
+}
+
 fn render_pptx_table(
     frame: &PptxTableFrame,
     page_number: usize,
@@ -954,8 +1056,21 @@ fn render_pptx_table(
     }
     let mut row_positions = Vec::with_capacity(frame.rows.len() + 1);
     row_positions.push(frame.y);
-    for row_height in &row_metrics {
-        let next = row_positions.last().copied().unwrap_or(frame.y) + row_height * scale_y;
+    for (row_index, row_height) in row_metrics.iter().enumerate() {
+        let declared = row_height * scale_y;
+        let needed = frame
+            .rows
+            .get(row_index)
+            .map(|row| {
+                table_row_content_height(
+                    row,
+                    &column_positions,
+                    theme,
+                    frame.first_row && row_index == 0,
+                )
+            })
+            .unwrap_or(0.0);
+        let next = row_positions.last().copied().unwrap_or(frame.y) + declared.max(needed);
         row_positions.push(next);
     }
     let transform = rotation_matrix(
@@ -1045,34 +1160,8 @@ fn render_pptx_table(
                 parent_id: None,
                 additional_paths: Vec::new(),
             });
-            let available_width = (cell_width - cell.margin_left - cell.margin_right).max(4.0);
-            let mut lines = Vec::<(Vec<TextRun>, TextAnchor, f64)>::new();
-            for paragraph in &cell.paragraphs {
-                let anchor = paragraph.alignment.unwrap_or(TextAnchor::Start);
-                let mut paragraph_runs = paragraph.runs.clone();
-                for run in &mut paragraph_runs {
-                    if run.font_family.is_empty() {
-                        run.font_family.clone_from(&theme.minor_font);
-                    }
-                    if run.font_size <= 0.0 {
-                        run.font_size = 12.0;
-                    }
-                    if matches!(run.fill, Paint::None) {
-                        run.fill = if frame.first_row && row_index == 0 {
-                            Paint::solid("#FFFFFF")
-                        } else {
-                            Paint::solid("#000000")
-                        };
-                    }
-                }
-                for runs in wrap_pptx_runs(&paragraph_runs, available_width) {
-                    if runs.is_empty() {
-                        continue;
-                    }
-                    let font_size = runs.iter().map(|run| run.font_size).fold(10.0, f64::max);
-                    lines.push((runs, anchor, font_size * 1.15));
-                }
-            }
+            let lines =
+                table_cell_lines(cell, cell_width, theme, frame.first_row && row_index == 0);
             let total_text_height = lines.iter().map(|(_, _, height)| height).sum::<f64>();
             let mut text_y = match cell.vertical_anchor.as_deref() {
                 Some("b") => y + cell_height - cell.margin_bottom - total_text_height,
@@ -1331,7 +1420,7 @@ fn parse_pptx_smartart_frames(
     text_styles: &PresentationTextStyles,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
 ) -> Result<SmartArtRender> {
     if !xml_contains_local_element(xml, b"relIds") {
@@ -1530,6 +1619,27 @@ fn node_meta_mut(node: &mut Node) -> &mut SourceMeta {
     }
 }
 
+/// Whether `xml`'s root element asks for the shapes it inherits to be drawn.
+///
+/// `showMasterSp="0"` on a layout hides the master's own shapes, and on a slide
+/// hides the layout's and the master's. A template that repeats a footer on
+/// both the master and the layout relies on this: honouring it is the
+/// difference between one footer and two.
+fn shows_inherited_shapes(xml: &[u8]) -> bool {
+    let mut reader = Reader::from_reader(xml);
+    reader.config_mut().trim_text(true);
+    let mut buffer = Vec::new();
+    loop {
+        match reader.read_event_into(&mut buffer) {
+            Ok(Event::Start(start)) => {
+                return attribute(&start, b"showMasterSp").as_deref() != Some("0");
+            }
+            Ok(Event::Eof) | Err(_) => return true,
+            _ => buffer.clear(),
+        }
+    }
+}
+
 fn take_background(page: &mut Page) -> Option<Node> {
     page.nodes
         .iter()
@@ -1537,7 +1647,18 @@ fn take_background(page: &mut Page) -> Option<Node> {
         .map(|index| page.nodes.remove(index))
 }
 
-fn merge_page_layers(mut master: Option<Page>, mut layout: Option<Page>, mut slide: Page) -> Page {
+fn merge_page_layers(
+    mut master: Option<Page>,
+    mut layout: Option<Page>,
+    mut slide: Page,
+    inherit: InheritedShapes,
+) -> Page {
+    if !inherit.slide_shows_layout {
+        layout = None;
+    }
+    if !inherit.slide_shows_layout || !inherit.layout_shows_master {
+        master = None;
+    }
     let master_background = master.as_mut().and_then(take_background);
     let layout_background = layout.as_mut().and_then(take_background);
     let slide_background = take_background(&mut slide);
@@ -1566,6 +1687,13 @@ fn merge_page_layers(mut master: Option<Page>, mut layout: Option<Page>, mut sli
     nodes.append(&mut slide.nodes);
     slide.nodes = nodes;
     slide
+}
+
+/// Which inherited layers a slide asks to display.
+#[derive(Clone, Copy, Debug)]
+struct InheritedShapes {
+    layout_shows_master: bool,
+    slide_shows_layout: bool,
 }
 
 fn parse_presentation(xml: &[u8], max_events: usize) -> Result<(f64, f64, Vec<String>)> {
@@ -2161,6 +2289,14 @@ struct Paragraph {
     runs: Vec<TextRun>,
     alignment: Option<TextAnchor>,
     level: usize,
+    /// `<a:buChar>` or `<a:buNone>` written on the paragraph itself, which
+    /// overrides whatever the master's text style for this level says.
+    bullet: Option<String>,
+    /// `marL`: where the paragraph's text starts, in points.
+    margin_left: Option<f64>,
+    /// `indent`: the first line's offset from `marL`. Negative for the hanging
+    /// indent that puts a bullet to the left of its text.
+    indent: Option<f64>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -2241,7 +2377,7 @@ fn parse_slide(
     theme: &Theme,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     max_events: usize,
     id_namespace: &str,
     inherited_placeholders: &HashMap<String, ShapeGeometry>,
@@ -2288,9 +2424,20 @@ fn parse_slide(
     let mut current_run: Option<TextRun> = None;
     let mut current_paragraph: Option<Paragraph> = None;
     let mut text_buffer = String::new();
+    let mut slide_number_field = false;
     let mut events = 0usize;
     let mut shape_counter = 0usize;
     let mut background = None::<String>;
+    // `<p:bgPr>` carries the same fill grammar as a shape. Routing it through a
+    // page-sized stand-in shape reuses the gradient stop, angle and kind
+    // handling instead of collapsing a gradient to whichever colour came last.
+    let mut background_shape = Shape {
+        x: 0.0,
+        y: 0.0,
+        width,
+        height,
+        ..Shape::default()
+    };
     let mut group_stack = Vec::<GroupTransform>::new();
     let mut alternate_content = Vec::<AlternateContentState>::new();
     loop {
@@ -2391,7 +2538,12 @@ fn parse_slide(
                     "p" if shape.is_some() && stack.iter().any(|item| item == "txBody") => {
                         current_paragraph = Some(Paragraph::default());
                     }
-                    "r" if shape.is_some() && stack.iter().any(|item| item == "txBody") => {
+                    "r" | "fld" if shape.is_some() && stack.iter().any(|item| item == "txBody") => {
+                        // A slide-number field carries the placeholder PowerPoint
+                        // last rendered ("<#>") as its cached text, so the cached
+                        // text is never what the reader should see.
+                        slide_number_field = name == "fld"
+                            && attribute(&start, b"type").as_deref() == Some("slidenum");
                         current_run = Some(TextRun {
                             font_family: String::new(),
                             font_size: 0.0,
@@ -2406,7 +2558,12 @@ fn parse_slide(
                         &start,
                         &name,
                         &stack,
-                        shape.as_mut(),
+                        shape.as_mut().or_else(|| {
+                            stack
+                                .iter()
+                                .any(|item| item == "bgPr")
+                                .then_some(&mut background_shape)
+                        }),
                         current_run.as_mut(),
                         current_paragraph.as_mut(),
                         theme,
@@ -2443,7 +2600,12 @@ fn parse_slide(
                         &start,
                         &name,
                         &stack,
-                        shape.as_mut(),
+                        shape.as_mut().or_else(|| {
+                            stack
+                                .iter()
+                                .any(|item| item == "bgPr")
+                                .then_some(&mut background_shape)
+                        }),
                         current_run.as_mut(),
                         current_paragraph.as_mut(),
                         theme,
@@ -2458,6 +2620,13 @@ fn parse_slide(
                     text_buffer.push_str(&text.decode().map_err(|error| {
                         Error::InvalidInput(format!("invalid slide text: {error}"))
                     })?);
+                }
+            }
+            Event::GeneralRef(reference) => {
+                if alternate_content_is_active(&alternate_content)
+                    && stack.last().is_some_and(|item| item == "t")
+                {
+                    text_buffer.push_str(&decode_xml_reference(&reference, "slide text")?);
                 }
             }
             Event::End(end) => {
@@ -2492,11 +2661,16 @@ fn parse_slide(
                             });
                         }
                         if let Some(run) = current_run.as_mut() {
-                            run.text.push_str(&text_buffer);
+                            if slide_number_field {
+                                run.text.push_str(&page_number.to_string());
+                            } else {
+                                run.text.push_str(&text_buffer);
+                            }
                         }
                         text_buffer.clear();
                     }
-                    "r" => {
+                    "r" | "fld" => {
+                        slide_number_field = false;
                         if let (Some(paragraph), Some(run)) =
                             (current_paragraph.as_mut(), current_run.take())
                         {
@@ -2548,14 +2722,21 @@ fn parse_slide(
         }
         buffer.clear();
     }
-    if let Some(color) = background {
+    finalize_shape_gradient(&mut background_shape);
+    let background_paint = match background_shape.fill {
+        // A gradient survived; a lone solid colour is still tracked separately
+        // because `<p:bg>` can also name one through a style reference.
+        fill @ (Paint::LinearGradient(_) | Paint::RadialGradient(_)) => Some(fill),
+        _ => background.map(Paint::solid),
+    };
+    if let Some(fill) = background_paint {
         page.nodes.insert(
             0,
             Node::Path {
                 id: format!("pptx-{id_namespace}-{page_number}-background"),
                 d: format!("M 0 0 H {} V {} H 0 Z", fmt(width), fmt(height)),
                 fill_rule: "nonzero".into(),
-                fill: Paint::solid(color),
+                fill,
                 stroke: Stroke::default(),
                 transform: IDENTITY,
                 clip_id: None,
@@ -2797,8 +2978,12 @@ fn apply_start(
         "ext" if stack.iter().any(|item| item == "xfrm") => {
             if let Some(shape) = shape.as_deref_mut() {
                 shape.has_explicit_transform = true;
-                shape.width = parse_i64(attribute(start, b"cx"), 0) as f64 / EMU_PER_POINT;
-                shape.height = parse_i64(attribute(start, b"cy"), 0) as f64 / EMU_PER_POINT;
+                // `cx`/`cy` are unsigned in the schema, but generators do emit a
+                // negative extent and PowerPoint still shows the shape. Reading
+                // the magnitude keeps the text on the slide; dropping the shape
+                // would lose it outright.
+                shape.width = (parse_i64(attribute(start, b"cx"), 0) as f64).abs() / EMU_PER_POINT;
+                shape.height = (parse_i64(attribute(start, b"cy"), 0) as f64).abs() / EMU_PER_POINT;
             }
         }
         "xfrm" => {
@@ -3400,6 +3585,24 @@ fn apply_start(
                         "r" => TextAnchor::End,
                         _ => TextAnchor::Start,
                     });
+                paragraph.margin_left = attribute(start, b"marL")
+                    .and_then(|value| value.parse::<f64>().ok())
+                    .map(|value| value / EMU_PER_POINT);
+                paragraph.indent = attribute(start, b"indent")
+                    .and_then(|value| value.parse::<f64>().ok())
+                    .map(|value| value / EMU_PER_POINT);
+            }
+        }
+        // Self-closing children of `<a:pPr>`; `current_paragraph` is set only
+        // inside `<a:p>`, so a master's `<a:lvl1pPr>` cannot reach here.
+        "buChar" if stack.iter().any(|item| item == "pPr") => {
+            if let Some(paragraph) = current_paragraph {
+                paragraph.bullet = attribute(start, b"char");
+            }
+        }
+        "buNone" if stack.iter().any(|item| item == "pPr") => {
+            if let Some(paragraph) = current_paragraph {
+                paragraph.bullet = Some(String::new());
             }
         }
         "hlinkClick" => {
@@ -4333,7 +4536,7 @@ fn append_shape(
     mut shape: Shape,
     relationships: &Relationships,
     slide_part: &str,
-    package: &mut ZipPackage<std::fs::File>,
+    package: &mut ZipPackage<impl Read + Seek>,
     theme: &Theme,
     text_styles: &PresentationTextStyles,
     id_namespace: &str,
@@ -4345,10 +4548,17 @@ fn append_shape(
             && apply_default_placeholder_geometry(&mut shape, page.width, page.height);
         if !recovered {
             if id_namespace == "slide" && visible_text {
-                page.warn(format!(
-                    "shape {} has no explicit transform; placeholder inheritance is pending",
-                    shape.name
-                ));
+                page.warn(if shape.has_explicit_transform {
+                    format!(
+                        "shape {} has a zero-sized transform and no placeholder geometry to fall back on",
+                        shape.name
+                    )
+                } else {
+                    format!(
+                        "shape {} has no explicit transform; placeholder inheritance is pending",
+                        shape.name
+                    )
+                });
             }
             return Ok(());
         }
@@ -4476,7 +4686,7 @@ fn append_shape(
                         append_unsupported_image_placeholder(page, &shape, transform, &meta, label);
                     }
                 } else {
-                    let mime = mime_type(&part);
+                    let mime = sniff_image_mime(&bytes).unwrap_or_else(|| mime_type(&part));
                     let href = format!(
                         "data:{mime};base64,{}",
                         base64::engine::general_purpose::STANDARD.encode(bytes)
@@ -4592,7 +4802,7 @@ fn append_shape(
                     &image_id,
                     format!(
                         "data:{};base64,{}",
-                        mime_type(&part),
+                        sniff_image_mime(&bytes).unwrap_or_else(|| mime_type(&part)),
                         base64::engine::general_purpose::STANDARD.encode(bytes)
                     ),
                     image_geometry,
@@ -4731,8 +4941,8 @@ fn append_shape(
             .alignment
             .or(style.alignment)
             .unwrap_or(TextAnchor::Start);
-        let mut available_width =
-            (text_width - left_inset - right_inset - style.margin_left).max(6.0);
+        let margin_left = paragraph.margin_left.unwrap_or(style.margin_left);
+        let mut available_width = (text_width - left_inset - right_inset - margin_left).max(6.0);
         if shape.text_width.is_some() {
             let natural_width = paragraph
                 .runs
@@ -4759,14 +4969,15 @@ fn append_shape(
                 max_font
             };
             let (x, anchor) = match anchor {
-                TextAnchor::Start => (text_x + left_inset + style.margin_left, TextAnchor::Start),
+                TextAnchor::Start => (text_x + left_inset + margin_left, TextAnchor::Start),
                 TextAnchor::Middle => (text_x + text_width / 2.0, TextAnchor::Middle),
                 TextAnchor::End => (
-                    text_x + text_width - right_inset - style.margin_left,
+                    text_x + text_width - right_inset - margin_left,
                     TextAnchor::End,
                 ),
             };
-            if line_index == 0 && !style.bullet.is_empty() && anchor == TextAnchor::Start {
+            let bullet = paragraph.bullet.as_deref().unwrap_or(&style.bullet);
+            if line_index == 0 && !bullet.is_empty() && anchor == TextAnchor::Start {
                 text_node_index += 1;
                 page.nodes.push(Node::Text {
                     id: format!(
@@ -4775,10 +4986,12 @@ fn append_shape(
                         paragraph_index + 1,
                         text_node_index
                     ),
-                    x: text_x + left_inset,
+                    x: text_x
+                        + left_inset
+                        + (margin_left + paragraph.indent.unwrap_or(0.0)).max(0.0),
                     y,
                     runs: vec![TextRun {
-                        text: style.bullet.clone(),
+                        text: bullet.to_owned(),
                         font_family: style.font_family.clone(),
                         font_size: max_font,
                         bold: style.bold,
@@ -5423,6 +5636,17 @@ fn preset_path(shape: &Shape) -> (String, bool) {
             fmt(x + width),
             fmt(y + height)
         ),
+        "curvedConnector2" => curved_connector_path(shape, None),
+        "curvedConnector3" | "curvedConnector4" | "curvedConnector5" => curved_connector_path(
+            shape,
+            Some(
+                shape
+                    .preset_adjustments
+                    .get("adj1")
+                    .copied()
+                    .unwrap_or(50_000.0),
+            ),
+        ),
         "bentConnector2" => bent_connector_path(shape, 50_000.0),
         "bentConnector3" => bent_connector_path(
             shape,
@@ -5534,6 +5758,48 @@ fn preset_path(shape: &Shape) -> (String, bool) {
         _ => return (rectangle_path(x, y, width, height), false),
     };
     (result, true)
+}
+
+/// A curved connector between opposite corners of the shape's box.
+///
+/// Without this the preset falls through to the bounding box, which draws a
+/// stroked rectangle where a line should curve from one shape to another.
+/// `adjustment` is `adj1` in sixty-thousandths of a percent, naming where the
+/// S-curve turns; `None` is the single quarter turn of `curvedConnector2`.
+fn curved_connector_path(shape: &Shape, adjustment: Option<f64>) -> String {
+    let start_x = shape.x;
+    let start_y = shape.y;
+    let end_x = shape.x + shape.width;
+    let end_y = shape.y + shape.height;
+    match adjustment {
+        // One bend: leave the start horizontally and arrive vertically.
+        None => format!(
+            "M {} {} C {} {} {} {} {} {}",
+            fmt(start_x),
+            fmt(start_y),
+            fmt(start_x + shape.width / 2.0),
+            fmt(start_y),
+            fmt(end_x),
+            fmt(start_y + shape.height / 2.0),
+            fmt(end_x),
+            fmt(end_y)
+        ),
+        // Two bends: an S through a turning point along the primary axis.
+        Some(adjustment) => {
+            let bend_x = shape.x + shape.width * adjustment.clamp(0.0, 100_000.0) / 100_000.0;
+            format!(
+                "M {} {} C {} {} {} {} {} {}",
+                fmt(start_x),
+                fmt(start_y),
+                fmt(bend_x),
+                fmt(start_y),
+                fmt(bend_x),
+                fmt(end_y),
+                fmt(end_x),
+                fmt(end_y)
+            )
+        }
+    }
 }
 
 fn bent_connector_path(shape: &Shape, adjustment: f64) -> String {

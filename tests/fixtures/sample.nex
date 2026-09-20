@@ -1,0 +1,14 @@
+#NEXUS
+BEGIN TAXA;
+  DIMENSIONS NTAX=4;
+  TAXLABELS Alpha Beta Gamma Delta;
+END;
+BEGIN TREES;
+  TRANSLATE
+    1 Alpha,
+    2 Beta,
+    3 Gamma,
+    4 Delta;
+  TREE demo = [&R] ((1:0.1,2:0.2)Primates:0.3,3:0.4)Mammals;
+  TREE ignored = (1,2,3,4);
+END;

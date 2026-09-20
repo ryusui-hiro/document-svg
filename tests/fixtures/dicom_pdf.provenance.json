@@ -1,0 +1,10 @@
+{
+  "generator": "scripts/generate-dicom-pdf-fixture.py",
+  "source": "Small synthetic PDF with Helvetica text; DICOM patient name is synthetic and is used only to verify metadata exclusion.",
+  "sha256": {
+    "tests/fixtures/sample_encapsulated_pdf.dcm": "0f94e1ea9ac2998d5efa2569d03127472e95adc8a551f3a7b9238a6cc7d8704f"
+  },
+  "sizes": {
+    "tests/fixtures/sample_encapsulated_pdf.dcm": 1128
+  }
+}

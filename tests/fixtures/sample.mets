@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mets xmlns="http://www.loc.gov/METS/" xmlns:xlink="http://www.w3.org/1999/xlink" OBJID="private-object" LABEL="Example digitized book">
+  <metsHdr CREATEDATE="2026-09-16T10:00:00Z"><agent ROLE="CREATOR"><name>Archive Team</name></agent></metsHdr>
+  <dmdSec ID="DMD1"><mdWrap MDTYPE="MODS"><xmlData><title>Private title metadata</title></xmlData></mdWrap></dmdSec>
+  <fileSec>
+    <fileGrp USE="master"><file ID="F1" MIMETYPE="image/tiff" SIZE="1048576"><FLocat xlink:href="https://private.example.invalid/master/page-1.tif" /></file><file ID="F2" MIMETYPE="application/pdf" SIZE="2048"><FLocat xlink:href="private.pdf" /></file></fileGrp>
+    <fileGrp USE="ocr"><file ID="OCR1" MIMETYPE="application/alto+xml" SIZE="512"><FLocat xlink:href="https://private.example.invalid/alto/page-1.xml" /></file></fileGrp>
+  </fileSec>
+  <structMap TYPE="PHYSICAL"><div TYPE="book" LABEL="Book"><div TYPE="page" ORDER="1" LABEL="Page 1"><fptr FILEID="F1" /><mptr xlink:href="https://private.example.invalid/child.mets" /></div><div TYPE="page" ORDER="2" LABEL="Page 2"><fptr FILEID="F2" /></div></div></structMap>
+  <structMap TYPE="LOGICAL"><div TYPE="chapter" LABEL="Chapter One"><fptr FILEID="OCR1" /></div></structMap>
+  <structLink><smLink xlink:from="F1" xlink:to="OCR1" /></structLink>
+</mets>

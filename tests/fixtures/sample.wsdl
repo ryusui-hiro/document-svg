@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="urn:example" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:example" name="CatalogService">
+  <import namespace="urn:private" location="https://private.example.invalid/schema.wsdl" />
+  <types><xsd:schema targetNamespace="urn:example"><xsd:element name="Secret" /></xsd:schema></types>
+  <message name="ListRequest"><part name="query" element="tns:Query" /></message>
+  <message name="ListResponse"><part name="items" element="tns:Items" /></message>
+  <portType name="CatalogPort"><operation name="list"><input message="tns:ListRequest" /><output message="tns:ListResponse" /></operation></portType>
+  <binding name="CatalogBinding" type="tns:CatalogPort"><operation name="list"><soap:operation xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" soapAction="https://private.example.invalid/list" /></operation></binding>
+  <service name="CatalogService"><port name="CatalogPort" binding="tns:CatalogBinding"><soap:address xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" location="https://private.example.invalid/catalog" /></port></service>
+</definitions>

@@ -1,0 +1,34 @@
+{
+  "asyncapi": "2.6.0",
+  "info": {
+    "title": "Event Catalog",
+    "version": "1.0.0",
+    "description": "Message-driven API <script>kept as text</script>"
+  },
+  "servers": {
+    "kafka": {
+      "url": "kafka://broker.example.invalid",
+      "protocol": "kafka"
+    }
+  },
+  "channels": {
+    "user/signedup": {
+      "publish": {
+        "operationId": "onUserSignedUp",
+        "summary": "Receive signup event",
+        "message": {"$ref": "#/components/messages/UserSignedUp"}
+      }
+    },
+    "billing/invoice": {
+      "subscribe": {
+        "operationId": "publishInvoice",
+        "summary": "Publish invoice",
+        "message": {"name": "Invoice"}
+      }
+    }
+  },
+  "components": {
+    "messages": {"UserSignedUp": {"payload": {"$ref": "#/components/schemas/User"}}},
+    "schemas": {"User": {"type": "object"}}
+  }
+}

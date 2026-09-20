@@ -1,0 +1,24 @@
+{
+  "converter": "document-svg",
+  "version": "0.1.1",
+  "source": "samples/source/sample.tex",
+  "source_format": "tex",
+  "output_directory": "samples/svg/tex",
+  "elapsed_ms": 0,
+  "input_bytes": 82,
+  "page_count": 1,
+  "largest_page_ir_bytes": 14964,
+  "pages": [
+    {
+      "number": 1,
+      "svg": "page-0001.svg",
+      "width_points": 378.43399999999997,
+      "height_points": 147.327,
+      "node_count": 22,
+      "warning_count": 0,
+      "warnings": [],
+      "estimated_ir_bytes": 14964
+    }
+  ],
+  "warnings": []
+}

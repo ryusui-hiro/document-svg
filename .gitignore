@@ -10,6 +10,7 @@
 !.env.example
 *.pem
 *.key
+!tests/fixtures/sample.key
 *.p12
 *.pfx
 *.crate
@@ -21,6 +22,7 @@
 *.pyd
 *.dylib
 node_modules/
+bindings/wasm/web/pkg/
 __pycache__/
 *.py[cod]
 .pytest_cache/

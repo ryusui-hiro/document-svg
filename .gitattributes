@@ -1,0 +1,7 @@
+# These fixtures contain byte counts, cross-reference offsets, or HTTP/MIME
+# framing. Keep their repository bytes unchanged on Windows checkouts.
+tests/fixtures/*.eml -text
+tests/fixtures/*.emlx -text
+tests/fixtures/*.fdf -text
+tests/fixtures/*.pdf -text
+tests/fixtures/*.warc -text

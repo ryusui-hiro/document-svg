@@ -14,16 +14,7 @@ fi
   exit 69
 }
 
-cargo_bin=${CARGO_BIN:-}
-if [ -z "$cargo_bin" ]; then
-  cargo_bin=$(command -v cargo || true)
-fi
-[ -n "$cargo_bin" ] || {
-  echo "Rust and cargo are required: https://rustup.rs" >&2
-  exit 69
-}
-
-"$cargo_bin" install --path "$repo_root" --locked --force
+"$script_dir/ensure-cli.sh"
 
 configured_path=$("$codex_bin" plugin marketplace list | awk -F '\t' -v name="$marketplace_name" '$1 == name { print $2; exit }')
 if [ -z "$configured_path" ]; then

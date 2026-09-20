@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="800pt" viewBox="0 0 1200 800" data-source-format="topojson" data-source-page="1">
+  <title>TopoJSON Map Preview</title>
+  <desc>TopoJSON Map Preview map with 2 features, 4 geometries, and 11 positions</desc>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":2,"warnings":["TopoJSON object properties, identifiers, bounding boxes, and topology metadata are omitted","TopoJSON coordinates are treated as WGS 84 longitude/latitude; no CRS metadata or reprojection is available","TopoJSON longitude/latitude is projected with Web Mercator; altitude and custom CRS transforms are not applied"]}</metadata>
+  <rect x="0" y="0" width="1200" height="800" fill="#FFFFFF" data-role="page-background"/>
+  <path id="topojson-polygons" d="M 40.000 743.940 L 600.000 743.940 L 600.000 56.060 L 40.000 56.060 L 40.000 743.940 Z M 600.000 743.940 L 1160.000 743.940 L 1160.000 56.060 L 600.000 56.060 L 600.000 743.940 Z " fill-rule="evenodd" transform="matrix(1 0 0 1 0 0)" fill="#BFDBFE" fill-opacity="1" stroke="#2563EB" stroke-opacity="1" stroke-width="1.5" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-content-kind="topojson-polygon" data-semantic-role="topojson:polygon"/>
+  <path id="topojson-points" d="M 876.000 401.070 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0 " fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="#DC2626" fill-opacity="1" stroke="#FFFFFF" stroke-opacity="1" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="0" data-content-kind="topojson-point" data-semantic-role="topojson:point"/>
+</svg>

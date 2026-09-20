@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://www.wfmc.org/2009/XPDL2.2" xpdlVersion="2.2" Id="private-package">
+  <WorkflowProcesses><WorkflowProcess Id="process-1"><Activities><Activity Id="a1"><Implementation><No/></Implementation></Activity><Activity Id="a2"/></Activities><Transitions><Transition Id="t1" From="a1" To="a2"/></Transitions></WorkflowProcess></WorkflowProcesses>
+  <Participants><Participant Id="person-1"><Description>private participant</Description></Participant></Participants>
+  <Applications><Application Id="app-1"><FormalParameters><FormalParameter Id="secret"/></FormalParameters></Application></Applications>
+  <DataFields><DataField Id="private-field"/></DataFields>
+</Package>
+

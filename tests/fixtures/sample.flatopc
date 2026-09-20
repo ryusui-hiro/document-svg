@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pkg:package xmlns:pkg="http://schemas.microsoft.com/office/2006/xmlPackage">
+  <pkg:part pkg:name="/[Content_Types].xml" pkg:contentType="application/xml">
+    <pkg:xmlData><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types></pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/_rels/.rels" pkg:contentType="application/vnd.openxmlformats-package.relationships+xml">
+    <pkg:xmlData><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="/word/document.xml"/><Relationship Id="rIdExternal" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="http://private.example.invalid/flatopc" TargetMode="External"/></Relationships></pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/document.xml" pkg:contentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml">
+    <pkg:xmlData><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>Flat OPC office document</w:t></w:r></w:p><w:p><w:r><w:t>External links remain inert.</w:t></w:r></w:p><w:sectPr/></w:body></w:document></pkg:xmlData>
+  </pkg:part>
+  <pkg:part pkg:name="/word/media/unused.bin" pkg:contentType="application/octet-stream">
+    <pkg:binaryData>AAECAw==</pkg:binaryData>
+  </pkg:part>
+</pkg:package>

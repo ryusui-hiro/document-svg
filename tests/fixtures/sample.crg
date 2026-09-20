@@ -1,0 +1,19 @@
+$CT
+ASAM OpenCRG demo header
+$
+$ROAD_CRG
+reference_line=0
+u_min=0
+u_max=100
+$
+$KD_Definition
+channel=height
+$
+$ROAD_CRG_OPTS
+option=bounded
+$
+$ROAD_CRG_FILE
+file=private_surface.crg
+$
+0.0 0.0 0.0
+0.1 0.2 0.0

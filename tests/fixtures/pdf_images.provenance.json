@@ -1,0 +1,14 @@
+{
+  "generator": "scripts/generate-pdf-jpx-alpha-fixture.py",
+  "description": "Synthetic one-page PDFs wrapping self-authored 4x4 JPEG 2000 fixtures with embedded, external, and preblended soft masks.",
+  "source_files": [
+    "tests/fixtures/sample_jpeg2000_rgba.jp2",
+    "tests/fixtures/sample_jpeg2000_rgb.jp2",
+    "tests/fixtures/sample_jpeg2000_rgba_preblended.jp2"
+  ],
+  "sha256": {
+    "tests/fixtures/sample_jpx_alpha.pdf": "6a254d4ccc277eef499edf80a1150a1ebad5e947ff5790d0de4568db82ff8fe6",
+    "tests/fixtures/sample_jpx_soft_mask.pdf": "11de975bc214e8cc8f0e8a582e9f4e12249c7bd534366a95ab8261fcea5af459",
+    "tests/fixtures/sample_jpx_smask_in_data_2.pdf": "58342495000096a0772289553e854cabf0de1c849481686a3120e902b0388629"
+  }
+}

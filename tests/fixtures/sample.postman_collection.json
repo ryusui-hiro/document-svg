@@ -1,0 +1,35 @@
+{
+  "info": {
+    "name": "Catalog API collection",
+    "description": "Safe Postman preview <script>kept as text</script>",
+    "schema": "https://schema.postman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Pets",
+      "item": [
+        {
+          "name": "List pets",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer very-secret"}],
+            "url": {"raw": "https://api.example.invalid/pets?api_key=secret&limit=2"},
+            "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "secret"}]}
+          },
+          "response": [{"name": "OK", "code": 200, "body": "private response"}],
+          "event": [{"listen": "test", "script": {"exec": ["pm.test('secret')"]}}]
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "request": {
+        "method": "POST",
+        "url": "https://api.example.invalid/health",
+        "body": {"mode": "raw", "raw": "private request"}
+      }
+    }
+  ],
+  "variable": [{"key": "baseUrl", "value": "https://api.example.invalid"}],
+  "auth": {"type": "bearer", "bearer": [{"key": "token", "value": "very-secret"}]}
+}

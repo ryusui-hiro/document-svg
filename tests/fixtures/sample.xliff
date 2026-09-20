@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" version="2.0" srcLang="en" trgLang="ja">
+  <file id="file-1" original="messages.json">
+    <group id="menu" name="Main menu">
+      <unit id="welcome" name="Welcome message">
+        <notes><note category="location">Home screen</note></notes>
+        <segment state="translated">
+          <source>Hello <pc id="emphasis">world</pc><ph id="count" equiv="{count}"/>!</source>
+          <target>こんにちは <pc id="emphasis">世界</pc><ph id="count" equiv="{count}"/>！</target>
+        </segment>
+      </unit>
+      <unit id="close">
+        <segment state="initial">
+          <source>Close &lt;script&gt; stays text</source>
+        </segment>
+      </unit>
+    </group>
+  </file>
+</xliff>

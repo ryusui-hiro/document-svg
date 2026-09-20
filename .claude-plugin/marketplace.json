@@ -8,9 +8,9 @@
     {
       "name": "document-svg",
       "source": "./plugins/document-svg",
-      "description": "Convert PDF and Office documents to SVG pages and package SVG pages back into OOXML files.",
+      "description": "Convert 60+ document, diagram, CAD, 3D, mesh, chart, geospatial, math, and data formats to SVG pages, transform SVG, and package SVG into Office, draw.io, HTML, or WebP.",
       "category": "development",
-      "tags": ["svg", "pdf", "pptx", "docx", "xlsx", "conversion"]
+      "tags": ["svg", "pdf", "office", "cad", "diagram", "conversion", "transform"]
     }
   ]
 }

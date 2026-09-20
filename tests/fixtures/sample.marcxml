@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<collection xmlns="http://www.loc.gov/MARC21/slim">
+  <record id="private-record">
+    <leader>00000nam a2200000 i 4500</leader>
+    <controlfield tag="001">record-001</controlfield>
+    <controlfield tag="005">20260916100000.0</controlfield>
+    <datafield tag="100" ind1="1" ind2=" "><subfield code="a">Example Author</subfield></datafield>
+    <datafield tag="245" ind1="1" ind2="0"><subfield code="a">A Safe Catalog Record</subfield><subfield code="c">Example Author.</subfield></datafield>
+    <datafield tag="260" ind1=" " ind2=" "><subfield code="b">Example Press</subfield><subfield code="c">2026</subfield></datafield>
+    <datafield tag="856" ind1="4" ind2="0"><subfield code="u">https://private.example.invalid/item</subfield></datafield>
+  </record>
+  <record id="record-002">
+    <leader>00000nam a2200000 i 4500</leader>
+    <controlfield tag="001">record-002</controlfield>
+    <datafield tag="245" ind1="0" ind2="0"><subfield code="a">Second title</subfield></datafield>
+  </record>
+</collection>

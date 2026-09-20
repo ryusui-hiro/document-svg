@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200pt" height="927.27273pt" viewBox="0 0 1200 927.27273" data-source-format="dxf" data-source-page="1">
+  <title>CAD Drawing</title>
+  <metadata id="docsvg-metadata">{"page":1,"nodes":4,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="1200" height="927.27273" fill="#FFFFFF" data-role="page-background"/>
+  <g id="layer-DOORS" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="cad:layer:DOORS">
+    <path id="" d="M 463.63636 654.54545 L 572.72727 545.45455" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#ff0000" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 572.72727 654.54545 A 109.09091 109.09091 0 0 0 463.63636 545.45455" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#ff0000" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <g id="layer-FURNITURE" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="cad:layer:FURNITURE">
+    <path id="" d="M 695.45455 463.63636 A 122.72727 122.72727 0 1 0 940.90909 463.63636 A 122.72727 122.72727 0 1 0 695.45455 463.63636 Z" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#00ff00" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+  <g id="layer-TEXT" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="cad:layer:TEXT">
+    <text id="" x="190.90909" y="436.36364" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+      <tspan xml:space="preserve" font-family="sans-serif, Arial, &apos;Hiragino Sans&apos;" font-size="38.18182" font-weight="400" font-style="normal" baseline-shift="0" fill="#00ffff" fill-opacity="1">CONFERENCE ROOM</tspan>
+    </text>
+    <text id="" x="681.81818" y="190.90909" text-anchor="start" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+      <tspan xml:space="preserve" font-family="sans-serif, Arial, &apos;Hiragino Sans&apos;" font-size="38.18182" font-weight="400" font-style="normal" baseline-shift="0" fill="#00ffff" fill-opacity="1">OFFICE 101</tspan>
+    </text>
+  </g>
+  <g id="layer-WALLS" transform="matrix(1 0 0 1 0 0)" opacity="1" data-semantic-role="cad:layer:WALLS">
+    <path id="" d="M 54.54545 872.72727 L 1145.45455 872.72727" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1145.45455 872.72727 L 1145.45455 54.54545" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 1145.45455 54.54545 L 54.54545 54.54545" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 54.54545 54.54545 L 54.54545 872.72727" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+    <path id="" d="M 463.63636 872.72727 L 463.63636 54.54545" fill-rule="nonzero" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#000000" stroke-opacity="1" stroke-width="1.93271" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4"/>
+  </g>
+</svg>

@@ -1,0 +1,16 @@
+pub(crate) mod ascii_grid;
+pub(crate) mod dbase;
+pub(crate) mod geojson;
+pub(crate) mod geojson_seq;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod geopackage;
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) mod geopackage_tiles;
+pub(crate) mod georss;
+pub(crate) mod gml;
+pub(crate) mod gpx;
+pub(crate) mod kml;
+pub(crate) mod shapefile;
+pub(crate) mod topojson;
+pub(crate) mod wkt;
+pub(crate) mod xml_tree;

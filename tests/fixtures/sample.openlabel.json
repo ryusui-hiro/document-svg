@@ -1,0 +1,34 @@
+{
+  "openlabel": {
+    "metadata": {
+      "schema_version": "1.0.0",
+      "annotator": "private annotator",
+      "comment": "very-secret comment"
+    },
+    "streams": {
+      "camera_front": {
+        "description": "front sensor",
+        "uri": "https://sensors.example.invalid/camera?token=secret"
+      }
+    },
+    "objects": {
+      "car-1": {
+        "type": "car",
+        "object_data": [{"type": "text", "val": "private label"}]
+      }
+    },
+    "actions": {"a1": {"type": "lane_change", "action_data": [{"val": "secret"}]}},
+    "events": {"e1": {"type": "near_miss", "event_data": [{"val": "private"}]}},
+    "contexts": {"c1": {"type": "weather", "context_data": [{"val": "sensitive"}]}},
+    "relations": {"r1": {"rdf_subject": "car-1", "rdf_object": "car-2", "type": "near"}},
+    "frames": {
+      "1": {"objects": {"car-1": {"object_data": [{"type": "bbox", "val": "secret bbox"}]}}},
+      "2": {"objects": {"car-1": {"object_data": [{"type": "bbox", "val": "private bbox"}]}}}
+    },
+    "frame_intervals": {"drive": {"frame_start": 1, "frame_end": 2}},
+    "tags": {"urban": {"type": "scenario", "tag_data": [{"val": "sensitive"}]}},
+    "ontologies": {"demo": {"uri": "https://ontology.example.invalid/demo"}},
+    "resources": {"image": {"uri": "https://images.example.invalid/frame.png"}},
+    "coordinate_systems": {"vehicle": {"type": "sensor"}}
+  }
+}

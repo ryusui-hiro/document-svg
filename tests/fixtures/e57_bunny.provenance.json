@@ -1,0 +1,10 @@
+{
+  "source": "E57 Example/Test Data, BunnyDouble.e57 (XYZ, 726 KB)",
+  "download": "https://sourceforge.net/projects/e57-3d-imgfmt/files/E57Example-data/bunnyDouble.e57/download",
+  "documentation": "https://e57-3d-imgfmt.sourceforge.net/data.html",
+  "description": "Reference E57 test point cloud used for conformance testing across E57 readers.",
+  "license": "The E57 Test Data License grants permission to use, reproduce, display, distribute, publish, transmit, copy, and reformat the data. It requires source copyright notices except when the copy is solely in binary form; this repository retains the notice in THIRD_PARTY_NOTICES.md.",
+  "sha256": {
+    "tests/fixtures/sample_e57_bunny.e57": "5ec10af7a8b4cf7778d247ea20b2c3058e6488b55ef102ae187373d5cbe8b056"
+  }
+}

@@ -1,0 +1,10 @@
+     3.04           OBSERVATION DATA    M (MIXED)           RINEX VERSION / TYPE
+PRIVATE-STATION                                             MARKER NAME
+G    8 C1C L1C D1C S1C C2W L2W D2W S2W                      SYS / # / OBS TYPES
+                                                            END OF HEADER
+> 2026 01 01 00 00 00.0000000  0  2
+G01  12345.0  45.0
+R02  23456.0  35.0
+> 2026 01 01 00 00 30.0000000  0  1
+G01  12346.0  45.0
+

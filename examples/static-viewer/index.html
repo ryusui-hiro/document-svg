@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; worker-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'">
+    <meta name="color-scheme" content="light dark">
+    <title>Document SVG · Private browser viewer</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module" src="./app.js?v=browser-viewer-4"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Document SVG home">
+        <span class="brand-mark" aria-hidden="true">D</span>
+        <span>document-svg</span>
+      </a>
+      <span class="privacy-badge"><span aria-hidden="true">●</span> Files stay in this browser</span>
+    </header>
+    <main>
+      <section class="intro" aria-labelledby="title">
+        <p class="eyebrow">LOCAL DOCUMENT PREVIEW</p>
+        <h1 id="title">One viewer for PDF and Office files.</h1>
+        <p>Open a PDF, Word, Excel, or PowerPoint document. The WebAssembly converter runs inside a worker on this device; the document is not uploaded.</p>
+      </section>
+      <docsvg-viewer thumbnails></docsvg-viewer>
+      <p class="footnote">Supports PDF, DOCX, XLSX, and PPTX. Rendering approximations and unsupported document features appear as warnings.</p>
+    </main>
+  </body>
+</html>

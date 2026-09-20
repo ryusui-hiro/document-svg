@@ -1,0 +1,22 @@
+BEGIN:VCARD
+VERSION:4.0
+FN:山田
+ 花子
+N:山田;花子;;;
+KIND:individual
+ORG;TYPE=work:Example\, Inc.;Research
+TITLE:研究員
+EMAIL;TYPE=work:hana@example.test
+TEL;TYPE="cell,voice";VALUE=uri:tel:+81-90-1234-5678
+ADR;TYPE=work:;;中央1丁目;東京;東京都;100-0001;日本
+NOTE:Call after 10:00\; ask for desk\\extension\nSecond line
+URL:https://example.test/contact
+PHOTO;VALUE=uri:https://example.invalid/avatar.jpg
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+N:Tanaka;Ren;;;
+ORG:Example Studio
+EMAIL;TYPE=INTERNET;TYPE=WORK:ren@example.test
+X-CUSTOM:ignored
+END:VCARD

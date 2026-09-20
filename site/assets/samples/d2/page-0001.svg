@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="300pt" height="338pt" viewBox="0 0 300 338" data-source-format="diagram" data-source-page="1" content="// Sample D2 Architecture&#10;client: &quot;Web Client&quot; {&#10;  shape: circle&#10;}&#10;gateway: &quot;API Gateway&quot;&#10;db: &quot;Relational DB&quot; {&#10;  shape: cylinder&#10;}&#10;&#10;client -&gt; gateway: &quot;HTTP/3&quot;&#10;gateway &lt;-&gt; db: &quot;Connection Pool&quot;&#10;">
+  <metadata id="docsvg-metadata">{"page":1,"nodes":14,"warnings":[]}</metadata>
+  <rect x="0" y="0" width="300" height="338" fill="#FFFFFF" data-role="page-background"/>
+  <path id="" d="M 150.00,86.00 C 150.00,116.00 150.00,116.00 150.00,142.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 150.00,146.00 L 146.00,139.00 L 154.00,139.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="150" y="112" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">HTTP/3</tspan>
+  </text>
+  <path id="" d="M 150.00,192.00 C 150.00,222.00 150.00,222.00 150.00,248.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 150.00,252.00 L 146.00,245.00 L 154.00,245.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <text id="" x="150" y="218" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="400" font-style="normal" baseline-shift="0" fill="#374151" fill-opacity="1">Connection Pool</tspan>
+  </text>
+  <path id="" d="M 150.00,298.00 C 150.00,222.00 150.00,222.00 150.00,142.00" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="none" stroke="#4b5563" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <path id="" d="M 150.00,146.00 L 146.00,139.00 L 154.00,139.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#4b5563" fill-opacity="1" stroke="none"/>
+  <path id="" d="M 150.00,40.00 C 162.70,40.00 173.00,50.30 173.00,63.00 C 173.00,75.70 162.70,86.00 150.00,86.00 C 137.30,86.00 127.00,75.70 127.00,63.00 C 127.00,50.30 137.30,40.00 150.00,40.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="150" y="67.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Web Client</tspan>
+  </text>
+  <path id="" d="M 93.00,146.00 L 207.00,146.00 Q 215.00,146.00 215.00,154.00 L 215.00,184.00 Q 215.00,192.00 207.00,192.00 L 93.00,192.00 Q 85.00,192.00 85.00,184.00 L 85.00,154.00 Q 85.00,146.00 93.00,146.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="150" y="173.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">API Gateway</tspan>
+  </text>
+  <path id="" d="M 85.00,258.00 C 85.00,250.02 215.00,250.02 215.00,258.00 C 215.00,265.98 85.00,265.98 85.00,258.00 L 85.00,292.00 C 85.00,299.98 215.00,299.98 215.00,292.00 C 215.00,284.02 85.00,284.02 85.00,292.00 Z" fill-rule="" transform="matrix(1 0 0 1 0 0)" fill="#f3f4f6" fill-opacity="1" stroke="#2563eb" stroke-opacity="1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="0"/>
+  <text id="" x="150" y="279.5" text-anchor="middle" transform="matrix(1 0 0 1 0 0)" opacity="1" stroke="none">
+    <tspan xml:space="preserve" font-family="Helvetica, Arial, sans-serif" font-size="13" font-weight="400" font-style="normal" baseline-shift="0" fill="#1e293b" fill-opacity="1">Relational DB</tspan>
+  </text>
+</svg>

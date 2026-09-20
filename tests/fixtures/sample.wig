@@ -1,0 +1,7 @@
+track type=wiggle_0 name="signal demo" description="bounded wiggle preview"
+variableStep chrom=chr1 span=2
+1 0.5
+5 -1.25
+fixedStep chrom=chr2 start=10 step=5 span=3
+1.0
+2.0
