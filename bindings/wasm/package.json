@@ -1,6 +1,6 @@
 {
   "name": "document-svg-browser",
-  "version": "0.1.1",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "description": "Browser-only PDF and Office document previews using document-svg WebAssembly",

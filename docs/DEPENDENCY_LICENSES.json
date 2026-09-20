@@ -4795,112 +4795,112 @@
     },
     {
       "name": "@inquirer/ansi",
-      "version": "2.0.7",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/checkbox",
-      "version": "5.2.2",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/confirm",
-      "version": "6.2.0",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/core",
-      "version": "12.0.0",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/editor",
-      "version": "5.3.0",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/expand",
-      "version": "5.1.2",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/external-editor",
-      "version": "3.0.4",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/figures",
       "version": "2.0.8",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
+      "name": "@inquirer/checkbox",
+      "version": "5.2.5",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/confirm",
+      "version": "6.3.2",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/core",
+      "version": "12.0.3",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/editor",
+      "version": "5.3.3",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/expand",
+      "version": "5.1.5",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/external-editor",
+      "version": "3.0.5",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/figures",
+      "version": "2.0.9",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
       "name": "@inquirer/input",
-      "version": "5.1.3",
+      "version": "5.1.6",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/number",
-      "version": "4.2.0",
+      "version": "4.2.3",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/password",
-      "version": "5.1.2",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/prompts",
-      "version": "8.6.0",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/rawlist",
-      "version": "5.3.2",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/search",
-      "version": "4.3.0",
-      "license": "MIT",
-      "scope": "development",
-      "optional": false
-    },
-    {
-      "name": "@inquirer/select",
       "version": "5.2.2",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
+      "name": "@inquirer/prompts",
+      "version": "8.7.2",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/rawlist",
+      "version": "5.3.5",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/search",
+      "version": "4.3.3",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
+      "name": "@inquirer/select",
+      "version": "5.2.5",
+      "license": "MIT",
+      "scope": "development",
+      "optional": false
+    },
+    {
       "name": "@inquirer/type",
-      "version": "4.0.7",
+      "version": "4.1.1",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5166,7 +5166,7 @@
     },
     {
       "name": "@napi-rs/wasm-runtime",
-      "version": "1.2.3",
+      "version": "1.2.4",
       "license": "MIT",
       "scope": "development",
       "optional": true
@@ -5299,28 +5299,28 @@
     },
     {
       "name": "@octokit/core",
-      "version": "7.0.7",
+      "version": "7.0.8",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@octokit/endpoint",
-      "version": "11.0.4",
+      "version": "11.0.5",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@octokit/graphql",
-      "version": "9.0.4",
+      "version": "9.0.5",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@octokit/openapi-types",
-      "version": "28.0.0",
+      "version": "29.0.1",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5376,14 +5376,14 @@
     },
     {
       "name": "@octokit/request",
-      "version": "10.0.15",
+      "version": "10.0.16",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@octokit/request-error",
-      "version": "7.1.1",
+      "version": "7.1.2",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5397,14 +5397,14 @@
     },
     {
       "name": "@octokit/types",
-      "version": "17.0.0",
+      "version": "18.0.0",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@tybys/wasm-util",
-      "version": "0.10.3",
+      "version": "0.10.4",
       "license": "MIT",
       "scope": "development",
       "optional": true
@@ -5453,7 +5453,7 @@
     },
     {
       "name": "content-type",
-      "version": "3.0.0",
+      "version": "3.1.0",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5467,7 +5467,7 @@
     },
     {
       "name": "es-toolkit",
-      "version": "1.51.0",
+      "version": "1.52.0",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5686,7 +5686,7 @@
     }
   ],
   "lockfiles": {
-    "Cargo.lock": "f28d92166b93da27ef90aa64448cfc686a9e3a4fb45234ab074cf8d23d878613",
-    "bindings/node/package-lock.json": "c0bb684c27fb0d385f74244d7deafc47f5e8231747891838fd2fbe2db50460d2"
+    "Cargo.lock": "7e18577a716219c875daee836ef86766ec93edeb72c5624d4eafb2c29fed874e",
+    "bindings/node/package-lock.json": "3830f5091deb0f21ab263c5604554800e17a8f770fdb639fc573e152a0b5b5c1"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "document-svg",
-  "version": "0.1.1",
+  "version": "2.0.0",
   "description": "Convert documents, diagrams, CAD/CAE, and image archives to page-by-page SVG from Node.js",
   "keywords": [
     "pcb",

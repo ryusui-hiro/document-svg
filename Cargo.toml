@@ -1,6 +1,6 @@
 [package]
 name = "document-svg"
-version = "0.1.1"
+version = "2.0.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Bounded document, diagram, CAD/CAE, and image archive conversion to SVG in Rust"
