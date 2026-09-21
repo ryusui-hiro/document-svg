@@ -43,7 +43,11 @@ jobs:
           fi
       - name: Package and verify
         working-directory: release-source
-        run: cargo +1.93.0 publish -p document-svg --locked --dry-run
+        # publish --dry-run only leaves the crate under target/package/tmp-*,
+        # so package it again (same bytes) where the release check looks.
+        run: |
+          cargo +1.93.0 publish -p document-svg --locked --dry-run
+          cargo +1.93.0 package -p document-svg --locked --no-verify
       - name: Verify release crate and registry state
         id: verify
         env:

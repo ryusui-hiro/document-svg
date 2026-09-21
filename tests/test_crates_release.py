@@ -101,6 +101,9 @@ def test_workflow_runs_main_tooling_against_tagged_source():
     assert "path: release-source" in workflow
     assert "python3 scripts/check-crates-release.py" in workflow
     assert '--local-crate "release-source/target/package/$crate"' in workflow
+    package_step = workflow.split("- name: Package and verify\n", 1)[1].split("- name:", 1)[0]
+    # cargo publish --dry-run does not leave target/package/<name>.crate behind.
+    assert "cargo +1.93.0 package -p document-svg --locked --no-verify" in package_step
     for step in ("Package and verify", "Publish"):
         block = workflow.split(f"- name: {step}\n", 1)[1].split("- name:", 1)[0]
         assert "working-directory: release-source" in block
