@@ -1,19 +1,19 @@
 {
   "tiers": {
     "A": {
-      "en": "Deterministic — 1:1 syntax mapping, exact geometric projection, or lossless metadata round-tripping.",
-      "ja": "決定的 — 構文の1対1マッピング、正確な幾何投影、またはメタデータの無損失往復変換。",
-      "zh": "确定性 — 语法一一映射、精确几何投影，或元数据的无损往返转换。"
+      "en": "Faithful: drawn straight from the file's own contents. Nothing is guessed.",
+      "ja": "忠実: ファイルの中身をそのまま描きます。推測は入りません。",
+      "zh": "忠实：直接按文件内容绘制，不做任何猜测。"
     },
     "B": {
-      "en": "Vectorization — raster image processing and contour tracing from pixel data.",
-      "ja": "ベクター化 — ピクセルデータからのラスター画像処理と輪郭トレース。",
-      "zh": "矢量化 — 基于像素数据的位图处理与轮廓描摹。"
+      "en": "Traced: outlines are traced from pixels, so shapes are close but not exact.",
+      "ja": "トレース: ピクセルから輪郭をなぞるので、形は近くても完全には一致しません。",
+      "zh": "描摹：从像素描出轮廓，形状接近但不完全一致。"
     },
     "C": {
-      "en": "Heuristic reconstruction — structural inference from unannotated 2D geometry (e.g. cell clustering for tables, topological parsing for graphs).",
-      "ja": "ヒューリスティック再構成 — 注釈のない2D幾何からの構造推定（表のセルクラスタリング、グラフの位相解析など）。",
-      "zh": "启发式重建 — 从无标注的二维几何中推断结构（如表格的单元格聚类、图形的拓扑解析）。"
+      "en": "Rebuilt: structure such as tables or connections is inferred from the drawing. Check the result.",
+      "ja": "組み立て直し: 表やつながりなどの構造を、図から推測して作ります。結果を確認してください。",
+      "zh": "重建：从图形推断表格或连线等结构，请检查结果。"
     }
   },
   "categories": [
