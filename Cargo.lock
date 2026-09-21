@@ -596,7 +596,7 @@ dependencies = [
 
 [[package]]
 name = "document-svg"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "anyhow",
  "base64",
@@ -644,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "document-svg-node"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "document-svg",
  "napi",
@@ -655,7 +655,7 @@ dependencies = [
 
 [[package]]
 name = "document-svg-python"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "document-svg",
  "pyo3",
@@ -665,7 +665,7 @@ dependencies = [
 
 [[package]]
 name = "document-svg-wasm"
-version = "2.0.0"
+version = "2.0.1"
 dependencies = [
  "console_error_panic_hook",
  "document-svg",

@@ -1,6 +1,6 @@
 {
   "name": "document-svg",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Preview PDF, Word, Excel, PowerPoint, draw.io and CAD files as SVG pages in Node.js and Electron, locally and without Office",
   "keywords": [
     "pcb",

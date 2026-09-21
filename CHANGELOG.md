@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+
+## 2.0.1 - 2026-09-21
 - Rewrite the English and Japanese READMEs, and add a Chinese README, for people deciding whether to use the project: what it does, why, how to try it, and its limits, in plain words. The full technical format matrix moves to `docs/FORMATS.md` and `docs/FORMATS.ja.md`.
 - Rewrite the npm and PyPI package READMEs around installing, previewing, reading warnings and safety, and describe the packages in the terms people search for. The package home pages now point to the project site.
 - Fix the reusable document preview workflow for other repositories: a caller's pull request no longer tries to build docsvg in the caller's repository or look for the actions there. Only this repository's own pull requests build the proposed docsvg.
