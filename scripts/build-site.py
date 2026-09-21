@@ -23,6 +23,10 @@ SITE = ROOT / "site"
 BASE_URL = "https://ryusui-hiro.github.io/document-svg/"
 REPO = "https://github.com/ryusui-hiro/document-svg"
 REPO_RAW = REPO + "/blob/main/samples/source/"
+# Social preview card; assets/og.svg is its source.
+OG_IMAGE = BASE_URL + "assets/og.png"
+# Google Search Console ownership token for the URL-prefix property above; public by design.
+GOOGLE_SITE_VERIFICATION = "sye-NAawOjxnr-8EcugowaQyv_USJT87rgJIHBKPo3w"
 
 PAGES = [
     ("home", "index.html"),
@@ -105,6 +109,10 @@ class Page:
         """This page in another language, relative to this page."""
         return self.prefix + LANG_DIRS[lang] + self.filename
 
+    def url_of(self, filename, lang=None):
+        name = "" if filename == "index.html" else filename
+        return BASE_URL + LANG_DIRS[lang or self.lang] + name
+
     def url(self, lang=None):
         lang = lang or self.lang
         name = "" if self.filename == "index.html" else self.filename
@@ -117,7 +125,13 @@ class Page:
         alternates = "\n".join(
             f'<link rel="alternate" hreflang="{HREFLANG[lang]}" href="{self.url(lang)}" />' for lang in LANG_DIRS
         )
-        structured = ""
+        site = self.s["site"]
+        crumbs = [{"@type": "ListItem", "position": 1, "name": "document-svg", "item": self.url_of("index.html")}]
+        if self.key != "home":
+            crumbs.append({"@type": "ListItem", "position": 2, "name": site["nav"][self.key], "item": self.url()})
+        structured = ('\n<script type="application/ld+json">'
+                      + json.dumps({"@context": "https://schema.org", "@type": "BreadcrumbList",
+                                    "itemListElement": crumbs}, ensure_ascii=False) + "</script>")
         if self.key == "home":
             data = {
                 "@context": "https://schema.org",
@@ -133,6 +147,7 @@ class Page:
                 "isAccessibleForFree": True,
                 "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
                 "codeRepository": REPO,
+                "image": OG_IMAGE,
                 "sameAs": [
                     REPO,
                     "https://www.npmjs.com/package/document-svg",
@@ -140,8 +155,8 @@ class Page:
                     "https://crates.io/crates/document-svg",
                 ],
             }
-            structured = ('\n<script type="application/ld+json">'
-                          + json.dumps(data, ensure_ascii=False) + "</script>")
+            structured += ('\n<script type="application/ld+json">'
+                           + json.dumps(data, ensure_ascii=False) + "</script>")
         return f"""<head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -156,7 +171,12 @@ class Page:
 <meta property="og:description" content="{e(meta['description'])}" />
 <meta property="og:url" content="{self.url()}" />
 <meta property="og:locale" content="{OG_LOCALE[self.lang]}" />
-<meta name="twitter:card" content="summary" />
+<meta property="og:image" content="{OG_IMAGE}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="{e(site['ogImageAlt'])}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="google-site-verification" content="{GOOGLE_SITE_VERIFICATION}" />
 <link rel="icon" href="{ICON}" />
 <link rel="stylesheet" href="{self.prefix}assets/style.css" />
 <link rel="alternate" type="text/plain" href="{self.prefix}llms.txt" title="llms.txt" />{structured}

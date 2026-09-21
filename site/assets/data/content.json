@@ -38,11 +38,12 @@
           "docs": "Documentation",
           "support": "Supported features & limitations",
           "architecture": "Architecture"
-        }
+        },
+        "ogImageAlt": "document-svg: PDF, Office, diagram and CAD files as SVG pages"
       },
       "home": {
         "meta": {
-          "title": "document-svg — see every page of a file as SVG, on your own machine",
+          "title": "document-svg — convert PDF, Word, Excel, PowerPoint and CAD files to SVG, locally",
           "description": "Turn PDFs, Office files, diagrams and CAD drawings into one SVG per page on your own machine. Nothing is uploaded, macros never run, and a report tells you what didn't come across."
         },
         "hero": {
@@ -130,7 +131,7 @@
       },
       "useCases": {
         "meta": {
-          "title": "What you can do — document-svg",
+          "title": "What you can do: document previews, CAD checks and AI assistants — document-svg",
           "description": "Seven ways people use document-svg: document review, in-app previews, diagrams, CAD checks, reports, AI assistants and exporting back to Office."
         },
         "title": "What you can do",
@@ -244,7 +245,7 @@
       },
       "formats": {
         "meta": {
-          "title": "Supported formats — document-svg",
+          "title": "Supported formats: PDF, Office, CAD and diagrams to SVG — document-svg",
           "description": "Search every file format document-svg can open or write back to, and see how closely each result matches the original."
         },
         "title": "Supported formats",
@@ -270,7 +271,7 @@
       },
       "samples": {
         "meta": {
-          "title": "Samples — document-svg",
+          "title": "PDF, Office and CAD to SVG examples — document-svg",
           "description": "Real, unretouched SVG pages converted by document-svg from sample files in this repository."
         },
         "title": "What the results look like",
@@ -280,7 +281,7 @@
       },
       "start": {
         "meta": {
-          "title": "Get started — document-svg",
+          "title": "Get started: convert your first file to SVG — document-svg",
           "description": "Install document-svg, convert your first file, read the report and show the pages in your app."
         },
         "title": "Get started",
@@ -473,7 +474,7 @@
       },
       "ai": {
         "meta": {
-          "title": "For AI agents — document-svg",
+          "title": "Use document-svg from AI agents: Claude Code, Codex and Copilot",
           "description": "Use document-svg from Claude Code, Codex and GitHub Copilot, and the rules an AI agent should follow."
         },
         "title": "For AI agents",
@@ -582,11 +583,12 @@
           "docs": "ドキュメント",
           "support": "対応機能と制限",
           "architecture": "内部構成"
-        }
+        },
+        "ogImageAlt": "document-svg：PDF・Office・図・CAD図面をSVGのページに"
       },
       "home": {
         "meta": {
-          "title": "document-svg — ファイルの全ページを、手元でSVGにして見る",
+          "title": "document-svg — PDF・Word・Excel・PowerPoint・CAD図面をSVGに変換（ローカルで動作）",
           "description": "PDF、Office、ダイアグラム、CAD図面を、手元のマシンでページごとのSVGに変換します。ファイルは外に送らず、マクロも動かしません。再現できなかった部分はレポートに残ります。"
         },
         "hero": {
@@ -674,7 +676,7 @@
       },
       "useCases": {
         "meta": {
-          "title": "できること — document-svg",
+          "title": "できること：文書のプレビュー、CAD図面の確認、AIでの利用 — document-svg",
           "description": "文書のレビュー、アプリ内プレビュー、構成図、CAD図面の確認、レポート、AIアシスタント、Officeへの書き戻し。document-svg の7つの使い方。"
         },
         "title": "できること",
@@ -788,7 +790,7 @@
       },
       "formats": {
         "meta": {
-          "title": "対応形式 — document-svg",
+          "title": "対応形式：PDF・Office・CAD・図をSVGに変換 — document-svg",
           "description": "document-svg が開ける形式と書き戻せる形式をすべて検索でき、元とどのくらい一致するかも確かめられます。"
         },
         "title": "対応形式",
@@ -814,7 +816,7 @@
       },
       "samples": {
         "meta": {
-          "title": "サンプル — document-svg",
+          "title": "PDF・Office・CAD図面をSVGに変換したサンプル — document-svg",
           "description": "このリポジトリのサンプルファイルを document-svg で変換した、手直しなしのSVGです。"
         },
         "title": "変換すると、こうなります",
@@ -824,7 +826,7 @@
       },
       "start": {
         "meta": {
-          "title": "はじめる — document-svg",
+          "title": "はじめる：最初のファイルをSVGに変換する — document-svg",
           "description": "document-svg を入れて、最初のファイルを変換し、結果を確かめて、アプリに表示するまで。"
         },
         "title": "はじめる",
@@ -1017,7 +1019,7 @@
       },
       "ai": {
         "meta": {
-          "title": "AIエージェント向け — document-svg",
+          "title": "AIエージェントから使う（Claude Code・Codex・Copilot） — document-svg",
           "description": "Claude Code、Codex、GitHub Copilot から document-svg を使う方法と、AIエージェントに守ってほしいこと。"
         },
         "title": "AIエージェント向け",
@@ -1126,11 +1128,12 @@
           "docs": "文档",
           "support": "支持的功能与限制",
           "architecture": "内部架构"
-        }
+        },
+        "ogImageAlt": "document-svg：把 PDF、Office、图表和 CAD 文件变成 SVG 页面"
       },
       "home": {
         "meta": {
-          "title": "document-svg — 在自己的机器上，把文件的每一页变成 SVG",
+          "title": "document-svg — 在本地把 PDF、Word、Excel、PowerPoint 和 CAD 文件转换成 SVG",
           "description": "在你自己的机器上，把 PDF、Office、图表和 CAD 图纸转换成每页一个 SVG。文件不会上传，宏不会运行，没能还原的部分会写进报告。"
         },
         "hero": {
@@ -1218,7 +1221,7 @@
       },
       "useCases": {
         "meta": {
-          "title": "能做什么 — document-svg",
+          "title": "能做什么：文档预览、CAD 图纸检查、AI 助手 — document-svg",
           "description": "文档审查、应用内预览、架构图、CAD 图纸检查、报告、AI 助手、写回 Office：document-svg 的七种用法。"
         },
         "title": "能做什么",
@@ -1332,7 +1335,7 @@
       },
       "formats": {
         "meta": {
-          "title": "支持格式 — document-svg",
+          "title": "支持格式：PDF、Office、CAD 和图表转 SVG — document-svg",
           "description": "搜索 document-svg 能打开和写回的所有格式，并查看每种格式与原件的接近程度。"
         },
         "title": "支持格式",
@@ -1358,7 +1361,7 @@
       },
       "samples": {
         "meta": {
-          "title": "示例 — document-svg",
+          "title": "PDF、Office 和 CAD 转 SVG 示例 — document-svg",
           "description": "用 document-svg 转换本仓库示例文件得到的真实 SVG 页面，没有任何修饰。"
         },
         "title": "转换出来是这样的",
@@ -1368,7 +1371,7 @@
       },
       "start": {
         "meta": {
-          "title": "快速开始 — document-svg",
+          "title": "快速开始：把第一个文件转换成 SVG — document-svg",
           "description": "安装 document-svg，转换第一个文件，检查结果，并在应用中显示页面。"
         },
         "title": "快速开始",
@@ -1561,7 +1564,7 @@
       },
       "ai": {
         "meta": {
-          "title": "面向 AI 智能体 — document-svg",
+          "title": "在 AI 智能体中使用：Claude Code、Codex 和 Copilot — document-svg",
           "description": "从 Claude Code、Codex、GitHub Copilot 使用 document-svg 的方法，以及 AI 智能体需要遵守的规则。"
         },
         "title": "面向 AI 智能体",
