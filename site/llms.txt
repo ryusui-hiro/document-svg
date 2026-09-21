@@ -45,6 +45,14 @@ DOCX, XLSX, draw.io, DXF, G-code, STL, and several other native formats.
 - Packages: npm `document-svg`, PyPI `document-svg`, crates.io `document-svg`
 - License: MIT OR Apache-2.0
 
+## Project site pages
+
+- Use cases, each with the problem, the result and how to begin: https://ryusui-hiro.github.io/document-svg/use-cases.html
+- Searchable format list: https://ryusui-hiro.github.io/document-svg/formats.html
+- Getting started (install, first conversion, reading the report): https://ryusui-hiro.github.io/document-svg/start.html
+- Safety and limits (what is never executed or uploaded, and what is not guaranteed): https://ryusui-hiro.github.io/document-svg/safety.html
+- For AI agents (Claude Code, Codex and Copilot setup): https://ryusui-hiro.github.io/document-svg/ai.html
+
 ## Optional
 
-- Sample gallery (real SVGs produced by this repository's own generated sample files, not third-party content): https://ryusui-hiro.github.io/document-svg/#samples
+- Sample gallery (real SVGs produced by this repository's own generated sample files, not third-party content): https://ryusui-hiro.github.io/document-svg/samples.html

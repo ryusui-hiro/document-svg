@@ -118,28 +118,6 @@
           }
         },
         {
-          "ext": ".stepxml / .stpx / .step.xml",
-          "forward": "A",
-          "reverse": null,
-          "sample": null,
-          "note": {
-            "en": "ISO 10303-28 STEP-XML/AP242 product-data documents render bounded product, assembly-occurrence, representation, geometric-item, point, direction, property and external-reference counts. EXPRESS evaluation, external schema fetches, IDs, URLs and referenced CAD geometry remain inert. Limits: 128 MiB input, 1,000,000 XML events, 500,000 nodes, depth 128 and 200,000 rows. Source: https://www.iso.org/standard/40646.html",
-            "ja": "ISO 10303-28 STEP-XML/AP242 product dataのproduct、assembly occurrence、representation、geometric item、point、direction、property、external reference countをbounded表示。EXPRESS評価、外部schema取得、ID、URL、参照CAD geometryは不活性。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: https://www.iso.org/standard/40646.html",
-            "zh": "ISO 10303-28 STEP-XML/AP242 产品数据文档会渲染有界的产品、装配发生、表示、几何项、点、方向、属性和外部引用计数。EXPRESS 求值、外部模式获取、ID、URL 和引用 CAD 几何保持惰性。限制：输入128 MiB、1,000,000个 XML 事件、500,000个节点、深度128和200,000行。来源：https://www.iso.org/standard/40646.html"
-          }
-        },
-        {
-          "ext": ".qif / .qif.xml",
-          "forward": "A",
-          "reverse": null,
-          "sample": null,
-          "note": {
-            "en": "Quality Information Framework XML renders bounded Product, ProductDefinition, MeasurementPlan/InspectionPlan, MeasurementResults/QMResults, FeatureMeasurement, Characteristic, Datum, InspectionTraceability and ExternalFileReference counts. Measured values, tolerances, IDs, URLs and external CAD/inspection payloads remain inert. Limits: 128 MiB input, 1,000,000 XML events, 500,000 nodes, depth 128 and 200,000 rows. Source: https://qifstandards.org/overview/",
-            "ja": "Quality Information Framework XMLのProduct、ProductDefinition、MeasurementPlan/InspectionPlan、MeasurementResults/QMResults、FeatureMeasurement、Characteristic、Datum、InspectionTraceability、ExternalFileReference countをbounded表示。測定値、tolerance、ID、URL、外部CAD/inspection payloadは不活性。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: https://qifstandards.org/overview/",
-            "zh": "Quality Information Framework XML 会渲染有界的 Product、ProductDefinition、MeasurementPlan/InspectionPlan、MeasurementResults/QMResults、FeatureMeasurement、Characteristic、Datum、InspectionTraceability 和 ExternalFileReference 计数。测量值、公差、ID、URL 及外部 CAD/检测载荷保持惰性。限制：输入128 MiB、1,000,000个 XML 事件、500,000个节点、深度128和200,000行。来源：https://qifstandards.org/overview/"
-          }
-        },
-        {
           "ext": ".b2mml / .b2mml.xml",
           "forward": "A",
           "reverse": null,
@@ -458,28 +436,6 @@
           }
         },
         {
-          "ext": ".vsdx / .vsdm / .vstx / .vstm / .vdx",
-          "forward": "A",
-          "reverse": null,
-          "sample": null,
-          "note": {
-            "en": "Visio Open XML drawings/templates and legacy VDX XML drawings — follows internal package relationships or standalone XML page order; renders direct ShapeSheet paths/styles, common named shapes, text, and straight one-dimensional connector endpoints. Master inheritance, groups, foreign objects, arrowheads, and curved routing are omitted or approximated with warnings. External relationships are not fetched and macros are never executed.",
-            "ja": "Visio Open XML図面/テンプレートと旧VDX XML図面 — package内部relationshipまたはXML内ページ順をたどり、ShapeSheetに直接あるpath/style、基本的な名前付き図形、text、直線connector端点を描画。master継承、group、foreign object、arrowhead、曲線routingは警告付きで省略または近似。外部relationshipは取得せず、macroは実行しません。",
-            "zh": "Visio Open XML 绘图/模板及旧版 VDX XML 绘图 — 按内部包关系或独立 XML 页面顺序读取，渲染直接 ShapeSheet 路径/样式、常见命名形状、文本和直线连接器端点。母版继承、组合、外来对象、箭头及曲线路由会警告后省略或近似；不获取外部关系，也不执行宏。"
-          }
-        },
-        {
-          "ext": ".vsd / .vss / .vst / .vsw",
-          "forward": "A",
-          "reverse": null,
-          "sample": "vsd",
-          "note": {
-            "en": "Legacy Visio Compound File Binary drawings, stencils, templates and workspaces are validated and rendered as bounded stream/storage metadata. Opaque ShapeSheet geometry, text, styles, macros, OLE payloads and external links remain inert.",
-            "ja": "旧Visio Compound File Binaryのdrawing/stencil/template/workspaceを検証し、stream/storage metadataをbounded表示。ShapeSheet geometry、text、style、macro、OLE payload、外部linkは不活性。",
-            "zh": "验证旧版 Visio Compound File Binary 绘图、模具、模板和工作区，并将流/存储元数据以有界表格渲染。ShapeSheet 几何、文本、样式、宏、OLE 负载和外部链接保持不活动。"
-          }
-        },
-        {
           "ext": ".pages / .numbers / .key",
           "forward": "A",
           "reverse": null,
@@ -491,28 +447,6 @@
           }
         },
         {
-          "ext": ".dwg",
-          "forward": "A",
-          "reverse": null,
-          "sample": null,
-          "note": {
-            "en": "Autodesk DWG binary drawings are preflighted from their fixed six-byte AC10xx version header and file size without decoding compressed sections, entities, blocks, layers, proxy graphics, macros or external references.",
-            "ja": "Autodesk DWG binary drawingを固定6-byte AC10xx version headerとfile sizeだけで事前検証し、compressed section、entity、block、layer、proxy graphic、macro、外部referenceはデコードしません。",
-            "zh": "Autodesk DWG 二进制绘图仅根据固定的六字节 AC10xx 版本头和文件大小进行预检，不解码压缩区段、实体、块、图层、代理图形、宏或外部引用。"
-          }
-        },
-        {
-          "ext": ".3dm",
-          "forward": "A",
-          "reverse": null,
-          "sample": null,
-          "note": {
-            "en": "Rhino/OpenNURBS 3DM files are preflighted from the stable `3D Geometry File Format` marker and bounded header bytes. NURBS/mesh chunks, layers, materials, textures, plug-in data and external resources remain inert.",
-            "ja": "Rhino/OpenNURBS 3DMを安定した`3D Geometry File Format` markerとbounded header bytesから事前検証。NURBS/mesh chunk、layer、material、texture、plugin、外部resourceは不活性。",
-            "zh": "Rhino/OpenNURBS 3DM 文件根据稳定的 `3D Geometry File Format` 标记和有界头字节进行预检。NURBS/网格区块、图层、材质、纹理、插件数据和外部资源保持不活动。"
-          }
-        },
-        {
           "ext": ".accdb / .accde / .accdr / .mdb / .mde / .mda / .mdt / .accdt / .ade",
           "forward": "A",
           "reverse": null,
@@ -521,17 +455,6 @@
             "en": "Microsoft Access ACE/Jet database headers are inspected for the engine marker and page-size metadata. Tables, queries, forms, reports, attachments, VBA/data macros, linked databases and encryption payloads remain inert.",
             "ja": "Microsoft Access ACE/Jet databaseのengine markerとpage-size metadataだけを検証。table、query、form、report、attachment、VBA/data macro、linked database、暗号化payloadは不活性。",
             "zh": "检查 Microsoft Access ACE/Jet 数据库头中的引擎标记和页面大小元数据。表、查询、窗体、报表、附件、VBA/数据宏、链接数据库及加密负载保持不活动。"
-          }
-        },
-        {
-          "ext": ".3dxml",
-          "forward": "A",
-          "reverse": null,
-          "sample": null,
-          "note": {
-            "en": "Dassault 3DXML ZIP packages validate the local Manifest.xml to Root relationship and render bounded ProductStructure, Reference3D, Instance3D, ReferenceRep, InstanceRep and representation counts. Binary 3DRep tessellation, exact geometry, textures and external resources remain inert.",
-            "ja": "Dassault 3DXML ZIP packageのlocal Manifest.xml→Root relationshipを検証し、ProductStructure、Reference3D、Instance3D、ReferenceRep、InstanceRep、representation countをbounded表示。binary 3DRep tessellation、exact geometry、texture、外部resourceは不活性。",
-            "zh": "Dassault 3DXML ZIP 包验证本地 Manifest.xml 到 Root 的关系，并渲染有界的 ProductStructure、Reference3D、Instance3D、ReferenceRep、InstanceRep 和表示计数。二进制 3DRep 镶嵌、精确几何、纹理和外部资源保持不活动。"
           }
         },
         {
@@ -847,6 +770,28 @@
             "en": "Flowcharts and sequence diagrams. Reverse: metadata restore (A) or heuristic extraction (C).",
             "ja": "フローチャートとシーケンス図に対応。逆変換: メタデータ復元（A）、またはヒューリスティック抽出（C）。",
             "zh": "流程图与时序图。反向：元数据还原（A），或启发式提取（C）。"
+          }
+        },
+        {
+          "ext": ".vsdx / .vsdm / .vstx / .vstm / .vdx",
+          "forward": "A",
+          "reverse": null,
+          "sample": null,
+          "note": {
+            "en": "Visio Open XML drawings/templates and legacy VDX XML drawings — follows internal package relationships or standalone XML page order; renders direct ShapeSheet paths/styles, common named shapes, text, and straight one-dimensional connector endpoints. Master inheritance, groups, foreign objects, arrowheads, and curved routing are omitted or approximated with warnings. External relationships are not fetched and macros are never executed.",
+            "ja": "Visio Open XML図面/テンプレートと旧VDX XML図面 — package内部relationshipまたはXML内ページ順をたどり、ShapeSheetに直接あるpath/style、基本的な名前付き図形、text、直線connector端点を描画。master継承、group、foreign object、arrowhead、曲線routingは警告付きで省略または近似。外部relationshipは取得せず、macroは実行しません。",
+            "zh": "Visio Open XML 绘图/模板及旧版 VDX XML 绘图 — 按内部包关系或独立 XML 页面顺序读取，渲染直接 ShapeSheet 路径/样式、常见命名形状、文本和直线连接器端点。母版继承、组合、外来对象、箭头及曲线路由会警告后省略或近似；不获取外部关系，也不执行宏。"
+          }
+        },
+        {
+          "ext": ".vsd / .vss / .vst / .vsw",
+          "forward": "A",
+          "reverse": null,
+          "sample": "vsd",
+          "note": {
+            "en": "Legacy Visio Compound File Binary drawings, stencils, templates and workspaces are validated and rendered as bounded stream/storage metadata. Opaque ShapeSheet geometry, text, styles, macros, OLE payloads and external links remain inert.",
+            "ja": "旧Visio Compound File Binaryのdrawing/stencil/template/workspaceを検証し、stream/storage metadataをbounded表示。ShapeSheet geometry、text、style、macro、OLE payload、外部linkは不活性。",
+            "zh": "验证旧版 Visio Compound File Binary 绘图、模具、模板和工作区，并将流/存储元数据以有界表格渲染。ShapeSheet 几何、文本、样式、宏、OLE 负载和外部链接保持不活动。"
           }
         }
       ]
@@ -1246,6 +1191,61 @@
             "en": "ASCII ACIS SAT renders bounded body, solid, lump, shell, face, loop, coedge, edge, vertex, surface and transform entity counts. Geometry, NURBS, topology, binary SAB, tessellation and Boolean operations remain inert. Limits: 256 MiB input, 2,000,000 lines, 500,000 entities and 200,000 rows. Source: https://help.autodesk.com/cloudhelp/2023/ENU/AutoCAD-Core/files/GUID-46B2F3E3-F933-4411-94D7-DC4E11D3EC60.htm",
             "ja": "ASCII ACIS SATのbody、solid、lump、shell、face、loop、coedge、edge、vertex、surface、transform entity countをbounded表示。geometry、NURBS、topology、binary SAB、tessellation、Boolean operationは不活性。上限: 入力256 MiB、2,000,000 line、entity 500,000、row 200,000。出典: https://help.autodesk.com/cloudhelp/2023/ENU/AutoCAD-Core/files/GUID-46B2F3E3-F933-4411-94D7-DC4E11D3EC60.htm",
             "zh": "ASCII ACIS SAT 渲染有界 body、solid、lump、shell、face、loop、coedge、edge、vertex、surface 和 transform 实体计数。几何、NURBS、拓扑、二进制 SAB、镶嵌和布尔操作保持惰性。限制：输入256 MiB、2,000,000行、500,000个实体和200,000行。来源：https://help.autodesk.com/cloudhelp/2023/ENU/AutoCAD-Core/files/GUID-46B2F3E3-F933-4411-94D7-DC4E11D3EC60.htm"
+          }
+        },
+        {
+          "ext": ".stepxml / .stpx / .step.xml",
+          "forward": "A",
+          "reverse": null,
+          "sample": null,
+          "note": {
+            "en": "ISO 10303-28 STEP-XML/AP242 product-data documents render bounded product, assembly-occurrence, representation, geometric-item, point, direction, property and external-reference counts. EXPRESS evaluation, external schema fetches, IDs, URLs and referenced CAD geometry remain inert. Limits: 128 MiB input, 1,000,000 XML events, 500,000 nodes, depth 128 and 200,000 rows. Source: https://www.iso.org/standard/40646.html",
+            "ja": "ISO 10303-28 STEP-XML/AP242 product dataのproduct、assembly occurrence、representation、geometric item、point、direction、property、external reference countをbounded表示。EXPRESS評価、外部schema取得、ID、URL、参照CAD geometryは不活性。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: https://www.iso.org/standard/40646.html",
+            "zh": "ISO 10303-28 STEP-XML/AP242 产品数据文档会渲染有界的产品、装配发生、表示、几何项、点、方向、属性和外部引用计数。EXPRESS 求值、外部模式获取、ID、URL 和引用 CAD 几何保持惰性。限制：输入128 MiB、1,000,000个 XML 事件、500,000个节点、深度128和200,000行。来源：https://www.iso.org/standard/40646.html"
+          }
+        },
+        {
+          "ext": ".qif / .qif.xml",
+          "forward": "A",
+          "reverse": null,
+          "sample": null,
+          "note": {
+            "en": "Quality Information Framework XML renders bounded Product, ProductDefinition, MeasurementPlan/InspectionPlan, MeasurementResults/QMResults, FeatureMeasurement, Characteristic, Datum, InspectionTraceability and ExternalFileReference counts. Measured values, tolerances, IDs, URLs and external CAD/inspection payloads remain inert. Limits: 128 MiB input, 1,000,000 XML events, 500,000 nodes, depth 128 and 200,000 rows. Source: https://qifstandards.org/overview/",
+            "ja": "Quality Information Framework XMLのProduct、ProductDefinition、MeasurementPlan/InspectionPlan、MeasurementResults/QMResults、FeatureMeasurement、Characteristic、Datum、InspectionTraceability、ExternalFileReference countをbounded表示。測定値、tolerance、ID、URL、外部CAD/inspection payloadは不活性。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: https://qifstandards.org/overview/",
+            "zh": "Quality Information Framework XML 会渲染有界的 Product、ProductDefinition、MeasurementPlan/InspectionPlan、MeasurementResults/QMResults、FeatureMeasurement、Characteristic、Datum、InspectionTraceability 和 ExternalFileReference 计数。测量值、公差、ID、URL 及外部 CAD/检测载荷保持惰性。限制：输入128 MiB、1,000,000个 XML 事件、500,000个节点、深度128和200,000行。来源：https://qifstandards.org/overview/"
+          }
+        },
+        {
+          "ext": ".dwg",
+          "forward": "A",
+          "reverse": null,
+          "sample": null,
+          "note": {
+            "en": "Autodesk DWG binary drawings are preflighted from their fixed six-byte AC10xx version header and file size without decoding compressed sections, entities, blocks, layers, proxy graphics, macros or external references.",
+            "ja": "Autodesk DWG binary drawingを固定6-byte AC10xx version headerとfile sizeだけで事前検証し、compressed section、entity、block、layer、proxy graphic、macro、外部referenceはデコードしません。",
+            "zh": "Autodesk DWG 二进制绘图仅根据固定的六字节 AC10xx 版本头和文件大小进行预检，不解码压缩区段、实体、块、图层、代理图形、宏或外部引用。"
+          }
+        },
+        {
+          "ext": ".3dm",
+          "forward": "A",
+          "reverse": null,
+          "sample": null,
+          "note": {
+            "en": "Rhino/OpenNURBS 3DM files are preflighted from the stable `3D Geometry File Format` marker and bounded header bytes. NURBS/mesh chunks, layers, materials, textures, plug-in data and external resources remain inert.",
+            "ja": "Rhino/OpenNURBS 3DMを安定した`3D Geometry File Format` markerとbounded header bytesから事前検証。NURBS/mesh chunk、layer、material、texture、plugin、外部resourceは不活性。",
+            "zh": "Rhino/OpenNURBS 3DM 文件根据稳定的 `3D Geometry File Format` 标记和有界头字节进行预检。NURBS/网格区块、图层、材质、纹理、插件数据和外部资源保持不活动。"
+          }
+        },
+        {
+          "ext": ".3dxml",
+          "forward": "A",
+          "reverse": null,
+          "sample": null,
+          "note": {
+            "en": "Dassault 3DXML ZIP packages validate the local Manifest.xml to Root relationship and render bounded ProductStructure, Reference3D, Instance3D, ReferenceRep, InstanceRep and representation counts. Binary 3DRep tessellation, exact geometry, textures and external resources remain inert.",
+            "ja": "Dassault 3DXML ZIP packageのlocal Manifest.xml→Root relationshipを検証し、ProductStructure、Reference3D、Instance3D、ReferenceRep、InstanceRep、representation countをbounded表示。binary 3DRep tessellation、exact geometry、texture、外部resourceは不活性。",
+            "zh": "Dassault 3DXML ZIP 包验证本地 Manifest.xml 到 Root 的关系，并渲染有界的 ProductStructure、Reference3D、Instance3D、ReferenceRep、InstanceRep 和表示计数。二进制 3DRep 镶嵌、精确几何、纹理和外部资源保持不活动。"
           }
         }
       ]

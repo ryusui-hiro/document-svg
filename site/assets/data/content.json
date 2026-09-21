@@ -16,501 +16,1632 @@
   "defaultLang": "en",
   "strings": {
     "en": {
-      "meta": {
-        "title": "document-svg — see every page of a file as SVG, on your own machine",
-        "description": "Turn PDFs, Office files, diagrams and CAD drawings into one SVG per page on your own machine. Nothing is uploaded, macros never run, and a report tells you what didn't come across."
+      "site": {
+        "nav": {
+          "home": "Home",
+          "useCases": "What you can do",
+          "formats": "Formats",
+          "samples": "Samples",
+          "start": "Get started",
+          "safety": "Safety & limits",
+          "ai": "For AI agents",
+          "github": "GitHub"
+        },
+        "toc": "On this page",
+        "next": "Read next",
+        "noscript": "This site needs JavaScript to show its content. The same information is in the README on GitHub.",
+        "footer": {
+          "tagline": "Free and open source (MIT or Apache-2.0). Runs on your machine: no upload, no network calls, no tracking.",
+          "repo": "Repository",
+          "releases": "Releases",
+          "docs": "Documentation",
+          "support": "Supported features & limitations",
+          "architecture": "Architecture"
+        }
       },
-      "nav": {
-        "why": "Why",
-        "useCases": "Use cases",
-        "forAI": "For AI agents",
-        "formats": "Format map",
-        "samples": "Samples",
-        "install": "Install",
-        "github": "GitHub",
-        "usage": "Module usage"
-      },
-      "hero": {
-        "eyebrow": "Rust · Node.js · Python · CLI",
-        "title": "See every page of a file, without the app that made it.",
-        "description": "document-svg turns PDFs, Word, Excel and PowerPoint files, diagrams and CAD drawings into ordinary SVG images, one per page, that any browser can show. It runs on your own machine, never uploads the file, and tells you plainly which parts it could not reproduce.",
-        "ctaPrimary": "Read the install guide",
-        "ctaSecondary": "See the format map",
-        "ctaTertiary": "Browse the samples"
-      },
-      "stats": {
-        "formats": "formats it can open",
-        "extensions": "file extensions recognized",
-        "reverse": "formats it can write back to",
-        "uploads": "files sent to a server"
-      },
-      "whySection": {
-        "title": "Why use it",
-        "description": "Building document previews usually means choosing between installing heavy software and sending files to someone else's server. document-svg needs neither.",
-        "items": [
+      "home": {
+        "meta": {
+          "title": "document-svg — see every page of a file as SVG, on your own machine",
+          "description": "Turn PDFs, Office files, diagrams and CAD drawings into one SVG per page on your own machine. Nothing is uploaded, macros never run, and a report tells you what didn't come across."
+        },
+        "hero": {
+          "eyebrow": "Rust · Node.js · Python · CLI",
+          "title": "See every page of a file, without the app that made it.",
+          "description": "document-svg turns PDFs, Word, Excel and PowerPoint files, diagrams and CAD drawings into ordinary SVG images, one per page, that any browser can show. It runs on your own machine, never uploads the file, and tells you plainly which parts it could not reproduce.",
+          "ctaPrimary": "Get started",
+          "ctaSecondary": "Check if your file works",
+          "ctaTertiary": "See real results"
+        },
+        "stats": {
+          "formats": "formats it can open",
+          "extensions": "file extensions recognized",
+          "reverse": "formats it can write back to",
+          "uploads": "files sent to a server"
+        },
+        "why": {
+          "title": "Why use it",
+          "description": "Building document previews usually means choosing between installing heavy software and sending files to someone else's server. document-svg needs neither.",
+          "items": [
+            {
+              "icon": "🔒",
+              "title": "Your files stay with you",
+              "description": "Conversion happens on your computer, your own server or inside a browser tab. There is no upload, no account and no usage tracking, so contracts and design drawings that must not leave the company can still get a preview."
+            },
+            {
+              "icon": "👀",
+              "title": "Anyone can look",
+              "description": "The result is a plain SVG image. Every modern browser shows it, it drops into any web page, and it stays sharp when you zoom in. The people reviewing it don't need Office, AutoCAD or a viewer licence."
+            },
+            {
+              "icon": "🧾",
+              "title": "It tells you what it missed",
+              "description": "No converter reproduces everything. Instead of quietly dropping a chart or a font, document-svg lists what it skipped or approximated, page by page. You read that and decide whether the result is good enough to share."
+            },
+            {
+              "icon": "🛡️",
+              "title": "Opening a file never runs it",
+              "description": "Macros, scripts, form actions and links to outside resources are shown or skipped, never executed. Size and page limits stop a huge or broken file from eating all the memory. Treat this as one layer of protection, not a guarantee."
+            },
+            {
+              "icon": "🧩",
+              "title": "One tool instead of dozens",
+              "description": "Office documents, PDFs, diagrams, CAD and 3D models, scientific and business data: hundreds of formats go through the same command and come out the same way. Some are drawn in full, others as a clear summary of what's inside. The format list says which."
+            },
+            {
+              "icon": "↩️",
+              "title": "And the way back",
+              "description": "An SVG you have edited can be turned back into a PowerPoint, Word, Excel, draw.io or CAD file. What comes back is how it looks; the original paragraphs, cells and formulas are not rebuilt."
+            }
+          ]
+        },
+        "useCases": {
+          "title": "What you can do with it",
+          "description": "It isn't an app you open on its own. It is a part you build into something else: a review process, a website, your own software or an AI assistant.",
+          "more": "Read each example in detail"
+        },
+        "samples": {
+          "title": "What the results look like",
+          "description": "Each image is an unretouched conversion of a sample file from this repository.",
+          "more": "See all samples"
+        },
+        "next": [
           {
-            "icon": "🔒",
-            "title": "Your files stay with you",
-            "description": "Conversion happens on your computer, your own server or inside a browser tab. There is no upload, no account and no usage tracking, so contracts and design drawings that must not leave the company can still get a preview."
+            "href": "formats.html",
+            "title": "Will my file work?",
+            "description": "Search the list of supported formats and see how close each one gets to the original."
           },
           {
-            "icon": "👀",
-            "title": "Anyone can look",
-            "description": "The result is a plain SVG image. Every modern browser shows it, it drops into any web page, and it stays sharp when you zoom in. The people reviewing it don't need Office, AutoCAD or a viewer licence."
+            "href": "start.html",
+            "title": "Try it in five minutes",
+            "description": "Install one package and convert your first file."
           },
           {
-            "icon": "🧾",
-            "title": "It tells you what it missed",
-            "description": "No converter reproduces everything. Instead of quietly dropping a chart or a font, document-svg lists what it skipped or approximated, page by page. You read that and decide whether the result is good enough to share."
+            "href": "safety.html",
+            "title": "Is it safe for work files?",
+            "description": "What it never does with your files, and what it can't promise."
           },
           {
-            "icon": "🛡️",
-            "title": "Opening a file never runs it",
-            "description": "Macros, scripts, form actions and links to outside resources are shown or skipped, never executed. Size and page limits stop a huge or broken file from eating all the memory. Treat this as one layer of protection, not a guarantee."
-          },
-          {
-            "icon": "🧩",
-            "title": "One tool instead of dozens",
-            "description": "Office documents, PDFs, diagrams, CAD and 3D models, scientific and business data: hundreds of formats go through the same command and come out the same way. Some are drawn in full, others as a clear summary of what's inside. The format map below says which."
-          },
-          {
-            "icon": "↩️",
-            "title": "And the way back",
-            "description": "An SVG you have edited can be turned back into a PowerPoint, Word, Excel, draw.io or CAD file. What comes back is how it looks; the original paragraphs, cells and formulas are not rebuilt."
+            "href": "ai.html",
+            "title": "Using it from an AI assistant",
+            "description": "Plugins for Claude Code and Codex, and the rules an agent should follow."
           }
         ]
       },
-      "useCasesSection": {
-        "title": "What you can do with it",
-        "description": "document-svg isn't an app you open on its own. It is a part you build into something else: a review process, a website, your own software or an AI assistant.",
+      "useCases": {
+        "meta": {
+          "title": "What you can do — document-svg",
+          "description": "Seven ways people use document-svg: document review, in-app previews, diagrams, CAD checks, reports, AI assistants and exporting back to Office."
+        },
+        "title": "What you can do",
+        "description": "Each example starts from a problem people actually run into, then shows what changes and how to begin.",
+        "labels": {
+          "who": "Who it's for",
+          "problem": "The problem today",
+          "after": "With document-svg",
+          "start": "How to begin"
+        },
         "items": [
           {
+            "id": "review",
             "icon": "🔍",
             "title": "See document changes in code review",
-            "description": "When a slide deck, spreadsheet, Word file or PDF changes in a pull request, reviewers normally see only \"binary file changed\". The included GitHub Action converts each changed document into pages you can download from the run, and comments with how many pages each one has and how many warnings came up."
+            "summary": "Reviewers see the changed pages instead of \"binary file changed\".",
+            "who": "Teams that keep specifications, design documents or quotes in a Git repository.",
+            "problem": "When a PowerPoint, Excel file or PDF changes, the pull request only says \"binary file changed\". To see what actually changed, someone has to download the file and open it.",
+            "after": "Every changed document is converted into SVG pages that can be downloaded from the workflow run. A comment lists how many pages and warnings each document has, so you can tell at a glance which files need a closer look.",
+            "start": "Add one short workflow file that calls the included workflow. Nothing needs to be installed on your side.",
+            "link": {
+              "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+              "label": "GitHub setup steps"
+            }
           },
           {
+            "id": "in-app",
             "icon": "🖥️",
             "title": "Preview uploads inside your own app",
-            "description": "Let users see the documents and drawings they upload without installing Office on your server or paying for a viewer SDK. Convert once, then show the pages like any other image."
+            "summary": "Show users their documents without Office on the server or a paid viewer.",
+            "who": "Developers of internal systems and web services that need to show files their users upload.",
+            "problem": "Previewing Office files usually means installing Office or a converter on the server, paying for a viewer SDK, or sending the files to an outside conversion service.",
+            "after": "Call it from Node.js or Python and you get one SVG per page, ready to show as an image. Conversion finishes inside your server, so the file never leaves it.",
+            "start": "Install the npm or pip package and call the convert function. For PDF, Word, Excel and PowerPoint only, there is also a WebAssembly version that converts inside the browser (you build it yourself).",
+            "link": {
+              "href": "start.html",
+              "label": "Get started"
+            }
           },
           {
+            "id": "diagrams",
             "icon": "🧭",
             "title": "Keep diagrams in step with the code",
-            "description": "Write architecture diagrams as text next to your code (draw.io, Mermaid, PlantUML, D2, Graphviz) and turn them into images every time the documentation is built. The picture never falls behind."
+            "summary": "Diagrams are rebuilt from text every time the documentation is.",
+            "who": "Engineers who put architecture diagrams in design documents or a wiki.",
+            "problem": "When a diagram is drawn in a separate tool and pasted in as a picture, the code moves on and the diagram stays old. Nobody can tell who changed it or when.",
+            "after": "Keep diagrams as draw.io, Mermaid, PlantUML, D2 or Graphviz text next to the code, and turn them into SVG every time the documentation is built. Diagram changes get reviewed like code changes.",
+            "start": "Add one conversion command to your documentation build.",
+            "link": {
+              "href": "formats.html#diagrams",
+              "label": "Supported diagram formats"
+            }
           },
           {
+            "id": "cad",
             "icon": "🛠️",
             "title": "Check drawings and models without CAD",
-            "description": "Take a quick look at floor plans, circuit boards, machining paths and 3D models from a web page or dashboard. Made for the people who review designs but don't have a CAD licence."
+            "summary": "Look at plans, boards and 3D models from a web page.",
+            "who": "People in manufacturing and construction who check drawings but don't make them, and the developers who build tools for them.",
+            "problem": "Checking a single drawing often needs expensive CAD software and a licence. Giving one to everyone who reviews drawings isn't realistic.",
+            "after": "Floor plans (DXF), circuit boards (Gerber), machining paths (G-code) and 3D models (STL, OBJ, STEP) can be shown on a web page or dashboard.",
+            "start": "Look up your file type in the format list to see how much of it gets drawn. Some formats show a summary of their contents rather than the full drawing.",
+            "link": {
+              "href": "formats.html#cad",
+              "label": "CAD and 3D formats"
+            }
           },
           {
+            "id": "reports",
             "icon": "📊",
             "title": "Turn data into report-ready images",
-            "description": "Tables, charts and formulas become crisp images that come out identical every time they are generated, which is what automated reports and documentation need."
+            "summary": "Tables, charts and formulas that look the same every time.",
+            "who": "Anyone producing regular reports or technical documents automatically.",
+            "problem": "Everyone turns tables and charts into pictures their own way, and the result looks a little different every time.",
+            "after": "CSV tables, chart data and LaTeX formulas become SVG images that come out identical on every run. They stay sharp when zoomed, so they print well too.",
+            "start": "Prepare the data file and convert it with the same command as any other document.",
+            "link": {
+              "href": "formats.html#data",
+              "label": "Data and formula formats"
+            }
           },
           {
+            "id": "ai",
             "icon": "🤖",
             "title": "Let an AI assistant read documents",
-            "description": "Give an assistant one dependable step: convert the file into pages, then check the report for anything missing. No screenshots, no fragile browser automation, and the assistant can tell for itself when something didn't convert."
+            "summary": "One dependable step instead of screenshots and browser automation.",
+            "who": "People who want an AI agent to review or produce documents.",
+            "problem": "Showing a document to an AI usually means screenshots or automating a browser. Both break easily, and nobody can tell how much the AI actually saw.",
+            "after": "Give the assistant a fixed routine: convert the file into pages, then check the report for anything missing. If part of the file didn't convert, the assistant can see that in the report.",
+            "start": "Install the plugin for Claude Code or Codex, or let the assistant run the command directly.",
+            "link": {
+              "href": "ai.html",
+              "label": "For AI agents"
+            }
           },
           {
+            "id": "back",
             "icon": "🔁",
             "title": "Hand edited graphics back to Office or CAD",
-            "description": "If your tool edits SVG, document-svg can package the result as a PowerPoint, Word, Excel, draw.io or CAD file, so colleagues keep working in the software they already use."
+            "summary": "Package SVG pages as PowerPoint, Word, Excel, draw.io or CAD files.",
+            "who": "Developers of tools that create or edit SVG and need to hand the result over as an Office or CAD file.",
+            "problem": "Colleagues can't open a folder of SVG files in the software they use every day.",
+            "after": "SVG pages can be packaged as PowerPoint, Word, Excel, PDF, draw.io or DXF files. What comes back is how it looks; paragraphs, cells and formulas are not rebuilt. A draw.io diagram comes back editable if its source was embedded in the SVG.",
+            "start": "Point the write-back command at a folder of SVG pages.",
+            "link": {
+              "href": "formats.html",
+              "label": "Formats you can write back to"
+            }
           }
         ]
       },
-      "forAISection": {
-        "title": "Ready for AI agents",
-        "description": "An AI assistant can learn how to use document-svg from this site without reading any code. The format list is published as a data file, and there is a short summary written for language models.",
-        "llmsTitle": "llms.txt",
-        "llmsDescription": "A short summary of the project written for AI assistants: what it does, how to call it, and which links to read next.",
-        "llmsLink": "Open llms.txt",
-        "contractTitle": "What an agent should know",
-        "contractItems": [
-          "For ordinary files, use the simple convert step. The lower-level building blocks are for people drawing SVG from their own shapes.",
-          "The file extension decides how a file is read. Check the format map before assuming a type is supported.",
-          "Every page, slide or sheet becomes its own SVG, and one report covers the whole job.",
-          "Finishing without an error does not mean perfect. Warnings mean a person should take a look.",
-          "Use only the published interface. The internal readers can change between releases.",
-          "Don't raise the safety limits to force a difficult file through. They protect the machine from oversized or hostile files.",
-          "Turning an SVG back into Office or CAD keeps how it looks, not the original text flow, cells or formulas."
+      "formats": {
+        "meta": {
+          "title": "Supported formats — document-svg",
+          "description": "Search every file format document-svg can open or write back to, and see how closely each result matches the original."
+        },
+        "title": "Supported formats",
+        "description": "Check here whether your file will work. Search by extension or name, or pick a field on the left.",
+        "howTitle": "How to read the table",
+        "how": [
+          "\"To SVG\" means the file can be converted into SVG pages.",
+          "\"From SVG\" means SVG pages can be turned back into that kind of file.",
+          "A, B and C show how closely the result matches the original. A dash means that direction isn't supported.",
+          "Some formats are shown as a summary of their contents (for example page or item counts) rather than a full drawing. The description on each row says which."
         ],
-        "guideLink": "Read the full guide for AI agents"
-      },
-      "formatsSection": {
-        "title": "Format support map",
-        "description": "Look up your file type. Each row shows whether it can be turned into SVG, whether SVG can be turned back into it, and how closely the result matches the original.",
         "legendTitle": "How closely it matches",
-        "filterAll": "All categories",
+        "searchLabel": "Search by extension or name",
+        "searchPlaceholder": "e.g. .dwg, PowerPoint, STL",
+        "count": "{n} formats",
+        "none": "Nothing found. Try another spelling, with or without the leading dot.",
+        "request": "Need a format that isn't here? Tell us in a GitHub issue.",
         "colExt": "Extensions",
         "colForward": "To SVG",
         "colReverse": "From SVG",
-        "colNotes": "Notes"
+        "colNotes": "What you get",
+        "reverseOnly": "Only formats you can write back to"
       },
-      "gallerySection": {
-        "title": "Samples",
+      "samples": {
+        "meta": {
+          "title": "Samples — document-svg",
+          "description": "Real, unretouched SVG pages converted by document-svg from sample files in this repository."
+        },
+        "title": "What the results look like",
         "description": "Every image below was produced by document-svg from the sample file linked under it, with no retouching. The sample files themselves are made by this repository's own scripts.",
         "viewSvg": "Open SVG",
-        "viewSource": "View source"
+        "viewSource": "Sample file"
       },
-      "installSection": {
-        "title": "Install",
-        "description": "Pick the one that fits how you work. You only need one.",
+      "start": {
+        "meta": {
+          "title": "Get started — document-svg",
+          "description": "Install document-svg, convert your first file, read the report and show the pages in your app."
+        },
+        "title": "Get started",
+        "description": "From installing to showing the first page in your app. Most people are done in about five minutes.",
+        "sections": [
+          {
+            "id": "choose",
+            "title": "1. Pick how you'll use it",
+            "paras": [
+              "You only need one of these. Choose by where you want to call it from."
+            ],
+            "cards": [
+              {
+                "title": "From the command line",
+                "text": "For converting files in a terminal or a CI job. If you have Rust, install with cargo. If not, download the file for your system from the Releases page.",
+                "code": "cargo install document-svg --locked"
+              },
+              {
+                "title": "Node.js / TypeScript",
+                "text": "For converting inside a web or Electron app. Type definitions are included.",
+                "code": "npm install document-svg"
+              },
+              {
+                "title": "Python",
+                "text": "For converting inside scripts and data pipelines. Python 3.10 or newer.",
+                "code": "python -m pip install document-svg"
+              },
+              {
+                "title": "Rust",
+                "text": "For building it into a Rust program.",
+                "code": "cargo add document-svg"
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/releases",
+                "label": "Download a ready-made command (Releases)"
+              }
+            ]
+          },
+          {
+            "id": "convert",
+            "title": "2. Convert your first file",
+            "paras": [
+              "The same conversion works the same way from anywhere. Each example runs as written."
+            ],
+            "usage": true
+          },
+          {
+            "id": "check",
+            "title": "3. Check the result",
+            "paras": [
+              "Give it a new or empty output folder. Inside you get one SVG per page and one record of the conversion (conversion.json)."
+            ],
+            "code": "output/slides/\n├── page-0001.svg\n├── page-0002.svg\n└── conversion.json",
+            "bullets": [
+              "The record lists, as warnings, anything that could not be reproduced exactly.",
+              "Finishing without an error is not the same as perfect. If there are warnings, have a person look at the pages.",
+              "Even with no warnings, the pages are not guaranteed to match Office pixel for pixel. Text, for example, uses the fonts available where the SVG is viewed."
+            ]
+          },
+          {
+            "id": "show",
+            "title": "4. Show it in your app",
+            "paras": [
+              "Show each SVG as an image, for example with an image element. Don't paste the SVG's markup straight into your page's HTML.",
+              "The included display helpers do some basic checks, but they are not a filter that makes any SVG harmless."
+            ]
+          },
+          {
+            "id": "tools",
+            "title": "5. Use it from tools you already have",
+            "cards": [
+              {
+                "title": "GitHub Actions",
+                "text": "Convert the documents a pull request changes, automatically."
+              },
+              {
+                "title": "Claude Code / Codex",
+                "text": "Add it to your AI assistant as a plugin."
+              },
+              {
+                "title": "GitHub CLI",
+                "text": "Use it as the gh docsvg command after running the installer in a local checkout."
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+                "label": "Setup steps for GitHub and AI tools"
+              }
+            ]
+          },
+          {
+            "id": "trouble",
+            "title": "6. If something goes wrong",
+            "bullets": [
+              "Ready-made packages exist for Windows, macOS and Linux, on both x64 and ARM64.",
+              "Python on Alpine Linux has no ready-made package, so Rust and build tools are needed there.",
+              "If the npm package installs but won't load, check that optional dependencies were installed and that Node.js matches your machine's CPU. Copying node_modules to another system won't work.",
+              "The SVG pages display in current browsers, resvg, and librsvg 2.46 or newer."
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/README.md#platform-support-and-troubleshooting",
+                "label": "Platform support and troubleshooting"
+              }
+            ]
+          }
+        ]
+      },
+      "safety": {
+        "meta": {
+          "title": "Safety & limits — document-svg",
+          "description": "What document-svg never does with your files, the limits that protect your machine, and what it can't promise."
+        },
+        "title": "Safety & limits",
+        "description": "What it never does with your files, and what it can't promise. Read this before using it with work files or on a public service.",
+        "sections": [
+          {
+            "id": "local",
+            "title": "Your files are not sent anywhere",
+            "paras": [
+              "Conversion finishes on the machine that runs it. There is no upload, no network call and no usage tracking. You don't need an account."
+            ]
+          },
+          {
+            "id": "inert",
+            "title": "What's inside a file is never run",
+            "bullets": [
+              "Macros, scripts, form submissions and links to outside resources are shown or skipped, never executed.",
+              "A PDF that needs a password to open is refused, not cracked.",
+              "A PDF whose only restriction is an owner password (for example \"no printing\") opens the way it does in any viewer. Those restrictions are declarations, not access control, and document-svg does not enforce them. Decide whether that is acceptable before converting such files."
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "Limits that protect your machine",
+            "paras": [
+              "File size, archive contents, XML size and page count all have upper limits, so an oversized or malformed file can't eat all the memory. An archive with more than 100,000 entries is refused before anything is unpacked.",
+              "The limits can be changed, but don't raise them just to push a difficult file through."
+            ]
+          },
+          {
+            "id": "overwrite",
+            "title": "Existing files are not overwritten",
+            "paras": [
+              "The output folder must be new or empty, and existing files are never overwritten."
+            ]
+          },
+          {
+            "id": "display",
+            "title": "Showing the result",
+            "paras": [
+              "Show SVG pages as images. Don't insert their markup directly into your page. The display helpers do basic checks, but they are not a general-purpose SVG sanitizer."
+            ]
+          },
+          {
+            "id": "public",
+            "title": "Running it on a public service",
+            "paras": [
+              "If strangers can upload files, treat every file as untrusted. Run conversion in a separate, restricted process with its own memory and time limits."
+            ]
+          },
+          {
+            "id": "cannot",
+            "title": "What it can't promise",
+            "bullets": [
+              "Pages are not guaranteed to match the original pixel for pixel. Warnings tell you where they may differ, but zero warnings is not a guarantee either.",
+              "Writing back to Office or CAD keeps how the page looks, not its paragraphs, cells, formulas or charts.",
+              "Some formats are shown as a summary of their contents, not the full drawing.",
+              "Medical images and reports are not anonymized. Any personal information inside the file can still appear in the output.",
+              "Warnings are a signal to review, not a certificate of safety or accuracy."
+            ]
+          },
+          {
+            "id": "report",
+            "title": "Found a security problem?",
+            "paras": [
+              "Please report it privately through GitHub's vulnerability reporting, not in a public issue. Only the latest release receives security fixes."
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/SECURITY.md",
+                "label": "Security policy"
+              }
+            ]
+          }
+        ]
+      },
+      "ai": {
+        "meta": {
+          "title": "For AI agents — document-svg",
+          "description": "Use document-svg from Claude Code, Codex and GitHub Copilot, and the rules an AI agent should follow."
+        },
+        "title": "For AI agents",
+        "description": "An AI assistant can learn how to use document-svg from this site without reading any code. Here is how to give it the tool, and what it should keep in mind.",
+        "sections": [
+          {
+            "id": "plugins",
+            "title": "Give your assistant the tool",
+            "cards": [
+              {
+                "title": "Claude Code",
+                "text": "Add the marketplace and install the plugin. You get commands to convert, write back, tidy up SVG, make PNG previews and check the setup.",
+                "code": "/plugin marketplace add ryusui-hiro/document-svg\n/plugin install document-svg@document-svg"
+              },
+              {
+                "title": "Codex",
+                "text": "Run the installer from a local checkout, then start a new task. The same skill becomes available.",
+                "code": "./scripts/install-codex-plugin.sh"
+              },
+              {
+                "title": "GitHub Copilot",
+                "text": "Add the setup action to your Copilot setup steps and the coding agent can run the command while it works."
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+                "label": "Full setup steps"
+              }
+            ]
+          },
+          {
+            "id": "rules",
+            "title": "What an agent should know",
+            "contract": true
+          },
+          {
+            "id": "llms",
+            "title": "A summary written for language models",
+            "paras": [
+              "llms.txt is a short summary of the project for AI assistants: what it does, how to call it, and which links to read next."
+            ],
+            "links": [
+              {
+                "href": "llms.txt",
+                "label": "Open llms.txt"
+              }
+            ]
+          },
+          {
+            "id": "data",
+            "title": "The format list as data",
+            "paras": [
+              "The format list on this site is also published as a data file, in English, Japanese and Chinese, so an assistant doesn't have to read the web page."
+            ],
+            "links": [
+              {
+                "href": "assets/data/formats.json",
+                "label": "Format list (JSON)"
+              },
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/AI_USAGE_GUIDE.md",
+                "label": "Full guide for AI agents"
+              }
+            ]
+          }
+        ],
+        "contractItems": [
+          "For ordinary files, use the simple convert step. The lower-level building blocks are for people drawing SVG from their own shapes.",
+          "The file extension decides how a file is read. Check the format list before assuming a type is supported.",
+          "Every page, slide or sheet becomes its own SVG, and one report covers the whole job.",
+          "Finishing without an error does not mean perfect. Warnings mean a person should take a look.",
+          "Use a new, empty output folder for every conversion.",
+          "Use only the published interface. The internal readers can change between releases.",
+          "Don't raise the safety limits to force a difficult file through. They protect the machine from oversized or hostile files.",
+          "Turning an SVG back into Office or CAD keeps how it looks, not the original text flow, cells or formulas."
+        ]
+      },
+      "usageTabs": {
+        "cli": "Command line",
         "node": "Node.js / TypeScript",
         "python": "Python",
-        "rust": "Rust / CLI"
-      },
-      "footer": {
-        "tagline": "Free and open source (MIT or Apache-2.0). Runs on your machine: no upload, no network calls, no tracking.",
-        "repo": "Repository",
-        "releases": "Releases",
-        "docs": "Documentation",
-        "support": "Supported features & limitations",
-        "architecture": "Architecture"
-      },
-      "usageSection": {
-        "title": "Module usage",
-        "description": "The same conversion from the command line, Node.js, Python or Rust. Each example runs as written.",
-        "tabs": {
-          "cli": "CLI",
-          "node": "Node.js / TypeScript",
-          "python": "Python",
-          "rust": "Rust"
-        }
+        "rust": "Rust"
       }
     },
     "ja": {
-      "meta": {
-        "title": "document-svg — ファイルの全ページを、手元でSVGにして見る",
-        "description": "PDF、Office、ダイアグラム、CAD図面を、手元のマシンでページごとのSVGに変換します。ファイルは外に送らず、マクロも動かしません。再現できなかった部分はレポートに残ります。"
+      "site": {
+        "nav": {
+          "home": "ホーム",
+          "useCases": "できること",
+          "formats": "対応形式",
+          "samples": "サンプル",
+          "start": "はじめる",
+          "safety": "安全性と限界",
+          "ai": "AIエージェント向け",
+          "github": "GitHub"
+        },
+        "toc": "このページの目次",
+        "next": "次に読む",
+        "noscript": "このサイトの表示には JavaScript が必要です。同じ内容は GitHub の README にもあります。",
+        "footer": {
+          "tagline": "無料のオープンソースです（MIT または Apache-2.0）。手元のマシンで動き、アップロードも通信も、利用状況の送信もしません。",
+          "repo": "リポジトリ",
+          "releases": "リリース",
+          "docs": "ドキュメント",
+          "support": "対応機能と制限",
+          "architecture": "内部構成"
+        }
       },
-      "nav": {
-        "why": "使う理由",
-        "useCases": "ユースケース",
-        "forAI": "生成AI向け",
-        "formats": "対応形式マップ",
-        "samples": "サンプル",
-        "install": "インストール",
-        "github": "GitHub",
-        "usage": "モジュールの使い方"
-      },
-      "hero": {
-        "eyebrow": "Rust ・ Node.js ・ Python ・ CLI",
-        "title": "作ったアプリがなくても、ファイルの全ページが見られる。",
-        "description": "document-svg は、PDF、Word、Excel、PowerPoint、ダイアグラム、CAD図面を、1ページ1枚のSVG画像に変換します。SVGならどのブラウザでも表示できます。変換は手元のマシンで行い、ファイルをどこにもアップロードしません。再現できなかった部分は、隠さずレポートに書き出します。",
-        "ctaPrimary": "インストール方法を見る",
-        "ctaSecondary": "対応形式マップを見る",
-        "ctaTertiary": "サンプルを見る"
-      },
-      "stats": {
-        "formats": "開ける形式",
-        "extensions": "認識する拡張子",
-        "reverse": "書き戻せる形式",
-        "uploads": "外部に送るファイル"
-      },
-      "whySection": {
-        "title": "document-svg を使う理由",
-        "description": "文書のプレビューを作ろうとすると、重いソフトを入れるか、ファイルを外部のサーバーに送るか、の二択になりがちです。document-svg なら、どちらも要りません。",
-        "items": [
+      "home": {
+        "meta": {
+          "title": "document-svg — ファイルの全ページを、手元でSVGにして見る",
+          "description": "PDF、Office、ダイアグラム、CAD図面を、手元のマシンでページごとのSVGに変換します。ファイルは外に送らず、マクロも動かしません。再現できなかった部分はレポートに残ります。"
+        },
+        "hero": {
+          "eyebrow": "Rust ・ Node.js ・ Python ・ CLI",
+          "title": "作ったアプリがなくても、ファイルの全ページが見られる。",
+          "description": "document-svg は、PDF、Word、Excel、PowerPoint、ダイアグラム、CAD図面を、1ページ1枚のSVG画像に変換します。SVGならどのブラウザでも表示できます。変換は手元のマシンで行い、ファイルをどこにもアップロードしません。再現できなかった部分は、隠さずレポートに書き出します。",
+          "ctaPrimary": "はじめる",
+          "ctaSecondary": "自分のファイルが使えるか調べる",
+          "ctaTertiary": "変換の見本を見る"
+        },
+        "stats": {
+          "formats": "開ける形式",
+          "extensions": "認識する拡張子",
+          "reverse": "書き戻せる形式",
+          "uploads": "外部に送るファイル"
+        },
+        "why": {
+          "title": "document-svg を使う理由",
+          "description": "文書のプレビューを作ろうとすると、重いソフトを入れるか、ファイルを外部のサーバーに送るか、の二択になりがちです。document-svg なら、どちらも要りません。",
+          "items": [
+            {
+              "icon": "🔒",
+              "title": "ファイルは手元から出ない",
+              "description": "変換はあなたのPC、自社のサーバー、またはブラウザのタブの中で終わります。アップロードもアカウント登録も、利用状況の送信もありません。契約書や設計図のように社外に出せない文書でも、そのままプレビューを作れます。"
+            },
+            {
+              "icon": "👀",
+              "title": "誰でも開ける",
+              "description": "出力はふつうのSVG画像です。最近のブラウザならどれでも表示でき、Webページにそのまま貼れて、拡大してもぼやけません。確認する人は Office も AutoCAD も専用ビューアも持っていなくて構いません。"
+            },
+            {
+              "icon": "🧾",
+              "title": "できなかったことを正直に書く",
+              "description": "何でも完璧に再現できる変換ツールはありません。document-svg は、グラフやフォントを黙って落とすかわりに、省略した箇所や近似した箇所をページごとにレポートへ記録します。共有してよい出来かどうかは、それを読んで決められます。"
+            },
+            {
+              "icon": "🛡️",
+              "title": "開いても、中身は実行されない",
+              "description": "マクロ、スクリプト、フォームの送信処理、外部へのリンクは、表示するか読み飛ばすだけで実行しません。サイズとページ数に上限があるので、巨大なファイルや壊れたファイルがメモリを食いつぶすこともありません。とはいえ、これは防御の一層です。安全の保証ではありません。"
+            },
+            {
+              "icon": "🧩",
+              "title": "ツールがひとつで済む",
+              "description": "Office文書、PDF、ダイアグラム、CADや3Dモデル、研究データや業務データまで、数百種類の形式を同じコマンドで扱い、同じ形で出力します。全体を描ける形式もあれば、中身の概要だけを表示する形式もあります。どちらになるかは対応形式の一覧で確かめられます。"
+            },
+            {
+              "icon": "↩️",
+              "title": "SVGから元の形式にも戻せる",
+              "description": "編集したSVGを、PowerPoint、Word、Excel、draw.io、CADのファイルに戻せます。戻るのは見た目です。元の段落やセル、数式までは組み立て直しません。"
+            }
+          ]
+        },
+        "useCases": {
+          "title": "できること",
+          "description": "document-svg は、単体で開いて使うアプリではありません。レビューの流れ、Webサイト、自社のソフト、AIアシスタントなど、何かに組み込んで使う部品です。",
+          "more": "それぞれの使い方を詳しく読む"
+        },
+        "samples": {
+          "title": "変換すると、こうなります",
+          "description": "どの画像も、このリポジトリのサンプルファイルを変換したままのものです。手直しはしていません。",
+          "more": "サンプルをすべて見る"
+        },
+        "next": [
           {
-            "icon": "🔒",
-            "title": "ファイルは手元から出ない",
-            "description": "変換はあなたのPC、自社のサーバー、またはブラウザのタブの中で終わります。アップロードもアカウント登録も、利用状況の送信もありません。契約書や設計図のように社外に出せない文書でも、そのままプレビューを作れます。"
+            "href": "formats.html",
+            "title": "自分のファイルは使える？",
+            "description": "対応形式の一覧を検索して、元とどのくらい一致するかを確かめられます。"
           },
           {
-            "icon": "👀",
-            "title": "誰でも開ける",
-            "description": "出力はふつうのSVG画像です。最近のブラウザならどれでも表示でき、Webページにそのまま貼れて、拡大してもぼやけません。確認する人は Office も AutoCAD も専用ビューアも持っていなくて構いません。"
+            "href": "start.html",
+            "title": "5分で試す",
+            "description": "パッケージをひとつ入れて、最初のファイルを変換します。"
           },
           {
-            "icon": "🧾",
-            "title": "できなかったことを正直に書く",
-            "description": "何でも完璧に再現できる変換ツールはありません。document-svg は、グラフやフォントを黙って落とすかわりに、省略した箇所や近似した箇所をページごとにレポートへ記録します。共有してよい出来かどうかは、それを読んで決められます。"
+            "href": "safety.html",
+            "title": "仕事のファイルに使って大丈夫？",
+            "description": "ファイルに対して決してしないことと、約束できないことをまとめました。"
           },
           {
-            "icon": "🛡️",
-            "title": "開いても、中身は実行されない",
-            "description": "マクロ、スクリプト、フォームの送信処理、外部へのリンクは、表示するか読み飛ばすだけで実行しません。サイズとページ数に上限があるので、巨大なファイルや壊れたファイルがメモリを食いつぶすこともありません。とはいえ、これは防御の一層です。安全の保証ではありません。"
-          },
-          {
-            "icon": "🧩",
-            "title": "ツールがひとつで済む",
-            "description": "Office文書、PDF、ダイアグラム、CADや3Dモデル、研究データや業務データまで、数百種類の形式を同じコマンドで扱い、同じ形で出力します。全体を描ける形式もあれば、中身の概要だけを表示する形式もあります。どちらになるかは、下の対応形式マップで確かめられます。"
-          },
-          {
-            "icon": "↩️",
-            "title": "SVGから元の形式にも戻せる",
-            "description": "編集したSVGを、PowerPoint、Word、Excel、draw.io、CADのファイルに戻せます。戻るのは見た目です。元の段落やセル、数式までは組み立て直しません。"
+            "href": "ai.html",
+            "title": "AIアシスタントから使う",
+            "description": "Claude Code や Codex 用のプラグインと、AIに守ってほしいこと。"
           }
         ]
       },
-      "useCasesSection": {
+      "useCases": {
+        "meta": {
+          "title": "できること — document-svg",
+          "description": "文書のレビュー、アプリ内プレビュー、構成図、CAD図面の確認、レポート、AIアシスタント、Officeへの書き戻し。document-svg の7つの使い方。"
+        },
         "title": "できること",
-        "description": "document-svg は、単体で開いて使うアプリではありません。レビューの流れ、Webサイト、自社のソフト、AIアシスタントなど、何かに組み込んで使う部品です。",
+        "description": "どの例も、実際によくある困りごとから始めて、何が変わるか、どう始めるかまでを書いています。",
+        "labels": {
+          "who": "こんな人に",
+          "problem": "いま困っていること",
+          "after": "document-svg を使うと",
+          "start": "始め方"
+        },
         "items": [
           {
+            "id": "review",
             "icon": "🔍",
             "title": "コードレビューで、文書の変更を目で見る",
-            "description": "プルリクエストでスライドや表計算、Word、PDFが変わっても、ふだんは「バイナリファイルが変更されました」としか出ません。付属の GitHub Action を使えば、変わった文書がページごとの画像になり、実行結果からダウンロードできます。文書ごとのページ数と警告の数は、コメントで知らせます。"
+            "summary": "「バイナリファイルが変更されました」ではなく、変わったページを見てレビューできます。",
+            "who": "仕様書や設計資料、見積書を Git のリポジトリで管理しているチーム。",
+            "problem": "PowerPoint や Excel、PDF を変えても、プルリクエストには「バイナリファイルが変更されました」としか出ません。中身を確かめるには、ファイルを落として自分で開くしかありません。",
+            "after": "変わった文書がページごとのSVGになり、ワークフローの実行結果からまとめてダウンロードできます。文書ごとのページ数と警告の数がコメントに付くので、よく見るべきファイルがひと目で分かります。",
+            "start": "付属のワークフローを呼び出す短い設定ファイルを、リポジトリに1つ追加します。手元に何かを入れる必要はありません。",
+            "link": {
+              "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+              "label": "GitHub での設定手順"
+            }
           },
           {
+            "id": "in-app",
             "icon": "🖥️",
             "title": "アップロードされたファイルを自分のアプリで見せる",
-            "description": "ユーザーが上げた文書や図面を、サーバーに Office を入れたり有料のビューアSDKを契約したりせずにプレビューできます。一度変換すれば、あとは画像として表示するだけです。"
+            "summary": "サーバーに Office を入れず、有料のビューアも使わずに、文書を表示できます。",
+            "who": "社内システムやWebサービスで、ユーザーが上げた資料を表示したい開発者。",
+            "problem": "Office ファイルをプレビューする方法は、たいてい3つしかありません。サーバーに Office や変換ソフトを入れるか、有料のビューアSDKを契約するか、外部の変換サービスにファイルを送るかです。",
+            "after": "Node.js や Python から呼ぶだけで、ページごとのSVGが返ってきます。あとは画像として表示するだけ。変換はサーバーの中で終わるので、ファイルが外に出ることはありません。",
+            "start": "npm か pip でパッケージを入れて、変換の関数を呼びます。PDF・Word・Excel・PowerPoint だけなら、ブラウザの中で変換する WebAssembly 版もあります（自分でビルドが必要です）。",
+            "link": {
+              "href": "start.html",
+              "label": "はじめ方を見る"
+            }
           },
           {
+            "id": "diagrams",
             "icon": "🧭",
             "title": "図をコードと一緒に最新に保つ",
-            "description": "構成図を draw.io、Mermaid、PlantUML、D2、Graphviz などのテキストで書いて、コードの隣に置いておきます。ドキュメントをビルドするたびに、それが画像になります。図だけ古いまま、がなくなります。"
+            "summary": "ドキュメントを作り直すたびに、図もテキストから作り直されます。",
+            "who": "設計書や Wiki に構成図を載せているエンジニア。",
+            "problem": "図を別のツールで描いて画像を貼ると、コードが変わっても図だけ古いまま残ります。誰がいつ直したのかも追えません。",
+            "after": "図を draw.io、Mermaid、PlantUML、D2、Graphviz のテキストでコードの隣に置き、ドキュメントをビルドするたびにSVGにします。図の変更も、コードと同じようにレビューできます。",
+            "start": "ドキュメントのビルド手順に、図を変換するコマンドを1行足します。",
+            "link": {
+              "href": "formats.html#diagrams",
+              "label": "対応している図の形式"
+            }
           },
           {
+            "id": "cad",
             "icon": "🛠️",
             "title": "CADがなくても図面やモデルを確認する",
-            "description": "間取り図、プリント基板、加工パス、3Dモデルを、Webページやダッシュボードでさっと確認できます。設計のチェックはするけれどCADは持っていない、という人向けです。"
+            "summary": "図面、基板、3DモデルをWebページで確認できます。",
+            "who": "製造や建設の現場で、図面を確認はするけれど自分では描かない人。その人たちに向けて社内ツールを作る開発者。",
+            "problem": "図面を1枚確かめたいだけでも、高価なCADソフトとライセンスが要ります。確認する人全員の分をそろえるのは現実的ではありません。",
+            "after": "間取り図（DXF）、プリント基板（Gerber）、加工パス（G-code）、3Dモデル（STL、OBJ、STEP）などを、Webページやダッシュボードに表示できます。",
+            "start": "対応形式の一覧で、お使いのファイル形式がどこまで描けるかを確かめてください。一部の形式は、図全体ではなく中身の概要だけを表示します。",
+            "link": {
+              "href": "formats.html#cad",
+              "label": "CAD・3Dの対応形式"
+            }
           },
           {
+            "id": "reports",
             "icon": "📊",
             "title": "データをレポート用の画像にする",
-            "description": "表、グラフ、数式を、何度生成しても同じ見た目になる鮮明な画像にします。自動で作るレポートや資料にそのまま使えます。"
+            "summary": "表、グラフ、数式が、何度作っても同じ見た目になります。",
+            "who": "定期レポートや技術資料を自動で作っている人。",
+            "problem": "表やグラフを画像にする手順が人によってばらばらで、作るたびに見た目が少しずつ変わります。",
+            "after": "CSVの表、グラフのデータ、LaTeX の数式から、何度作っても同じ見た目のSVGができます。拡大してもぼやけないので、印刷にもそのまま使えます。",
+            "start": "データのファイルを用意して、ほかの文書と同じコマンドで変換します。",
+            "link": {
+              "href": "formats.html#data",
+              "label": "データ・数式の対応形式"
+            }
           },
           {
+            "id": "ai",
             "icon": "🤖",
             "title": "AIアシスタントに文書を読ませる",
-            "description": "アシスタントに渡す手順はひとつ。ファイルをページに変換して、レポートで抜けがないか確かめるだけです。スクリーンショットも、不安定なブラウザ操作も要りません。変換できなかった部分があれば、アシスタント自身が気づけます。"
+            "summary": "スクリーンショットやブラウザ操作のかわりに、確実な手順をひとつ渡せます。",
+            "who": "AIエージェントに資料の確認や作成を任せたい人。",
+            "problem": "AIに文書を見せようとすると、スクリーンショットを撮るか、ブラウザを自動で操作することになります。どちらも失敗しやすく、AIがどこまで読めたのかも分かりません。",
+            "after": "ファイルをページに変換して、レポートで抜けを確かめる。この決まった手順をAIに渡せます。変換できなかった部分があれば、AI自身がレポートを読んで気づけます。",
+            "start": "Claude Code や Codex 用のプラグインを入れるか、コマンドをそのままAIに使わせます。",
+            "link": {
+              "href": "ai.html",
+              "label": "AIエージェント向けのページ"
+            }
           },
           {
+            "id": "back",
             "icon": "🔁",
             "title": "編集した図を Office や CAD に戻す",
-            "description": "SVGを編集するツールを作っているなら、その結果を PowerPoint、Word、Excel、draw.io、CADのファイルにして渡せます。受け取った人は、いつものソフトで作業を続けられます。"
+            "summary": "SVGを PowerPoint、Word、Excel、draw.io、CAD のファイルにまとめられます。",
+            "who": "SVGを作ったり編集したりするツールを作っていて、結果を Office や CAD のファイルで渡したい開発者。",
+            "problem": "SVGのファイルをいくつも渡されても、受け取った人はいつものソフトで開けません。",
+            "after": "SVGを PowerPoint、Word、Excel、PDF、draw.io、DXF のファイルにまとめられます。戻るのは見た目で、段落やセル、数式までは組み立て直しません。draw.io の図は、元の図のデータをSVGに埋め込んでおけば、編集できる状態で戻ります。",
+            "start": "SVGのフォルダを指定して、書き戻しのコマンドを実行します。",
+            "link": {
+              "href": "formats.html",
+              "label": "書き戻せる形式を見る"
+            }
           }
         ]
       },
-      "forAISection": {
-        "title": "AIエージェントからも使える",
-        "description": "AIアシスタントは、コードを読まなくてもこのサイトから使い方をつかめます。対応形式の一覧はデータファイルとして公開していて、言語モデル向けの短い要約もあります。",
-        "llmsTitle": "llms.txt",
-        "llmsDescription": "AIアシスタント向けに書いた、このプロジェクトの短い要約です。何ができるか、どう呼び出すか、次にどのリンクを読めばいいかをまとめています。",
-        "llmsLink": "llms.txt を開く",
-        "contractTitle": "エージェントに守ってほしいこと",
-        "contractItems": [
-          "ふつうのファイル変換には、シンプルな変換の入口を使う。細かい部品は、自前の図形からSVGを作る人向け。",
-          "ファイルの読み方は拡張子で決まる。対応していると決めつける前に、対応形式マップを見る。",
-          "ページ、スライド、シートは1枚ずつ別のSVGになり、全体でレポートが1つ付く。",
-          "エラーなく終わっても完璧とは限らない。警告は、人が確認すべきという合図。",
-          "公開されている入口だけを使う。内部の読み込み処理はリリースごとに変わる。",
-          "難しいファイルを通すために安全上の上限を上げない。上限は、巨大なファイルや悪意のあるファイルからマシンを守るためにある。",
-          "SVGを Office や CAD に戻したとき残るのは見た目。元の文章の流れ、セル、数式は戻らない。"
+      "formats": {
+        "meta": {
+          "title": "対応形式 — document-svg",
+          "description": "document-svg が開ける形式と書き戻せる形式をすべて検索でき、元とどのくらい一致するかも確かめられます。"
+        },
+        "title": "対応形式",
+        "description": "お使いのファイルが使えるか、ここで確かめられます。拡張子や名前で検索するか、分野から探してください。",
+        "howTitle": "表の見かた",
+        "how": [
+          "「SVGへ」は、そのファイルをSVGのページに変換できるかどうかです。",
+          "「SVGから」は、SVGをその形式のファイルに戻せるかどうかです。",
+          "A・B・C は、元とどのくらい一致するかを表します。「—」は、その向きには対応していないという意味です。",
+          "一部の形式は、図全体ではなく、中身の概要（ページ数や項目の数など）を表示します。どちらになるかは各行の説明に書いてあります。"
         ],
-        "guideLink": "AIエージェント向けの詳しいガイドを読む"
-      },
-      "formatsSection": {
-        "title": "対応形式マップ",
-        "description": "お使いのファイル形式を探してください。各行で、SVGに変換できるか、SVGからその形式に戻せるか、元とどのくらい一致するかが分かります。",
         "legendTitle": "元との一致度",
-        "filterAll": "すべてのカテゴリ",
+        "searchLabel": "拡張子や名前で探す",
+        "searchPlaceholder": "例: .dwg、PowerPoint、STL",
+        "count": "{n}件",
+        "none": "見つかりませんでした。先頭の「.」を付ける・付けないなど、別の書き方でも試してください。",
+        "request": "ここにない形式を使いたいときは、GitHub の Issue で教えてください。",
         "colExt": "拡張子",
         "colForward": "SVGへ",
         "colReverse": "SVGから",
-        "colNotes": "備考"
+        "colNotes": "どう表示されるか",
+        "reverseOnly": "SVGから戻せる形式だけ表示"
       },
-      "gallerySection": {
-        "title": "サンプル",
+      "samples": {
+        "meta": {
+          "title": "サンプル — document-svg",
+          "description": "このリポジトリのサンプルファイルを document-svg で変換した、手直しなしのSVGです。"
+        },
+        "title": "変換すると、こうなります",
         "description": "下の画像はすべて、リンク先のサンプルファイルを document-svg で変換したもので、手直しはしていません。サンプルファイル自体も、このリポジトリのスクリプトで作っています。",
         "viewSvg": "SVGを開く",
-        "viewSource": "ソースを見る"
+        "viewSource": "元のファイル"
       },
-      "installSection": {
-        "title": "インストール",
-        "description": "使い方に合うものをひとつ選んでください。全部入れる必要はありません。",
+      "start": {
+        "meta": {
+          "title": "はじめる — document-svg",
+          "description": "document-svg を入れて、最初のファイルを変換し、結果を確かめて、アプリに表示するまで。"
+        },
+        "title": "はじめる",
+        "description": "インストールから、最初のページをアプリに表示するまで。たいていは5分ほどで終わります。",
+        "sections": [
+          {
+            "id": "choose",
+            "title": "1. 使い方を選ぶ",
+            "paras": [
+              "全部入れる必要はありません。どこから呼び出したいかで、ひとつ選んでください。"
+            ],
+            "cards": [
+              {
+                "title": "コマンドで使う",
+                "text": "ターミナルやCIでファイルを変換したいとき。Rust があれば cargo で入ります。なければ、リリースページから自分のOS用のファイルをダウンロードできます。",
+                "code": "cargo install document-svg --locked"
+              },
+              {
+                "title": "Node.js / TypeScript",
+                "text": "WebアプリやElectronアプリの中で変換したいとき。型定義も入っています。",
+                "code": "npm install document-svg"
+              },
+              {
+                "title": "Python",
+                "text": "スクリプトやデータ処理の中で変換したいとき。Python 3.10 以降で使えます。",
+                "code": "python -m pip install document-svg"
+              },
+              {
+                "title": "Rust",
+                "text": "Rust のプログラムに組み込みたいとき。",
+                "code": "cargo add document-svg"
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/releases",
+                "label": "ビルド済みのコマンドをダウンロード（リリース）"
+              }
+            ]
+          },
+          {
+            "id": "convert",
+            "title": "2. 最初のファイルを変換する",
+            "paras": [
+              "同じ変換を、どこからでも同じように呼べます。どの例も、書いてあるとおりに動きます。"
+            ],
+            "usage": true
+          },
+          {
+            "id": "check",
+            "title": "3. 結果を確かめる",
+            "paras": [
+              "出力先には、新しいフォルダか空のフォルダを指定します。中には、ページごとのSVGと、変換の記録（conversion.json）が1つできます。"
+            ],
+            "code": "output/slides/\n├── page-0001.svg\n├── page-0002.svg\n└── conversion.json",
+            "bullets": [
+              "記録には、そのまま再現できなかった部分が「警告」として書かれます。",
+              "エラーなく終わっても、完璧とは限りません。警告があれば、人の目でページを確かめてください。",
+              "警告がなくても、Office で開いたときと1ピクセル単位で同じとは限りません。たとえば文字は、SVGを表示する環境にあるフォントで描かれます。"
+            ]
+          },
+          {
+            "id": "show",
+            "title": "4. アプリに表示する",
+            "paras": [
+              "SVGは画像として表示してください（img 要素など）。SVGの中身を、ページのHTMLに直接貼り込むのは避けてください。",
+              "付属の表示用ヘルパーは簡単な確認はしますが、どんなSVGでも無害にするフィルターではありません。"
+            ]
+          },
+          {
+            "id": "tools",
+            "title": "5. いつもの道具から使う",
+            "cards": [
+              {
+                "title": "GitHub Actions",
+                "text": "プルリクエストで変わった文書を、自動で変換します。"
+              },
+              {
+                "title": "Claude Code / Codex",
+                "text": "AIアシスタントに、プラグインとして追加します。"
+              },
+              {
+                "title": "GitHub CLI",
+                "text": "リポジトリを手元に置いてインストーラーを実行すると、gh docsvg コマンドとして使えます。"
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+                "label": "GitHub とAIツールでの設定手順"
+              }
+            ]
+          },
+          {
+            "id": "trouble",
+            "title": "6. うまくいかないとき",
+            "bullets": [
+              "Windows、macOS、Linux の x64 と ARM64 向けに、ビルド済みのパッケージを用意しています。",
+              "Alpine Linux の Python にはビルド済みのパッケージがないので、Rust と開発ツールが必要です。",
+              "npm で入れたのに読み込めないときは、オプションの依存パッケージが入っているか、Node.js とマシンのCPUの種類が合っているかを確かめてください。node_modules を別のOSにコピーしても動きません。",
+              "変換したSVGは、最近のブラウザ、resvg、librsvg 2.46 以降で表示できます。"
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/README.ja.md",
+                "label": "対応環境とトラブルシューティング"
+              }
+            ]
+          }
+        ]
+      },
+      "safety": {
+        "meta": {
+          "title": "安全性と限界 — document-svg",
+          "description": "document-svg がファイルに対して決してしないこと、マシンを守る上限、約束できないこと。"
+        },
+        "title": "安全性と限界",
+        "description": "ファイルに対して決してしないことと、約束できないことをまとめました。仕事のファイルに使う前や、公開サービスに組み込む前に読んでください。",
+        "sections": [
+          {
+            "id": "local",
+            "title": "ファイルはどこにも送らない",
+            "paras": [
+              "変換は、それを動かしているマシンの中で終わります。アップロードも通信も、利用状況の送信もしません。アカウントも要りません。"
+            ]
+          },
+          {
+            "id": "inert",
+            "title": "ファイルの中身は実行しない",
+            "bullets": [
+              "マクロ、スクリプト、フォームの送信、外部へのリンクは、表示するか読み飛ばすだけで、実行しません。",
+              "開くのにパスワードが要るPDFは、変換を断ります。パスワードを破ろうとはしません。",
+              "「印刷禁止」などの権限パスワードだけが付いたPDFは、ほかのビューアと同じように開きます。この制限は宣言であってアクセス制御ではなく、document-svg はそれを守らせる仕組みを持っていません。そうしたファイルを変換してよいかは、事前に判断してください。"
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "マシンを守る上限",
+            "paras": [
+              "ファイルの大きさ、圧縮ファイルの中身、XMLの量、ページ数に上限があります。巨大なファイルや壊れたファイルがメモリを食いつぶすことはありません。中身が10万件を超える圧縮ファイルは、展開する前に断ります。",
+              "上限は変えられますが、難しいファイルを通すためだけに引き上げないでください。"
+            ]
+          },
+          {
+            "id": "overwrite",
+            "title": "既存のファイルを上書きしない",
+            "paras": [
+              "出力先は、新しいフォルダか空のフォルダでなければいけません。すでにあるファイルを上書きすることはありません。"
+            ]
+          },
+          {
+            "id": "display",
+            "title": "結果を表示するとき",
+            "paras": [
+              "SVGのページは画像として表示してください。中身をページに直接埋め込まないでください。表示用ヘルパーは簡単な確認をしますが、どんなSVGでも無害にする仕組みではありません。"
+            ]
+          },
+          {
+            "id": "public",
+            "title": "公開サービスで使うなら",
+            "paras": [
+              "誰でもファイルを上げられるサービスでは、すべてのファイルを信用できないものとして扱ってください。変換は、メモリと時間に上限をかけた別のプロセスで動かしてください。"
+            ]
+          },
+          {
+            "id": "cannot",
+            "title": "約束できないこと",
+            "bullets": [
+              "元と1ピクセル単位で同じになるとは限りません。違いが出そうな場所は警告で知らせますが、警告がゼロでも保証にはなりません。",
+              "Office や CAD に書き戻したとき残るのは見た目です。段落、セル、数式、グラフは戻りません。",
+              "一部の形式は、図全体ではなく中身の概要を表示します。",
+              "医療画像やレポートの匿名化はしません。ファイルに含まれる個人情報は、出力にもそのまま出ることがあります。",
+              "警告は「確認してください」という合図です。安全性や正確さの証明ではありません。"
+            ]
+          },
+          {
+            "id": "report",
+            "title": "セキュリティの問題を見つけたら",
+            "paras": [
+              "GitHub の非公開の脆弱性報告から知らせてください。公開の Issue には書かないでください。セキュリティの修正は、最新のリリースにだけ入ります。"
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/SECURITY.md",
+                "label": "セキュリティポリシー"
+              }
+            ]
+          }
+        ]
+      },
+      "ai": {
+        "meta": {
+          "title": "AIエージェント向け — document-svg",
+          "description": "Claude Code、Codex、GitHub Copilot から document-svg を使う方法と、AIエージェントに守ってほしいこと。"
+        },
+        "title": "AIエージェント向け",
+        "description": "AIアシスタントは、コードを読まなくてもこのサイトから使い方をつかめます。AIにこの道具を渡す方法と、気をつけてほしいことをまとめました。",
+        "sections": [
+          {
+            "id": "plugins",
+            "title": "AIアシスタントに道具を渡す",
+            "cards": [
+              {
+                "title": "Claude Code",
+                "text": "マーケットプレイスを追加してプラグインを入れます。変換、書き戻し、SVGの整形、PNGのプレビュー作成、セットアップの確認、の5つのコマンドが使えるようになります。",
+                "code": "/plugin marketplace add ryusui-hiro/document-svg\n/plugin install document-svg@document-svg"
+              },
+              {
+                "title": "Codex",
+                "text": "リポジトリを手元に置いてインストーラーを実行し、新しいタスクを始めます。同じスキルが使えるようになります。",
+                "code": "./scripts/install-codex-plugin.sh"
+              },
+              {
+                "title": "GitHub Copilot",
+                "text": "Copilot のセットアップ手順にセットアップ用のアクションを足すと、コーディングエージェントが作業中にコマンドを使えます。"
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+                "label": "設定手順をすべて見る"
+              }
+            ]
+          },
+          {
+            "id": "rules",
+            "title": "エージェントに守ってほしいこと",
+            "contract": true
+          },
+          {
+            "id": "llms",
+            "title": "言語モデル向けの要約",
+            "paras": [
+              "llms.txt は、AIアシスタント向けに書いたこのプロジェクトの短い要約です。何ができるか、どう呼び出すか、次にどのリンクを読めばいいかをまとめています。"
+            ],
+            "links": [
+              {
+                "href": "llms.txt",
+                "label": "llms.txt を開く"
+              }
+            ]
+          },
+          {
+            "id": "data",
+            "title": "対応形式の一覧をデータで",
+            "paras": [
+              "このサイトの対応形式の一覧は、英語・日本語・中国語のデータファイルとしても公開しています。AIがWebページを読み解く必要はありません。"
+            ],
+            "links": [
+              {
+                "href": "assets/data/formats.json",
+                "label": "対応形式の一覧（JSON）"
+              },
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/AI_USAGE_GUIDE.md",
+                "label": "AIエージェント向けの詳しいガイド"
+              }
+            ]
+          }
+        ],
+        "contractItems": [
+          "ふつうのファイル変換には、シンプルな変換の入口を使う。細かい部品は、自前の図形からSVGを作る人向け。",
+          "ファイルの読み方は拡張子で決まる。対応していると決めつける前に、対応形式の一覧を見る。",
+          "ページ、スライド、シートは1枚ずつ別のSVGになり、全体でレポートが1つ付く。",
+          "エラーなく終わっても完璧とは限らない。警告は、人が確認すべきという合図。",
+          "変換のたびに、新しい空のフォルダを出力先にする。",
+          "公開されている入口だけを使う。内部の読み込み処理はリリースごとに変わる。",
+          "難しいファイルを通すために安全上の上限を上げない。上限は、巨大なファイルや悪意のあるファイルからマシンを守るためにある。",
+          "SVGを Office や CAD に戻したとき残るのは見た目。元の文章の流れ、セル、数式は戻らない。"
+        ]
+      },
+      "usageTabs": {
+        "cli": "コマンド",
         "node": "Node.js / TypeScript",
         "python": "Python",
-        "rust": "Rust / CLI"
-      },
-      "footer": {
-        "tagline": "無料のオープンソースです（MIT または Apache-2.0）。手元のマシンで動き、アップロードも通信も、利用状況の送信もしません。",
-        "repo": "リポジトリ",
-        "releases": "リリース",
-        "docs": "ドキュメント",
-        "support": "対応状況と制限事項",
-        "architecture": "アーキテクチャ"
-      },
-      "usageSection": {
-        "title": "モジュールの使い方",
-        "description": "同じ変換を、コマンドライン、Node.js、Python、Rust から呼べます。どの例も、書いてあるとおりに動きます。",
-        "tabs": {
-          "cli": "CLI",
-          "node": "Node.js / TypeScript",
-          "python": "Python",
-          "rust": "Rust"
-        }
+        "rust": "Rust"
       }
     },
     "zh": {
-      "meta": {
-        "title": "document-svg — 在自己的机器上，把文件的每一页变成 SVG",
-        "description": "在你自己的机器上，把 PDF、Office、图表和 CAD 图纸转换成每页一个 SVG。文件不会上传，宏不会运行，没能还原的部分会写进报告。"
+      "site": {
+        "nav": {
+          "home": "首页",
+          "useCases": "能做什么",
+          "formats": "支持格式",
+          "samples": "示例",
+          "start": "快速开始",
+          "safety": "安全与局限",
+          "ai": "面向 AI 智能体",
+          "github": "GitHub"
+        },
+        "toc": "本页目录",
+        "next": "接下来读",
+        "noscript": "本网站需要 JavaScript 才能显示内容。同样的信息也可以在 GitHub 的 README 中找到。",
+        "footer": {
+          "tagline": "免费开源（MIT 或 Apache-2.0）。在你自己的机器上运行：不上传、不联网、不收集使用数据。",
+          "repo": "代码仓库",
+          "releases": "发布版本",
+          "docs": "文档",
+          "support": "支持的功能与限制",
+          "architecture": "内部架构"
+        }
       },
-      "nav": {
-        "why": "为什么用它",
-        "useCases": "使用场景",
-        "forAI": "面向 AI 智能体",
-        "formats": "格式支持地图",
-        "samples": "示例",
-        "install": "安装",
-        "github": "GitHub",
-        "usage": "模块用法"
-      },
-      "hero": {
-        "eyebrow": "Rust · Node.js · Python · CLI",
-        "title": "没有原来的软件，也能看到文件的每一页。",
-        "description": "document-svg 把 PDF、Word、Excel、PowerPoint、各类图表和 CAD 图纸转换成普通的 SVG 图片，一页一张，任何浏览器都能显示。转换在你自己的机器上完成，文件不会上传到任何地方；哪些内容没能还原，它会在报告里如实写明。",
-        "ctaPrimary": "查看安装方式",
-        "ctaSecondary": "查看格式支持地图",
-        "ctaTertiary": "浏览示例"
-      },
-      "stats": {
-        "formats": "可打开的格式",
-        "extensions": "可识别的扩展名",
-        "reverse": "可写回的格式",
-        "uploads": "上传到服务器的文件"
-      },
-      "whySection": {
-        "title": "为什么用 document-svg",
-        "description": "想做文档预览，通常只有两条路：安装笨重的软件，或者把文件发到别人的服务器。document-svg 两样都不需要。",
-        "items": [
+      "home": {
+        "meta": {
+          "title": "document-svg — 在自己的机器上，把文件的每一页变成 SVG",
+          "description": "在你自己的机器上，把 PDF、Office、图表和 CAD 图纸转换成每页一个 SVG。文件不会上传，宏不会运行，没能还原的部分会写进报告。"
+        },
+        "hero": {
+          "eyebrow": "Rust · Node.js · Python · CLI",
+          "title": "没有原来的软件，也能看到文件的每一页。",
+          "description": "document-svg 把 PDF、Word、Excel、PowerPoint、各类图表和 CAD 图纸转换成普通的 SVG 图片，一页一张，任何浏览器都能显示。转换在你自己的机器上完成，文件不会上传到任何地方；哪些内容没能还原，它会在报告里如实写明。",
+          "ctaPrimary": "快速开始",
+          "ctaSecondary": "查查你的文件能不能用",
+          "ctaTertiary": "看看转换效果"
+        },
+        "stats": {
+          "formats": "可打开的格式",
+          "extensions": "可识别的扩展名",
+          "reverse": "可写回的格式",
+          "uploads": "上传到服务器的文件"
+        },
+        "why": {
+          "title": "为什么用 document-svg",
+          "description": "想做文档预览，通常只有两条路：安装笨重的软件，或者把文件发到别人的服务器。document-svg 两样都不需要。",
+          "items": [
+            {
+              "icon": "🔒",
+              "title": "文件不离开你手里",
+              "description": "转换在你的电脑、你自己的服务器或浏览器标签页里完成。不上传、不注册账号、不收集使用数据。合同、设计图这类不能外发的文件，也能直接生成预览。"
+            },
+            {
+              "icon": "👀",
+              "title": "谁都能打开",
+              "description": "输出是普通的 SVG 图片。主流浏览器都能显示，可以直接放进网页，放大也不会模糊。看图的人不需要 Office、AutoCAD 或专用查看器。"
+            },
+            {
+              "icon": "🧾",
+              "title": "没做到的，会告诉你",
+              "description": "没有哪个转换工具能百分之百还原。document-svg 不会悄悄丢掉图表或字体，而是按页在报告里列出被省略或近似处理的地方。能不能拿去分享，看完报告再决定。"
+            },
+            {
+              "icon": "🛡️",
+              "title": "打开文件，不等于运行文件",
+              "description": "宏、脚本、表单提交动作和外部链接只会被显示或跳过，绝不执行。文件大小和页数都有上限，超大或损坏的文件不会把内存耗尽。不过这只是一层防护，并不保证绝对安全。"
+            },
+            {
+              "icon": "🧩",
+              "title": "一个工具顶几十个",
+              "description": "Office 文档、PDF、图表、CAD 和三维模型、科研数据和业务数据，数百种格式都用同一个命令处理，输出形式也一样。有的格式能完整绘制，有的只显示内容概要；支持格式列表里写明了是哪一种。"
+            },
+            {
+              "icon": "↩️",
+              "title": "也能从 SVG 转回去",
+              "description": "编辑过的 SVG 可以转回 PowerPoint、Word、Excel、draw.io 或 CAD 文件。转回去的是外观，原来的段落、单元格和公式不会重建。"
+            }
+          ]
+        },
+        "useCases": {
+          "title": "能用它做什么",
+          "description": "document-svg 不是单独打开使用的应用，而是嵌进其他东西里的组件：审查流程、网站、你自己的软件，或者 AI 助手。",
+          "more": "详细了解每种用法"
+        },
+        "samples": {
+          "title": "转换出来是这样的",
+          "description": "每张图都是本仓库示例文件的原样转换结果，没有任何修饰。",
+          "more": "查看全部示例"
+        },
+        "next": [
           {
-            "icon": "🔒",
-            "title": "文件不离开你手里",
-            "description": "转换在你的电脑、你自己的服务器或浏览器标签页里完成。不上传、不注册账号、不收集使用数据。合同、设计图这类不能外发的文件，也能直接生成预览。"
+            "href": "formats.html",
+            "title": "我的文件能用吗？",
+            "description": "搜索支持的格式，看看每种格式和原件有多接近。"
           },
           {
-            "icon": "👀",
-            "title": "谁都能打开",
-            "description": "输出是普通的 SVG 图片。主流浏览器都能显示，可以直接放进网页，放大也不会模糊。看图的人不需要 Office、AutoCAD 或专用查看器。"
+            "href": "start.html",
+            "title": "五分钟试一试",
+            "description": "装一个软件包，转换你的第一个文件。"
           },
           {
-            "icon": "🧾",
-            "title": "没做到的，会告诉你",
-            "description": "没有哪个转换工具能百分之百还原。document-svg 不会悄悄丢掉图表或字体，而是按页在报告里列出被省略或近似处理的地方。能不能拿去分享，看完报告再决定。"
+            "href": "safety.html",
+            "title": "工作文件用它放心吗？",
+            "description": "它绝不会对文件做的事，以及它无法保证的事。"
           },
           {
-            "icon": "🛡️",
-            "title": "打开文件，不等于运行文件",
-            "description": "宏、脚本、表单提交动作和外部链接只会被显示或跳过，绝不执行。文件大小和页数都有上限，超大或损坏的文件不会把内存耗尽。不过这只是一层防护，并不保证绝对安全。"
-          },
-          {
-            "icon": "🧩",
-            "title": "一个工具顶几十个",
-            "description": "Office 文档、PDF、图表、CAD 和三维模型、科研数据和业务数据，数百种格式都用同一个命令处理，输出形式也一样。有的格式能完整绘制，有的只显示内容概要；下面的格式地图写明了是哪一种。"
-          },
-          {
-            "icon": "↩️",
-            "title": "也能从 SVG 转回去",
-            "description": "编辑过的 SVG 可以转回 PowerPoint、Word、Excel、draw.io 或 CAD 文件。转回去的是外观，原来的段落、单元格和公式不会重建。"
+            "href": "ai.html",
+            "title": "让 AI 助手来用",
+            "description": "Claude Code 和 Codex 插件，以及智能体需要遵守的规则。"
           }
         ]
       },
-      "useCasesSection": {
-        "title": "能用它做什么",
-        "description": "document-svg 不是单独打开使用的应用，而是嵌进其他东西里的组件：审查流程、网站、你自己的软件，或者 AI 助手。",
+      "useCases": {
+        "meta": {
+          "title": "能做什么 — document-svg",
+          "description": "文档审查、应用内预览、架构图、CAD 图纸检查、报告、AI 助手、写回 Office：document-svg 的七种用法。"
+        },
+        "title": "能做什么",
+        "description": "每个例子都从真实常见的困扰说起，再讲清楚会有什么改变、怎么开始。",
+        "labels": {
+          "who": "适合谁",
+          "problem": "现在的困扰",
+          "after": "用了 document-svg 之后",
+          "start": "怎么开始"
+        },
         "items": [
           {
+            "id": "review",
             "icon": "🔍",
             "title": "在代码审查中直接看到文档改动",
-            "description": "有人在拉取请求里改了幻灯片、表格、Word 或 PDF，平时只能看到“二进制文件已更改”。用附带的 GitHub Action，每个改动的文档都会转换成页面，可以从运行结果中下载；每个文档有几页、出现了几条警告，会以评论形式告诉你。"
+            "summary": "审查者看到的是改动后的页面，而不是“二进制文件已更改”。",
+            "who": "把需求文档、设计资料、报价单放在 Git 仓库里管理的团队。",
+            "problem": "PowerPoint、Excel 或 PDF 改了之后，拉取请求里只显示“二进制文件已更改”。想看内容，只能把文件下载下来自己打开。",
+            "after": "每个改动的文档都会转换成按页的 SVG，可以从工作流运行结果中一次性下载。评论里会列出每个文档的页数和警告数，哪些文件需要仔细看，一眼就知道。",
+            "start": "在仓库里添加一个调用附带工作流的简短配置文件即可，本地不需要安装任何东西。",
+            "link": {
+              "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+              "label": "GitHub 配置步骤"
+            }
           },
           {
+            "id": "in-app",
             "icon": "🖥️",
             "title": "在自己的应用里预览上传的文件",
-            "description": "用户上传的文档和图纸，不必在服务器上装 Office，也不必购买查看器 SDK，就能预览。转换一次，之后当普通图片显示即可。"
+            "summary": "服务器上不用装 Office，也不用买收费查看器，就能显示文档。",
+            "who": "需要在内部系统或网络服务中显示用户上传资料的开发者。",
+            "problem": "想预览 Office 文件，往往要在服务器上装 Office 或转换软件、购买查看器 SDK，或者把文件发给外部转换服务。",
+            "after": "从 Node.js 或 Python 调用，就能拿到每页一个 SVG，之后当普通图片显示即可。转换在你的服务器内完成，文件不会外流。",
+            "start": "用 npm 或 pip 安装软件包，调用转换函数。如果只需要 PDF、Word、Excel、PowerPoint，还有在浏览器里完成转换的 WebAssembly 版本（需要自己构建）。",
+            "link": {
+              "href": "start.html",
+              "label": "查看快速开始"
+            }
           },
           {
+            "id": "diagrams",
             "icon": "🧭",
             "title": "让图和代码一起保持最新",
-            "description": "用 draw.io、Mermaid、PlantUML、D2、Graphviz 等文本格式把架构图放在代码旁边，每次构建文档时自动生成图片。图不会再落后于代码。"
+            "summary": "每次重新生成文档，图也会从文本重新生成。",
+            "who": "在设计文档或 Wiki 里放架构图的工程师。",
+            "problem": "在别的工具里画好图再贴成图片，代码改了，图却还是旧的，也查不到是谁、什么时候改的。",
+            "after": "用 draw.io、Mermaid、PlantUML、D2、Graphviz 的文本把图放在代码旁边，每次构建文档时转换成 SVG。图的改动也能像代码一样审查。",
+            "start": "在文档构建步骤里加一行转换图的命令。",
+            "link": {
+              "href": "formats.html#diagrams",
+              "label": "支持的图表格式"
+            }
           },
           {
+            "id": "cad",
             "icon": "🛠️",
             "title": "没有 CAD 也能检查图纸和模型",
-            "description": "在网页或仪表板上快速查看平面图、电路板、加工路径和三维模型。适合需要审图、但手边没有 CAD 软件的人。"
+            "summary": "在网页上查看图纸、电路板和三维模型。",
+            "who": "在制造或建筑现场需要审图、但自己不画图的人，以及为他们做内部工具的开发者。",
+            "problem": "哪怕只想看一张图纸，也需要昂贵的 CAD 软件和许可证。给每个审图的人都配一套并不现实。",
+            "after": "平面图（DXF）、电路板（Gerber）、加工路径（G-code）、三维模型（STL、OBJ、STEP）等，都能显示在网页或仪表板上。",
+            "start": "先在支持格式列表里查一下你的文件格式能绘制到什么程度。有些格式显示的是内容概要，而不是完整图形。",
+            "link": {
+              "href": "formats.html#cad",
+              "label": "CAD 与三维格式"
+            }
           },
           {
+            "id": "reports",
             "icon": "📊",
             "title": "把数据变成报告用的图片",
-            "description": "表格、图表和公式会生成清晰的图片，每次生成的结果都一样，正适合自动生成的报告和文档。"
+            "summary": "表格、图表和公式，每次生成都一模一样。",
+            "who": "需要自动生成定期报告或技术资料的人。",
+            "problem": "每个人把表格、图表做成图片的方法都不一样，每次生成的效果也略有差别。",
+            "after": "CSV 表格、图表数据和 LaTeX 公式都能生成每次都一样的 SVG。放大不会模糊，打印也可以直接用。",
+            "start": "准备好数据文件，用和其他文档相同的命令转换即可。",
+            "link": {
+              "href": "formats.html#data",
+              "label": "数据与公式格式"
+            }
           },
           {
+            "id": "ai",
             "icon": "🤖",
             "title": "让 AI 助手读懂文档",
-            "description": "只需教给助手一个步骤：把文件转换成页面，再看报告有没有遗漏。不用截图，也不用靠不稳定的浏览器自动化；哪里没转换成功，助手自己就能发现。"
+            "summary": "用一个可靠的步骤，代替截图和浏览器自动化。",
+            "who": "想让 AI 智能体帮忙审阅或制作资料的人。",
+            "problem": "要让 AI 看文档，通常得截图或者自动操作浏览器。两种办法都容易出错，也不知道 AI 到底看到了多少。",
+            "after": "把一个固定流程交给 AI：先把文件转换成页面，再看报告里有没有遗漏。哪里没转换成功，AI 读报告就能自己发现。",
+            "start": "安装 Claude Code 或 Codex 的插件，或者直接让 AI 使用命令。",
+            "link": {
+              "href": "ai.html",
+              "label": "面向 AI 智能体"
+            }
           },
           {
+            "id": "back",
             "icon": "🔁",
             "title": "把编辑好的图交回 Office 或 CAD",
-            "description": "如果你的工具编辑的是 SVG，document-svg 可以把结果打包成 PowerPoint、Word、Excel、draw.io 或 CAD 文件，同事可以继续用他们熟悉的软件。"
+            "summary": "把 SVG 打包成 PowerPoint、Word、Excel、draw.io 或 CAD 文件。",
+            "who": "开发生成或编辑 SVG 的工具、需要把结果以 Office 或 CAD 文件交付的开发者。",
+            "problem": "收到一堆 SVG 文件，同事没法用平时的软件打开。",
+            "after": "SVG 可以打包成 PowerPoint、Word、Excel、PDF、draw.io、DXF 文件。转回去的是外观，段落、单元格和公式不会重建。draw.io 的图如果在 SVG 里嵌入了原始图数据，就能以可编辑的状态转回去。",
+            "start": "指定 SVG 所在的文件夹，运行写回命令。",
+            "link": {
+              "href": "formats.html",
+              "label": "查看可写回的格式"
+            }
           }
         ]
       },
-      "forAISection": {
-        "title": "AI 智能体也能直接用",
-        "description": "AI 助手不必读代码，就能从这个网站了解用法：格式列表以数据文件的形式公开，还有一份专门写给语言模型的简短说明。",
-        "llmsTitle": "llms.txt",
-        "llmsDescription": "写给 AI 助手的项目简介：能做什么、怎么调用、接下来该看哪些链接。",
-        "llmsLink": "打开 llms.txt",
-        "contractTitle": "智能体需要知道的几件事",
+      "formats": {
+        "meta": {
+          "title": "支持格式 — document-svg",
+          "description": "搜索 document-svg 能打开和写回的所有格式，并查看每种格式与原件的接近程度。"
+        },
+        "title": "支持格式",
+        "description": "在这里确认你的文件能不能用。可以按扩展名或名称搜索，也可以按领域查找。",
+        "howTitle": "怎么看这张表",
+        "how": [
+          "“转成 SVG”表示该文件能否转换成 SVG 页面。",
+          "“从 SVG 转回”表示 SVG 能否转回该格式的文件。",
+          "A、B、C 表示结果与原件有多接近。“—”表示不支持这个方向。",
+          "有些格式显示的是内容概要（如页数、条目数），而不是完整图形。每一行的说明里写明了是哪一种。"
+        ],
+        "legendTitle": "与原件的接近程度",
+        "searchLabel": "按扩展名或名称搜索",
+        "searchPlaceholder": "例如 .dwg、PowerPoint、STL",
+        "count": "{n} 种格式",
+        "none": "没有找到。试试别的写法，比如加上或去掉开头的“.”。",
+        "request": "需要这里没有的格式？欢迎在 GitHub Issue 里告诉我们。",
+        "colExt": "扩展名",
+        "colForward": "转成 SVG",
+        "colReverse": "从 SVG 转回",
+        "colNotes": "显示效果",
+        "reverseOnly": "只显示可从 SVG 转回的格式"
+      },
+      "samples": {
+        "meta": {
+          "title": "示例 — document-svg",
+          "description": "用 document-svg 转换本仓库示例文件得到的真实 SVG 页面，没有任何修饰。"
+        },
+        "title": "转换出来是这样的",
+        "description": "下面每张图都是用 document-svg 从链接的示例文件直接转换得到的，没有任何修饰。示例文件本身也由本仓库自己的脚本生成。",
+        "viewSvg": "打开 SVG",
+        "viewSource": "原始文件"
+      },
+      "start": {
+        "meta": {
+          "title": "快速开始 — document-svg",
+          "description": "安装 document-svg，转换第一个文件，检查结果，并在应用中显示页面。"
+        },
+        "title": "快速开始",
+        "description": "从安装到在应用里显示第一页。大多数人五分钟左右就能完成。",
+        "sections": [
+          {
+            "id": "choose",
+            "title": "1. 选择使用方式",
+            "paras": [
+              "不需要全部安装。按你想从哪里调用，选一种即可。"
+            ],
+            "cards": [
+              {
+                "title": "命令行",
+                "text": "想在终端或 CI 里转换文件时使用。装了 Rust 就用 cargo 安装；没有的话，可以从发布页面下载适合你系统的文件。",
+                "code": "cargo install document-svg --locked"
+              },
+              {
+                "title": "Node.js / TypeScript",
+                "text": "想在网页应用或 Electron 应用里转换时使用。自带类型定义。",
+                "code": "npm install document-svg"
+              },
+              {
+                "title": "Python",
+                "text": "想在脚本或数据处理中转换时使用。需要 Python 3.10 或更高版本。",
+                "code": "python -m pip install document-svg"
+              },
+              {
+                "title": "Rust",
+                "text": "想集成到 Rust 程序里时使用。",
+                "code": "cargo add document-svg"
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/releases",
+                "label": "下载预编译的命令行工具（发布页面）"
+              }
+            ]
+          },
+          {
+            "id": "convert",
+            "title": "2. 转换第一个文件",
+            "paras": [
+              "同样的转换，从哪里调用都一样。每个示例都能照原样运行。"
+            ],
+            "usage": true
+          },
+          {
+            "id": "check",
+            "title": "3. 检查结果",
+            "paras": [
+              "输出位置请指定一个新的或空的文件夹。里面会生成每页一个 SVG，以及一份转换记录（conversion.json）。"
+            ],
+            "code": "output/slides/\n├── page-0001.svg\n├── page-0002.svg\n└── conversion.json",
+            "bullets": [
+              "没能原样还原的地方，会以“警告”的形式写进记录。",
+              "没有报错不代表完美。有警告时，请由人来检查页面。",
+              "即使没有警告，也不保证和用 Office 打开时逐像素一致。比如文字会使用显示 SVG 的环境中已有的字体。"
+            ]
+          },
+          {
+            "id": "show",
+            "title": "4. 在应用中显示",
+            "paras": [
+              "请把 SVG 当作图片显示（例如用 img 元素）。不要把 SVG 的内容直接贴进页面的 HTML 里。",
+              "附带的显示辅助工具会做一些基本检查，但它并不能让任意 SVG 都变得无害。"
+            ]
+          },
+          {
+            "id": "tools",
+            "title": "5. 从常用工具里使用",
+            "cards": [
+              {
+                "title": "GitHub Actions",
+                "text": "自动转换拉取请求中改动的文档。"
+              },
+              {
+                "title": "Claude Code / Codex",
+                "text": "作为插件添加到 AI 助手中。"
+              },
+              {
+                "title": "GitHub CLI",
+                "text": "在本地仓库中运行安装脚本后，就能以 gh docsvg 命令使用。"
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+                "label": "GitHub 与 AI 工具的配置步骤"
+              }
+            ]
+          },
+          {
+            "id": "trouble",
+            "title": "6. 遇到问题时",
+            "bullets": [
+              "我们为 Windows、macOS、Linux 的 x64 和 ARM64 提供了预编译的软件包。",
+              "Alpine Linux 上的 Python 没有预编译的软件包，需要 Rust 和构建工具。",
+              "用 npm 安装后无法加载时，请确认可选依赖已经安装，并且 Node.js 与机器的 CPU 类型一致。把 node_modules 复制到别的系统上是不能用的。",
+              "转换得到的 SVG 可以在较新的浏览器、resvg、librsvg 2.46 及以上版本中显示。"
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/README.md#platform-support-and-troubleshooting",
+                "label": "平台支持与故障排查"
+              }
+            ]
+          }
+        ]
+      },
+      "safety": {
+        "meta": {
+          "title": "安全与局限 — document-svg",
+          "description": "document-svg 绝不会对文件做的事、保护机器的上限，以及它无法保证的事。"
+        },
+        "title": "安全与局限",
+        "description": "这里整理了它绝不会对文件做的事，以及它无法保证的事。在处理工作文件、或接入公开服务之前，请先读一读。",
+        "sections": [
+          {
+            "id": "local",
+            "title": "文件不会发送到任何地方",
+            "paras": [
+              "转换在运行它的机器上完成。不上传、不联网、不收集使用数据，也不需要账号。"
+            ]
+          },
+          {
+            "id": "inert",
+            "title": "文件里的内容不会被执行",
+            "bullets": [
+              "宏、脚本、表单提交和外部链接只会被显示或跳过，绝不执行。",
+              "需要密码才能打开的 PDF 会被拒绝转换，而不是去破解密码。",
+              "只设置了权限密码（例如“禁止打印”）的 PDF，会像其他查看器一样被打开。这些限制只是声明，不是访问控制，document-svg 不会强制执行。是否可以转换这类文件，请事先自行判断。"
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "保护机器的上限",
+            "paras": [
+              "文件大小、压缩包内容、XML 数据量和页数都有上限，超大或损坏的文件不会把内存耗尽。条目超过 10 万个的压缩包会在解压之前被拒绝。",
+              "上限可以调整，但不要只是为了让难处理的文件通过而调高。"
+            ]
+          },
+          {
+            "id": "overwrite",
+            "title": "不会覆盖已有文件",
+            "paras": [
+              "输出位置必须是新的或空的文件夹，已有的文件绝不会被覆盖。"
+            ]
+          },
+          {
+            "id": "display",
+            "title": "显示结果时",
+            "paras": [
+              "请把 SVG 页面当作图片显示，不要把内容直接嵌进页面。显示辅助工具会做基本检查，但并不是通用的 SVG 净化工具。"
+            ]
+          },
+          {
+            "id": "public",
+            "title": "用在公开服务上时",
+            "paras": [
+              "如果任何人都能上传文件，请把所有文件都当作不可信的。请在单独的、限制了内存和时间的进程里运行转换。"
+            ]
+          },
+          {
+            "id": "cannot",
+            "title": "无法保证的事",
+            "bullets": [
+              "不保证与原件逐像素一致。可能有差异的地方会用警告提示，但没有警告也不代表保证。",
+              "写回 Office 或 CAD 时保留的是外观，段落、单元格、公式和图表不会恢复。",
+              "有些格式显示的是内容概要，而不是完整图形。",
+              "不会对医学影像和报告做匿名化处理。文件中的个人信息可能原样出现在输出中。",
+              "警告是“请检查”的信号，不是安全性或准确性的证明。"
+            ]
+          },
+          {
+            "id": "report",
+            "title": "发现安全问题时",
+            "paras": [
+              "请不要发公开 Issue，而是通过 GitHub 的私密漏洞报告告诉我们。安全修复只会进入最新的发布版本。"
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/SECURITY.md",
+                "label": "安全策略"
+              }
+            ]
+          }
+        ]
+      },
+      "ai": {
+        "meta": {
+          "title": "面向 AI 智能体 — document-svg",
+          "description": "从 Claude Code、Codex、GitHub Copilot 使用 document-svg 的方法，以及 AI 智能体需要遵守的规则。"
+        },
+        "title": "面向 AI 智能体",
+        "description": "AI 助手不必读代码，就能从这个网站了解用法。这里介绍怎么把这个工具交给 AI，以及它需要注意什么。",
+        "sections": [
+          {
+            "id": "plugins",
+            "title": "把工具交给 AI 助手",
+            "cards": [
+              {
+                "title": "Claude Code",
+                "text": "添加插件市场并安装插件后，就能使用转换、写回、整理 SVG、生成 PNG 预览、检查安装这五个命令。",
+                "code": "/plugin marketplace add ryusui-hiro/document-svg\n/plugin install document-svg@document-svg"
+              },
+              {
+                "title": "Codex",
+                "text": "在本地仓库中运行安装脚本，然后开始一个新任务，就能使用同样的技能。",
+                "code": "./scripts/install-codex-plugin.sh"
+              },
+              {
+                "title": "GitHub Copilot",
+                "text": "在 Copilot 的准备步骤里加上安装用的 action，编码智能体在工作时就能使用命令。"
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/GITHUB_INTEGRATION.md",
+                "label": "查看完整配置步骤"
+              }
+            ]
+          },
+          {
+            "id": "rules",
+            "title": "智能体需要知道的几件事",
+            "contract": true
+          },
+          {
+            "id": "llms",
+            "title": "写给语言模型的简介",
+            "paras": [
+              "llms.txt 是写给 AI 助手的项目简介：能做什么、怎么调用、接下来该看哪些链接。"
+            ],
+            "links": [
+              {
+                "href": "llms.txt",
+                "label": "打开 llms.txt"
+              }
+            ]
+          },
+          {
+            "id": "data",
+            "title": "以数据形式提供的格式列表",
+            "paras": [
+              "本网站的支持格式列表也以英文、日文、中文的数据文件形式公开，AI 不需要去解析网页。"
+            ],
+            "links": [
+              {
+                "href": "assets/data/formats.json",
+                "label": "支持格式列表（JSON）"
+              },
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/AI_USAGE_GUIDE.md",
+                "label": "面向 AI 智能体的完整指南"
+              }
+            ]
+          }
+        ],
         "contractItems": [
           "普通文件转换用简单的转换入口即可；底层组件是给想用自己的图形生成 SVG 的人准备的。",
-          "文件按扩展名决定读取方式。先查格式地图，再判断是否支持。",
+          "文件按扩展名决定读取方式。先查支持格式列表，再判断是否支持。",
           "每一页、每张幻灯片、每个工作表都会成为单独的 SVG，整个任务附带一份报告。",
           "没有报错不代表完美。警告的意思是“需要人看一下”。",
+          "每次转换都用一个新的空文件夹作为输出位置。",
           "只使用公开的接口；内部读取模块在不同版本之间可能变化。",
           "不要为了让难处理的文件通过而调高安全上限。上限是为了保护机器免受超大或恶意文件的影响。",
           "把 SVG 转回 Office 或 CAD 时，保留的是外观，而不是原来的文字排版、单元格或公式。"
-        ],
-        "guideLink": "阅读面向 AI 智能体的完整指南"
+        ]
       },
-      "formatsSection": {
-        "title": "格式支持地图",
-        "description": "查一查你的文件格式。每一行都写明：能否转换成 SVG、能否从 SVG 转回该格式，以及结果和原件有多接近。",
-        "legendTitle": "与原件的接近程度",
-        "filterAll": "全部类别",
-        "colExt": "扩展名",
-        "colForward": "转为 SVG",
-        "colReverse": "从 SVG 转回",
-        "colNotes": "说明"
-      },
-      "gallerySection": {
-        "title": "示例",
-        "description": "下面每张图都是用 document-svg 从链接的示例文件直接转换得到的，没有任何修饰。示例文件本身也由本仓库自己的脚本生成。",
-        "viewSvg": "打开 SVG",
-        "viewSource": "查看源文件"
-      },
-      "installSection": {
-        "title": "安装",
-        "description": "选一种适合你的方式即可，不需要全部安装。",
+      "usageTabs": {
+        "cli": "命令行",
         "node": "Node.js / TypeScript",
         "python": "Python",
-        "rust": "Rust / CLI"
-      },
-      "footer": {
-        "tagline": "免费开源（MIT 或 Apache-2.0）。在你自己的机器上运行：不上传、不联网、不收集使用数据。",
-        "repo": "代码仓库",
-        "releases": "发布版本",
-        "docs": "文档",
-        "support": "支持范围与限制",
-        "architecture": "架构说明"
-      },
-      "usageSection": {
-        "title": "模块用法",
-        "description": "同样的转换，可以从命令行、Node.js、Python 或 Rust 调用。每个示例都能照原样运行。",
-        "tabs": {
-          "cli": "CLI",
-          "node": "Node.js / TypeScript",
-          "python": "Python",
-          "rust": "Rust"
-        }
+        "rust": "Rust"
       }
     }
   },
@@ -520,8 +1651,8 @@
         "lang": "bash",
         "caption": {
           "en": "Convert a file to SVG pages",
-          "ja": "ファイルをSVGページへ変換する",
-          "zh": "将文件转换为 SVG 页面"
+          "ja": "ファイルをSVGのページに変換する",
+          "zh": "把文件转换成 SVG 页面"
         },
         "code": "docsvg report.pdf --output output/report\ndocsvg slides.pptx --output output/slides\ndocsvg architecture.drawio --output output/diagram --stencils path/to/stencils.xml"
       },
@@ -537,18 +1668,18 @@
       {
         "lang": "bash",
         "caption": {
-          "en": "Reverse SVG pages back into a native format",
-          "ja": "SVGページをネイティブ形式へ逆変換する",
-          "zh": "将 SVG 页面反向导出为原生格式"
+          "en": "Turn SVG pages back into PowerPoint, Word or other files",
+          "ja": "SVGのページを PowerPoint や Word などのファイルに戻す",
+          "zh": "把 SVG 页面转回 PowerPoint、Word 等文件"
         },
         "code": "docsvg reverse output/slides --output slides.pptx\ndocsvg reverse output/diagram --output diagram.drawio\ndocsvg reverse output/drawing --output drawing.dxf"
       },
       {
         "lang": "bash",
         "caption": {
-          "en": "Reshape an existing SVG for a specific destination",
-          "ja": "既存のSVGを用途に合わせて再仕立てする",
-          "zh": "为特定用途重新调整已有的 SVG"
+          "en": "Tidy up an existing SVG for where it will be used",
+          "ja": "手元のSVGを、使う場所に合わせて整える",
+          "zh": "按使用场景整理已有的 SVG"
         },
         "code": "docsvg transform diagram.svg --output diagram.min.svg \\\n  --minify --monochrome \"#1e293b\" --responsive --precision 1"
       }
@@ -584,9 +1715,9 @@
       {
         "lang": "javascript",
         "caption": {
-          "en": "Reverse SVG pages back into a native format",
-          "ja": "SVGページをネイティブ形式へ逆変換する",
-          "zh": "将 SVG 页面反向导出为原生格式"
+          "en": "Turn SVG pages back into PowerPoint, Word or other files",
+          "ja": "SVGのページを PowerPoint や Word などのファイルに戻す",
+          "zh": "把 SVG 页面转回 PowerPoint、Word 等文件"
         },
         "code": "const { reverse } = require('document-svg')\n\nconst report = await reverse('output/diagram', 'diagram.drawio')\nconsole.log(report.pageCount, report.warnings)"
       }
@@ -596,17 +1727,17 @@
         "lang": "python",
         "caption": {
           "en": "Convert a file to SVG pages",
-          "ja": "ファイルをSVGページへ変換する",
-          "zh": "将文件转换为 SVG 页面"
+          "ja": "ファイルをSVGのページに変換する",
+          "zh": "把文件转换成 SVG 页面"
         },
         "code": "from document_svg import convert\n\nreport = convert(\"input.pptx\", \"output/pptx\", jobs=1, max_pages=500)\nneeds_review = bool(report[\"warnings\"]) or any(\n    page[\"warnings\"] for page in report[\"pages\"]\n)\nprint(report[\"page_count\"], needs_review)"
       },
       {
         "lang": "python",
         "caption": {
-          "en": "Reverse SVG pages back into a native format",
-          "ja": "SVGページをネイティブ形式へ逆変換する",
-          "zh": "将 SVG 页面反向导出为原生格式"
+          "en": "Turn SVG pages back into PowerPoint, Word or other files",
+          "ja": "SVGのページを PowerPoint や Word などのファイルに戻す",
+          "zh": "把 SVG 页面转回 PowerPoint、Word 等文件"
         },
         "code": "from document_svg import reverse\n\nreport = reverse(\"output/slides\", \"slides.pptx\")\nprint(report[\"page_count\"], report[\"warnings\"])"
       }
@@ -616,8 +1747,8 @@
         "lang": "rust",
         "caption": {
           "en": "Convert a file to SVG pages",
-          "ja": "ファイルをSVGページへ変換する",
-          "zh": "将文件转换为 SVG 页面"
+          "ja": "ファイルをSVGのページに変換する",
+          "zh": "把文件转换成 SVG 页面"
         },
         "code": "use document_svg::{convert_path, ConvertOptions};\n\nlet options = ConvertOptions { jobs: 4, max_pages: 500, ..ConvertOptions::default() };\nlet report = convert_path(\"input.pdf\", \"output/pdf\", &options)?;\nprintln!(\"{} pages\", report.page_count);"
       },
@@ -633,9 +1764,9 @@
       {
         "lang": "rust",
         "caption": {
-          "en": "Reverse SVG pages back into a native format",
-          "ja": "SVGページをネイティブ形式へ逆変換する",
-          "zh": "将 SVG 页面反向导出为原生格式"
+          "en": "Turn SVG pages back into PowerPoint, Word or other files",
+          "ja": "SVGのページを PowerPoint や Word などのファイルに戻す",
+          "zh": "把 SVG 页面转回 PowerPoint、Word 等文件"
         },
         "code": "use document_svg::{svg_to_document, ReverseOptions};\n\nlet report = svg_to_document(\"output/slides\", \"slides.pptx\", &ReverseOptions::default())?;\nprintln!(\"{} pages\", report.page_count);"
       }
