@@ -57,6 +57,18 @@ SVG 在任何浏览器里都能显示，放大不会模糊，也能像其他图�
 npm 和 pip 的软件包已经为 Windows、macOS 和 Linux 预编译好，不需要 Rust。
 如果只想用命令行又不想安装 Rust，可以从[发布页面](https://github.com/ryusui-hiro/document-svg/releases)下载适合你系统的文件，把 `docsvg` 放到 `PATH` 中。
 
+### 获取位置与安装位置
+
+| 软件包 | 页面 | 安装到哪里 |
+|---|---|---|
+| npm 的 `document-svg` | [npmjs.com/package/document-svg](https://www.npmjs.com/package/document-svg) | 项目的 `node_modules/document-svg`，另外还会装上一个适合你系统的预编译包，例如 `node_modules/document-svg-darwin-arm64` |
+| PyPI 的 `document-svg` | [pypi.org/project/document-svg](https://pypi.org/project/document-svg/) | 当前环境的 `site-packages/document_svg` |
+| crates.io 的 `document-svg` | [crates.io/crates/document-svg](https://crates.io/crates/document-svg) | `cargo install` 会把 `docsvg` 放到 `~/.cargo/bin`（Windows 为 `%USERPROFILE%\.cargo\bin`）；`cargo add` 会把库加入你的项目 |
+| GitHub 发布页面 | [发布版本](https://github.com/ryusui-hiro/document-svg/releases) | 解压到的位置；把 `docsvg` 放到 `PATH` 中 |
+
+可以用 `npm ls document-svg`、`python -m pip show document-svg` 或 `docsvg --version` 确认是否已安装以及安装位置。
+Rust API 文档在 [docs.rs](https://docs.rs/document-svg)。GitHub Packages 上需要认证的 npm 镜像见 [docs/PUBLISHING.md](docs/PUBLISHING.md#installing-the-github-packages-mirror)。
+
 ## 试一试
 
 ```sh

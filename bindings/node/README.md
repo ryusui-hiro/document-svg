@@ -34,6 +34,11 @@ Windows, macOS and Linux on x64 and ARM64, so you don't need Rust. Keep npm's
 optional dependencies enabled: that is how the right one for your machine is
 chosen.
 
+The package goes into your project's `node_modules/document-svg`, and npm adds
+one native package for your system next to it (for example
+`node_modules/document-svg-darwin-arm64`). `npm ls document-svg` shows the
+installed version.
+
 Conversion runs in Node.js — on a server or in Electron's main process — and
 does not block the event loop. Only the small `document-svg/preview-ui` helper
 is meant for the browser.

@@ -291,7 +291,8 @@
             "id": "choose",
             "title": "1. Pick how you'll use it",
             "paras": [
-              "You only need one of these. Choose by where you want to call it from."
+              "You only need one of these. Choose by where you want to call it from.",
+              "npm installs into your project's node_modules, pip into the active environment's site-packages, and cargo install puts docsvg in ~/.cargo/bin."
             ],
             "cards": [
               {
@@ -316,6 +317,22 @@
               }
             ],
             "links": [
+              {
+                "href": "https://www.npmjs.com/package/document-svg",
+                "label": "npm package page"
+              },
+              {
+                "href": "https://pypi.org/project/document-svg/",
+                "label": "PyPI package page"
+              },
+              {
+                "href": "https://crates.io/crates/document-svg",
+                "label": "crates.io page"
+              },
+              {
+                "href": "https://docs.rs/document-svg",
+                "label": "Rust API reference (docs.rs)"
+              },
               {
                 "href": "https://github.com/ryusui-hiro/document-svg/releases",
                 "label": "Download a ready-made command (Releases)"
@@ -836,7 +853,8 @@
             "id": "choose",
             "title": "1. 使い方を選ぶ",
             "paras": [
-              "全部入れる必要はありません。どこから呼び出したいかで、ひとつ選んでください。"
+              "全部入れる必要はありません。どこから呼び出したいかで、ひとつ選んでください。",
+              "npm はプロジェクトの node_modules に、pip は使っている環境の site-packages に入ります。cargo install なら docsvg が ~/.cargo/bin に入ります。"
             ],
             "cards": [
               {
@@ -861,6 +879,22 @@
               }
             ],
             "links": [
+              {
+                "href": "https://www.npmjs.com/package/document-svg",
+                "label": "npm のパッケージページ"
+              },
+              {
+                "href": "https://pypi.org/project/document-svg/",
+                "label": "PyPI のパッケージページ"
+              },
+              {
+                "href": "https://crates.io/crates/document-svg",
+                "label": "crates.io のページ"
+              },
+              {
+                "href": "https://docs.rs/document-svg",
+                "label": "Rust の API リファレンス（docs.rs）"
+              },
               {
                 "href": "https://github.com/ryusui-hiro/document-svg/releases",
                 "label": "ビルド済みのコマンドをダウンロード（リリース）"
@@ -1381,7 +1415,8 @@
             "id": "choose",
             "title": "1. 选择使用方式",
             "paras": [
-              "不需要全部安装。按你想从哪里调用，选一种即可。"
+              "不需要全部安装。按你想从哪里调用，选一种即可。",
+              "npm 会安装到项目的 node_modules，pip 会安装到当前环境的 site-packages，cargo install 会把 docsvg 放到 ~/.cargo/bin。"
             ],
             "cards": [
               {
@@ -1406,6 +1441,22 @@
               }
             ],
             "links": [
+              {
+                "href": "https://www.npmjs.com/package/document-svg",
+                "label": "npm 软件包页面"
+              },
+              {
+                "href": "https://pypi.org/project/document-svg/",
+                "label": "PyPI 软件包页面"
+              },
+              {
+                "href": "https://crates.io/crates/document-svg",
+                "label": "crates.io 页面"
+              },
+              {
+                "href": "https://docs.rs/document-svg",
+                "label": "Rust API 参考（docs.rs）"
+              },
               {
                 "href": "https://github.com/ryusui-hiro/document-svg/releases",
                 "label": "下载预编译的命令行工具（发布页面）"

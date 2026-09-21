@@ -34,6 +34,9 @@ ARM64, so you don't need Rust. On Alpine and other musl systems, pip builds
 from source, which needs Rust and a C linker. This package gives you a Python
 API; for the `docsvg` command, see crates.io.
 
+The package goes into your environment's `site-packages/document_svg`.
+`python -m pip show document-svg` shows the installed version and location.
+
 ## Save SVG pages to a folder
 
 ```python

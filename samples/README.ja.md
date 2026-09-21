@@ -1,11 +1,17 @@
 # サンプル
 
-`docsvg` が何を入力に取り、何を出力するのかを、実際のファイルで確認できます。
+実際の入力ファイルと、そこから `docsvg` が作ったSVGのページを並べています。インストールする前に、仕上がりを自分の目で確かめられます。
+ここにあるファイルはすべてこのリポジトリのスクリプトで作ったもので、自由に使えます。
 
-[English](README.md)。対応する全形式をトリリンガル（英語・日本語・中国語）で
-紹介する、ギャラリー付きのより詳しいツアーを [`site/`](../site/) から GitHub
-Pages として公開しています。サイトのビルド・公開方法は
-[`../site/README.md`](../site/README.md) を参照してください。
+[English](README.md) · [ギャラリーで見る](https://ryusui-hiro.github.io/document-svg/ja/samples.html)
+
+インストール後に自分で試すには、次のように実行します（出力先は新しいフォルダか空のフォルダにします）。
+
+```bash
+docsvg samples/source/sample.pptx --output out/slides
+```
+
+出力フォルダには `page-0001.svg`、`page-0002.svg`… と、近似や省略をした箇所を書いた `conversion.json` ができます。
 
 | | 入力 | 出力 |
 |---|---|---|
@@ -66,9 +72,9 @@ Pages として公開しています。サイトのビルド・公開方法は
 - **DOCX** — 見出しスタイル、罫線付きの表、明示的な改ページ、ヘッダーとフッター
   （フッターの `PAGE` フィールドはページ番号に解決されます）。
 - **Microsoft Project XML** — summary/task bar、progress overlay、milestone、predecessor arrowを表示し、日程は再計算せずStart/FinishをGantt timelineに配置します。
-- **drawio** — 2ページ構成、図形と塗り、影、直交・曲線のコネクタと矢尻、エッジのラベル、
+- **drawio** — 3ページ構成。1〜2ページ目は図形と塗り、影、直交・曲線のコネクタと矢尻、エッジのラベル、
   スイムレーンと入れ子の子要素。入力は読みやすいXMLのまま置いていますが、エディタが既定で
-  書き出す圧縮された `<diagram>` も同じように変換できます。
+  書き出す圧縮された `<diagram>` も同じように変換できます。3ページ目は図形ライブラリから描いた図形の例です（後述）。
 - **DXF** — 建築フロアプラン図面。WALLS, DOORS, FURNITURE, TEXT などのレイヤー構造、
   LINE、ARC、CIRCLE、TEXT エンティティ、AutoCAD カラーインデックス (ACI) パレットの描画。
   `docsvg reverse <svg> --output <new.dxf>` による DXF R12 への逆変換往復もサポート。

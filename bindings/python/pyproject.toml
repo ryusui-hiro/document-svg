@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "document-svg"
-version = "2.0.0"
+version = "2.0.1"
 description = "Turn PDF, Word, Excel, PowerPoint, diagram and CAD files into SVG pages from Python, locally and without Office"
 readme = "README.md"
 requires-python = ">=3.10"
