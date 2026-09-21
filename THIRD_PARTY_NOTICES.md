@@ -90,4 +90,4 @@ bindings/python/.venv/bin/python scripts/audit-licenses.py \
 
 リリース前には`Cargo.lock`を基準に同じ監査を再実行し、各crateの配布物に含まれるLICENSE／NOTICEも保持してください。QAだけに使う`pdftoppm`、`rsvg-convert`、LibreOfficeは外部CLIであり、このcrateへリンク・同梱しません。
 
-参照元`pdfsvgpptx`はproprietary licenseです。そのコードをcopy/vendorせず、公開仕様と観察した入出力契約をもとに独立実装しています。参照QA文書、SVG、PPTX、画像はこの配布物へ含めません。
+参照した既存の実装（非公開、proprietary license）について、そのコードをcopy/vendorせず、公開仕様と観察した入出力契約をもとに独立実装しています。参照QA文書、SVG、PPTX、画像はこの配布物へ含めません。

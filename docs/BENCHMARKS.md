@@ -53,9 +53,9 @@ LibreOffice 26.2.2.2経由のOpenXML描画、または元PPTXのLibreOffice描�
 EMF/WMFのbounded SVG変換、互換保存用`hiddenFill`／`hiddenLine`の除外、table border色と
 cell fill色の分離によるものです。逆変換PPTXはローカル検証用 `validate_pptx_package`にも合格しました。
 
-## pdfsvgpptx PDF fidelity regression
+## PDF fidelity regression
 
-2026-08-26、`pdfsvgpptx`のローカルQA fixtureを再配布せず参照し、Poppler 144dpiと
+2026-08-26、非公開のPDF QA fixtureを再配布せず参照し、Poppler 144dpiと
 生成SVGのlibrsvg描画を同一RGB寸法で比較しました。
 
 | fixture / 実page | 修正前MAE | 修正後MAE | `>16` 修正前→修正後 |
@@ -204,7 +204,7 @@ cargo build --release
 
 ## PDF feature fidelity
 
-`pdfsvgpptx`のローカルQA fixtureをPDF原画とSVGへそれぞれ144dpiで描画し、同一RGB寸法の平均絶対誤差を測定しました。
+非公開のPDF QA fixtureをPDF原画とSVGへそれぞれ144dpiで描画し、同一RGB寸法の平均絶対誤差を測定しました。
 
 | feature | normalized RGB MAE | warning |
 |---|---:|---|

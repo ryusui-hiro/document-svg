@@ -16,7 +16,7 @@
 *.crate
 *.whl
 *.tgz
-/.DS_Store
+.DS_Store
 *.node
 *.so
 *.pyd
@@ -28,3 +28,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 .gh-extension/
+# Local tool settings (may hold machine-specific paths or permissions).
+.claude/settings.local.json
