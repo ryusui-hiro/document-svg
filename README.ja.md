@@ -57,6 +57,18 @@ Node.js、Python、Rust のライブラリと、コマンド（`docsvg`）とし
 npm と pip のパッケージは Windows、macOS、Linux 向けにビルド済みなので、Rust は要りません。
 Rust を入れずにコマンドだけ使うこともできます。[リリース](https://github.com/ryusui-hiro/document-svg/releases)から自分のOS用のファイルをダウンロードし、`docsvg` を `PATH` の通った場所に置いてください。
 
+### 入手先とインストール先
+
+| パッケージ | ページ | インストールされる場所 |
+|---|---|---|
+| npm の `document-svg` | [npmjs.com/package/document-svg](https://www.npmjs.com/package/document-svg) | プロジェクトの `node_modules/document-svg`。OSに合ったビルド済みのパッケージ（`node_modules/document-svg-darwin-arm64` など）も1つ入ります |
+| PyPI の `document-svg` | [pypi.org/project/document-svg](https://pypi.org/project/document-svg/) | 使っている環境の `site-packages/document_svg` |
+| crates.io の `document-svg` | [crates.io/crates/document-svg](https://crates.io/crates/document-svg) | `cargo install` なら `docsvg` が `~/.cargo/bin`（Windowsでは `%USERPROFILE%\.cargo\bin`）に入ります。`cargo add` ならライブラリとしてプロジェクトに加わります |
+| GitHub のリリース | [リリース](https://github.com/ryusui-hiro/document-svg/releases) | 展開した場所。`docsvg` を `PATH` の通った場所に置きます |
+
+入っているかどうかは、次のコマンドで確かめられます。`npm ls document-svg`、`python -m pip show document-svg`、`docsvg --version`。
+Rust のAPIの説明は [docs.rs](https://docs.rs/document-svg) にあります。GitHub Packages の認証付きnpmミラーについては [docs/PUBLISHING.md](docs/PUBLISHING.md#installing-the-github-packages-mirror) を見てください。
+
 ## 試してみる
 
 ```sh

@@ -81,6 +81,21 @@ download the file for your system from
 [Releases](https://github.com/ryusui-hiro/document-svg/releases) and put
 `docsvg` on your `PATH`.
 
+### Where to get it and where it goes
+
+| Package | Page | Installed into |
+|---|---|---|
+| npm `document-svg` | [npmjs.com/package/document-svg](https://www.npmjs.com/package/document-svg) | Your project's `node_modules/document-svg`, plus one ready-made native package for your system, such as `node_modules/document-svg-darwin-arm64` |
+| PyPI `document-svg` | [pypi.org/project/document-svg](https://pypi.org/project/document-svg/) | The active environment's `site-packages/document_svg` |
+| crates.io `document-svg` | [crates.io/crates/document-svg](https://crates.io/crates/document-svg) | `cargo install` puts `docsvg` in `~/.cargo/bin` (`%USERPROFILE%\.cargo\bin` on Windows); `cargo add` adds the library to your project |
+| GitHub Releases | [Releases](https://github.com/ryusui-hiro/document-svg/releases) | Wherever you unpack the archive; put `docsvg` on your `PATH` |
+
+To check what is installed and where: `npm ls document-svg`,
+`python -m pip show document-svg`, or `docsvg --version`.
+The Rust API reference is on [docs.rs](https://docs.rs/document-svg). An
+authenticated npm mirror on GitHub Packages is described in
+[docs/PUBLISHING.md](docs/PUBLISHING.md#installing-the-github-packages-mirror).
+
 ## Try it
 
 ```sh
