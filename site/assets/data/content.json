@@ -258,7 +258,7 @@
         "legendTitle": "How closely it matches",
         "searchLabel": "Search by extension or name",
         "searchPlaceholder": "e.g. .dwg, PowerPoint, STL",
-        "count": "{n} formats",
+        "count": "Matching formats: {n}",
         "none": "Nothing found. Try another spelling, with or without the leading dot.",
         "request": "Need a format that isn't here? Tell us in a GitHub issue.",
         "colExt": "Extensions",
