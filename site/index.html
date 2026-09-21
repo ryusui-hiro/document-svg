@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title data-i18n="meta.title">document-svg</title>
-<meta name="description" data-i18n-attr="content:meta.description" content="Convert PDF, Office, CAD and diagram files into inspectable SVG pages." />
+<meta name="description" data-i18n-attr="content:meta.description" content="Turn PDFs, Office files, diagrams and CAD drawings into one SVG per page on your own machine." />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%233454d1'/%3E%3Ctext x='50' y='62' font-size='46' text-anchor='middle' fill='white' font-family='sans-serif'%3ES%3C/text%3E%3C/svg%3E" />
 <link rel="stylesheet" href="assets/style.css" />
 <link rel="alternate" type="text/plain" href="llms.txt" title="llms.txt" />
@@ -15,6 +15,7 @@
   <div class="topbar-inner">
     <a class="brand plain" href="#top">document-svg</a>
     <nav class="topnav">
+      <a href="#why" data-i18n="nav.why">Why</a>
       <a href="#usecases" data-i18n="nav.useCases">Use cases</a>
       <a href="#for-ai" data-i18n="nav.forAI">For AI agents</a>
       <a href="#formats" data-i18n="nav.formats">Format map</a>
@@ -34,20 +35,28 @@
 <div id="top"></div>
 <header class="wrap hero">
   <span class="eyebrow" data-i18n="hero.eyebrow">Rust · Node.js · Python · CLI</span>
-  <h1 data-i18n="hero.title">Turn any document into SVG pages.</h1>
-  <p data-i18n="hero.description">document-svg converts documents into SVG.</p>
+  <h1 data-i18n="hero.title">See every page of a file, without the app that made it.</h1>
+  <p data-i18n="hero.description">document-svg turns PDFs, Office files, diagrams and CAD drawings into ordinary SVG images, one per page.</p>
   <div class="hero-ctas">
     <a class="btn primary" href="#install" data-i18n="hero.ctaPrimary">Read the install guide</a>
     <a class="btn" href="#formats" data-i18n="hero.ctaSecondary">See the format map</a>
     <a class="btn" href="#samples" data-i18n="hero.ctaTertiary">Browse the samples</a>
   </div>
   <div class="stats">
-    <div class="stat"><b>60+</b><span data-i18n="stats.formats">input formats</span></div>
-    <div class="stat"><b>20+</b><span data-i18n="stats.reverse">reversible formats</span></div>
-    <div class="stat"><b>3</b><span data-i18n="stats.languages">language bindings</span></div>
-    <div class="stat"><b>A / B / C</b><span data-i18n="stats.tiers">fidelity tiers</span></div>
+    <div class="stat"><b id="stat-formats">—</b><span data-i18n="stats.formats">formats it can open</span></div>
+    <div class="stat"><b id="stat-extensions">—</b><span data-i18n="stats.extensions">file extensions recognized</span></div>
+    <div class="stat"><b id="stat-reverse">—</b><span data-i18n="stats.reverse">formats it can write back to</span></div>
+    <div class="stat"><b>0</b><span data-i18n="stats.uploads">files sent to a server</span></div>
   </div>
 </header>
+
+<section id="why" class="wrap">
+  <div class="section-head">
+    <h2 data-i18n="whySection.title">Why use it</h2>
+    <p data-i18n="whySection.description">Building document previews usually means installing heavy software or sending files to someone else's server. document-svg needs neither.</p>
+  </div>
+  <div class="usecases" id="why-grid"></div>
+</section>
 
 <section id="usecases" class="wrap">
   <div class="section-head">

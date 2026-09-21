@@ -1,9 +1,14 @@
 name: GitHub Pages
 
-# Manually publishes site/ (the project website: use-case guide, trilingual
-# format support map, and the sample gallery) after GitHub Pages has been
-# explicitly enabled. site/ is fully static; there is no build step.
+# Publishes site/ (the project website: use-case guide, trilingual format
+# support map, and the sample gallery) whenever it changes on main, and on
+# demand. site/ is fully static; there is no build step.
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch: {}
 
 permissions:

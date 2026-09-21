@@ -104,11 +104,28 @@
     });
   }
 
-  function renderUseCases() {
-    var strings = state.content.strings[state.lang];
-    var grid = document.getElementById("usecases-grid");
+  // Counted from formats.json so the headline numbers cannot drift from the map.
+  function renderStats() {
+    var items = [];
+    state.formats.categories.forEach(function (cat) { items = items.concat(cat.items); });
+    var extensions = {};
+    items.forEach(function (item) {
+      if (!item.forward) return;
+      extTokens(item.ext).forEach(function (token) {
+        if (token.charAt(0) === ".") extensions[token.toLowerCase()] = true;
+      });
+    });
+    var locale = state.lang === "zh" ? "zh-CN" : state.lang;
+    function show(id, n) { document.getElementById(id).textContent = n.toLocaleString(locale); }
+    show("stat-formats", items.filter(function (item) { return item.forward; }).length);
+    show("stat-extensions", Object.keys(extensions).length);
+    show("stat-reverse", items.filter(function (item) { return item.reverse; }).length);
+  }
+
+  function renderCards(gridId, items) {
+    var grid = document.getElementById(gridId);
     grid.innerHTML = "";
-    (strings.useCasesSection.items || []).forEach(function (item) {
+    (items || []).forEach(function (item) {
       var card = document.createElement("div");
       card.className = "usecase-card";
       card.innerHTML =
@@ -118,6 +135,12 @@
       card.querySelector("p").textContent = item.description;
       grid.appendChild(card);
     });
+  }
+
+  function renderUseCases() {
+    var strings = state.content.strings[state.lang];
+    renderCards("why-grid", strings.whySection.items);
+    renderCards("usecases-grid", strings.useCasesSection.items);
   }
 
   function renderContract() {
@@ -334,6 +357,7 @@
 
   function render() {
     applyI18n();
+    renderStats();
     renderUseCases();
     renderContract();
     renderTierLegend();
