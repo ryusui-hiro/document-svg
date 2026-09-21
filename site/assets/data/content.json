@@ -17,6 +17,7 @@
   "strings": {
     "en": {
       "site": {
+        "skip": "Skip to content",
         "nav": {
           "home": "Home",
           "useCases": "What you can do",
@@ -560,6 +561,7 @@
     },
     "ja": {
       "site": {
+        "skip": "本文へ移動",
         "nav": {
           "home": "ホーム",
           "useCases": "できること",
@@ -1103,6 +1105,7 @@
     },
     "zh": {
       "site": {
+        "skip": "跳到正文",
         "nav": {
           "home": "首页",
           "useCases": "能做什么",

@@ -6,33 +6,49 @@ and a gallery of real SVGs converted from this repository's own sample files.
 It is not documentation of last resort — it exists so someone (human or AI
 agent) evaluating this project can see what it does without cloning it.
 
-There is no build step. Everything under here is served as-is:
+Pages are plain HTML generated from two data files, so search engines and
+readers without JavaScript get the full content. After editing the data, run:
+
+```bash
+python3 scripts/build-site.py
+```
+
+`tests/test_site.py` fails when the generated pages are out of date, so CI
+catches a forgotten run. Do not edit the generated `.html` files or
+`sitemap.xml` by hand.
 
 ```text
 site/
-├── index.html              home: why use it, use cases, highlighted samples
-├── use-cases.html          each use case: who it is for, the problem, the result, how to begin
-├── formats.html            searchable format list, grouped by field
-├── samples.html            the full sample gallery, grouped by field
-├── start.html              install, first conversion, reading the report, troubleshooting
-├── safety.html             what is never uploaded or executed, limits, what is not guaranteed
-├── ai.html                 plugins for AI assistants and the rules an agent should follow
+├── index.html … ai.html    English pages (generated)
+├── ja/                     Japanese pages (generated)
+├── zh/                     Chinese pages (generated)
+├── sitemap.xml             every page with its language alternates (generated)
 ├── llms.txt                machine-readable project summary for LLMs/agents
 ├── README.md               this file
 └── assets/
     ├── style.css
-    ├── app.js               renders every page (header, sidebar, content) from the JSON below
+    ├── app.js               behaviour only: format search, code tabs, sidebar, old-link redirects
     ├── data/
     │   ├── content.json      all page copy, per language (en/ja/zh)
     │   └── formats.json      the format support map: one source of truth
     └── samples/<key>/page-0001.svg   one representative SVG per format
 ```
 
-Each HTML file is a thin shell: `<body data-page="...">` names the page, and
-`app.js` fills in the navigation, the sidebar and the content in the chosen
-language. The language is kept across pages through `?lang=` and
-`localStorage`. Links to the old single-page anchors (`#formats`, `#install`
-and so on) are redirected to the matching page.
+The seven pages are: home (why use it, use cases, highlighted samples), use
+cases (who, problem, result, how to begin), formats (searchable list),
+samples, get started, safety & limits, and AI agents.
+
+Each page carries a canonical URL, `hreflang` links to its other languages,
+Open Graph tags, and (on the home page) schema.org `SoftwareApplication`
+data. Links to the old single-page anchors (`#formats`, `#install`, …) and
+the short-lived `?lang=` URLs are redirected by `app.js`.
+
+## Search engines
+
+`robots.txt` is only read at the host root (`ryusui-hiro.github.io`), which a
+project site does not control, so there is none here. To get the site indexed,
+add `https://ryusui-hiro.github.io/document-svg/` as a URL-prefix property in
+Google Search Console and submit `sitemap.xml`.
 
 ## Previewing locally
 
@@ -40,10 +56,9 @@ and so on) are redirected to the matching page.
 python3 -m http.server 4173 --directory site
 ```
 
-Then open <http://localhost:4173>. Opening `index.html` directly via a
-`file://` URL will not work — `fetch()` of the JSON data files is blocked by
-the browser's same-origin rules for local files, so an HTTP server (any one
-will do) is required.
+Then open <http://localhost:4173>. The pages also open directly from disk,
+but the sample images and relative links behave most like the live site
+over HTTP.
 
 ## Editing content
 
@@ -57,13 +72,15 @@ will do) is required.
   should not drift apart.
 - **Page copy**: edit `assets/data/content.json`. `strings.<lang>.site` holds
   the navigation and footer; every other key under `strings.<lang>` is one
-  page (`home`, `useCases`, `formats`, `samples`, `start`, `safety`, `ai`).
+  page (`home`, `useCases`, `formats`, `samples`, `start`, `safety`, `ai`),
+  including its search-result title and description under `meta`.
   `start`, `safety` and `ai` are lists of sections, each of which can carry
   paragraphs, bullets, cards, a code block and links; add a section and it
   appears in the sidebar automatically. All three languages must keep the same
   keys — `tests/test_site.py` checks this. Write for people deciding whether
-  to use the project: plain words, no function names, and no claim that the
-  README, SECURITY.md or docs/ does not back up.
+  to use the project: plain words, no function names, no counts or versions
+  that go stale, and no claim that the README, SECURITY.md or docs/ does not
+  back up. Then run `python3 scripts/build-site.py`.
 - **Sample gallery**: add a folder under `assets/samples/<key>/` containing
   `page-0001.svg`, then reference `<key>` from a `formats.json` entry's
   `sample` field. Samples shown here should be generated by this repository
@@ -83,6 +100,6 @@ will do) is required.
 `.github/workflows/pages.yml` publishes this directory to GitHub Pages on
 every push to `main` that touches `site/**`, and can also be run manually
 from the Actions tab (`workflow_dispatch`). It uses
-`actions/upload-pages-artifact` and `actions/deploy-pages` — no build step, no
-Jekyll. GitHub Pages must be enabled for the repository once, with the source
+`actions/upload-pages-artifact` and `actions/deploy-pages`. The generated pages
+are committed, so the workflow itself has no build step and no Jekyll. GitHub Pages must be enabled for the repository once, with the source
 set to "GitHub Actions" (Settings → Pages → Build and deployment → Source).
