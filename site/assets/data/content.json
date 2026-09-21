@@ -24,6 +24,7 @@
           "formats": "Formats",
           "samples": "Samples",
           "start": "Get started",
+          "reference": "Developer reference",
           "safety": "Safety & limits",
           "ai": "For AI agents",
           "github": "GitHub"
@@ -116,6 +117,11 @@
             "href": "start.html",
             "title": "Try it in five minutes",
             "description": "Install one package and convert your first file."
+          },
+          {
+            "href": "reference.html",
+            "title": "Every function and option",
+            "description": "The developer reference: parameters, defaults, results, errors, and how to show pages in a web page."
           },
           {
             "href": "safety.html",
@@ -410,6 +416,883 @@
           }
         ]
       },
+      "reference": {
+        "meta": {
+          "title": "Developer reference: functions, options and results — document-svg",
+          "description": "Every function, option and result of document-svg for the command line, Node.js, Python, Rust and the browser, with defaults, examples and how to show pages in a web page."
+        },
+        "title": "Developer reference",
+        "description": "Every function and option, what it returns, and how to show the pages in a web page. Examples are written to run as shown.",
+        "sections": [
+          {
+            "id": "choose",
+            "title": "Which one should I use?",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "You want to…",
+                  "Use"
+                ],
+                "rows": [
+                  [
+                    "Convert files in a terminal, a script or CI",
+                    "docsvg"
+                  ],
+                  [
+                    "Show uploaded documents in a web or Electron app",
+                    "Node.js preview() + document-svg/preview-ui"
+                  ],
+                  [
+                    "Convert from Python: scripts, notebooks, web APIs",
+                    "Python preview() / convert()"
+                  ],
+                  [
+                    "Build it into a Rust program",
+                    "convert_path() / convert_bytes()"
+                  ],
+                  [
+                    "Convert inside the browser only (PDF, Word, Excel, PowerPoint)",
+                    "<docsvg-viewer> (WebAssembly)"
+                  ]
+                ],
+                "codeColumns": [
+                  1
+                ]
+              }
+            ],
+            "paras": [
+              "Everything runs on your own machine, in your own process. The Node.js package converts on a background thread so the event loop keeps running, and the Python package releases the GIL while it works. No server, account or network access is involved."
+            ]
+          },
+          {
+            "id": "cli",
+            "title": "Command line: docsvg",
+            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
+            "paras": [
+              "The format is chosen from the file extension, with a look at the file's first bytes when the extension is missing or generic. The command exits with 0 on success, and with 1 and a message on standard error when conversion fails."
+            ],
+            "tables": [
+              {
+                "caption": "Convert: docsvg <INPUT> --output <FOLDER>",
+                "columns": [
+                  "Option",
+                  "Default",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "-o, --output DIR",
+                    "required",
+                    "New or empty folder that receives the pages and conversion.json."
+                  ],
+                  [
+                    "--jobs N",
+                    "1",
+                    "How many PDF pages to convert at once. Other formats are converted page by page."
+                  ],
+                  [
+                    "--max-input-mib N",
+                    "512 MiB",
+                    "Largest input file accepted."
+                  ],
+                  [
+                    "--max-entry-mib N",
+                    "128 MiB",
+                    "Largest expanded part inside a PDF or a ZIP-based file (Office, EPUB, 3MF, CBZ)."
+                  ],
+                  [
+                    "--max-pages N",
+                    "10,000",
+                    "Most pages, slides or sheets written."
+                  ],
+                  [
+                    "--max-xml-events N",
+                    "5,000,000",
+                    "Most XML parser steps per part; stops oversized or hostile XML."
+                  ],
+                  [
+                    "--no-metadata",
+                    "metadata on",
+                    "Leave the provenance metadata out of each SVG."
+                  ],
+                  [
+                    "--precision N",
+                    "5",
+                    "Decimal places kept in coordinates. Smaller numbers give smaller files."
+                  ],
+                  [
+                    "--outline-embedded-pdf-text",
+                    "off",
+                    "Draw embedded PDF fonts as shapes: looks exactly like the original, but the text can no longer be selected. Check that the font's license allows this."
+                  ],
+                  [
+                    "--embed-drawio-source",
+                    "off",
+                    "Keep the draw.io source inside each SVG so it can be turned back into an editable diagram. Roughly doubles the size."
+                  ],
+                  [
+                    "--stencils PATH",
+                    "none",
+                    "draw.io shape library files or folders to draw library shapes with. Without them, such shapes become labelled placeholders."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "Write back: docsvg reverse",
+                "columns": [
+                  "Option",
+                  "Default",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "-o, --output FILE",
+                    "required",
+                    "The file to create. Its extension picks the format: .pptx, .docx, .xlsx, .pdf, .drawio, .dxf, .gcode, .stl, .html, .webp and more."
+                  ],
+                  [
+                    "--max-input-mib N",
+                    "512 MiB",
+                    "Largest total SVG input."
+                  ],
+                  [
+                    "--max-pages N",
+                    "10,000",
+                    "Most SVG pages read."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "Tidy up: docsvg transform",
+                "columns": [
+                  "Option",
+                  "Default",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "--minify",
+                    "off",
+                    "Remove comments and extra spaces."
+                  ],
+                  [
+                    "--monochrome COLOR",
+                    "off",
+                    "Paint every fill and stroke in one colour, e.g. \"#1e293b\"."
+                  ],
+                  [
+                    "--responsive",
+                    "off",
+                    "Drop the fixed size so the SVG scales to its container."
+                  ],
+                  [
+                    "--precision N",
+                    "none",
+                    "Round coordinates to N decimal places."
+                  ],
+                  [
+                    "--remove-metadata",
+                    "off",
+                    "Remove <metadata>, <desc> and data-* attributes."
+                  ],
+                  [
+                    "--clean-paths",
+                    "off",
+                    "Tidy path data (drop zero-length segments and duplicate closes)."
+                  ],
+                  [
+                    "--strip-empty-groups",
+                    "off",
+                    "Remove groups that draw nothing."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/FORMATS.md",
+                "label": "Every input and output format"
+              }
+            ]
+          },
+          {
+            "id": "output",
+            "title": "What a conversion writes",
+            "code": "out/\n├── page-0001.svg\n├── page-0002.svg\n└── conversion.json",
+            "paras": [
+              "The folder must be new or empty; existing files are never overwritten. conversion.json is the report of the whole job. The same fields come back from convert() and preview() (camelCase in Node.js)."
+            ],
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "Field",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "page_count",
+                    "Number of pages written."
+                  ],
+                  [
+                    "warnings",
+                    "Document-wide notes on anything approximated or left out. Empty does not guarantee a pixel-perfect match."
+                  ],
+                  [
+                    "pages[].svg",
+                    "File name of the page (convert) or the complete SVG markup (preview)."
+                  ],
+                  [
+                    "pages[].width_points, height_points",
+                    "Page size in points (1 pt = 1/72 inch)."
+                  ],
+                  [
+                    "pages[].warnings",
+                    "Notes for that page only."
+                  ],
+                  [
+                    "source_format",
+                    "The format that was detected, such as pptx or pdf."
+                  ],
+                  [
+                    "needs_review",
+                    "preview() only: true when the document or any page has a warning."
+                  ],
+                  [
+                    "elapsed_ms, input_bytes, version",
+                    "How long it took, how big the input was, and which version made it."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "id": "node",
+            "title": "Node.js",
+            "code": "const { convert, preview, reverse, transform } = require('document-svg')\n\nasync function main() {\n  const result = await preview('slides.pptx', { maxPages: 50 })\n  console.log(result.pageCount, result.needsReview)\n  const firstPageSvg = result.pages[0].svg\n\n  const report = await convert('slides.pptx', 'out/slides', { jobs: 2 })\n  await reverse('out/slides', 'slides-copy.pptx')\n  const small = transform(firstPageSvg, { minify: true })\n}\n\nmain().catch(console.error)",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "Function",
+                  "Returns",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "preview(file, options?)",
+                    "Promise<PreviewReport>",
+                    "Every page as SVG text, in memory. Nothing is left on disk."
+                  ],
+                  [
+                    "convert(file, folder, options?)",
+                    "Promise<ConversionReport>",
+                    "Write pages and conversion.json to a folder."
+                  ],
+                  [
+                    "reverse(svgOrFolder, file, options?)",
+                    "Promise<ReverseReport>",
+                    "Package SVG pages as another file type. Options: maxInputBytes, maxPages."
+                  ],
+                  [
+                    "transform(svg, options?)",
+                    "string",
+                    "Tidy an SVG string; runs synchronously."
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "Options for preview() and convert()",
+                "columns": [
+                  "Option",
+                  "Default",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "How many PDF pages to convert at once. Other formats are converted page by page."
+                  ],
+                  [
+                    "maxInputBytes",
+                    "512 MiB",
+                    "Largest input file accepted."
+                  ],
+                  [
+                    "maxZipEntryBytes",
+                    "128 MiB",
+                    "Largest expanded part inside a PDF or a ZIP-based file (Office, EPUB, 3MF, CBZ)."
+                  ],
+                  [
+                    "maxPages",
+                    "10,000",
+                    "Most pages, slides or sheets written."
+                  ],
+                  [
+                    "maxXmlEvents",
+                    "5,000,000",
+                    "Most XML parser steps per part; stops oversized or hostile XML."
+                  ],
+                  [
+                    "includeMetadata: false",
+                    "metadata on",
+                    "Leave the provenance metadata out of each SVG."
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "Decimal places kept in coordinates. Smaller numbers give smaller files."
+                  ],
+                  [
+                    "outlineEmbeddedPdfText",
+                    "off",
+                    "Draw embedded PDF fonts as shapes: looks exactly like the original, but the text can no longer be selected. Check that the font's license allows this."
+                  ],
+                  [
+                    "embedDrawioSource",
+                    "off",
+                    "Keep the draw.io source inside each SVG so it can be turned back into an editable diagram. Roughly doubles the size."
+                  ],
+                  [
+                    "stencilPaths",
+                    "none",
+                    "draw.io shape library files or folders to draw library shapes with. Without them, such shapes become labelled placeholders."
+                  ],
+                  [
+                    "maxSvgBytes",
+                    "64 MiB",
+                    "preview() only: largest SVG for one page."
+                  ],
+                  [
+                    "maxTotalSvgBytes",
+                    "256 MiB",
+                    "preview() only: largest total for all pages."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "Options for transform()",
+                "columns": [
+                  "Option",
+                  "Default",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "minify",
+                    "off",
+                    "Remove comments and extra spaces."
+                  ],
+                  [
+                    "monochrome",
+                    "off",
+                    "Paint every fill and stroke in one colour, e.g. \"#1e293b\"."
+                  ],
+                  [
+                    "responsive",
+                    "off",
+                    "Drop the fixed size so the SVG scales to its container."
+                  ],
+                  [
+                    "precision",
+                    "none",
+                    "Round coordinates to N decimal places."
+                  ],
+                  [
+                    "removeMetadata",
+                    "off",
+                    "Remove <metadata>, <desc> and data-* attributes."
+                  ],
+                  [
+                    "cleanPaths",
+                    "off",
+                    "Tidy path data (drop zero-length segments and duplicate closes)."
+                  ],
+                  [
+                    "stripEmptyGroups",
+                    "off",
+                    "Remove groups that draw nothing."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "document-svg/preview-ui (runs in the browser; no native code)",
+                "columns": [
+                  "Function",
+                  "Returns",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "createSvgPreviewUrl(svg)",
+                    "string",
+                    "A Blob URL for an <img>. Checks the SVG first."
+                  ],
+                  [
+                    "revokeSvgPreviewUrl(url)",
+                    "void",
+                    "Release a Blob URL when the image goes away."
+                  ],
+                  [
+                    "createSvgPreviewDataUrl(svg)",
+                    "string",
+                    "A data: URL, for passing to another window or process."
+                  ],
+                  [
+                    "copySvgToClipboard(svg)",
+                    "Promise<'image/svg+xml' | 'text/plain'>",
+                    "Copy the image, or its source where images can't be copied. Call from a click."
+                  ],
+                  [
+                    "copySvgSourceToClipboard(svg)",
+                    "Promise<void>",
+                    "Always copy the SVG source as text."
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "paras": [
+              "Errors reject the promise with an Error whose message starts with the kind of problem: \"invalid input\", \"unsupported input\", \"safety limit exceeded\" or \"I/O error\"."
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/bindings/node/docs/preview.en.md",
+                "label": "Step-by-step preview guide"
+              },
+              {
+                "href": "https://www.npmjs.com/package/document-svg",
+                "label": "npm package page"
+              }
+            ]
+          },
+          {
+            "id": "python",
+            "title": "Python",
+            "code": "from document_svg import convert, preview, reverse, transform\n\nresult = preview(\"report.docx\", max_pages=50)\nprint(result[\"page_count\"], result[\"needs_review\"])\nfirst_page_svg = result[\"pages\"][0][\"svg\"]\n\nreport = convert(\"report.docx\", \"out/report\", jobs=2)\nreverse(\"out/report\", \"report-copy.docx\")\nsmall = transform(first_page_svg, minify=True)",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "Function",
+                  "Returns",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "preview(path, **options)",
+                    "dict",
+                    "Every page as SVG text, in memory. Accepts max_svg_bytes and max_total_svg_bytes as well."
+                  ],
+                  [
+                    "convert(path, folder, **options)",
+                    "dict",
+                    "Write pages and conversion.json to a folder."
+                  ],
+                  [
+                    "reverse(svg_or_folder, path, *, max_input_bytes=None, max_pages=None)",
+                    "dict",
+                    "Package SVG pages as another file type."
+                  ],
+                  [
+                    "transform(svg, **options)",
+                    "str | bytes",
+                    "Tidy an SVG. Returns str for str input and bytes for bytes input."
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "Options for preview() and convert() (keyword-only)",
+                "columns": [
+                  "Option",
+                  "Default",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "How many PDF pages to convert at once. Other formats are converted page by page."
+                  ],
+                  [
+                    "max_input_bytes",
+                    "512 MiB",
+                    "Largest input file accepted."
+                  ],
+                  [
+                    "max_zip_entry_bytes",
+                    "128 MiB",
+                    "Largest expanded part inside a PDF or a ZIP-based file (Office, EPUB, 3MF, CBZ)."
+                  ],
+                  [
+                    "max_pages",
+                    "10,000",
+                    "Most pages, slides or sheets written."
+                  ],
+                  [
+                    "max_xml_events",
+                    "5,000,000",
+                    "Most XML parser steps per part; stops oversized or hostile XML."
+                  ],
+                  [
+                    "include_metadata=False",
+                    "metadata on",
+                    "Leave the provenance metadata out of each SVG."
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "Decimal places kept in coordinates. Smaller numbers give smaller files."
+                  ],
+                  [
+                    "outline_embedded_pdf_text",
+                    "off",
+                    "Draw embedded PDF fonts as shapes: looks exactly like the original, but the text can no longer be selected. Check that the font's license allows this."
+                  ],
+                  [
+                    "embed_drawio_source",
+                    "off",
+                    "Keep the draw.io source inside each SVG so it can be turned back into an editable diagram. Roughly doubles the size."
+                  ],
+                  [
+                    "stencil_paths",
+                    "none",
+                    "draw.io shape library files or folders to draw library shapes with. Without them, such shapes become labelled placeholders."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "Exceptions",
+                "columns": [
+                  "Error",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "ValueError",
+                    "The input is invalid or unsupported, or a safety limit was reached."
+                  ],
+                  [
+                    "OSError",
+                    "A file could not be read or written, e.g. the output folder is not empty."
+                  ],
+                  [
+                    "RuntimeError",
+                    "Anything else, such as a damaged PDF, ZIP or XML structure."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "paras": [
+              "Install document-svg, import document_svg. Results are plain dictionaries with the same fields as conversion.json."
+            ],
+            "links": [
+              {
+                "href": "https://pypi.org/project/document-svg/",
+                "label": "PyPI package page"
+              }
+            ]
+          },
+          {
+            "id": "rust",
+            "title": "Rust",
+            "code": "use document_svg::{convert_path, ConvertOptions};\n\nfn main() -> Result<(), document_svg::Error> {\n    let options = ConvertOptions { jobs: 2, ..ConvertOptions::default() };\n    let report = convert_path(\"report.pdf\", \"out/report\", &options)?;\n    println!(\"{} pages, {} warnings\", report.page_count, report.warnings.len());\n    Ok(())\n}",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "Function",
+                  "Returns",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "convert_path(input, folder, &ConvertOptions)",
+                    "Result<ConversionReport>",
+                    "Convert a file and write pages and conversion.json."
+                  ],
+                  [
+                    "convert_bytes(name, &bytes, &ConvertOptions, ByteConvertLimits, on_page)",
+                    "Result<ByteConversionReport>",
+                    "Convert from memory without temporary files; on_page receives each SvgPage as soon as it is ready. Also works on wasm32."
+                  ],
+                  [
+                    "svg_to_document(input, output, &ReverseOptions)",
+                    "Result<ReverseReport>",
+                    "Package SVG pages as another file type (the CLI's reverse)."
+                  ],
+                  [
+                    "transform_svg(&bytes, &TransformOptions)",
+                    "Result<Vec<u8>>",
+                    "Tidy an SVG (the CLI's transform)."
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "ConvertOptions fields",
+                "columns": [
+                  "Option",
+                  "Default",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "How many PDF pages to convert at once. Other formats are converted page by page."
+                  ],
+                  [
+                    "max_input_bytes",
+                    "512 MiB",
+                    "Largest input file accepted."
+                  ],
+                  [
+                    "max_zip_entry_bytes",
+                    "128 MiB",
+                    "Largest expanded part inside a PDF or a ZIP-based file (Office, EPUB, 3MF, CBZ)."
+                  ],
+                  [
+                    "max_pages",
+                    "10,000",
+                    "Most pages, slides or sheets written."
+                  ],
+                  [
+                    "max_xml_events",
+                    "5,000,000",
+                    "Most XML parser steps per part; stops oversized or hostile XML."
+                  ],
+                  [
+                    "include_metadata: false",
+                    "metadata on",
+                    "Leave the provenance metadata out of each SVG."
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "Decimal places kept in coordinates. Smaller numbers give smaller files."
+                  ],
+                  [
+                    "outline_embedded_pdf_text",
+                    "off",
+                    "Draw embedded PDF fonts as shapes: looks exactly like the original, but the text can no longer be selected. Check that the font's license allows this."
+                  ],
+                  [
+                    "embed_drawio_source",
+                    "off",
+                    "Keep the draw.io source inside each SVG so it can be turned back into an editable diagram. Roughly doubles the size."
+                  ],
+                  [
+                    "stencil_paths",
+                    "none",
+                    "draw.io shape library files or folders to draw library shapes with. Without them, such shapes become labelled placeholders."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "Error variants",
+                "columns": [
+                  "Error",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "InvalidInput",
+                    "The input or an argument is invalid, e.g. the output folder is not empty."
+                  ],
+                  [
+                    "Unsupported",
+                    "The format can't be recognised, or a feature isn't supported."
+                  ],
+                  [
+                    "LimitExceeded",
+                    "A safety limit was reached."
+                  ],
+                  [
+                    "Io, Pdf, Xml, Zip, Json",
+                    "Reading or parsing failed at that layer."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "paras": [
+              "Only the crate root (the functions above, their option and report types, Error) and the ir and svg modules are public API; internal readers can change between releases."
+            ],
+            "links": [
+              {
+                "href": "https://docs.rs/document-svg",
+                "label": "Full API documentation on docs.rs"
+              },
+              {
+                "href": "https://crates.io/crates/document-svg",
+                "label": "crates.io page"
+              }
+            ]
+          },
+          {
+            "id": "frontend",
+            "title": "Showing pages in a web page",
+            "paras": [
+              "Yes — the pages are ordinary SVG images, so any browser shows them. There are two ways to get them onto the screen.",
+              "1. Convert on your server or in Electron's main process with Node.js, send the SVG to the page, and show it with preview-ui (see the Node.js section and the preview guide). Works for every supported format.",
+              "2. Convert inside the browser with the WebAssembly build and its ready-made <docsvg-viewer> element. Nothing is uploaded and no server is needed. It covers PDF, Word, Excel and PowerPoint, and offers page thumbnails, zoom, fit to width or page, rotation, full screen, text search and download of the current page."
+            ],
+            "code": "<script type=\"module\" src=\"/bindings/wasm/web/docsvg-viewer.js\"></script>\n<docsvg-viewer thumbnails></docsvg-viewer>\n\n<script type=\"module\">\n  const viewer = document.querySelector('docsvg-viewer')\n  viewer.options = { maxPages: 200 }          // optional limits\n  fileInput.addEventListener('change', () => viewer.openFile(fileInput.files[0]))\n</script>",
+            "tables": [
+              {
+                "caption": "<docsvg-viewer> at a glance",
+                "columns": [
+                  "Function",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "thumbnails",
+                    "Attribute: show a column of page thumbnails."
+                  ],
+                  [
+                    "openFile(file)",
+                    "Method: convert and show a File (from an input or drag and drop, which the element also handles itself)."
+                  ],
+                  [
+                    "options",
+                    "Property: limits such as maxInputBytes (default 64 MiB), maxPages (default 1,000) and precision."
+                  ],
+                  [
+                    "Keyboard",
+                    "Arrow keys and Page Up/Down move between pages, + and − zoom, f fits the width, r rotates."
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "bullets": [
+              "The WebAssembly build is not published as a package. Build it from bindings/wasm (Rust and wasm-bindgen are needed), then serve bindings/wasm/web from your site.",
+              "Serve it over HTTP; opening the files with file:// does not work. A Content-Security-Policy needs 'wasm-unsafe-eval' for scripts and 'self' for workers.",
+              "Pages are shown through Blob URLs in <img> elements; the viewer never inserts document SVG into your page."
+            ],
+            "links": [
+              {
+                "href": "viewer/",
+                "label": "Try the viewer in your browser"
+              },
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/bindings/wasm/README.md",
+                "label": "How to build and host the viewer"
+              }
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "Limits at a glance",
+            "paras": [
+              "Every limit protects the machine from oversized or broken files. Lower them for your use case if you like; don't raise them just to push a difficult file through."
+            ],
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "Limit",
+                  "CLI, Node.js, Python, Rust",
+                  "Browser (WebAssembly)"
+                ],
+                "rows": [
+                  [
+                    "Input file",
+                    "512 MiB",
+                    "64 MiB (at most 256 MiB)"
+                  ],
+                  [
+                    "One expanded part (PDF stream, ZIP entry)",
+                    "128 MiB",
+                    "32 MiB"
+                  ],
+                  [
+                    "Pages",
+                    "10,000",
+                    "1,000"
+                  ],
+                  [
+                    "XML parser steps per part",
+                    "5,000,000",
+                    "2,000,000"
+                  ],
+                  [
+                    "SVG for one page (in-memory preview)",
+                    "64 MiB",
+                    "16 MiB"
+                  ],
+                  [
+                    "SVG for all pages (in-memory preview)",
+                    "256 MiB",
+                    "128 MiB"
+                  ],
+                  [
+                    "Coordinate decimal places",
+                    "5",
+                    "4"
+                  ]
+                ],
+                "codeColumns": []
+              }
+            ],
+            "links": [
+              {
+                "href": "safety.html",
+                "label": "Safety and limits"
+              }
+            ]
+          }
+        ]
+      },
       "safety": {
         "meta": {
           "title": "Safety & limits — document-svg",
@@ -586,6 +1469,7 @@
           "formats": "対応形式",
           "samples": "サンプル",
           "start": "はじめる",
+          "reference": "開発者リファレンス",
           "safety": "安全性と限界",
           "ai": "AIエージェント向け",
           "github": "GitHub"
@@ -678,6 +1562,11 @@
             "href": "start.html",
             "title": "5分で試す",
             "description": "パッケージをひとつ入れて、最初のファイルを変換します。"
+          },
+          {
+            "href": "reference.html",
+            "title": "関数とオプションを全部見る",
+            "description": "開発者リファレンス。パラメータ、既定値、戻り値、エラー、Webページでの表示方法。"
           },
           {
             "href": "safety.html",
@@ -972,6 +1861,883 @@
           }
         ]
       },
+      "reference": {
+        "meta": {
+          "title": "開発者リファレンス：関数・オプション・戻り値 — document-svg",
+          "description": "document-svg のコマンド、Node.js、Python、Rust、ブラウザ向けの関数・オプション・戻り値を、既定値と例、Webページでの表示方法とあわせてまとめました。"
+        },
+        "title": "開発者リファレンス",
+        "description": "すべての関数とオプション、戻ってくるもの、Webページでの表示方法をまとめました。例はそのまま動くように書いています。",
+        "sections": [
+          {
+            "id": "choose",
+            "title": "どれを使えばいい？",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "やりたいこと",
+                  "使うもの"
+                ],
+                "rows": [
+                  [
+                    "ターミナルやスクリプト、CIでファイルを変換する",
+                    "docsvg"
+                  ],
+                  [
+                    "Webアプリや Electron アプリで、アップロードされた文書を見せる",
+                    "Node.js preview() + document-svg/preview-ui"
+                  ],
+                  [
+                    "Python から変換する（スクリプト、ノートブック、Web API）",
+                    "Python preview() / convert()"
+                  ],
+                  [
+                    "Rust のプログラムに組み込む",
+                    "convert_path() / convert_bytes()"
+                  ],
+                  [
+                    "ブラウザの中だけで変換する（PDF、Word、Excel、PowerPoint）",
+                    "<docsvg-viewer> (WebAssembly)"
+                  ]
+                ],
+                "codeColumns": [
+                  1
+                ]
+              }
+            ],
+            "paras": [
+              "どれも、あなたのマシンの、あなたのプロセスの中で動きます。Node.js 版は裏のスレッドで変換するので、イベントループは止まりません。Python 版は変換中に GIL を手放します。サーバーもアカウントも通信も要りません。"
+            ]
+          },
+          {
+            "id": "cli",
+            "title": "コマンド：docsvg",
+            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
+            "paras": [
+              "形式はファイルの拡張子で決まります。拡張子がないときや汎用的なときは、ファイルの先頭の内容も見て判断します。成功すると終了コード0、失敗すると1で終わり、理由を標準エラーに出します。"
+            ],
+            "tables": [
+              {
+                "caption": "変換：docsvg <INPUT> --output <FOLDER>",
+                "columns": [
+                  "オプション",
+                  "既定値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "-o, --output DIR",
+                    "必須",
+                    "ページと conversion.json を書き出す、新しいフォルダか空のフォルダ。"
+                  ],
+                  [
+                    "--jobs N",
+                    "1",
+                    "PDFを何ページ同時に変換するか。ほかの形式は1ページずつ変換します。"
+                  ],
+                  [
+                    "--max-input-mib N",
+                    "512 MiB",
+                    "受け付ける入力ファイルの大きさの上限。"
+                  ],
+                  [
+                    "--max-entry-mib N",
+                    "128 MiB",
+                    "PDFやZIP形式のファイル（Office、EPUB、3MF、CBZ）の中身を展開したとき、部品1つあたりに許す大きさ。"
+                  ],
+                  [
+                    "--max-pages N",
+                    "10,000",
+                    "書き出すページ・スライド・シートの数の上限。"
+                  ],
+                  [
+                    "--max-xml-events N",
+                    "5,000,000",
+                    "1つの部品で読むXMLの量の上限。巨大なXMLや悪意のあるXMLを止めます。"
+                  ],
+                  [
+                    "--no-metadata",
+                    "メタデータあり",
+                    "各SVGに入る出所のメタデータを省きます。"
+                  ],
+                  [
+                    "--precision N",
+                    "5",
+                    "座標に残す小数点以下の桁数。小さいほどファイルが小さくなります。"
+                  ],
+                  [
+                    "--outline-embedded-pdf-text",
+                    "オフ",
+                    "PDFの埋め込みフォントの文字を図形として描きます。見た目は元どおりになりますが、文字は選択できなくなります。フォントのライセンスで許されているか確かめてください。"
+                  ],
+                  [
+                    "--embed-drawio-source",
+                    "オフ",
+                    "draw.io の元データを各SVGに残し、あとで編集できる図に戻せるようにします。サイズはおよそ2倍になります。"
+                  ],
+                  [
+                    "--stencils PATH",
+                    "なし",
+                    "draw.io の図形ライブラリのファイルやフォルダ。指定しないと、ライブラリの図形はラベル付きの仮の形になります。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "書き戻し：docsvg reverse",
+                "columns": [
+                  "オプション",
+                  "既定値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "-o, --output FILE",
+                    "必須",
+                    "作るファイル。拡張子で形式が決まります（.pptx、.docx、.xlsx、.pdf、.drawio、.dxf、.gcode、.stl、.html、.webp など）。"
+                  ],
+                  [
+                    "--max-input-mib N",
+                    "512 MiB",
+                    "入力SVGの合計の大きさの上限。"
+                  ],
+                  [
+                    "--max-pages N",
+                    "10,000",
+                    "読むSVGページ数の上限。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "整形：docsvg transform",
+                "columns": [
+                  "オプション",
+                  "既定値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "--minify",
+                    "オフ",
+                    "コメントと余分な空白を取り除きます。"
+                  ],
+                  [
+                    "--monochrome COLOR",
+                    "オフ",
+                    "塗りと線をすべて1色にします（例：\"#1e293b\"）。"
+                  ],
+                  [
+                    "--responsive",
+                    "オフ",
+                    "固定のサイズを外し、置いた場所の大きさに合わせて伸び縮みするようにします。"
+                  ],
+                  [
+                    "--precision N",
+                    "なし",
+                    "座標を小数点以下N桁に丸めます。"
+                  ],
+                  [
+                    "--remove-metadata",
+                    "オフ",
+                    "<metadata>、<desc>、data-* 属性を取り除きます。"
+                  ],
+                  [
+                    "--clean-paths",
+                    "オフ",
+                    "パスのデータを整理します（長さ0の線分や重複した閉じを除く）。"
+                  ],
+                  [
+                    "--strip-empty-groups",
+                    "オフ",
+                    "何も描かないグループを取り除きます。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/FORMATS.md",
+                "label": "すべての入出力形式"
+              }
+            ]
+          },
+          {
+            "id": "output",
+            "title": "変換で書き出されるもの",
+            "code": "out/\n├── page-0001.svg\n├── page-0002.svg\n└── conversion.json",
+            "paras": [
+              "出力先は新しいフォルダか空のフォルダでなければいけません。既存のファイルを上書きすることはありません。conversion.json は変換全体の記録です。convert() や preview() の戻り値にも同じ項目が入ります（Node.js ではキャメルケースの名前になります）。"
+            ],
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "項目",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "page_count",
+                    "書き出したページ数。"
+                  ],
+                  [
+                    "warnings",
+                    "文書全体で近似・省略したことの知らせ。空でも1ピクセル単位の一致は保証されません。"
+                  ],
+                  [
+                    "pages[].svg",
+                    "ページのファイル名（convert）、またはSVGの中身そのもの（preview）。"
+                  ],
+                  [
+                    "pages[].width_points, height_points",
+                    "ページの大きさ（ポイント単位、1pt = 1/72インチ）。"
+                  ],
+                  [
+                    "pages[].warnings",
+                    "そのページだけの知らせ。"
+                  ],
+                  [
+                    "source_format",
+                    "判定された形式（pptx、pdf など）。"
+                  ],
+                  [
+                    "needs_review",
+                    "preview() のみ：文書かどのページかに警告があれば true。"
+                  ],
+                  [
+                    "elapsed_ms, input_bytes, version",
+                    "かかった時間、入力の大きさ、作ったバージョン。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "id": "node",
+            "title": "Node.js",
+            "code": "const { convert, preview, reverse, transform } = require('document-svg')\n\nasync function main() {\n  const result = await preview('slides.pptx', { maxPages: 50 })\n  console.log(result.pageCount, result.needsReview)\n  const firstPageSvg = result.pages[0].svg\n\n  const report = await convert('slides.pptx', 'out/slides', { jobs: 2 })\n  await reverse('out/slides', 'slides-copy.pptx')\n  const small = transform(firstPageSvg, { minify: true })\n}\n\nmain().catch(console.error)",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "関数",
+                  "戻り値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "preview(file, options?)",
+                    "Promise<PreviewReport>",
+                    "全ページをSVGの文字列でメモリ上に受け取ります。ディスクには何も残りません。"
+                  ],
+                  [
+                    "convert(file, folder, options?)",
+                    "Promise<ConversionReport>",
+                    "ページと conversion.json をフォルダに書き出します。"
+                  ],
+                  [
+                    "reverse(svgOrFolder, file, options?)",
+                    "Promise<ReverseReport>",
+                    "SVGのページを別の形式のファイルにまとめます。オプション：maxInputBytes、maxPages。"
+                  ],
+                  [
+                    "transform(svg, options?)",
+                    "string",
+                    "SVGの文字列を整えます（同期処理）。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "preview() と convert() のオプション",
+                "columns": [
+                  "オプション",
+                  "既定値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "PDFを何ページ同時に変換するか。ほかの形式は1ページずつ変換します。"
+                  ],
+                  [
+                    "maxInputBytes",
+                    "512 MiB",
+                    "受け付ける入力ファイルの大きさの上限。"
+                  ],
+                  [
+                    "maxZipEntryBytes",
+                    "128 MiB",
+                    "PDFやZIP形式のファイル（Office、EPUB、3MF、CBZ）の中身を展開したとき、部品1つあたりに許す大きさ。"
+                  ],
+                  [
+                    "maxPages",
+                    "10,000",
+                    "書き出すページ・スライド・シートの数の上限。"
+                  ],
+                  [
+                    "maxXmlEvents",
+                    "5,000,000",
+                    "1つの部品で読むXMLの量の上限。巨大なXMLや悪意のあるXMLを止めます。"
+                  ],
+                  [
+                    "includeMetadata: false",
+                    "メタデータあり",
+                    "各SVGに入る出所のメタデータを省きます。"
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "座標に残す小数点以下の桁数。小さいほどファイルが小さくなります。"
+                  ],
+                  [
+                    "outlineEmbeddedPdfText",
+                    "オフ",
+                    "PDFの埋め込みフォントの文字を図形として描きます。見た目は元どおりになりますが、文字は選択できなくなります。フォントのライセンスで許されているか確かめてください。"
+                  ],
+                  [
+                    "embedDrawioSource",
+                    "オフ",
+                    "draw.io の元データを各SVGに残し、あとで編集できる図に戻せるようにします。サイズはおよそ2倍になります。"
+                  ],
+                  [
+                    "stencilPaths",
+                    "なし",
+                    "draw.io の図形ライブラリのファイルやフォルダ。指定しないと、ライブラリの図形はラベル付きの仮の形になります。"
+                  ],
+                  [
+                    "maxSvgBytes",
+                    "64 MiB",
+                    "preview() のみ：1ページ分のSVGの大きさの上限。"
+                  ],
+                  [
+                    "maxTotalSvgBytes",
+                    "256 MiB",
+                    "preview() のみ：全ページのSVGの合計の上限。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "transform() のオプション",
+                "columns": [
+                  "オプション",
+                  "既定値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "minify",
+                    "オフ",
+                    "コメントと余分な空白を取り除きます。"
+                  ],
+                  [
+                    "monochrome",
+                    "オフ",
+                    "塗りと線をすべて1色にします（例：\"#1e293b\"）。"
+                  ],
+                  [
+                    "responsive",
+                    "オフ",
+                    "固定のサイズを外し、置いた場所の大きさに合わせて伸び縮みするようにします。"
+                  ],
+                  [
+                    "precision",
+                    "なし",
+                    "座標を小数点以下N桁に丸めます。"
+                  ],
+                  [
+                    "removeMetadata",
+                    "オフ",
+                    "<metadata>、<desc>、data-* 属性を取り除きます。"
+                  ],
+                  [
+                    "cleanPaths",
+                    "オフ",
+                    "パスのデータを整理します（長さ0の線分や重複した閉じを除く）。"
+                  ],
+                  [
+                    "stripEmptyGroups",
+                    "オフ",
+                    "何も描かないグループを取り除きます。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "document-svg/preview-ui（ブラウザで動きます。ネイティブコードなし）",
+                "columns": [
+                  "関数",
+                  "戻り値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "createSvgPreviewUrl(svg)",
+                    "string",
+                    "<img> 用の Blob URL。先にSVGを確認します。"
+                  ],
+                  [
+                    "revokeSvgPreviewUrl(url)",
+                    "void",
+                    "画像が不要になったら Blob URL を解放します。"
+                  ],
+                  [
+                    "createSvgPreviewDataUrl(svg)",
+                    "string",
+                    "別のウィンドウやプロセスへ渡すための data: URL。"
+                  ],
+                  [
+                    "copySvgToClipboard(svg)",
+                    "Promise<'image/svg+xml' | 'text/plain'>",
+                    "画像をコピーします。できない環境ではソースをコピーします。クリックから呼びます。"
+                  ],
+                  [
+                    "copySvgSourceToClipboard(svg)",
+                    "Promise<void>",
+                    "常にSVGのソースを文字としてコピーします。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "paras": [
+              "エラーは Promise の reject として届きます。Error のメッセージは問題の種類で始まります（\"invalid input\"、\"unsupported input\"、\"safety limit exceeded\"、\"I/O error\"）。"
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/bindings/node/docs/preview.ja.md",
+                "label": "プレビューの手順ガイド"
+              },
+              {
+                "href": "https://www.npmjs.com/package/document-svg",
+                "label": "npm のパッケージページ"
+              }
+            ]
+          },
+          {
+            "id": "python",
+            "title": "Python",
+            "code": "from document_svg import convert, preview, reverse, transform\n\nresult = preview(\"report.docx\", max_pages=50)\nprint(result[\"page_count\"], result[\"needs_review\"])\nfirst_page_svg = result[\"pages\"][0][\"svg\"]\n\nreport = convert(\"report.docx\", \"out/report\", jobs=2)\nreverse(\"out/report\", \"report-copy.docx\")\nsmall = transform(first_page_svg, minify=True)",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "関数",
+                  "戻り値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "preview(path, **options)",
+                    "dict",
+                    "全ページをSVGの文字列でメモリ上に受け取ります。max_svg_bytes と max_total_svg_bytes も指定できます。"
+                  ],
+                  [
+                    "convert(path, folder, **options)",
+                    "dict",
+                    "ページと conversion.json をフォルダに書き出します。"
+                  ],
+                  [
+                    "reverse(svg_or_folder, path, *, max_input_bytes=None, max_pages=None)",
+                    "dict",
+                    "SVGのページを別の形式のファイルにまとめます。"
+                  ],
+                  [
+                    "transform(svg, **options)",
+                    "str | bytes",
+                    "SVGを整えます。str を渡せば str、bytes を渡せば bytes が戻ります。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "preview() と convert() のオプション（キーワード引数）",
+                "columns": [
+                  "オプション",
+                  "既定値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "PDFを何ページ同時に変換するか。ほかの形式は1ページずつ変換します。"
+                  ],
+                  [
+                    "max_input_bytes",
+                    "512 MiB",
+                    "受け付ける入力ファイルの大きさの上限。"
+                  ],
+                  [
+                    "max_zip_entry_bytes",
+                    "128 MiB",
+                    "PDFやZIP形式のファイル（Office、EPUB、3MF、CBZ）の中身を展開したとき、部品1つあたりに許す大きさ。"
+                  ],
+                  [
+                    "max_pages",
+                    "10,000",
+                    "書き出すページ・スライド・シートの数の上限。"
+                  ],
+                  [
+                    "max_xml_events",
+                    "5,000,000",
+                    "1つの部品で読むXMLの量の上限。巨大なXMLや悪意のあるXMLを止めます。"
+                  ],
+                  [
+                    "include_metadata=False",
+                    "メタデータあり",
+                    "各SVGに入る出所のメタデータを省きます。"
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "座標に残す小数点以下の桁数。小さいほどファイルが小さくなります。"
+                  ],
+                  [
+                    "outline_embedded_pdf_text",
+                    "オフ",
+                    "PDFの埋め込みフォントの文字を図形として描きます。見た目は元どおりになりますが、文字は選択できなくなります。フォントのライセンスで許されているか確かめてください。"
+                  ],
+                  [
+                    "embed_drawio_source",
+                    "オフ",
+                    "draw.io の元データを各SVGに残し、あとで編集できる図に戻せるようにします。サイズはおよそ2倍になります。"
+                  ],
+                  [
+                    "stencil_paths",
+                    "なし",
+                    "draw.io の図形ライブラリのファイルやフォルダ。指定しないと、ライブラリの図形はラベル付きの仮の形になります。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "例外",
+                "columns": [
+                  "エラー",
+                  "起きるとき"
+                ],
+                "rows": [
+                  [
+                    "ValueError",
+                    "入力が不正か未対応、または安全上の上限に達したとき。"
+                  ],
+                  [
+                    "OSError",
+                    "ファイルを読めない・書けないとき（出力フォルダが空でないときなど）。"
+                  ],
+                  [
+                    "RuntimeError",
+                    "そのほか（PDF、ZIP、XMLの構造が壊れているときなど）。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "paras": [
+              "インストールは document-svg、import は document_svg です。戻り値は conversion.json と同じ項目を持つ普通の辞書です。"
+            ],
+            "links": [
+              {
+                "href": "https://pypi.org/project/document-svg/",
+                "label": "PyPI のパッケージページ"
+              }
+            ]
+          },
+          {
+            "id": "rust",
+            "title": "Rust",
+            "code": "use document_svg::{convert_path, ConvertOptions};\n\nfn main() -> Result<(), document_svg::Error> {\n    let options = ConvertOptions { jobs: 2, ..ConvertOptions::default() };\n    let report = convert_path(\"report.pdf\", \"out/report\", &options)?;\n    println!(\"{} pages, {} warnings\", report.page_count, report.warnings.len());\n    Ok(())\n}",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "関数",
+                  "戻り値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "convert_path(input, folder, &ConvertOptions)",
+                    "Result<ConversionReport>",
+                    "ファイルを変換し、ページと conversion.json を書き出します。"
+                  ],
+                  [
+                    "convert_bytes(name, &bytes, &ConvertOptions, ByteConvertLimits, on_page)",
+                    "Result<ByteConversionReport>",
+                    "一時ファイルを使わずにメモリ上で変換します。できたページから順に SvgPage が on_page に渡されます。wasm32 でも動きます。"
+                  ],
+                  [
+                    "svg_to_document(input, output, &ReverseOptions)",
+                    "Result<ReverseReport>",
+                    "SVGのページを別の形式のファイルにまとめます（コマンドの reverse と同じ）。"
+                  ],
+                  [
+                    "transform_svg(&bytes, &TransformOptions)",
+                    "Result<Vec<u8>>",
+                    "SVGを整えます（コマンドの transform と同じ）。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "ConvertOptions の項目",
+                "columns": [
+                  "オプション",
+                  "既定値",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "PDFを何ページ同時に変換するか。ほかの形式は1ページずつ変換します。"
+                  ],
+                  [
+                    "max_input_bytes",
+                    "512 MiB",
+                    "受け付ける入力ファイルの大きさの上限。"
+                  ],
+                  [
+                    "max_zip_entry_bytes",
+                    "128 MiB",
+                    "PDFやZIP形式のファイル（Office、EPUB、3MF、CBZ）の中身を展開したとき、部品1つあたりに許す大きさ。"
+                  ],
+                  [
+                    "max_pages",
+                    "10,000",
+                    "書き出すページ・スライド・シートの数の上限。"
+                  ],
+                  [
+                    "max_xml_events",
+                    "5,000,000",
+                    "1つの部品で読むXMLの量の上限。巨大なXMLや悪意のあるXMLを止めます。"
+                  ],
+                  [
+                    "include_metadata: false",
+                    "メタデータあり",
+                    "各SVGに入る出所のメタデータを省きます。"
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "座標に残す小数点以下の桁数。小さいほどファイルが小さくなります。"
+                  ],
+                  [
+                    "outline_embedded_pdf_text",
+                    "オフ",
+                    "PDFの埋め込みフォントの文字を図形として描きます。見た目は元どおりになりますが、文字は選択できなくなります。フォントのライセンスで許されているか確かめてください。"
+                  ],
+                  [
+                    "embed_drawio_source",
+                    "オフ",
+                    "draw.io の元データを各SVGに残し、あとで編集できる図に戻せるようにします。サイズはおよそ2倍になります。"
+                  ],
+                  [
+                    "stencil_paths",
+                    "なし",
+                    "draw.io の図形ライブラリのファイルやフォルダ。指定しないと、ライブラリの図形はラベル付きの仮の形になります。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "Error の種類",
+                "columns": [
+                  "エラー",
+                  "起きるとき"
+                ],
+                "rows": [
+                  [
+                    "InvalidInput",
+                    "入力や引数が不正なとき（出力フォルダが空でないときなど）。"
+                  ],
+                  [
+                    "Unsupported",
+                    "形式を判定できないとき、または対応していない機能のとき。"
+                  ],
+                  [
+                    "LimitExceeded",
+                    "安全上の上限に達したとき。"
+                  ],
+                  [
+                    "Io, Pdf, Xml, Zip, Json",
+                    "その層での読み込みや解析に失敗したとき。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "paras": [
+              "公開APIは、クレートの直下（上の関数、そのオプションとレポートの型、Error）と ir・svg モジュールだけです。内部の読み込み処理はリリースごとに変わりえます。"
+            ],
+            "links": [
+              {
+                "href": "https://docs.rs/document-svg",
+                "label": "docs.rs のAPIドキュメント"
+              },
+              {
+                "href": "https://crates.io/crates/document-svg",
+                "label": "crates.io のページ"
+              }
+            ]
+          },
+          {
+            "id": "frontend",
+            "title": "Webページで表示する",
+            "paras": [
+              "できます。ページはふつうのSVG画像なので、どのブラウザでも表示できます。画面に出す方法は2つあります。",
+              "1. サーバーや Electron のメインプロセスで Node.js を使って変換し、SVGを画面に送り、preview-ui で表示します（Node.js の節とプレビューガイドを参照）。対応しているすべての形式で使えます。",
+              "2. WebAssembly 版でブラウザの中だけで変換し、用意された <docsvg-viewer> 要素で表示します。アップロードもサーバーも要りません。対象は PDF、Word、Excel、PowerPoint で、サムネイル、拡大縮小、幅・ページに合わせる、回転、全画面、文字検索、表示中のページの保存ができます。"
+            ],
+            "code": "<script type=\"module\" src=\"/bindings/wasm/web/docsvg-viewer.js\"></script>\n<docsvg-viewer thumbnails></docsvg-viewer>\n\n<script type=\"module\">\n  const viewer = document.querySelector('docsvg-viewer')\n  viewer.options = { maxPages: 200 }          // optional limits\n  fileInput.addEventListener('change', () => viewer.openFile(fileInput.files[0]))\n</script>",
+            "tables": [
+              {
+                "caption": "<docsvg-viewer> の早見表",
+                "columns": [
+                  "関数",
+                  "意味"
+                ],
+                "rows": [
+                  [
+                    "thumbnails",
+                    "属性：ページのサムネイルの列を表示します。"
+                  ],
+                  [
+                    "openFile(file)",
+                    "メソッド：File を変換して表示します（ファイル選択やドラッグ＆ドロップの File。要素自身もこれらを受け付けます）。"
+                  ],
+                  [
+                    "options",
+                    "プロパティ：maxInputBytes（既定 64 MiB）、maxPages（既定 1,000）、precision などの上限。"
+                  ],
+                  [
+                    "キーボード",
+                    "矢印キーと Page Up/Down でページ移動、+ と − で拡大縮小、f で幅に合わせる、r で回転。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "bullets": [
+              "WebAssembly 版はパッケージとして配布していません。bindings/wasm からビルドし（Rust と wasm-bindgen が必要）、bindings/wasm/web を自分のサイトから配信します。",
+              "HTTP で配信してください。file:// で開いても動きません。Content-Security-Policy を使うなら、script に 'wasm-unsafe-eval'、worker に 'self' が必要です。",
+              "ページは <img> の Blob URL で表示され、ビューアが文書のSVGをページに差し込むことはありません。"
+            ],
+            "links": [
+              {
+                "href": "viewer/",
+                "label": "ブラウザでビューアを試す"
+              },
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/bindings/wasm/README.md",
+                "label": "ビューアのビルドと配置の方法"
+              }
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "上限の一覧",
+            "paras": [
+              "どの上限も、巨大なファイルや壊れたファイルからマシンを守るためのものです。用途に合わせて下げるのはかまいません。難しいファイルを通すためだけに上げないでください。"
+            ],
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "上限",
+                  "コマンド、Node.js、Python、Rust",
+                  "ブラウザ（WebAssembly）"
+                ],
+                "rows": [
+                  [
+                    "入力ファイル",
+                    "512 MiB",
+                    "64 MiB（最大 256 MiB）"
+                  ],
+                  [
+                    "展開した部品1つ（PDFのストリーム、ZIPの中身）",
+                    "128 MiB",
+                    "32 MiB"
+                  ],
+                  [
+                    "ページ数",
+                    "10,000",
+                    "1,000"
+                  ],
+                  [
+                    "部品ごとのXMLの量",
+                    "5,000,000",
+                    "2,000,000"
+                  ],
+                  [
+                    "1ページ分のSVG（メモリ上のプレビュー）",
+                    "64 MiB",
+                    "16 MiB"
+                  ],
+                  [
+                    "全ページのSVG（メモリ上のプレビュー）",
+                    "256 MiB",
+                    "128 MiB"
+                  ],
+                  [
+                    "座標の小数点以下の桁数",
+                    "5",
+                    "4"
+                  ]
+                ],
+                "codeColumns": []
+              }
+            ],
+            "links": [
+              {
+                "href": "safety.html",
+                "label": "安全性と限界"
+              }
+            ]
+          }
+        ]
+      },
       "safety": {
         "meta": {
           "title": "安全性と限界 — document-svg",
@@ -1148,6 +2914,7 @@
           "formats": "支持格式",
           "samples": "示例",
           "start": "快速开始",
+          "reference": "开发者参考",
           "safety": "安全与局限",
           "ai": "面向 AI 智能体",
           "github": "GitHub"
@@ -1240,6 +3007,11 @@
             "href": "start.html",
             "title": "五分钟试一试",
             "description": "装一个软件包，转换你的第一个文件。"
+          },
+          {
+            "href": "reference.html",
+            "title": "查看全部函数和选项",
+            "description": "开发者参考：参数、默认值、返回值、错误，以及如何在网页中显示页面。"
           },
           {
             "href": "safety.html",
@@ -1529,6 +3301,883 @@
               {
                 "href": "https://github.com/ryusui-hiro/document-svg/blob/main/README.md#platform-support-and-troubleshooting",
                 "label": "平台支持与故障排查"
+              }
+            ]
+          }
+        ]
+      },
+      "reference": {
+        "meta": {
+          "title": "开发者参考：函数、选项与返回值 — document-svg",
+          "description": "汇总了 document-svg 在命令行、Node.js、Python、Rust 和浏览器中的全部函数、选项和返回值，附默认值、示例以及在网页中显示页面的方法。"
+        },
+        "title": "开发者参考",
+        "description": "这里汇总了所有函数和选项、返回的内容，以及如何在网页中显示页面。示例都可以照原样运行。",
+        "sections": [
+          {
+            "id": "choose",
+            "title": "该用哪一个？",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "你想要…",
+                  "使用"
+                ],
+                "rows": [
+                  [
+                    "在终端、脚本或 CI 中转换文件",
+                    "docsvg"
+                  ],
+                  [
+                    "在网页或 Electron 应用中显示上传的文档",
+                    "Node.js preview() + document-svg/preview-ui"
+                  ],
+                  [
+                    "在 Python 中转换：脚本、笔记本、Web API",
+                    "Python preview() / convert()"
+                  ],
+                  [
+                    "集成到 Rust 程序中",
+                    "convert_path() / convert_bytes()"
+                  ],
+                  [
+                    "只在浏览器中转换（PDF、Word、Excel、PowerPoint）",
+                    "<docsvg-viewer> (WebAssembly)"
+                  ]
+                ],
+                "codeColumns": [
+                  1
+                ]
+              }
+            ],
+            "paras": [
+              "所有方式都在你自己的机器、你自己的进程中运行。Node.js 包在后台线程中转换，事件循环不会被阻塞；Python 包在转换期间会释放 GIL。不需要服务器、账号或网络访问。"
+            ]
+          },
+          {
+            "id": "cli",
+            "title": "命令行：docsvg",
+            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
+            "paras": [
+              "格式根据文件扩展名决定；没有扩展名或扩展名很通用时，还会查看文件开头的内容。成功时退出码为 0；失败时退出码为 1，并在标准错误中输出原因。"
+            ],
+            "tables": [
+              {
+                "caption": "转换：docsvg <INPUT> --output <FOLDER>",
+                "columns": [
+                  "选项",
+                  "默认值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "-o, --output DIR",
+                    "必填",
+                    "接收页面和 conversion.json 的新文件夹或空文件夹。"
+                  ],
+                  [
+                    "--jobs N",
+                    "1",
+                    "同时转换几页 PDF。其他格式逐页转换。"
+                  ],
+                  [
+                    "--max-input-mib N",
+                    "512 MiB",
+                    "接受的输入文件大小上限。"
+                  ],
+                  [
+                    "--max-entry-mib N",
+                    "128 MiB",
+                    "PDF 或 ZIP 类文件（Office、EPUB、3MF、CBZ）中单个部件展开后的大小上限。"
+                  ],
+                  [
+                    "--max-pages N",
+                    "10,000",
+                    "输出的页、幻灯片或工作表数量上限。"
+                  ],
+                  [
+                    "--max-xml-events N",
+                    "5,000,000",
+                    "每个部件读取的 XML 量上限，用来拦截超大或恶意的 XML。"
+                  ],
+                  [
+                    "--no-metadata",
+                    "包含元数据",
+                    "不在每个 SVG 中写入来源元数据。"
+                  ],
+                  [
+                    "--precision N",
+                    "5",
+                    "坐标保留的小数位数。数字越小，文件越小。"
+                  ],
+                  [
+                    "--outline-embedded-pdf-text",
+                    "关闭",
+                    "把 PDF 嵌入字体的文字绘制成图形：外观与原件一致，但文字不能再被选中。请确认字体许可证允许这样做。"
+                  ],
+                  [
+                    "--embed-drawio-source",
+                    "关闭",
+                    "在每个 SVG 中保留 draw.io 源数据，之后可以还原成可编辑的图。文件大约会变成两倍大。"
+                  ],
+                  [
+                    "--stencils PATH",
+                    "无",
+                    "用于绘制图形库形状的 draw.io 图形库文件或文件夹。不指定时，这类形状会显示为带标签的占位图形。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "写回：docsvg reverse",
+                "columns": [
+                  "选项",
+                  "默认值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "-o, --output FILE",
+                    "必填",
+                    "要创建的文件。扩展名决定格式：.pptx、.docx、.xlsx、.pdf、.drawio、.dxf、.gcode、.stl、.html、.webp 等。"
+                  ],
+                  [
+                    "--max-input-mib N",
+                    "512 MiB",
+                    "输入 SVG 的总大小上限。"
+                  ],
+                  [
+                    "--max-pages N",
+                    "10,000",
+                    "读取的 SVG 页数上限。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "整理：docsvg transform",
+                "columns": [
+                  "选项",
+                  "默认值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "--minify",
+                    "关闭",
+                    "去掉注释和多余空白。"
+                  ],
+                  [
+                    "--monochrome COLOR",
+                    "关闭",
+                    "把所有填充和描边改成同一种颜色，例如 \"#1e293b\"。"
+                  ],
+                  [
+                    "--responsive",
+                    "关闭",
+                    "去掉固定尺寸，让 SVG 随容器缩放。"
+                  ],
+                  [
+                    "--precision N",
+                    "无",
+                    "把坐标四舍五入到 N 位小数。"
+                  ],
+                  [
+                    "--remove-metadata",
+                    "关闭",
+                    "去掉 <metadata>、<desc> 和 data-* 属性。"
+                  ],
+                  [
+                    "--clean-paths",
+                    "关闭",
+                    "整理路径数据（去掉零长度线段和重复的闭合）。"
+                  ],
+                  [
+                    "--strip-empty-groups",
+                    "关闭",
+                    "去掉不绘制任何内容的分组。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/docs/FORMATS.md",
+                "label": "所有输入和输出格式"
+              }
+            ]
+          },
+          {
+            "id": "output",
+            "title": "转换会写出什么",
+            "code": "out/\n├── page-0001.svg\n├── page-0002.svg\n└── conversion.json",
+            "paras": [
+              "输出文件夹必须是新的或空的，已有文件绝不会被覆盖。conversion.json 是整个任务的报告，convert() 和 preview() 的返回值中也有相同的字段（Node.js 中为驼峰命名）。"
+            ],
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "字段",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "page_count",
+                    "写出的页数。"
+                  ],
+                  [
+                    "warnings",
+                    "整个文档中近似处理或省略内容的说明。为空也不保证逐像素一致。"
+                  ],
+                  [
+                    "pages[].svg",
+                    "页面的文件名（convert），或完整的 SVG 内容（preview）。"
+                  ],
+                  [
+                    "pages[].width_points, height_points",
+                    "页面尺寸，单位为点（1 pt = 1/72 英寸）。"
+                  ],
+                  [
+                    "pages[].warnings",
+                    "仅针对该页的说明。"
+                  ],
+                  [
+                    "source_format",
+                    "识别出的格式，例如 pptx 或 pdf。"
+                  ],
+                  [
+                    "needs_review",
+                    "仅 preview()：文档或任一页有警告时为 true。"
+                  ],
+                  [
+                    "elapsed_ms, input_bytes, version",
+                    "耗时、输入大小，以及生成它的版本。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "id": "node",
+            "title": "Node.js",
+            "code": "const { convert, preview, reverse, transform } = require('document-svg')\n\nasync function main() {\n  const result = await preview('slides.pptx', { maxPages: 50 })\n  console.log(result.pageCount, result.needsReview)\n  const firstPageSvg = result.pages[0].svg\n\n  const report = await convert('slides.pptx', 'out/slides', { jobs: 2 })\n  await reverse('out/slides', 'slides-copy.pptx')\n  const small = transform(firstPageSvg, { minify: true })\n}\n\nmain().catch(console.error)",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "函数",
+                  "返回值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "preview(file, options?)",
+                    "Promise<PreviewReport>",
+                    "在内存中拿到每一页的 SVG 文本，磁盘上不留任何东西。"
+                  ],
+                  [
+                    "convert(file, folder, options?)",
+                    "Promise<ConversionReport>",
+                    "把页面和 conversion.json 写到文件夹。"
+                  ],
+                  [
+                    "reverse(svgOrFolder, file, options?)",
+                    "Promise<ReverseReport>",
+                    "把 SVG 页面打包成其他类型的文件。选项：maxInputBytes、maxPages。"
+                  ],
+                  [
+                    "transform(svg, options?)",
+                    "string",
+                    "整理 SVG 字符串（同步执行）。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "preview() 和 convert() 的选项",
+                "columns": [
+                  "选项",
+                  "默认值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "同时转换几页 PDF。其他格式逐页转换。"
+                  ],
+                  [
+                    "maxInputBytes",
+                    "512 MiB",
+                    "接受的输入文件大小上限。"
+                  ],
+                  [
+                    "maxZipEntryBytes",
+                    "128 MiB",
+                    "PDF 或 ZIP 类文件（Office、EPUB、3MF、CBZ）中单个部件展开后的大小上限。"
+                  ],
+                  [
+                    "maxPages",
+                    "10,000",
+                    "输出的页、幻灯片或工作表数量上限。"
+                  ],
+                  [
+                    "maxXmlEvents",
+                    "5,000,000",
+                    "每个部件读取的 XML 量上限，用来拦截超大或恶意的 XML。"
+                  ],
+                  [
+                    "includeMetadata: false",
+                    "包含元数据",
+                    "不在每个 SVG 中写入来源元数据。"
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "坐标保留的小数位数。数字越小，文件越小。"
+                  ],
+                  [
+                    "outlineEmbeddedPdfText",
+                    "关闭",
+                    "把 PDF 嵌入字体的文字绘制成图形：外观与原件一致，但文字不能再被选中。请确认字体许可证允许这样做。"
+                  ],
+                  [
+                    "embedDrawioSource",
+                    "关闭",
+                    "在每个 SVG 中保留 draw.io 源数据，之后可以还原成可编辑的图。文件大约会变成两倍大。"
+                  ],
+                  [
+                    "stencilPaths",
+                    "无",
+                    "用于绘制图形库形状的 draw.io 图形库文件或文件夹。不指定时，这类形状会显示为带标签的占位图形。"
+                  ],
+                  [
+                    "maxSvgBytes",
+                    "64 MiB",
+                    "仅 preview()：单页 SVG 的大小上限。"
+                  ],
+                  [
+                    "maxTotalSvgBytes",
+                    "256 MiB",
+                    "仅 preview()：所有页面 SVG 的总大小上限。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "transform() 的选项",
+                "columns": [
+                  "选项",
+                  "默认值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "minify",
+                    "关闭",
+                    "去掉注释和多余空白。"
+                  ],
+                  [
+                    "monochrome",
+                    "关闭",
+                    "把所有填充和描边改成同一种颜色，例如 \"#1e293b\"。"
+                  ],
+                  [
+                    "responsive",
+                    "关闭",
+                    "去掉固定尺寸，让 SVG 随容器缩放。"
+                  ],
+                  [
+                    "precision",
+                    "无",
+                    "把坐标四舍五入到 N 位小数。"
+                  ],
+                  [
+                    "removeMetadata",
+                    "关闭",
+                    "去掉 <metadata>、<desc> 和 data-* 属性。"
+                  ],
+                  [
+                    "cleanPaths",
+                    "关闭",
+                    "整理路径数据（去掉零长度线段和重复的闭合）。"
+                  ],
+                  [
+                    "stripEmptyGroups",
+                    "关闭",
+                    "去掉不绘制任何内容的分组。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "document-svg/preview-ui（在浏览器中运行，不含原生代码）",
+                "columns": [
+                  "函数",
+                  "返回值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "createSvgPreviewUrl(svg)",
+                    "string",
+                    "用于 <img> 的 Blob URL，会先检查 SVG。"
+                  ],
+                  [
+                    "revokeSvgPreviewUrl(url)",
+                    "void",
+                    "图片不再使用时释放 Blob URL。"
+                  ],
+                  [
+                    "createSvgPreviewDataUrl(svg)",
+                    "string",
+                    "用于传给其他窗口或进程的 data: URL。"
+                  ],
+                  [
+                    "copySvgToClipboard(svg)",
+                    "Promise<'image/svg+xml' | 'text/plain'>",
+                    "复制图片；不能复制图片时复制源码。请在点击事件中调用。"
+                  ],
+                  [
+                    "copySvgSourceToClipboard(svg)",
+                    "Promise<void>",
+                    "始终以文本形式复制 SVG 源码。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              }
+            ],
+            "paras": [
+              "出错时 Promise 会以 Error 拒绝，消息以问题类型开头：\"invalid input\"、\"unsupported input\"、\"safety limit exceeded\" 或 \"I/O error\"。"
+            ],
+            "links": [
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/bindings/node/docs/preview.zh-CN.md",
+                "label": "预览分步指南"
+              },
+              {
+                "href": "https://www.npmjs.com/package/document-svg",
+                "label": "npm 软件包页面"
+              }
+            ]
+          },
+          {
+            "id": "python",
+            "title": "Python",
+            "code": "from document_svg import convert, preview, reverse, transform\n\nresult = preview(\"report.docx\", max_pages=50)\nprint(result[\"page_count\"], result[\"needs_review\"])\nfirst_page_svg = result[\"pages\"][0][\"svg\"]\n\nreport = convert(\"report.docx\", \"out/report\", jobs=2)\nreverse(\"out/report\", \"report-copy.docx\")\nsmall = transform(first_page_svg, minify=True)",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "函数",
+                  "返回值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "preview(path, **options)",
+                    "dict",
+                    "在内存中拿到每一页的 SVG 文本，还可以指定 max_svg_bytes 和 max_total_svg_bytes。"
+                  ],
+                  [
+                    "convert(path, folder, **options)",
+                    "dict",
+                    "把页面和 conversion.json 写到文件夹。"
+                  ],
+                  [
+                    "reverse(svg_or_folder, path, *, max_input_bytes=None, max_pages=None)",
+                    "dict",
+                    "把 SVG 页面打包成其他类型的文件。"
+                  ],
+                  [
+                    "transform(svg, **options)",
+                    "str | bytes",
+                    "整理 SVG。传入 str 返回 str，传入 bytes 返回 bytes。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "preview() 和 convert() 的选项（仅限关键字参数）",
+                "columns": [
+                  "选项",
+                  "默认值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "同时转换几页 PDF。其他格式逐页转换。"
+                  ],
+                  [
+                    "max_input_bytes",
+                    "512 MiB",
+                    "接受的输入文件大小上限。"
+                  ],
+                  [
+                    "max_zip_entry_bytes",
+                    "128 MiB",
+                    "PDF 或 ZIP 类文件（Office、EPUB、3MF、CBZ）中单个部件展开后的大小上限。"
+                  ],
+                  [
+                    "max_pages",
+                    "10,000",
+                    "输出的页、幻灯片或工作表数量上限。"
+                  ],
+                  [
+                    "max_xml_events",
+                    "5,000,000",
+                    "每个部件读取的 XML 量上限，用来拦截超大或恶意的 XML。"
+                  ],
+                  [
+                    "include_metadata=False",
+                    "包含元数据",
+                    "不在每个 SVG 中写入来源元数据。"
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "坐标保留的小数位数。数字越小，文件越小。"
+                  ],
+                  [
+                    "outline_embedded_pdf_text",
+                    "关闭",
+                    "把 PDF 嵌入字体的文字绘制成图形：外观与原件一致，但文字不能再被选中。请确认字体许可证允许这样做。"
+                  ],
+                  [
+                    "embed_drawio_source",
+                    "关闭",
+                    "在每个 SVG 中保留 draw.io 源数据，之后可以还原成可编辑的图。文件大约会变成两倍大。"
+                  ],
+                  [
+                    "stencil_paths",
+                    "无",
+                    "用于绘制图形库形状的 draw.io 图形库文件或文件夹。不指定时，这类形状会显示为带标签的占位图形。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "异常",
+                "columns": [
+                  "错误",
+                  "何时出现"
+                ],
+                "rows": [
+                  [
+                    "ValueError",
+                    "输入无效或不受支持，或达到了安全上限。"
+                  ],
+                  [
+                    "OSError",
+                    "无法读写文件，例如输出文件夹不为空。"
+                  ],
+                  [
+                    "RuntimeError",
+                    "其他情况，例如 PDF、ZIP 或 XML 结构损坏。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "paras": [
+              "安装名为 document-svg，导入名为 document_svg。返回值是普通字典，字段与 conversion.json 相同。"
+            ],
+            "links": [
+              {
+                "href": "https://pypi.org/project/document-svg/",
+                "label": "PyPI 软件包页面"
+              }
+            ]
+          },
+          {
+            "id": "rust",
+            "title": "Rust",
+            "code": "use document_svg::{convert_path, ConvertOptions};\n\nfn main() -> Result<(), document_svg::Error> {\n    let options = ConvertOptions { jobs: 2, ..ConvertOptions::default() };\n    let report = convert_path(\"report.pdf\", \"out/report\", &options)?;\n    println!(\"{} pages, {} warnings\", report.page_count, report.warnings.len());\n    Ok(())\n}",
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "函数",
+                  "返回值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "convert_path(input, folder, &ConvertOptions)",
+                    "Result<ConversionReport>",
+                    "转换文件并写出页面和 conversion.json。"
+                  ],
+                  [
+                    "convert_bytes(name, &bytes, &ConvertOptions, ByteConvertLimits, on_page)",
+                    "Result<ByteConversionReport>",
+                    "不用临时文件，直接在内存中转换；每完成一页就把 SvgPage 交给 on_page。也可用于 wasm32。"
+                  ],
+                  [
+                    "svg_to_document(input, output, &ReverseOptions)",
+                    "Result<ReverseReport>",
+                    "把 SVG 页面打包成其他类型的文件（即命令行的 reverse）。"
+                  ],
+                  [
+                    "transform_svg(&bytes, &TransformOptions)",
+                    "Result<Vec<u8>>",
+                    "整理 SVG（即命令行的 transform）。"
+                  ]
+                ],
+                "codeColumns": [
+                  0,
+                  1
+                ]
+              },
+              {
+                "caption": "ConvertOptions 字段",
+                "columns": [
+                  "选项",
+                  "默认值",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "jobs",
+                    "1",
+                    "同时转换几页 PDF。其他格式逐页转换。"
+                  ],
+                  [
+                    "max_input_bytes",
+                    "512 MiB",
+                    "接受的输入文件大小上限。"
+                  ],
+                  [
+                    "max_zip_entry_bytes",
+                    "128 MiB",
+                    "PDF 或 ZIP 类文件（Office、EPUB、3MF、CBZ）中单个部件展开后的大小上限。"
+                  ],
+                  [
+                    "max_pages",
+                    "10,000",
+                    "输出的页、幻灯片或工作表数量上限。"
+                  ],
+                  [
+                    "max_xml_events",
+                    "5,000,000",
+                    "每个部件读取的 XML 量上限，用来拦截超大或恶意的 XML。"
+                  ],
+                  [
+                    "include_metadata: false",
+                    "包含元数据",
+                    "不在每个 SVG 中写入来源元数据。"
+                  ],
+                  [
+                    "precision",
+                    "5",
+                    "坐标保留的小数位数。数字越小，文件越小。"
+                  ],
+                  [
+                    "outline_embedded_pdf_text",
+                    "关闭",
+                    "把 PDF 嵌入字体的文字绘制成图形：外观与原件一致，但文字不能再被选中。请确认字体许可证允许这样做。"
+                  ],
+                  [
+                    "embed_drawio_source",
+                    "关闭",
+                    "在每个 SVG 中保留 draw.io 源数据，之后可以还原成可编辑的图。文件大约会变成两倍大。"
+                  ],
+                  [
+                    "stencil_paths",
+                    "无",
+                    "用于绘制图形库形状的 draw.io 图形库文件或文件夹。不指定时，这类形状会显示为带标签的占位图形。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              },
+              {
+                "caption": "Error 变体",
+                "columns": [
+                  "错误",
+                  "何时出现"
+                ],
+                "rows": [
+                  [
+                    "InvalidInput",
+                    "输入或参数无效，例如输出文件夹不为空。"
+                  ],
+                  [
+                    "Unsupported",
+                    "无法识别格式，或功能不受支持。"
+                  ],
+                  [
+                    "LimitExceeded",
+                    "达到了安全上限。"
+                  ],
+                  [
+                    "Io, Pdf, Xml, Zip, Json",
+                    "在该层读取或解析失败。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "paras": [
+              "公开 API 只有 crate 根下的内容（上述函数及其选项、报告类型和 Error）以及 ir、svg 模块；内部读取模块在不同版本之间可能变化。"
+            ],
+            "links": [
+              {
+                "href": "https://docs.rs/document-svg",
+                "label": "docs.rs 上的完整 API 文档"
+              },
+              {
+                "href": "https://crates.io/crates/document-svg",
+                "label": "crates.io 页面"
+              }
+            ]
+          },
+          {
+            "id": "frontend",
+            "title": "在网页中显示页面",
+            "paras": [
+              "可以。页面是普通的 SVG 图片，任何浏览器都能显示。把它们显示到界面上有两种方式。",
+              "1. 在服务器或 Electron 主进程中用 Node.js 转换，把 SVG 发送到页面，再用 preview-ui 显示（见 Node.js 一节和预览指南）。适用于所有支持的格式。",
+              "2. 用 WebAssembly 版在浏览器中转换，并用现成的 <docsvg-viewer> 元素显示。不上传，也不需要服务器。支持 PDF、Word、Excel 和 PowerPoint，提供缩略图、缩放、适应宽度或页面、旋转、全屏、文字搜索以及下载当前页面。"
+            ],
+            "code": "<script type=\"module\" src=\"/bindings/wasm/web/docsvg-viewer.js\"></script>\n<docsvg-viewer thumbnails></docsvg-viewer>\n\n<script type=\"module\">\n  const viewer = document.querySelector('docsvg-viewer')\n  viewer.options = { maxPages: 200 }          // optional limits\n  fileInput.addEventListener('change', () => viewer.openFile(fileInput.files[0]))\n</script>",
+            "tables": [
+              {
+                "caption": "<docsvg-viewer> 速查",
+                "columns": [
+                  "函数",
+                  "作用"
+                ],
+                "rows": [
+                  [
+                    "thumbnails",
+                    "属性：显示页面缩略图栏。"
+                  ],
+                  [
+                    "openFile(file)",
+                    "方法：转换并显示一个 File（来自文件选择或拖放；元素本身也支持这两种操作）。"
+                  ],
+                  [
+                    "options",
+                    "属性：maxInputBytes（默认 64 MiB）、maxPages（默认 1,000）、precision 等上限。"
+                  ],
+                  [
+                    "键盘",
+                    "方向键和 Page Up/Down 翻页，+ 和 − 缩放，f 适应宽度，r 旋转。"
+                  ]
+                ],
+                "codeColumns": [
+                  0
+                ]
+              }
+            ],
+            "bullets": [
+              "WebAssembly 版没有作为软件包发布。请从 bindings/wasm 构建（需要 Rust 和 wasm-bindgen），再从你的网站提供 bindings/wasm/web。",
+              "请通过 HTTP 提供；用 file:// 打开无法运行。使用 Content-Security-Policy 时，script 需要 'wasm-unsafe-eval'，worker 需要 'self'。",
+              "页面通过 <img> 中的 Blob URL 显示，查看器不会把文档 SVG 插入你的页面。"
+            ],
+            "links": [
+              {
+                "href": "viewer/",
+                "label": "在浏览器中试用查看器"
+              },
+              {
+                "href": "https://github.com/ryusui-hiro/document-svg/blob/main/bindings/wasm/README.md",
+                "label": "如何构建和部署查看器"
+              }
+            ]
+          },
+          {
+            "id": "limits",
+            "title": "上限一览",
+            "paras": [
+              "所有上限都是为了保护机器免受超大或损坏文件的影响。可以按用途调低；不要只是为了让难处理的文件通过而调高。"
+            ],
+            "tables": [
+              {
+                "caption": null,
+                "columns": [
+                  "上限",
+                  "命令行、Node.js、Python、Rust",
+                  "浏览器（WebAssembly）"
+                ],
+                "rows": [
+                  [
+                    "输入文件",
+                    "512 MiB",
+                    "64 MiB（最多 256 MiB）"
+                  ],
+                  [
+                    "单个展开部件（PDF 流、ZIP 条目）",
+                    "128 MiB",
+                    "32 MiB"
+                  ],
+                  [
+                    "页数",
+                    "10,000",
+                    "1,000"
+                  ],
+                  [
+                    "每个部件的 XML 量",
+                    "5,000,000",
+                    "2,000,000"
+                  ],
+                  [
+                    "单页 SVG（内存预览）",
+                    "64 MiB",
+                    "16 MiB"
+                  ],
+                  [
+                    "全部页面的 SVG（内存预览）",
+                    "256 MiB",
+                    "128 MiB"
+                  ],
+                  [
+                    "坐标小数位数",
+                    "5",
+                    "4"
+                  ]
+                ],
+                "codeColumns": []
+              }
+            ],
+            "links": [
+              {
+                "href": "safety.html",
+                "label": "安全与局限"
               }
             ]
           }

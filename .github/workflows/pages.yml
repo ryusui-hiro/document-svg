@@ -1,13 +1,19 @@
 name: GitHub Pages
 
-# Publishes site/ (the project website: use-case guide, trilingual format
-# support map, and the sample gallery) whenever it changes on main, and on
-# demand. site/ is fully static; there is no build step.
+# Publishes the project website whenever it or the browser viewer changes on
+# main, and on demand. The pages in site/ are pre-generated; this job only
+# builds the WebAssembly viewer demo and stages both with
+# scripts/stage-pages.sh.
 on:
   push:
     branches: [main]
     paths:
       - 'site/**'
+      - 'src/**'
+      - 'bindings/wasm/**'
+      - 'examples/static-viewer/**'
+      - 'scripts/stage-pages.sh'
+      - 'Cargo.lock'
       - '.github/workflows/pages.yml'
   workflow_dispatch: {}
 
@@ -28,9 +34,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install Rust with the WebAssembly target
+        run: rustup toolchain install 1.93.0 --profile minimal --target wasm32-unknown-unknown
+      - name: Install matching wasm-bindgen CLI
+        run: cargo +1.93.0 install wasm-bindgen-cli --version 0.2.128 --locked
+      - name: Build the viewer demo and stage the site
+        env:
+          RUSTUP_TOOLCHAIN: '1.93.0'
+        run: sh scripts/stage-pages.sh _site
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
         with:
-          path: site
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346

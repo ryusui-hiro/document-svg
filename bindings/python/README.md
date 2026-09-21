@@ -134,6 +134,10 @@ your file type in the [searchable format list](https://ryusui-hiro.github.io/doc
 More in [Safety and limits](https://ryusui-hiro.github.io/document-svg/safety.html)
 and the [security policy](https://github.com/ryusui-hiro/document-svg/blob/main/SECURITY.md).
 
+## Reference
+
+Every function, option, default and exception is listed in the [developer reference](https://ryusui-hiro.github.io/document-svg/reference.html#python).
+
 ## Building from source
 
 For contributors, from `bindings/python` (Rust required):

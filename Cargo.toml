@@ -1,6 +1,6 @@
 [package]
 name = "document-svg"
-version = "2.0.1"
+version = "2.0.2"
 edition = "2024"
 rust-version = "1.88"
 description = "Convert PDF, Word, Excel, PowerPoint, diagram and CAD files into one SVG per page, locally — a Rust library and the docsvg command"

@@ -34,9 +34,11 @@ site/
     └── samples/<key>/page-0001.svg   one representative SVG per format
 ```
 
-The seven pages are: home (why use it, use cases, highlighted samples), use
+The eight pages are: home (why use it, use cases, highlighted samples), use
 cases (who, problem, result, how to begin), formats (searchable list),
-samples, get started, safety & limits, and AI agents.
+samples, get started, the developer reference, safety & limits, and AI
+agents. The developer reference is also written to `docs/API.md`,
+`docs/API.ja.md` and `docs/API.zh-CN.md` from the same data.
 
 Each page carries a canonical URL, `hreflang` links to its other languages,
 Open Graph tags with a social preview card (`assets/og.png`, rendered from
@@ -97,11 +99,24 @@ over HTTP.
   or documented links change; it intentionally stays short and link-first
   rather than duplicating `docs/AI_USAGE_GUIDE.md`.
 
+## The browser viewer demo
+
+`/viewer/` on the live site is the WebAssembly viewer from
+`examples/static-viewer/`. It is not committed: `scripts/stage-pages.sh`
+builds `bindings/wasm` and copies the site and the viewer into `_site/`, which
+is what the Pages workflow publishes. To try the whole site locally:
+
+```bash
+sh scripts/stage-pages.sh
+python3 -m http.server 4174 --directory _site
+```
+
 ## Deployment
 
 `.github/workflows/pages.yml` publishes this directory to GitHub Pages on
 every push to `main` that touches `site/**`, and can also be run manually
 from the Actions tab (`workflow_dispatch`). It uses
-`actions/upload-pages-artifact` and `actions/deploy-pages`. The generated pages
-are committed, so the workflow itself has no build step and no Jekyll. GitHub Pages must be enabled for the repository once, with the source
+`actions/upload-pages-artifact` and `actions/deploy-pages`. The pages are
+pre-generated and committed; the workflow builds only the viewer demo, with
+no Jekyll. GitHub Pages must be enabled for the repository once, with the source
 set to "GitHub Actions" (Settings → Pages → Build and deployment → Source).

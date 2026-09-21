@@ -67,7 +67,7 @@ Rust を入れずにコマンドだけ使うこともできます。[リリー�
 | GitHub のリリース | [リリース](https://github.com/ryusui-hiro/document-svg/releases) | 展開した場所。`docsvg` を `PATH` の通った場所に置きます |
 
 入っているかどうかは、次のコマンドで確かめられます。`npm ls document-svg`、`python -m pip show document-svg`、`docsvg --version`。
-Rust のAPIの説明は [docs.rs](https://docs.rs/document-svg) にあります。GitHub Packages の認証付きnpmミラーについては [docs/PUBLISHING.md](docs/PUBLISHING.md#installing-the-github-packages-mirror) を見てください。
+Rust のAPIの説明は [docs.rs](https://docs.rs/document-svg) にあります。4つの使い方すべての関数とオプション、既定値は[開発者リファレンス](docs/API.ja.md)（[サイト版](https://ryusui-hiro.github.io/document-svg/ja/reference.html)）にまとめています。GitHub Packages の認証付きnpmミラーについては [docs/PUBLISHING.md](docs/PUBLISHING.md#installing-the-github-packages-mirror) を見てください。
 
 ## 試してみる
 
@@ -143,7 +143,7 @@ APIの説明は [docs.rs](https://docs.rs/document-svg) にあります。
 ### ブラウザだけで動かす
 
 PDF、Word、Excel、PowerPoint に限り、ブラウザの中だけで変換する WebAssembly 版があります。サーバーもアップロードも要りません。
-パッケージとしては配布していないので、[`bindings/wasm`](bindings/wasm/README.md) から自分でビルドしてください。
+パッケージとしては配布していないので、[`bindings/wasm`](bindings/wasm/README.md) から自分でビルドしてください。ビルドする前に[ブラウザで試せます](https://ryusui-hiro.github.io/document-svg/viewer/)。
 
 ## アプリに表示する
 

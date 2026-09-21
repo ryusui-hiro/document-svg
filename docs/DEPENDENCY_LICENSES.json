@@ -5686,7 +5686,7 @@
     }
   ],
   "lockfiles": {
-    "Cargo.lock": "132b99ab2c62e8e06057c700cb56cb44a24ae410c021e094a7fa1947f17047a6",
-    "bindings/node/package-lock.json": "b576d5261e6dd366bf604709d44214cfbd8ce320a71e36daaf3469344e572849"
+    "Cargo.lock": "81788e02b504bd5f6fea5c9dcec54efda93cabe430171a8a0fe386896a7b1a82",
+    "bindings/node/package-lock.json": "f66e6e114e00906c725a22afb14e1e8b22fc94eb28b9ede304d7c216f380d0cd"
   }
 }

@@ -106,6 +106,27 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://ryusui-hiro.github.io/document-svg/start.html"/>
   </url>
   <url>
+    <loc>https://ryusui-hiro.github.io/document-svg/reference.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ryusui-hiro.github.io/document-svg/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://ryusui-hiro.github.io/document-svg/ja/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ryusui-hiro.github.io/document-svg/zh/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ryusui-hiro.github.io/document-svg/reference.html"/>
+  </url>
+  <url>
+    <loc>https://ryusui-hiro.github.io/document-svg/ja/reference.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ryusui-hiro.github.io/document-svg/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://ryusui-hiro.github.io/document-svg/ja/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ryusui-hiro.github.io/document-svg/zh/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ryusui-hiro.github.io/document-svg/reference.html"/>
+  </url>
+  <url>
+    <loc>https://ryusui-hiro.github.io/document-svg/zh/reference.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://ryusui-hiro.github.io/document-svg/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://ryusui-hiro.github.io/document-svg/ja/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://ryusui-hiro.github.io/document-svg/zh/reference.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://ryusui-hiro.github.io/document-svg/reference.html"/>
+  </url>
+  <url>
     <loc>https://ryusui-hiro.github.io/document-svg/safety.html</loc>
     <xhtml:link rel="alternate" hreflang="en" href="https://ryusui-hiro.github.io/document-svg/safety.html"/>
     <xhtml:link rel="alternate" hreflang="ja" href="https://ryusui-hiro.github.io/document-svg/ja/safety.html"/>
