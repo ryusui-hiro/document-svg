@@ -1,680 +1,190 @@
 # document-svg
 
-PDF/FDF/XFDF form data（`.fdf` / `.xfdf`）・legacy Word Binary（`.doc`/`.dot`）・text-only legacy PowerPoint Binary（`.ppt`）・legacy Visio Binary（`.vsd`/`.vss`/`.vst`/`.vsw`）・Autodesk DWG（`.dwg`）・Rhino/OpenNURBS 3DM（`.3dm`）・Microsoft Access（`.accdb` / `.accde` / `.mdb` / `.mde`）・Dassault 3DXML（`.3dxml`）・Apple iWork Pages/Numbers/Keynote（`.pages` / `.numbers` / `.key`）・Office Open XML Transitional/Strict・Flat OPC single-XML package（`.flatopc` / `.fopc` / `.flatopc.xml`）・Microsoft Project XML（Visio/VDXを含む）・iCalendar/vCalendar（`.ics` / `.vcs`）・vCard contact（`.vcf`）・EML/Apple Mail EMLX/Outlook MSG/MBOXメール・MHTML web archive・XPS/OpenXPS/DWFx（`.xps` / `.oxps` / `.dwfx`）・OpenDocumentの文書/表計算、HTML・DocBook（`.dbk` / `.docbook`）・DITA topic/map（`.dita` / `.ditamap`）・HWPX（`.hwpx`）・XMind（`.xmind`）・NIfTI（`.nii` / `.nii.gz`）・FITS（`.fits` / `.fit` / `.fts` / `.fits.gz`）・MRC（`.mrc` / `.map` / `.mrc.gz`）・SQLite（`.sqlite` / `.sqlite3` / `.db`）・mmCIF/PDBx（`.cif` / `.mmcif`）・Tripos MOL2（`.mol2`）・RDF Turtle/N-Triples（`.ttl` / `.nt` / `.nq`）・EPS/PostScript（`.eps` / `.ps`）・EPUB・FictionBook 2（`.fb2` / `.fb2.zip`）・PalmDOC/MOBI（`.mobi` / `.prc`）・JATS article XML（`.jats` / `.nxml`）・TEI P5 scholarly XML（`.tei` / `.tei.xml`）・ALTO OCR/layout XML（`.alto` / `.alto.xml`）・METS archive XML（`.mets` / `.mets.xml`）・MARCXML（`.marcxml` / `.marc.xml`）・MODS XML（`.mods` / `.mods.xml`）・MARC21 ISO 2709（`.marc` / `.iso2709`）・PREMIS XML（`.premis` / `.premis.xml`）・IIIF Presentation JSON（`.iiif.json` / `.manifest.json`）・EAD finding aid XML（`.ead` / `.ead.xml`）・EAC-CPF authority XML（`.eac-cpf` / `.eac`）・Dublin Core XML（`.dc.xml` / `.dublin.xml`）・S1000D Data Module XML（`.s1000d` / `.dmodule`）・ISO 19115/19139 geographic metadata XML（`.iso19115` / `.iso19139` / `.gmd.xml`）・OASIS UBL business document XML（`.ubl` / `.ubl.xml`）・XBRL 2.1財務報告instance（`.xbrl` / `.xbrl.xml`）・LandXML 1.2 civil/survey XML（`.landxml` / `.landxml.xml`）・MathML 3数式XML（`.mathml` / `.mml`）・Adobe XMP metadata（`.xmp` / `.xmp.xml`）・Adobe XDP/XFA package（`.xdp` / `.xdp.xml`）・Excel 2003 XML SpreadsheetML（`.spreadsheetml` / `.xmlss`）・Chemical Markup Language（`.cml` / `.cml.xml`）・RDF/XML graph（`.rdf` / `.rdf.xml`）・SubRip/WebVTT/TTML字幕・Markdown・プレーンテキスト・AsciiDoc・reStructuredText・Org-mode・XLIFF localization file（`.xlf`/`.xliff`）・GNU gettext PO/POT翻訳カタログ・BibTeX bibliography・PDB coordinate model（`.pdb` / `.ent`）、FASTA/FASTQ sequence（`.fa`/`.fasta`/`.fna`/`.faa`/`.fq`/`.fastq`）、GFF3/GTF annotation（`.gff`/`.gff3`/`.gtf`）、BED/BEDGraph interval（`.bed`/`.bedgraph`/`.bg`）、VCF variant（`.vcf`）、SAM alignment（`.sam`）、WIG/Wiggle signal（`.wig`/`.wiggle`）、MAF multiple alignment（`.maf`）・Newick系統樹（`.nwk`/`.newick`/`.tree`）・Stockholm alignment（`.sto`/`.stockholm`）・CLUSTAL alignment（`.aln`/`.clustal`/`.clustalw`）・NEXUS系統樹（`.nex`/`.nexus`）・GenBank flat file（`.gb`/`.gbk`/`.genbank`）・EMBL-Bank flat file（`.embl`/`.emb`）・UniProtKB/Swiss-Prot flat file（`.dat`/`.uniprot`/`.swissprot`）・RIS bibliography（`.ris`）・SPICE/ngspice netlist（`.cir`/`.sp`/`.spice`/`.ckt`/`.net`）・KiCad legacy Eeschema schematic（`.sch`）・NetCDF classic（`.nc` / `.nc3` / `.cdf`）・HDF5/CGNS（`.h5` / `.hdf5` / `.hdf` / `.h5part` / `.cgns`）・Exodus II（`.e` / `.exo` / `.ex2` / `.ex2m` / `.exii`）・Weka ARFF dataset（`.arff`）・JSON-LD 1.1（`.jsonld` / `.json-ld`）・V2000/core V3000化学構造MOL/SDFとRXN反応図、KiCad PCB（`.kicad_pcb`）・KiCad 6+ S-expression schematic（`.kicad_sch`）・LTspice schematic（Version signatureの`.asc`）・Autodesk EAGLE XML schematic（`<eagle>` signatureの`.sch`）、IFC4 BIMモデル（`.ifc` / `.ifcxml` / `.ifczip`）、buildingSMART BCFZIP issue package（`.bcfzip`）、図表、GraphML（`.graphml`）・GEXF（`.gexf`）・XGMML（`.xgmml`）・Graph Modeling Language（`.gml`）・OpenSCAD CAD source（`.scad`）・AMF（`.amf`）・PLMXML（`.plmxml` / `.plm.xml`）、STEP-XML（`.stepxml` / `.stpx`）・QIF（`.qif` / `.qif.xml`）・TMX（`.tmx` / `.tmx.xml`）・TBX（`.tbx` / `.tbx.xml`）・gbXML（`.gbxml` / `.gbxml.xml`）・FHIR XML（`.fhir.xml` / `.fhirxml`）・Adobe IDML（`.idml`）・XPDL（`.xpdl` / `.xpdl.xml`）・ONIX（`.onix` / `.onix.xml`）・OAI-PMH（`.oaipmh` / `.oai.xml`）・CDA（`.cda` / `.cda.xml`）・ISO 20022（`.iso20022.xml` / `.pain.xml` / `.pacs.xml` / `.camt.xml`）・SBML（`.sbml`）・CellML（`.cellml`）・OCEL XML（`.xmlocel`）・EnergyPlus IDF（`.idf`）・EnergyPlus EPW（`.epw`）・RINEX（`.rnx` / `.obs` / `.nav`）・ACIS SAT（`.sat`）・SED-ML（`.sedml`）・SBGN-ML（`.sbgnml`）・COMBINE/OMEX（`.omex`）・XDMF（`.xdmf`）・VTK PVD（`.pvd`）・FDS（`.fds`）・AbiWord AWML（`.abw`）・NeuroML（`.nml`）・BioPAX（`.biopax`）・XML Schema（`.xsd`）・XSLT（`.xsl` / `.xslt`）・XSL-FO（`.fo` / `.xslfo`）・CAD/CAM/3D、CAE、Nastran OP2（`.op2`）、IPC-2581（`.ipc2581` / `.ipc-2581` / `.cvg`）・Siemens JT（`.jt`）・ASAM OpenDRIVE road `.xodr`、ASAM OpenSCENARIO scenario `.xosc`、UNV/UFF mesh `.unv`、SU2 CFD mesh `.su2`、OpenFOAM polyMesh case `.foam`、Tecplot ASCII CAE mesh `.dat`/`.tec`、EnSight Gold ASCII case `.case`/`.geo`、PLOT3D ASCII structured grid `.p3d`/`.plot3d`/`.p3`、VRML97 mesh `.wrl`/`.vrml`、standalone JPEG 2000（`.jp2` / `.j2k` / `.j2c` / `.jpc` / `.jpx`）を含む画像などを、**1ページ＝1枚のSVG**に変換するRustのライブラリとCLIです。
-SVGを中央ハブとし、Office・draw.io・CAD/CAM/3D・ダイアグラム・表・数式・UIコード・PNGへの逆変換や、`docsvg transform`によるSVGの最適化（minify・単色化・レスポンシブ化）も提供します。
-CI／セキュリティ形式では、Docker Compose、GitHub Actions workflow、JUnit互換XML、SARIF 2.1.0、Terraform JSON planも、実行や機密値の展開をしないboundedな表として処理します。
+**PDF、Word、Excel、PowerPoint、図、CAD図面の全ページを、作ったアプリがなくてもSVG画像で見られます。変換は手元のマシンで行います。**
 
-出来上がったSVGは、対応するブラウザで開けます。画像はファイル内に埋め込みます。埋め込み画像はSVG 2の`href`だけで参照するため、描画側は最近のブラウザ、resvg、またはlibrsvg 2.46以降が必要です。
-通常の文字表示は環境のフォントに依存するため、別のPCでは字形や配置が変わる場合があります。
-PDFの埋め込みフォントをアウトライン化するオプションもあります。
+[English](README.md) · [简体中文](README.zh-CN.md) ·
+[プロジェクトサイト](https://ryusui-hiro.github.io/document-svg/ja/) ·
+[サンプル](https://ryusui-hiro.github.io/document-svg/ja/samples.html) ·
+[リリース](https://github.com/ryusui-hiro/document-svg/releases)
 
-プレビューガイド: [日本語](bindings/node/docs/preview.ja.md) · [English](bindings/node/docs/preview.en.md) · [简体中文](bindings/node/docs/preview.zh-CN.md)
+[![npm](https://img.shields.io/npm/v/document-svg?label=npm)](https://www.npmjs.com/package/document-svg)
+[![PyPI](https://img.shields.io/pypi/v/document-svg?label=PyPI)](https://pypi.org/project/document-svg/)
+[![crates.io](https://img.shields.io/crates/v/document-svg?label=crates.io)](https://crates.io/crates/document-svg)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#ライセンス)
 
-**[プロジェクトサイト（日本語・英語・中国語）— ユースケース、対応形式マップ全体、実サンプルギャラリー](https://ryusui-hiro.github.io/document-svg/)**
+document-svg は、文書や図、技術図面を、1ページ1枚のふつうのSVG画像に変換します。
+SVGはどのブラウザでも表示でき、拡大してもぼやけず、ほかの画像と同じようにWebページに貼れます。
+ページと一緒に短いレポートも出力し、そのまま再現できなかった部分を隠さず書き出します。
 
-Node.js版は[npm](https://www.npmjs.com/package/document-svg)、Python版は
-[PyPI](https://pypi.org/project/document-svg/)、Rustライブラリと`docsvg` CLIは
-[crates.io](https://crates.io/crates/document-svg)で公開しています。
+単体で開くアプリではなく、Webサイト、社内ツール、レビューの流れ、AIアシスタントなどに組み込んで使う変換部品です。
+Node.js、Python、Rust のライブラリと、コマンド（`docsvg`）として使えます。
 
-まず[サンプル](samples/)を見てください。複数の文書・図面・データ形式の入力と、そこから生成されたSVGを置いています。
+| PowerPoint | Excel | draw.io | CAD図面（DXF） |
+|---|---|---|---|
+| <img src="https://ryusui-hiro.github.io/document-svg/assets/samples/pptx/page-0001.svg" alt="SVGに変換したPowerPointのスライド" width="200"> | <img src="https://ryusui-hiro.github.io/document-svg/assets/samples/xlsx/page-0001.svg" alt="SVGに変換したExcelのシート" width="200"> | <img src="https://ryusui-hiro.github.io/document-svg/assets/samples/drawio/page-0001.svg" alt="SVGに変換したdraw.ioの図" width="200"> | <img src="https://ryusui-hiro.github.io/document-svg/assets/samples/dxf/page-0001.svg" alt="SVGに変換したDXF図面" width="200"> |
 
----
+上の画像はどれも、このリポジトリのサンプルファイルを変換したままのもので、手直しはしていません。
 
-## なぜSVGなのか
+## 使う理由
 
-SVGに変換すると、文書プレビューをブラウザ標準の画像表示で組み込めます。
-ページ単位で保存でき、図形や文字などのベクター部分を拡大して表示できます。
+- **ファイルは手元から出ません。** 変換は、あなたのPCか自社サーバーで終わります。アップロードもアカウント登録も利用状況の送信もないので、社外に出せない契約書や設計図でもプレビューを作れます。
+- **誰でも開けます。** 確認する人に Office も AutoCAD も専用ビューアも要りません。ブラウザがあれば十分。
+- **できなかったことを正直に書きます。** 何でも完璧に再現できる変換ツールはありません。document-svg は、グラフやフォントを黙って落とすかわりに、省略や近似をした箇所をページごとに記録します。共有してよい出来かどうかは、それを読んで決められます。
+- **開いても、中身は実行しません。** マクロ、スクリプト、フォームの送信、外部へのリンクは、表示するか読み飛ばすだけです。サイズとページ数に上限があるので、巨大なファイルや壊れたファイルがメモリを食いつぶすこともありません。
+- **ツールがひとつで済みます。** Office文書、PDF、図、CADや3Dモデル、研究データや業務データまで、同じ呼び出し方で変換し、同じ形で出力します。
+- **元の形式にも戻せます。** SVGのページを PowerPoint、Word、Excel、draw.io、CAD のファイルにまとめ直せます。
 
-SVGはブラウザが最初から読める画像形式です。だから、こうなります。
+## こんな使い方をしています
 
-- **`<img>`タグで表示できる。** ビューアーも実行時のライブラリも要りません
-- **文字情報を保持できる。** 通常はSVGの`text`として残します。`<img>`表示では文字選択・検索はできず、アウトライン化した文字もテキストではありません
-- **ベクター部分を拡大できる。** 図形や文字は滑らかに表示できます。埋め込んだ写真などの解像度は元画像に依存します
-- **画像を埋め込める。** 画像は`data:`URIとして保存します。表示環境のフォント差については元文書と比較してください
-- **テキストなので差分が取れる。** 生成物をGitに入れて、レイアウト変更をレビューできます
+- **コードレビューで文書の変更を見る。** プルリクエストで変わったスライドや表計算、PDFを GitHub Action が変換します。「バイナリファイルが変更されました」だけで終わりません。
+- **アップロードされたファイルを自分のアプリで見せる。** サーバーに Office を入れたり、有料のビューアを契約したりする必要はありません。
+- **図をコードと一緒に最新に保つ。** draw.io、Mermaid、PlantUML、D2、Graphviz のファイルを、ドキュメントのビルドのたびに画像にします。
+- **CADがなくても図面や3Dモデルを確認する。** 間取り図、プリント基板、加工パス、3DモデルをWebページで見られます。
+- **AIアシスタントに文書を読ませる。** スクリーンショットのかわりに、確実な手順をひとつ渡せます。
 
-`page-0001.svg`から`page-0117.svg`までが並ぶので、ページ送りは配列の添字を変えるだけです。
+それぞれの詳しい説明は[プロジェクトサイト](https://ryusui-hiro.github.io/document-svg/ja/use-cases.html)にあります。
 
-### こんなときに使えます
+## インストール
 
-- Webアプリに文書プレビューと、SVG画像・SVGソースのコピー機能を付けたい
-- ElectronやNode.jsのアプリで、Officeを入れずにスライドを表示したい
-- 生成AIのパイプラインに文書を流し込みたい。SVGはテキストなので、そのまま渡せます
-- CIで文書の見た目が壊れていないか確認したい。SVGを比較すれば差分が出ます
+どこから呼び出すかで、ひとつ選んでください。全部入れる必要はありません。
 
-## ソースから試す
+| やりたいこと | インストール |
+|---|---|
+| Node.js や Electron のアプリから変換する（Node.js 18 以降） | `npm install document-svg` |
+| Python から変換する（Python 3.10 以降） | `python -m pip install document-svg` |
+| `docsvg` コマンドや Rust のライブラリを使う | `cargo install document-svg --locked` / `cargo add document-svg` |
 
-```bash
-git clone https://github.com/ryusui-hiro/document-svg.git
-cd document-svg
-cargo build --release
+npm と pip のパッケージは Windows、macOS、Linux 向けにビルド済みなので、Rust は要りません。
+Rust を入れずにコマンドだけ使うこともできます。[リリース](https://github.com/ryusui-hiro/document-svg/releases)から自分のOS用のファイルをダウンロードし、`docsvg` を `PATH` の通った場所に置いてください。
 
-./target/release/docsvg samples/source/sample.pptx --output /tmp/slides
-# macOSの場合。その他の環境では生成したSVGを対応ブラウザで開きます。
-open /tmp/slides/page-0001.svg
+## 試してみる
+
+```sh
+docsvg slides.pptx --output out/slides
 ```
 
-自分のファイルでも同じです。拡張子が`.pdf` `.pptx` `.xlsx` `.docx` `.doc` `.dot` `.ppt` `.xls` `.xlsb`なら、そのまま渡せます。
-
-```bash
-./target/release/docsvg 決算資料.pdf --output out/
-```
-
-常用するなら`cargo install --path . --locked`で`docsvg`コマンドとして入ります。
-
-## 何が入って、何が出るか
+出力先には、新しいフォルダか空のフォルダを指定します。ページごとのSVGと、変換の記録が1つできます。
 
 ```text
-out/
+out/slides/
 ├── page-0001.svg
 ├── page-0002.svg
 └── conversion.json
 ```
 
-「1ページ」の意味は形式ごとに違います。
+ページはどのブラウザでも開けます。記録には **警告（warnings）** が入ります。フォントを代わりのものにした、対応していない塗りを飛ばした、といった近似や省略の知らせです。
+エラーなく終わっても、完璧とは限りません。警告があれば、共有する前に人の目でページを確かめてください。
 
-| 入力 | 1ページになるもの |
-|---|---|
-| PDF | PDFのページ |
-| PPTX | スライド1枚 |
-| DOCX | ページサイズ・余白・改ページなどを反映して組版したページ |
-| XLSX | 印刷したときの1ページ |
-| drawio | `<diagram>`要素1つ、つまりエディタのページ1枚 |
-| DXF | CAD図面全体（アスペクト比を保ち用紙へ最適配置） |
-| Gerber | プリント基板（PCB）レイヤー全体（基材＋銅箔パターン） |
-| HP-GL | プロッター図面全体 |
-| DOT / Mermaid | ダイアグラムグラフ全体（階層DAGレイアウト） |
-| LaTeX Math | 数式全体（分数・添字・根号のボックスモデル配置） |
-| Markdown Table | 構造化テーブル全体（列幅自動調整・枠線グリッド） |
-| Chart JSON | 棒・折れ線・円グラフ全体（軸・目盛り・凡例） |
-| QR Code | ベクターQRマトリクス全体 |
-| PNG / JPEG | 2値化・輪郭追跡によるベクター化パス全体 |
-| TIFF / BigTIFF | 画像directoryごとに1ページ（カラーPNGを保持） |
-| CBZ | archive内のPNG/JPEG画像ごとに1ページ（ファイル名を自然順に並べる） |
+「1ページ」は、ファイルの種類ごとに自然な単位です。PDFならページ、PowerPointならスライド1枚、Wordなら組版した1ページ、Excelなら印刷したときの1ページ、draw.io なら図の1ページになります。
 
-### 対応フォーマットと変換特性マップ
+### Node.js / TypeScript から
 
-本リポジトリでは、SVG を中心ハブとした変換を以下の 3 つの変換特性（再現性・忠実度モデル）に分類しています。
+```js
+const { convert, preview } = require('document-svg')
 
-- **A. 決定論的に変換できる**: フォーマット仕様や数式に基づく 1:1 の幾何・構文変換、または埋め込みメタデータからの完全可逆復元。
-- **B. 画像解析・ベクトレースが必要**: ラスター画像のピクセルから輪郭追跡（Marching Squares）によりベクターパスを抽出。
-- **C. 意味を推定・再構成する必要がある**: メタデータを含まない生の幾何情報（線分・テキスト座標群）から、表の行・列やグラフの接続関係を空間配置ヒューリスティクスで逆再構成。
+async function main() {
+  // SVGファイルをフォルダに書き出す
+  const report = await convert('slides.pptx', 'out/slides')
+  console.log(report.pageCount, report.warnings)
 
-| 分類 | 拡張子 | 順方向 (To SVG) | 逆方向 (From SVG) | 動作仕様・再現性の補足 |
-|---|---|:---:|:---:|---|
-| **Office / 文書** | `.pdf` | **A** | **A** | PDFベクター描画とannotation appearanceを描画。appearanceの無いFreeText/Text/Choice Widgetはbounded text fallbackを生成し、checkbox/radio Widgetは簡易state markerを描画、password valueはmaskします。単純なgrayscale/RGB/CalGray/CalRGBのJPX imageはdimension/precisionを事前検査してPNGへdecodeし、`SMaskInData=1`のembedded alpha、`SMaskInData=2`のDeviceGray/DeviceRGB/CalGray/CalRGB対応Matte unblending、制限内の単純な外部grayscale soft maskを保持します。explicit mask、未対応のMatte/color spaceやJPX機能はwarning付きでJPEG 2000 dataを残すため、PDF mask effectが失われる場合があります（layoutは近似）。`--outline-embedded-pdf-text`で文字アウトライン化可能。<br>逆変換: SVGページを正確なMediaBox寸法の複数ページPDF文書としてパッケージング。 |
-| | `.pptx`, `.docx`, `.xlsx` | **A** | **A** / **C** | Word/Excel/PowerPointのOffice Open XML TransitionalとISO/IEC 29500 Strict namespaceを読み込みます。順: スライド・ページ・シートの組版描画。<br>逆: SVGベクター画像（PNGフォールバック付）としてOOXML埋め込み(**A**)。編集可能図形への逆分解は**C**。 |
-| | `.flatopc`, `.fopc`, `.flatopc.xml` または内容判定されたFlat OPC | **A** | - | Microsoft Flat OPCの単一XML Office packageを検証し、boundedなDOCX/XLSX/PPTX partへメモリ内で再構成して既存Office engineで描画します。XML/base64 partはmemory package内に閉じ、macro、外部relationship、URL、active content、filesystem extractionは不活性です。上限: 入力128 MiB、展開part合計128 MiB、part 100,000、part 16 MiB、XML event 500,000。出典: [Microsoft Flat OPC API](https://learn.microsoft.com/en-us/dotnet/api/documentformat.openxml.packaging.wordprocessingdocument.fromflatopcdocument?view=openxml-3.0.1)。 |
-| | `.aasx` または内容判定されたAASX | **A** | - | Asset Administration ShellのOPC package。boundedなroot/origin relationshipからAAS XML/JSON specification partを探し、shell/submodel/concept/element countとsupplementary file/thumbnail countを表示します。identifier、value、URL、CAD/manual payload、signature、encryption materialは不活性です。上限: 入力・展開metadata合計128 MiB、entry 100,000、part 16 MiB、XML event 500,000、node 300,000。出典: [IDTA AASX Part 5](https://industrialdigitaltwin.io/aas-specifications/IDTA-01005/v3.1/index.html)。 |
-| | `.xml`（Microsoft Project namespace）、`.mspdi` | **A** | - | Microsoft Project XML interchangeから、task hierarchy、指定されたStart/Finish、進捗bar、milestone、簡易predecessor arrowをboundedなGantt previewへ変換。root namespaceが一致するXMLだけを自動判定し、`.mspdi`はalias。calendar/work time、dependency type/lag、resource、schedule再計算は未対応。上限: 64 MiB、1,000,000 XML event、100,000 task、500,000 predecessor link、1 pageあたり25 task。 |
-| | `.doc`, `.dot` | **C** | - | Legacy Word Binary（Word 97–2007 subset）のmain story textをbounded A4 pageへflow組版。piece tableとsimple contiguous textを読み、UTF-16/common code pageをdecodeします。tableはcell separator付きtextへflatten。page layout、style、image、header、footnote、comment、OLE objectは復元せず、暗号化文書は拒否、macroは実行しません。`.dot`はCFB Word templateの場合だけWord扱いし、Graphviz text `.dot`との衝突を避けます。 |
-| | `.ppt` | **C** | - | Legacy PowerPoint Binary（97–2003）のlive edit/persist directoryをたどり、スライド順にOfficeArt textboxとplaceholder textを抽出してA4へ組版します。スライドgeometry、style、image、背景、chart、table、mediaは省略。暗号化presentationは拒否し、macroや外部contentは開きません。 |
-| | `.xls` | **A** | - | 旧形式BIFF Excel workbookのcached cell valueを上限付きsheet pageとして描画します。hidden/very-hidden sheetを含みます。式の再計算、cell style、結合geometry、chart、drawingは再現せず、macroは実行しません。 |
-| | `.xlsb` | **A** | - | Excel Binary Workbookの値をZIP partとBIFF12 recordの検証後に上限付きworksheet pageとして描画します。hidden worksheetを含みます。cached valueを使い、式の再計算、macro実行、style・chart・drawingの再現はせず、macro sheet形式は未対応です。 |
-| | `.slk` | **A** | - | SYLK（Symbolic Link）spreadsheet。cell座標とcached valueを上限付き表ページとして表示し、formulaは不活性annotationとして表示します。format/metadata recordは無視し、macroや式の評価はしません。 |
-| | `.dif` | **A** | - | DIF（Data Interchange Format）spreadsheet。TABLE/VECTORS/TUPLES/DATA headerとBOT/EOD tuple、numeric/string/status cellを上限付き表として表示します。formula・metadata・外部実行は不活性で、宣言された行列数だけで無制限にallocationしません。 |
-| | `.fa`, `.fasta`, `.fna`, `.faa` | **A** | - | FASTA sequence record。definition line、sequence長、GC比率、曖昧base数、上限付きsequence previewを不活性表として表示します。IDをpathとして解決せず、alignmentは実行しません。 |
-| | `.fq`, `.fastq` | **A** | - | FASTQ sequenceとper-base quality。sequence/quality長とprintable quality byteを検証し、Phred encodingを推定せず品質ASCII範囲と上限付きpreviewを表示します。解析は実行しません。 |
-| | `.gff`, `.gff3` | **A** | - | GFF3の9列genome feature annotation。seqid、source/type、1-based座標、score/strand/phase、attributeを不活性表で表示し、directiveと埋め込み`##FASTA`は省略します。 |
-| | `.gtf` | **A** | - | GTFの9列gene/transcript annotationとquoted attribute。座標とattributeを不活性表で表示し、hierarchy、sequence解析、外部link、実行は行いません。 |
-| | `.bed` | **A** | - | UCSC BED3–BED12 genomic interval。0-based half-open座標、score/strand/thick/itemRgb、BED12 block listを不活性表で表示し、track/browser directiveとreference genome lookupは省略します。 |
-| | `.bedgraph`, `.bg` | **A** | - | UCSC bedGraphの4列continuous value。0-based half-open intervalとfinite data valueを上限付き表で表示し、track directiveとremote trackは読みません。 |
-| | `.vcf` | **A** | - | Variant Call Format v4.x。8つの固定variant列、任意のFORMAT/sample列、metadata、symbolic alleleを不活性表で表示します。`##reference` URL、genotype解釈、phasing、埋め込みFASTAは解決・実行せず、vCard `.vcf`とは内容判定で区別します。 |
-| | `.sam` | **A** | - | SAM text alignment。header、11 mandatory alignment column、CIGAR、SEQ/QUAL length、optional tagを不活性表で表示します。reference genome、CIGAR projection、genotype解釈、外部resourceは読みません。 |
-| | `.wig`, `.wiggle` | **A** | - | UCSC Wiggle continuous signal。fixedStep/variableStep declarationを1-based fully-closed区間へ展開し、finite valueを上限付き表で表示します。track/browser directiveとremote trackは読みません。 |
-| | `.maf` | **A** | - | UCSC Multiple Alignment Format。`a` blockと`s` sequence rowを座標、strand、size、score、上限付きsequence preview付きで表示し、`i/e/q`等のoptional metadataは不活性です。 |
-| | `.nwk`, `.newick`, `.tree` | **A** | - | Newick系統樹。括弧/カンマのtopology、quoted label、branch length、bounded commentを有向graphとして表示します。最初のtreeだけをpreviewし、taxonomyやsequence lookupは行いません。 |
-| | `.sto`, `.stockholm` | **A** | - | Stockholm 1.0 multiple-sequence alignment。分割されたsequence rowと`#=GF`/`#=GS`/`#=GC`/`#=GR` annotationを上限付き不活性表で表示し、profile/sequence databaseは読みません。 |
-| | `.aln`, `.clustal`, `.clustalw` | **A** | - | CLUSTAL block alignment。sequence fragment、任意のresidue count、consensus rowを検証して不活性表で表示し、alignment計算や外部lookupは行いません。 |
-| | `.nex`, `.nexus` | **A** | - | NEXUS系統樹block。最初の`TREE`/`UTREE`をbounded Newick graph parserで表示し、TAXAとTRANSLATE metadataは不活性です。 |
-| | `.gb`, `.gbk`, `.genbank` | **A** | - | GenBank flat-file record。LOCUS、DEFINITION、ACCESSION、feature件数、上限付きORIGIN sequence previewを不活性表で表示し、accessionやfeature locationは解決しません。 |
-| | `.embl`, `.emb` | **A** | - | EMBL-Bank flat-file record。ID、AC、DE、FT feature件数、SQ sequence previewを不活性表で表示し、cross-referenceやfeature locationは解決しません。 |
-| | `.dat`, `.uniprot`, `.swissprot` | **A** | - | UniProtKB/Swiss-Prot protein flat file。entry/review status、accession、protein/gene/organism metadata、feature件数、SQ sequence previewを不活性表で表示し、cross-reference linkは追跡しません。 |
-| | `.ris` | **A** | - | RIS citation record。`TY`/`ER`、title、author、date、journal、page、DOI、URL、keyword、abstractを不活性bibliography rowで表示し、DOI/URL linkは取得しません。 |
-| | `.csl.json`, `.csl-json`, `.cite.json` または内容判定されたCSL-JSON | **A** | - | Citation Style Language JSONのbibliography itemをID、type、title、author/editor、出版年、DOI/URL有無として表示。style/locale、abstract、DOI/URL解決、外部resourceは不活性で、値は実行しません。出典: [CSL-JSON schema](https://github.com/citation-style-language/schema)。 |
-| | `.cir`, `.sp`, `.spice`, `.ckt`, `.net` | **A** | - | SPICE/ngspice circuit netlist。element card、node name、value、source lineを不活性表で表示し、dot command、`.include` path、simulation controlは実行しません。 |
-| | `.xlsm`, `.xltx`, `.xltm`<br>`.docm`, `.dotx`, `.dotm`<br>`.pptm`, `.potx`, `.potm`, `.ppsx` | **A** | **A** / **C** | マクロ有効・テンプレート・スライドショー等の拡張Office形式（それぞれのOOXMLエンジンへマッピング）。 |
-| | `.rtf` | **A** | - | RTF Unicode escape・ANSI文字・段落・明示的ページ区切りと、上限付きの埋め込みPNG/JPEG画像に対応。指定されたgoal寸法は反映し、画像アンカー・crop・回り込みは近似。他形式・objectはwarning付きで省略。 |
-| | `.eml` | **A** | - | RFC 5322/MIMEメール。代表headerと最初のsafe HTMLまたはplain-text本文を表示し、RFC 3676 `format=flowed`本文は段落へ結合します。Content-ID参照のPNG/JPEGを上限内で埋め込み、同じまたは外側の`multipart/related`内ではContent-Locationのexact matchも扱います。CSS/layoutは近似し、ほかのattachmentは省略、外部resourceは取得しません。 |
-| | `.emlx` | **A** | - | Apple Mailの単独message wrapper。先頭のdecimal byte countでRFC 5322/MIME本文を限定して表示し、後置plist metadataは解析せずwarning付きで省略。 |
-| | `.msg` | **A** | - | Outlook CFB message。Subject・sender/recipientとsafe HTMLまたはplain-text bodyを表示。script・remote image URL・transport header・attachment payloadは省略し、attachmentを展開しません。 |
-| | `.mbox` | **A** | - | RFC 4155 mailbox。`From_` separatorで区切られたメールを順番にSVG pageへ変換し、`.eml`と同じheader/body処理・attachment制限を適用します。 |
-| | `.ics` | **A** | - | RFC 5545 iCalendar。VEVENT/VTODO/VJOURNAL/VFREEBUSYごとにページを作成し、folded lineとtext escapeを復号。recurrence/timezone ruleは展開・変換しません。 |
-| | `.vcs` | **A** | - | 旧vCalendar 1.0のVEVENT/VTODOをページ化。共通calendar rendererを再利用し、未対応alarm/propertyはwarningして省略。 |
-| | `.vcf`, `.vcard` | **A** | - | vCard 2.1/3.0/4.0 contact card。名前・会社・電話・email・住所・note・URLをカードごとに組版。2.1のquoted-printableとCHARSET parameterをdecode。画像/鍵などのmediaは省略して外部resourceは取得しません。 |
-| | `.mht`, `.mhtml` | **A** | - | `multipart/related`の`start` root（省略時は先頭part）のHTMLをsafe HTML subsetで組版。同じまたは外側のrelated構造内でContent-IDまたはURI解決したContent-Locationに一致する上限付きPNG/JPEGを埋め込みます。`src`がないimgは`srcset`の最初の候補を使います。HTMLの`<base href>`、MIME Content-Base/Content-Location、および`thismessage:/` fallbackで相対URIを解決します。CSS・script・未一致resource・その他attachmentは省略し、外部取得はしません。 |
-| | `.xps`, `.oxps`, `.dwfx` | **A** | - | OPC固定ページ文書とAutodesk DWFx（XPS互換）package。文書/ページ順、単色ベクターパス、Canvas変換・透明度、Unicode Glyphs、PNG/JPEG ImageBrushをPathでclipして読込。埋め込みfont・厳密なglyph配置・gradient・tile/crop mapping・resource dictionary・classic DWF payloadは警告付きの近似/省略。 |
-| | `.html`, `.htm` | **A** | **A** | セマンティックHTMLマルチページ組版（見出し・段落・リスト・コードブロック・表・日本語CJK禁則処理）。同じディレクトリ内のPNG/JPEG `img`をフロー画像として埋め込み、`src`がないimgは`srcset`の最初の候補を使います。CSSの寸法・回り込み・responsive選択は近似。外部・範囲外・未対応画像はwarning付きで省略。<br>逆: SVGをダークモード対応・中央配置のスタンドアロンなレスポンシブHTML5ビューアとして出力。 |
-| | `.epub` | **A** | - | 電子書籍EPUBパッケージ（container.xml、OPFマニフェスト、Spine順XHTML連続組版）。パッケージ内PNG/JPEGの`img`参照を埋め込み、`src`がないimgは`srcset`の最初の候補を使います。外部・CSS・SVGなどの画像は警告して省略。 |
-| | `.fb2`, `.fb2.zip` | **A** | - | FictionBook 2 XML電子書籍（単一bookをZIPで配布する形式を含む）。最初のmain `body`/`section`、title/author、段落・見出し・表、`xlink:href`で参照されるbase64 PNG/JPEG `<binary>`を描画。notes body、外部リンク、未対応binary、macro実行、厳密なreader layoutは省略またはwarning。 |
-| | `.mobi`, `.prc`, `.azw` | **A** | - | PalmDOC/MOBI電子書籍と非DRM AZW互換record。Palm Database record offset/件数、PalmDOC header、UTF-8/Windows-1252 text encoding、無圧縮/PalmDOC LZ77 text recordを検証・bounded decodeし、safe HTML-like textを組版。Huff/CDIC、DRM/暗号化、画像record、script、link、KF8固有構造、厳密なreader layoutは未対応。 |
-| | `.dbk`, `.docbook` | **A** | - | DocBook 4/5 article/book XML。title、section、paragraph、list、source block、simple tableと、入力ディレクトリ内で検証したPNG/JPEG `imagedata`/`graphic`をboundedに描画。DTD、XInclude、外部link、MathML、script、publisher extension、厳密な印刷組版は省略またはwarning。 |
-| | `.dita`, `.ditamap` | **A** | - | DITA 1.3 topic/map XML。title、shortdesc、section、paragraph、list、code block、simple tableと、検証済みローカルPNG/JPEG `image`をboundedに描画。mapは同一入力ディレクトリ内の`topicref`だけを解決し、key解決、DTD、XInclude、外部link、foreign content、厳密な出版組版は省略またはwarning。 |
-| | `.hwpx` | **A** | - | Hancom HWPX/HWPML package。section paragraph、simple table、package内PNG/JPEG BinData imageをboundedに描画。外部resource、control、OLE、script、未対応image、厳密なHancom layoutは省略またはwarning。
-| | `.cbz` | **A** | - | ZIP型コミックarchive。内包PNG/JPEGをファイル名の自然順に1ページずつSVGへ埋め込みます。ほかの画像形式は警告して省略し、ComicInfo・EXIF向き・カラープロファイルは適用しません。 |
-| | `.odt`, `.ott`, `.fodt`, `.sxw`, `.stw`, `.sxg` | **A** | - | OpenDocument Textと旧OpenOffice Writer XML（`application/vnd.sun.xml.writer*`）を処理。見出し・段落・リスト・表・bounded styleと検証済み画像を表示し、外部resourceは不活性です。 |
-| | `.ods`, `.ots`, `.fods`, `.sxc`, `.stc` | **A** | - | OpenDocument表計算と旧OpenOffice Calc XML（`application/vnd.sun.xml.calc*`）を処理。シート表・キャッシュ済み値・bounded画像を表示し、anchor・graph・formulaは近似/不活性です。 |
-| | `.odp`, `.otp`, `.fodp`, `.sxi`, `.sti` | **A** | - | OpenDocumentプレゼンテーションと旧OpenOffice Impress XML（`application/vnd.sun.xml.impress*`）を処理。スライド順・寸法・基本図形・text・bounded画像を表示し、外部mediaは不活性です。 |
-| | `.odg`, `.otg`, `.fodg`, `.sxd`, `.std` | **A** | - | OpenDocument図面と旧OpenOffice Draw XML（`application/vnd.sun.xml.draw*`）を処理。ページ・基本図形・text・bounded画像を表示し、外部resourceは不活性です。 |
-| | `.vsdx`, `.vsdm`, `.vstx`, `.vstm`, `.vdx` | **A** | - | Visio Open XML図面/テンプレートと旧Visio XML図面。ページ順、ShapeSheetに直接あるstyle、基本path、1次元コネクタの端点、テキストを描画します。master継承、group、foreign object、arrowhead、曲線routingは警告付きで省略または近似。外部relationshipは取得せず、macroは実行しません。 |
-| | `.vsd`, `.vss`, `.vst`, `.vsw` | **A** | - | 旧Visio Compound File Binaryのdrawing/stencil/template/workspaceを検証し、stream/storage metadataをbounded表示。ShapeSheet geometry、text、style、macro、OLE payload、外部linkは不活性です。 |
-| | `.pages`, `.numbers`, `.key` | **A** | - | ZIP型Apple iWork Pages/Numbers/Keynote packageを検証し、packageと既知markerのmetadataをbounded表示。IWA protobuf、文書text/formula/slide geometry、preview、embedded media、script、外部linkは不活性です。`.key`はZIP signatureでLS-DYNAと区別します。 |
-| | `.dwg` | **A** | - | Autodesk DWG binary drawingを6-byte AC10xx version headerとfile sizeだけで事前検証し、compressed section、entity、block、layer、proxy graphic、macro、外部referenceはデコードしません。 |
-| | `.3dm` | **A** | - | Rhino/OpenNURBS 3DMを安定した`3D Geometry File Format` markerとbounded file metadataから事前検証。NURBS/mesh chunk、layer、material、texture、plugin、外部resourceは不活性です。 |
-| | `.accdb`, `.accde`, `.accdr`, `.mdb`, `.mde`, `.mda`, `.mdt`, `.accdt`, `.ade` | **A** | - | Microsoft Access ACE/Jet databaseのengine markerとpage-size metadataだけを検証。table、row、query、form、report、attachment、VBA/macro、linked database、暗号化payloadは不活性です。 |
-| | `.3dxml` | **A** | - | Dassault 3DXML ZIP packageのlocal Manifest→Root relationshipを検証し、ProductStructure/Reference3D/Instance3D/Representation countをbounded表示。binary 3DRep tessellation、exact geometry、texture、外部resourceは不活性です。 |
-| | `.op2` | **A** | - | Nastran Output2 result databaseをboundedなrecord framingとGEOM1/OUGV1/OES1等のtable labelだけで事前検証。model geometry、element connectivity、result vector、subcase semantics、外部path、solver operationは不活性です。 |
-| | `.ipc2581`, `.ipc-2581`, `.cvg` | **A** | - | IPC-2581 PCB design/manufacturing/assembly/inspection XMLのContent、BOM、ECAD、AVL、board、layer、component、net、route、padstack、feature countを表示。座標、material、tool path、inspection payload、外部reference、manufacturing operationは不活性です。 |
-| | `.jt` | **A** | - | Siemens JTを固定80文字Version headerとbyte-order markerだけで事前検証。TOC/LSG segment、tessellation、Parasolid XT B-Rep、PMI、attribute、外部resourceは不活性です。 |
-| | `.md`, `.markdown`, `.txt`, `.text` | **A** | **A** / **C** | マルチページMarkdown・プレーンテキスト文書組版（見出し・リスト・コード・引用・表）または単独表。単独行と段落内の`![alt](path)`PNG/JPEGを入力ディレクトリ内から上限付きで読みフロー画像として埋め込み、inline配置は近似。他の文脈では代替テキストを表示。<br>逆: メタデータ復元(**A**)または表構造再構成(**C**)。 |
-| | `.adoc`, `.asciidoc` | **A** | - | AsciiDoc技術文書（セクション見出し・リスト・コードブロック・表・段落・ブロック画像マクロ `image::target[attrs]`）。入力ディレクトリ内の相対 `imagesdir` PNG/JPEG は中央寄せのフローブロックとして埋め込み、外部・脱出・未対応画像は警告付きで省略。画像サイズ・配置・キャプション・リンク・inline画像などのレイアウトは近似。 |
-| | `.rst`, `.rest` | **A** | - | reStructuredText文書（装飾線の見出し、リスト、表、リテラル/コードブロック、admonition、入力フォルダ内のPNG/JPEG画像）。ファイル挿入/raw directiveは実行しません。 |
-| | `.org` | **A** | - | Org-mode outline、TODO見出し、リスト、表、source/example block、quote block、入力フォルダ内のPNG/JPEG file link（`#+ATTR_ORG :width N`は最大4096 px）。Babel code、`#+INCLUDE`、table formula、raw exportは実行しません。 |
-| | `.po`, `.pot` | **A** | - | GNU gettext翻訳カタログ。context、source/translation、plural form、note、fuzzy状態を表示。format-string directiveは文字列として扱い、obsolete entryは省略。 |
-| | `.bib`, `.bibtex` | **A** | - | BibTeX bibliography entry。type/key、author/title/year/DOIなどのfieldを表示し、nested brace、引用field、commentを処理。`@string` macro展開、style適用、crossref解決、TeX実行は行いません。 |
-| **化学構造** | `.mol`, `.sdf`, `.sd` | **A** | - | V2000およびcore V3000のMOL/SDF atom/bond tableを分子ごとにSVG pageへ描画。V3000のcontinuation line、非連番atom ID、`CHG`/`MASS`、単純なbond `CFG`に対応。座標、implicit carbon vertex、元素label、formal charge/isotope、基本bond order、上下wedge/hash markを表示。SDF data field、Sgroup、拡張stereo、query chemistry、atom mapping、化学計算は省略または未対応。input/record/atom/bond/page/node上限があります。 |
-| | `.rxn` | **A** | - | V2000 RXNのreactant/productを反応矢印付きの1枚の図として描画。各側最大2 componentで、MOL/SDFの座標・bond表示を再利用します。V3000 RXN container、reaction condition/agent、化学反応の計算・validationは行いません。 |
-| | `.pdb`, `.ent` | **A** | - | Protein Data Bankの固定幅ATOM/HETATM座標。MODELごとに1ページを生成し、CONECTを簡易bondとして描画、element labelを表示。3D座標はXYへ投影し、blank/A以外のalternate location、結晶学metadata、symmetry、CONECTにないbond、生物学的assembly semanticsは省略またはwarning。 |
-| | `.srt`, `.vtt` | **A** | - | SubRip/WebVTT字幕のcue順と開始・終了時刻を表示。WebVTTのNOTE・STYLE/REGIONは省略し、cue位置・装飾はwarning付きで平文化。WebVTTはUTF-8、SRTはUTF-8/ BOM付きUTF-16/Windows-1252 fallbackに対応。外部resourceやactive contentは読み込みません。 |
-| | `.ttml`, `.dfxp` | **A** | - | TTML/DFXPのtext-profile cueを組版し、`begin`/`end`/`dur`とparallel containerの開始offsetを処理。parent containerの終了境界は適用せずwarning。style、region、animation、image-profile内容、正確なlayoutはwarning付きで省略。sequential containerとmedia以外のtime baseは拒否。 |
-| | `.xlf`, `.xliff` | **A** | - | XLIFF 1.2/2.xのsource/target、language、segment state、note、contextを組版。inline codeはplaceholder labelで保持し、alternative translationとbinary dataは省略、外部resourceは読み込みません。 |
-| **ダイアグラム** | `.drawio`, `.dio`, `.xml` | **A** | **A** / **C** | mxGraphモデル & ステンシル描画。<br>逆: `--embed-drawio-source`保持時は完全可逆復元(**A**)。未保持時は画像埋め込み(**A**)または図形再構成(**C**)。 |
-| | `.cmmn` | **A** | - | CMMN 1.1 case planをCMMNDIのcase boundary、plan-item task/milestone、dotted connectorのBounds/waypointから描画。case-file reference、sentry、criterion、lifecycle rule、expressionは不活性に保持し、case executionはしません。上限: 32 MiB input、500,000 XML event、200,000 XML element/rendered node、深さ80、100 diagram/page、座標±10,000,000。出典: [OMG CMMN 1.1](https://www.omg.org/spec/CMMN/1.1/PDF)。 |
-| | `.graphml` | **A** | - | GraphML 1.0のnode/edge、directed/undirected、label、yFilesの基本shapeをboundedなlayered diagramとして描画。nested/compound node、hyperedge、custom keyの意味、座標保持、外部resourceは省略またはwarning。DTDは拒否。 |
-| | `.gexf` | **A** | - | GEXF 1.3 graph exchange。static node/edge、directed/undirected、label、namespace付きlabelをboundedな図として描画。dynamic spell、attribute、layout、plugin、compound構造、外部resourceは省略またはwarning。DTDは拒否。 |
-| | `.xgmml` | **A** | - | XGMML/Cytoscape graph XML。graph/node/edge、label、directed flag、`att`/graphicsの診断をbounded layered rendererで描画。attribute column、座標、nested subgraph、外部resourceは省略またはwarning。DTDは拒否。 |
-| | `.gml` (Graph Modeling Language) | **A** | - | `graph [ ... ]`形式のGML graph。node/edge、label、comment、directed flagを表示し、地理GML XMLとはcontent sniffで区別。任意attribute、graphics座標、非UTF-8 encodingは省略または拒否。 |
-| | `.bpmn`, `.bpmn2` | **A** | - | BPMN 2.0 process diagramをBPMN DIのshape/waypoint geometryから描画。event、task、gateway、pool/lane、sequence flowに対応。DI geometryが必須。message flow、data object、event-definition icon、process実行は省略・warning。上限: 32 MiB input、500,000 XML event、200,000 XML element/rendered node、深さ80、100 diagram/page、座標±10,000,000。出典: [OMG BPMN 2.0.2](https://www.omg.org/spec/BPMN/2.0.2/PDF)。 |
-| | `.excalidraw`, `.excalidraw.json` | **A** | - | Excalidraw手描きホワイトボードシーン（四角形・楕円・ダイヤ・矢印・フリーハンド線・テキスト）。 |
-| | `.puml`, `.plantuml` | **A** | - | PlantUMLテキストダイアグラム（シーケンス図・参加者・メッセージ・ライフライン・一般グラフ）。 |
-| | `.d2` | **A** | - | D2宣言型アーキテクチャ図（シェイプ宣言・方向付きエッジ・ラベル・グリッド配置）。 |
-| | `.dot`, `.gv` | **A** | **A** / **C** | Graphviz階層DAGレイアウト。<br>逆: メタデータ復元(**A**)またはテキスト・矢印からのトポロジー推定(**C**)。 |
-| | `.mmd`, `.mermaid` | **A** | **A** / **C** | フローチャート・シーケンス図。<br>逆: メタデータ復元(**A**)またはヒューリスティック抽出(**C**)。 |
-| **CAD / CAM / 3D** | `.dxf` | **A** | **A** | ASCIIおよびBinary DXFの2D/3Dエンティティ。順: 2D/3Dエンティティ。<br>逆: SVGパス・テキストをAutoCAD R12 DXFへ直接マッピング。 |
-| | `.gbr`, `.gerber`, `.gtl`, `.gbl`, `.gts`, `.gbs`, `.gto`, `.gbo`, `.gko`, `.gm1`, `.gm2` | **A** | **A** | プリント基板RS-274Xアパーチャ・フラッシュ（全標準レイヤー拡張子に対応）。<br>逆: CAMフォトプロッターコマンド生成。 |
-| | `.kicad_pcb` | **A** | - | KiCad board S-expressionをミリメートル座標の2D previewへ変換します。trace/arc/via、common pad、Edge.Cuts、board/footprint graphicと保存済みfilled zoneを描画。image、3D model、custom pad、複雑なcurve、non-unit scale footprint、DRC、zone再計算は行わず、回転textは水平表示します。 |
-| | `.scad` または内容判定されたOpenSCAD source | **A** | - | OpenSCAD CAD sourceを不活性codeとしてscanし、module/function、primitive、transform、boolean、assignment、import/use/include参照を集計します。geometry、expression、loop、library、外部fileは実行・読込しません。上限: 入力128 MiB、2,000,000 line、1 MiB/line、表示row 100,000。出典: [OpenSCAD Language Reference](https://files.openscad.org/documentation/manual/The_OpenSCAD_Language.html)。 |
-| | `.amf` または内容判定されたAMF 1.2 | **A** | - | ISO/ASTM 52915 Additive Manufacturing File Format XML。objectごとのvertexとvolume triangleを既存のshaded OBJ rendererで描画し、unitはmetadataとして保持。material、texture、color、lattice、slice、外部referenceは不活性です。上限: 入力128 MiB、XML event 500,000、node 300,000、vertex 2,000,000、triangle 200,000。出典: [ISO/ASTM 52915](https://www.iso.org/standard/74640.html)。 |
-| | `.plmxml`, `.plm.xml` または内容判定されたPLMXML | **A** | - | Siemens PLM XMLのproduct/assembly文書。ProductDef、Part、Structure、Instance、Representation、ConstructionGeometry、Attribute、ExternalReference countを不活性metadataとして表示。XT/Parasolid geometry、ID、attribute value、URL、外部fileは開きません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [Siemens PLMXML schema](https://media.plm.automation.siemens.com/open/plm-xml/docs/v7.0.2/documentation/plmxml_PLMXML.html)。 |
-| | `.stepxml`, `.stpx`, `.step.xml` または内容判定されたSTEP-XML | **A** | - | ISO 10303-28 STEP-XML/AP242 product dataを読み、product、product_definition、assembly occurrence、representation、geometric item、point、direction、property、external reference countを不活性metadataとして表示。EXPRESS rule、外部schema、ID、URL、参照CAD geometryは評価・読込しません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [ISO 10303-28](https://www.iso.org/standard/40646.html)。 |
-| | `.qif`, `.qif.xml` または内容判定されたQIF | **A** | - | Digital Metrology Standards Consortium Quality Information Framework XML。product、product definition、measurement plan/result、feature、characteristic、datum、traceability、external file reference countを不活性metadataとして表示。測定値、tolerance、ID、URL、外部CAD/inspection fileは開きません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [QIF overview](https://qifstandards.org/overview/)。 |
-| | `.b2mml`, `.b2mml.xml` または内容判定されたB2MML | **A** | - | ISA-95/MESA B2MML manufacturing XML。production schedule/performance/request/response、product、material、equipment、personnel、process segment、capability、maintenance、transaction、external reference countを不活性metadataとして表示。operation、value、credential、URL、外部resourceは実行・取得しません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [B2MML validation schema](https://github.com/werdnav/b2mml-validation)。 |
-| | `.jdf`, `.jdf.xml`, `.jmf`, `.xjdf` または内容判定されたJDF/JMF/XJDF | **A** | - | CIP4 Job Definition/Messaging Format XML。job node、resource/pool/link、process、product、device、media、layout、run list、audit、file/URL link countを不活性metadataとして表示。device command、production operation、URL、credential、link fileは実行・取得しません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [CIP4 JDF/XJDF](https://www.cip4.org/print-automation/jdf?file=files%2Fcip4-2022%2FDocuments%2FSpecifications%2FJDF+Specification+1.7.pdf)。 |
-| | `.tmx`, `.tmx.xml` または内容判定されたTMX 1.4b | **A** | - | Translation Memory eXchangeのversion、translation unit、variant、segment、language countを不活性metadataとして表示。segment text、ID、note、DTD、skeleton、外部resourceは表示・取得しません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、language 10,000、row 200,000。出典: [TMX 1.4b](https://www.ttt.org/oscarStandards/tmx/tmx14b.html)。 |
-| | `.tbx`, `.tbx.xml` または内容判定されたTBX/MARTIF | **A** | - | ISO 30042 terminology entry、term、language set、description、administrative/transaction、note、reference countを表示。term、definition、ID、URL、DTD/XCS/Schematron、proprietary valueは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、language 10,000、row 200,000。出典: [ISO 30042 TBX](https://www.iso.org/standard/62510.html)。 |
-| | `.gbxml`, `.gbxml.xml` または内容判定されたgbXML | **A** | - | BIM/energy model XMLのCampus、Building、Space、Zone、Surface、Opening、Construction、Material、Schedule、system、occupant countを表示。geometry、coordinate、formula、schedule、URL、weather/material resourceは評価・取得しません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [gbXML current schema](https://www.gbxml.org/Schema_Current_GreenBuildingXML_gbXML)。 |
-| | `.fhir.xml`, `.fhirxml` または内容判定されたFHIR XML | **A** | - | HL7 FHIR resource/Bundle type、entry、contained、narrative、extension countを表示。clinical value、identifier、narrative XHTML、reference、terminology serviceは表示・取得しません。上限: 入力64 MiB、XML event 1,000,000、node 500,000、深さ128、resource 100,000、row 100,000。 |
-| | `.idml` または内容判定されたAdobe IDML | **A** | - | InDesign Markup Language ZIPのdesignmap、story、spread、master spread、text、hyperlink、graphic、resource countをin-memory XMLから表示。ID、story text、image/font、link、外部resourceは展開・取得・実行しません。上限: 入力/展開XML 256 MiB、entry 100,000、entry 32 MiB、XML part 20,000、row 200,000。出典: [Adobe IDML specification](https://community.adobe.com/havfw69955/attachments/havfw69955/indesign/632652/1/idml-specification.pdf)。 |
-| | `.xpdl`, `.xpdl.xml` または内容判定されたXPDL | **A** | - | Workflow Process Definition Languageのprocess、activity、transition、participant、application、data field、pool/lane countを表示。ID、expression、script、application parameter、URL、外部packageは不活性で、workflow engineは実行しません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [WfMC XPDL](https://wfmc.org/xpdl/)。 |
-| | `.onix`, `.onix.xml`, `.onix3` または内容判定されたONIX | **A** | - | ONIX for Booksのrelease、product、identifier、descriptive/collateral、publishing、supply、contributor、language、subject、price、resource countを表示。ISBN、title、price、description、URL、codelist value、commercial payloadは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [ONIX specification](https://www.hanmoto.com/pub/onix/ONIX_for_Books_Format_Specification_3.0.2.html)。 |
-| | `.oaipmh`, `.oai-pmh`, `.oai.xml` または内容判定されたOAI-PMH | **A** | - | Open Archives Initiative responseのverb、record、header、metadata、set、error、resumption token countを表示。HTTP harvest、paging、identifier、metadata payloadは不活性で、network operationは行いません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [OAI-PMH](https://www.openarchives.org/pmh/)。 |
-| | `.cda`, `.cda.xml`, `.ccd.xml` または内容判定されたHL7 CDA | **A** | - | Clinical Document Architectureのsection、entry、observation、act、encounter、procedure、organizer、author、participant、narrative、template countを表示。PHI、identifier、narrative XHTML、coded value、referenceは不活性で、de-identificationではありません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [HL7 CDA](https://hl7.org/cda/)。 |
-| | `.iso20022.xml`, `.pain.xml`, `.pacs.xml`, `.camt.xml` または内容判定されたISO 20022 | **A** | - | financial messageのdocument/header/message、payment、transaction、party、account、amount、date、remittance countを表示。account、name、amount、identifier、URLは不活性で、payment operationは実行しません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [ISO 20022 catalogue](https://www.iso20022.org/catalogue-messages)。 |
-| | `.sbml`, `.sbml.xml` または内容判定されたSBML | **A** | - | Systems Biology Markup Languageのlevel/version、model、compartment、species、reaction、parameter、rule、event、unit、function、annotation countを表示。value、MathML equation、ID、simulationは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [SBML specifications](https://sbml.org/documents/specifications/)。 |
-| | `.cellml`, `.cellml.xml` または内容判定されたCellML | **A** | - | CellMLのcomponent、variable、unit、connection/map、import、encapsulation、reset、MathML、annotation countを表示。value、equation、ID、import、simulationは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [CellML specifications](https://www.cellml.org/specifications)。 |
-| | `.xmlocel`, `.ocel.xml` または内容判定されたOCEL XML | **A** | - | OCEL 2.0 XMLのevent type、event、object type、object、attribute、relationship、attribute type countを表示。ID、timestamp、value、process mining operationは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [OCEL XML](https://ocel-standard.org/specification/formats/xml/)。 |
-| | `.idf`, `.energyplus.idf` または内容判定されたEnergyPlus IDF | **A** | - | EnergyPlus Input Data Fileのobject type、object、field countを表示。schedule、formula、path、IDD、macro、external weather、simulationは読みません。上限: 入力128 MiB、2,000,000 line、1 MiB/line、object 200,000、field 2,000,000。出典: [EnergyPlus quick start](https://energyplus.readthedocs.io/en/stable/quick_start/quick_start.html)。 |
-| | `.epw`, `.energyplus.epw` または内容判定されたEnergyPlus EPW | **A** | - | EnergyPlus Weather Fileの8 header rowとhourly row構造を表示。location、timestamp、weather value、conversion、simulationは不活性です。上限: 入力128 MiB、2,000,000 line、1 MiB/line、100 column、hourly row 2,000,000。出典: [EnergyPlus weather documentation](https://energyplus.readthedocs.io/en/v23.2.0/tips_and_tricks/tips_and_tricks.html)。 |
-| | `.rnx`, `.rinex`, `.obs`, `.nav`, `.gnav` または内容判定されたRINEX | **A** | - | RINEX 2–4 GNSSのheader、observation type、epoch、satellite row、navigation-like record countを表示。station、coordinate、timestamp、measurementは不活性です。上限: 入力256 MiB、5,000,000 line、epoch 2,000,000、satellite row 20,000,000。出典: [IGS RINEX](https://igs.org/wg/rinex/)。 |
-| | `.sat` または内容判定されたACIS SAT | **A** | - | ASCII ACISのbody、solid、lump、shell、face、loop、coedge、edge、vertex、surface、transform countを表示。geometry、NURBS、topology、binary SAB、Boolean operationは実行しません。上限: 入力256 MiB、2,000,000 line、entity 500,000、row 200,000。出典: [Autodesk SAT](https://help.autodesk.com/cloudhelp/2023/ENU/AutoCAD-Core/files/GUID-46B2F3E3-F933-4411-94D7-DC4E11D3EC60.htm)。 |
-| | `.sedml`, `.sedml.xml`, `.sed-ml.xml` または内容判定されたSED-ML | **A** | - | SED-MLのmodel、simulation、task、data generator、output、change、range countを表示。model path、MathML、algorithm URI、simulation engineは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [SED-ML](https://sed-ml.org/)。 |
-| | `.sbgn`, `.sbgnml`, `.sbgn.xml` または内容判定されたSBGN-ML | **A** | - | SBGN-ML mapのlanguage、glyph、arc、label、port、bbox、clone marker、state、terminal、callout、submap countを表示。ID、座標、生物学的意味、layout engine、外部resourceは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。 |
-| | `.omex`, `.omex.zip`, `.combine` または内容判定されたCOMBINE/OMEX | **A** | - | manifestを持つscientific-model ZIPのarchive、content、SBML、CellML、SED-ML、metadata、external reference countを表示。member、URL、model payloadは展開・実行しません。上限: 入力/展開metadata 256 MiB、entry 100,000、32 MiB/entry、XML event 500,000、node 300,000、row 200,000。出典: [COMBINE Archive](https://raw.githubusercontent.com/combine-org/combine-specifications/main/specifications/files/omex.version-1.pdf)。 |
-| | `.xdmf`, `.xmf` または内容判定されたXDMF | **A** | - | XDMFのdomain、grid、topology、geometry、attribute、DataItem、time、reference、function countを表示。HDF5/Binary array、coordinate、expression、外部pathは開きません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [XDMF model and format](https://www.xdmf.org/index.php/XDMF_Model_and_Format)。 |
-| | `.pvd` または内容判定されたVTK PVD | **A** | - | VTK Collection/DataSetのtimestep、group、part、file countを表示。参照VTK sidecar、URL、時系列データは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [VTK file formats](https://docs.vtk.org/en/latest/vtk_file_formats/index.html)。 |
-| | `.fds` または内容判定されたFDS input | **A** | - | Fire Dynamics Simulator namelist block type、line countを表示。mesh、fire parameter、path、device、solver、CFDは実行しません。上限: 入力128 MiB、2,000,000 line、1 MiB/line、block 500,000、row 200,000。出典: [FDS-SMV manuals](https://pages.nist.gov/fds/manuals.html)。 |
-| | `.abw` または内容判定されたAbiWord AWML | **A** | - | AbiWord XMLのsection、paragraph、character、table/cell、image、bookmark、hyperlink、field、equation countを表示。text、style、link、embedded objectは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。 |
-| | `.nml`, `.neuroml`, `.neuroml.xml` または内容判定されたNeuroML | **A** | - | NeuroML 2のcell、morphology、segment、network、population、projection、connection、synapse、input、channel、include countを表示。parameter、coordinate、equation、LEMS、import modelは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [NeuroML](https://docs.neuroml.org/Userdocs/Specification.html)。 |
-| | `.biopax`, `.biopax.xml` または内容判定されたBioPAX | **A** | - | BioPAX Level 3 RDF/XMLのpathway、interaction、physical entity、protein、small molecule、complex、reaction、control、cross reference、ontology import countを表示。RDF ID、link、OWL import、inferenceは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [BioPAX](https://www.biopax.org/)。 |
-| | `.xsd`, `.xsd.xml`, `.schema.xsd` または内容判定されたXML Schema | **A** | - | W3C XML Schemaのelement/attribute declaration、complex/simple type、group、compositor、derivation、include/import countを不活性metadataとして表示。schema dependencyの取得とinstance validationは行いません。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [W3C XML Schema](https://www.w3.org/TR/xmlschema11-1/)。 |
-| | `.xsl`, `.xslt`, `.xsl.xml` または内容判定されたXSLT | **A** | - | XSLT stylesheetのtemplate、apply/call-template、variable/param、loop/condition、key、include/import、output、script、function countを表示。XPath、document access、extension function、変換実行は不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [W3C XSLT 3.0](https://www.w3.org/TR/xslt-30/)。
-| | `.fo`, `.xslfo`, `.xsl-fo.xml`, `.fo.xml` または内容判定されたXSL-FO | **A** | - | XSL Formatting Objectsのlayout master、page sequence、flow、region、block/inline、table、graphic、link、bookmark、page number、list、footnote countを表示。property、座標、外部graphic、link、FO/PDF formattingは不活性です。上限: 入力128 MiB、XML event 1,000,000、node 500,000、深さ128、row 200,000。出典: [W3C XSL 1.1](https://www.w3.org/TR/xsl/)。 |
-| | `.sch` | **A** | - | KiCad legacy Eeschema schematic。component、wire、label、note、junctionをmils座標のbounded近似として描画し、cache library、外部symbol、image、model、DRCは読みません。 |
-| | `.kicad_sch` | **A** | - | KiCad 6+ schematic S-expression。common symbol、wire/bus、label、text、junctionをbounded parseで描画し、embedded library definitionとpin/DRC semanticsは不活性です。 |
-| | `.asc`（LTspice signature） | **A** | - | LTspice schematic。UTF-8/UTF-16 BOM text、WIRE、FLAG、SYMBOL/SYMATTR、TEXT、基本graphicをbounded近似として描画し、ESRI ASCII Gridとは内容判定で分離します。 |
-| | `.sch`（EAGLE XML signature） | **A** | - | Autodesk EAGLE XML schematic。part、instance、wire、label、plain textをbounded近似として描画し、library package geometry、script、外部file、DRC/ERCは読みません。 |
-| | `.plt`, `.hpgl` | **A** | **A** | HP-GLペンプロッターベクター。<br>逆: ペン動作コード出力。 |
-| | `.gcode`, `.nc`, `.ngc`, `.tap` | **A** | **A** | CNC切削ツールパス。<br>逆: G0/G1/G2ツールパス生成。 |
-| | `.drl`, `.drd`, `.xln` | **A** | **A** | Excellonドリル穴データ。<br>逆: SVG内の円要素からドリル座標を抽出。 |
-| | `.stl`, `.obj`, `.ply` | **A** | **A** (2.5D) | 3Dメッシュの等角投影・陰影シェーディング。PLY vertex-only point cloudは上限付き点markで描画し、separate RGB propertyを保持（512色を超える場合のみquantize）。<br>逆: 2.5D厚み押し出し3Dジオメトリ生成。 |
-| | `.xyz` | **A** | - | ASCII point rowはcommon named header（X/Y/Z、intensity/reflectance、RGB、normal）を指定でき、unknown header columnは省略します。headerなしは3/4/6/7/9/10 fieldの均一なnumeric rowをXYZ、XYZI、XYZRGB、XYZI-RGB、XYZN、XYZI-RGB-normalとして読みます。space/comma delimiterと`#`/`//` commentに対応。6 fieldはXYZRGB、7 fieldはXYZI-RGBと解釈します。RGB integer byteまたはdecimal `[0,1]`を保持（黒も有効）。intensityは観測値のfinite rangeをlinear scaleします。unit、CRS、sensor poseは推定せず、normalは省略します。上限: 128 MiB、1 MiB/line、500万row、preview 200,000点、PLY text 32 MiB。 |
-| | `.pcd` | **A** | - | PCL PCD v0.5〜0.7のASCII・little-endian binary・LZF圧縮point cloud。XYZ point markはpacked/separate RGB colorを保持し、color groupが512を超える場合のみquantizeします。その他fieldはwarning後に省略し、non-default VIEWPOINT poseは適用しません。 |
-| | `.e57` | **A** | - | ASTM E57 1.0 point cloudをscanごとに1ページでpreview。CRC付きXML/point-data pageを検証し、scan poseを適用、spherical coordinateをCartesianへ変換し、RGBまたはgrayscale intensityを描画します。入力2 GiB、XML 50 MiB、最大10,000 scan/2,000万decoded point/scanあたり128 attribute、決定的preview sample最大200,000点です。scan image、CRS変換、return、timestamp、grouping、string/custom attributeは省略します。 |
-| | `.pts` | **A** | - | Leica PTS ASCII point cloud。point count headerと4-field XYZ/intensityまたは7-field XYZ/intensity/RGB recordを読みます。legacy integer intensity `[-2048, 2047]`とnormalized decimal intensity `[0, 1]`をgrayscale表示し、RGBを保持します。Leicaでno colorを示すRGB `(0, 0, 0)`は青で補います。原点座標は有効です。previewは最大200,000点に決定的にsampleし、scanner pose/grid順序や追加scalar attributeは表示しません。 |
-| | `.ptx` | **A** | - | Leica PTXのstructured multi-scan point cloud。scanごとの4×4 cloud transformとRGB colorを適用し、Leicaで「no color」を示すRGB `(0, 0, 0)` は青で補います。intensityのみのscanはgrayscale表示します。no-return cellは省略し、scanner pose metadataは表示しません。入力全体から最大200,000点を決定的にsampleします。 |
-| | `.las`, `.laz` | **A** | - | ASPRS LAS 1.0〜1.4とLAZ point cloudを上限付きの決定的なXYZ/RGBサンプルとして描画します。大きな非圧縮LASはpoint seekで読み、LAZは2,000万source pointまでdecodeします。CRS変換やその他attributeは適用しません。 |
-| | `.3mf` | **A** | **A** (2.5D) | 3MF packageのbuild itemとcomponent参照/transform、宣言unitを反映し、mmへ換算して等角陰影投影。materialと重なったsolidのunionは評価せず、未対応required extensionを持つファイルは拒否します。<br>逆: 3MF XMLアーカイブ内の2.5D押し出し3Dメッシュ生成。 |
-| | `.gltf`, `.glb` | **A** | - | glTF 2.0 JSON/GLBシーン。default sceneのnode変換と三角形/線分を描画し、meter単位の座標はpreview用にmm換算します。外部bufferは入力ディレクトリ内だけから読み、material・texture・skin・animationは評価しません。 |
-| | `.step`, `.stp` | **A** | **A** | CAD Part 21 ASCIIジオメトリモデル。<br>逆: ISO 10303-21幾何曲線・マニホールド曲面生成。 |
-| | `.ifc` | **A** | - | IFC-SPF IFC4のindexed triangle/polygon meshと`IfcExtrudedAreaSolid`をpreview。rectangle、circle（64分割近似）、閉じた`IfcPolyline` profileを処理し、product/local placementと`IfcMappedItem`で再利用された形状の3D uniform scale/rotation/translationを適用します。凹profileは256頂点まで上限付きtriangulation。unit scaleは解釈せずpageへ自動fit。B-rep/CSG、tapered/hollow/roundedなど未対応swept profile、non-uniform mapped transform、polygon hole、material/property、georeferencingは省略またはwarning。 |
-| | `.ifcxml` | **A** | - | buildingSMART IFCXMLの限定subsetに対応。IFC4 tessellated/polygon face、rectangle/circle/closed-polylineの押し出し、placement/map linkを処理。XML内部IDだけを解決し、DTD/external URIは読み込みません。 |
-| | `.ifczip` | **A** | - | root直下の`.ifc`モデルを1つだけ含む上限付きIFCZIP archiveに対応。sidecarは展開・読込せず、モデル不足/重複、ZIP/input/展開byte上限を報告します。 |
-| | `.bcfzip` または内容判定されたBCFZIP | **A** | - | buildingSMART BIM Collaboration Formatのissue package。`bcf.version`、project名、`markup.bcf`のtopic/comment/viewpoint/document-reference/component countとtopic title/status/priorityをbounded表示。snapshot画像、IFC/model payload、document URL、GUID payload、協調actionは不活性で、外部resource・network operationは行いません。上限: 圧縮入力128 MiB、展開metadata合計128 MiB、ZIP entry 100,000、entry 16 MiB、XML event 500,000、node 300,000、深さ96、row 100,000。出典: [buildingSMART BCF](https://technical.buildingsmart.org/standards/bcf/)。 |
-| | `.iges`, `.igs` | **A** | **A** | IGES 3D/2D CAD中間形式（直線・円弧・共面スプライン・等角投影）。<br>逆: IGESエンティティ100/102/106幾何ワイヤフレーム生成。 |
-| **Windows Metafile** | `.emf`, `.wmf` | **A** | - | Windows Enhanced Metafile & WMFベクターグラフィックス。 |
-| **CAE / シミュレーション** | `.foam` | **A** | - | `.foam` case markerからOpenFOAM ASCII `constant/polyMesh` を読み、gzip圧縮されたASCII sidecar（`points.gz`など）も展開byte上限付きで処理します。binary meshは未対応です。points/faces/owner/neighbour/boundaryを検証してmesh face edgeをisometric wireframe描画し、boundary patchをorangeで強調。time folder、field、patch label、solver設定は省略します。canonical case root内の固定pathだけを読み、directive実行や外部path参照はしません。 |
-| | `.foamfield`, `.foam-field` または内容判定されたOpenFOAM field | **A** | - | `volScalarField`／`volVectorField`等の`FoamFile` class/object/location、uniform/nonuniform件数、有限値のmin/max（vectorはmagnitude）、boundary patch数を表示。value列、dimensions、patch dictionary、case path、directive、solver操作は省略し、case走査やsolver実行はしません。出典: [OpenFOAM field files](https://doc.openfoam.com/2606/quickstart/)。
-| | `.xodr`, `.opendrive`, `.opendrive.xml`, `.open-drive.xml` または内容判定されたASAM OpenDRIVE | **A** | - | ASAM OpenDRIVEのroad reference lineからlineとconstant-curvature arcのplan-view geometryをbounded planar mapとして描画し、road/junction数を表示。local meter座標は表示用に正規化し、spiral/poly3/paramPoly3、lane、profile、signal、object、link、simulation動作は不活性です。上限: 入力64 MiB、XML event 1,000,000、node 500,000、深さ96、road 100,000、geometry 200,000、position 500,000。出典: [ASAM OpenDRIVE specification](https://www.asam.net/standards/detail/opendrive/)。 |
-| | `.crg`, `.opencrg` または内容判定されたASAM OpenCRG | **A** | - | ASAM OpenCRGのclear-text header section名とline数を表示。ASCII/binary road-surface payloadと`$ROAD_CRG_FILE`参照は省略し、tire・vehicle・surface評価は実行しません。上限: 入力64 MiB、1,000,000 line、1 MiB/line、100,000 section。出典: [ASAM OpenCRG](https://www.asam.net/standards/detail/opencrg/)。 |
-| | `.xosc`, `.openscenario`, `.openscenario.xml`, `.open-scenario.xml` または内容判定されたASAM OpenSCENARIO XML | **A** | - | ASAM OpenSCENARIO XMLのFileHeader revision、entity、Story/Act/Maneuver/Event/Action階層、parameter／catalog reference数、RoadNetwork有無を表示。catalog、road file、controller、expression、trigger、simulator動作は不活性で、外部fileは開きません。上限: 入力64 MiB、XML event 1,000,000、node 500,000、深さ96、row 200,000。出典: [ASAM OpenSCENARIO XML](https://www.asam.net/standards/detail/openscenario-xml/)。 |
-| | `.openlabel.json`, `.openlabel`, `.open-label.json` または内容判定されたASAM OpenLABEL JSON | **A** | - | ASAM OpenLABEL 1.0 annotation JSONのobjects、actions、events、contexts、relations、frames、streams、tags、ontologies、resources、coordinate systemsをcollection数、schema情報、nested object-data数としてbounded表示。sensor payload、座標、annotation値、ontology URL、外部resourceは省略し、sensor dataやnetwork resourceは開きません。上限: 入力64 MiB、深さ100、JSON300,000 value、100,000 entry、文字列2 MiB。出典: [ASAM OpenLABEL](https://www.asam.net/standards/detail/openlabel/)。 |
-| | `.su2` | **A** | - | SU2 native ASCIIの2D/3D unstructured mesh。line/triangle/quad/tetrahedron/hex/prism/pyramid elementとboundary marker connectivityを描画し、marker edgeをorangeでhighlight。3D volume meshは重複edgeを除いてXY投影します。marker tag/solver boundary conditionは表示せず、higher-order elementはwarning付きで省略。simulation solverは実行しません。 |
-| | `.dat`, `.tec`, `.tecplot`, `.tp` | **A** | - | Tecplot ASCIIの有限要素zoneとordered I/J grid。POINT/BLOCK packingのFETRIANGLE、FEQUADRILATERAL、FETETRAHEDRON、FEBRICKを共通の上限付きCAE mesh viewで描画します。X/Y座標は必須で、追加の数値変数は不活性scalar fieldとして色付けします。高度なzone metadataはwarning付きで省略し、solver/macroは実行しません。 |
-| | `.msh` | **A** | **A** | ASCII Gmsh MSH 2.x/4.0/4.1とbinary MSH 2.2/4.0/4.1（両endianness）の有限要素メッシュ。4.0のmixed node recordsを含むblock形式、代表的な3D要素wireframe、NodeData/ElementDataに対応。複数componentはEuclidean magnitude表示。partitioned/periodic/ghost/parametrization sectionsとElementNodeDataは未対応。<br>逆: 1D境界wireframe要素メッシュ出力。 |
-| | `.mesh`, `.medit`, `.meshb` | **A** | - | MEDIT ASCIIとbinary mesh。binary version 1–4の両endiannessとkeyword offsetを検証し、linear mesh sectionを描画。high-order・solution sectionはwarning付きでskipし、3DはXY投影。 |
-| | `.off` | **A** | - | ASCII OFF/COFF/NOFF/CNOFF polygon meshをisometricで陰影付き描画。vertex normal/colorとface colorはwarning付きで省略。binaryと4D OFFは未対応。 |
-| | `.inp` | **A** | - | Abaqus mesh入力deck。flat meshとtranslationをrotation前に適用するpart/instanceを描画。代表的なC3D/CPS/CPE/CAX/shell/beam elementを扱います。midside nodeは省略し、3DはXY投影、field/load/materialは描画しません。unsupported elementや外部includeはwarning。 |
-| | `.cdb` | **A** | - | ANSYS Mechanical APDL coded database。blocked `NBLOCK` node／`EBLOCK` elementと基本unblocked `N`/`EN` cardをboundedなXY投影mesh wireframeとして描画します。その他のAPDL command、load、material、component、solver設定、includeは不活性で、APDLは実行しません。 |
-| | `.bdf`, `.nas`, `.nastran` | **A** | - | Nastran Bulk Data mesh deck。comma/free形式と空白区切り形式、小欄・大欄固定幅、継続行に対応。代表的なshell/beam/rod/tetrahedron/hexahedron/wedge/pyramidを描画し、midside nodeは省略、3DはXY投影。解析設定・結果は描画せず、external INCLUDEと認識できる未対応要素はwarning。 |
-| | `.unv` | **A** | - | I-DEAS Universal/UFFのnode dataset 15/2411とelement dataset 2412。linear beam/shell outlineとvolume edgeを描画し、一部higher-order要素はcorner nodeで近似。未知のresult datasetはwarning付きで省略、非global node座標系は拒否。 |
-| | `.k`, `.key` | **A** | - | LS-DYNA Keyword mesh deck。標準固定形式とcomma区切りの`*NODE`、shell/beam/solid要素cardに対応。長形式（`+`）は拒否。midside nodeは省略、3DはXY投影し、解析設定・結果は描画しません。外部includeと未対応element keywordはwarning。 |
-| | `.vtk`, `.vtu`, `.vtp`, `.vti`, `.vtr`, `.vts` | **A** | **A** | VTK Legacy ASCII/固定幅big-endian binaryのUnstructuredGrid/PolyDataと、XML UnstructuredGrid/PolyData/ImageData/RectilinearGrid/StructuredGridの点・cell connectivity・active point/cell scalarに対応。structured datasetはExtentと各形式の座標定義を反映し、XMLのbase64 inline/appendedとraw appended binary（zlib圧縮を含む）も読込。その他の圧縮方式とparallel VTK XMLは未対応。<br>逆: Legacy VTK POLYDATAメッシュと物理量を出力。 |
-| **計算Notebook** | `.ipynb` | **A** | - | Jupyter nbformat 4のMarkdown/code cell、stdout/stderr・error・HTML/JSON/text出力、PNG/JPEG結果、および`attachment:name`で参照する検証済みMarkdown attachment PNG/JPEGを組版。コードは表示のみで実行せず、SVG/interactive出力と未対応attachment形式は省略。cell/text/image上限を適用。 |
-| **計算ドキュメント** | `.qmd`, `.Rmd`, `.rmarkdown` | **A** | - | Quarto/R MarkdownのYAML front matter、Markdown prose、fenced code chunkを組版。simpleなtitle/author/dateは表示し、code/inline expression、filter/include、cross-reference、実行結果は評価しません。 |
-| **データ / 数式** | `.md`, `.markdown` | **A** | **C** | Markdown表。<br>逆: テキスト座標群と区切り線のY/X軸クラスタリングによる表構造再構成。 |
-| | `.arff` | **A** | - | Weka Attribute-Relation File Format dataset。`@relation`/flatな`@attribute`/`@data`を不活性な表として表示し、numeric/date列は右寄せ、nominal/string値はtextのまま保持。dense recordとsparse `{index value, ...}` recordに対応し、relational attributeと値の評価は省略。上限: 入力64 MiB、1,000,000行、256属性、50,000 record、100万cell。出典: [Weka ARFF format](https://github.com/Waikato/weka-wiki/blob/master/docs/formats_and_processing/arff_stable.md)。 |
-| | `.nc`, `.nc3`, `.cdf` | **A** | - | NetCDF classic CDF-1と64-bit offset CDF-2の科学配列。dimension、global/variable attribute、fixed array、unlimited record variableをbig-endian型として不活性な表に表示。CDF-5とNetCDF-4/HDF5は明示的に拒否し、値の評価はしません。上限: 入力512 MiB、1,024 dimension、1,024 variable、4,096 attribute、variableごと200,000 value、合計100万value。出典: [Unidata NetCDF classic format](https://docs.unidata.ucar.edu/netcdf-c/4.10.0/file_format_specifications.html)。 |
-| | `.h5`, `.hdf5`, `.hdf`, `.h5part` | **A** | - | HDF5 scientific containerをsignatureとsuperblockのversion/width metadataだけ事前検証し、group/dataset/link/compression filter/external payloadを走査しません。user-block位置のsignatureに対応し、大容量ファイルも全体を読み込まず検査します。上限: 入力2 GiB、signature probe 64回。出典: [HDF5 File Format Specification](https://portal.hdfgroup.org/documentation/hdf5/latest/_f_m_t4.html)。 |
-| | `.cgns` | **A** | - | CGNS/HDF5 CFD databaseを同じbounded HDF5 superblock previewで処理。CGNS SIDS node、grid、solution array、external link、solver operationは不活性です。出典: [CGNS/HDF5 mapping](https://cgns.org/standard/hdf5.html)。 |
-| | `.e`, `.exo`, `.ex2`, `.ex2m`, `.exii` | **A** | - | Exodus IIのNetCDFベース有限要素mesh/resultをbounded NetCDF classic readerで処理し、dimension・attribute・indexed valueを表示。Exodus topology、element block/set、result semantics、solver operationは再構成しません。 |
-| | `.jsonld`, `.json-ld` | **A** | - | JSON-LD 1.1 linked data。`@id`、`@type`、compact predicate、`@value` literal、`@list`、`@included`、named `@graph`を不活性なsubject/predicate/object表として表示。contextはcompact termのまま保持し、remote contextと`@import`は取得・展開しません。上限: 入力64 MiB、深さ100、200,000 JSON value/statement、表示term 512文字、描画text 64 MiB。出典: [W3C JSON-LD 1.1](https://www.w3.org/TR/json-ld11/)。 |
-| | `.openapi.json`, `.swagger.json`, `.openapi.yaml`, `.swagger.yaml` | **A** | - | OpenAPI/Swagger 2.0/3.x定義をtitle/version、server、component件数、不活性なpath/method/operation/response表として表示。`$ref`、externalDocs、server URL、callback、link、example、security schemeは解決・取得・実行しません。上限: JSON入力64 MiB、YAML入力16 MiB、深さ100、300,000 value、200,000 operation、表示文字列2 MiB。出典: [OpenAPI Specification](https://spec.openapis.org/oas/latest.html)。 |
-| | `.wsdl`, `.wsdl.xml` または内容判定されたWSDL 1.1/2.0 | **A** | - | WSDL service定義のservice、port、binding、portType/interface、operation、message、import/include、embedded schema数とnameをbounded表示。endpoint address、schema/import URL、documentation、credential、message payloadは省略し、SOAP/HTTP requestやcode generationは実行しません。上限: 入力64 MiB、XML event 1,000,000、node 500,000、深さ96、row 200,000。出典: [W3C WSDL](https://www.w3.org/TR/wsdl.html)。 |
-| | `.opml`, `.opml.xml` または内容判定されたOPML 1.0/2.0 | **A** | - | OPML outlineをversion/title/date metadataと、type・depth・feed outline数を含むboundedな階層表として表示。feed URL、HTML link、owner email、description、extension valueは省略し、linked feed・enclosure・image・scriptは取得・実行しません。上限: 入力32 MiB、XML event 500,000、node 300,000、深さ96、row 200,000。出典: [OPML 2.0 specification](https://opml.org/spec2.opml)。 |
-| | `.asyncapi.json`, `.asyncapi.yaml`, `.asyncapi.yml` | **A** | - | AsyncAPI 2.x/3.xのmessage-driven API定義をtitle/version、server、component件数、不活性なchannel/action/operation/summary/message表として表示。`$ref`、externalDocs、server URL、example、protocol binding、security schemeは解決・取得・実行しません。上限: JSON入力64 MiB、YAML入力16 MiB、深さ100、300,000 value、200,000 operation、表示文字列2 MiB。出典: [AsyncAPI Specification](https://www.asyncapi.com/docs/reference/specification/latest)。 |
-| | `.schema.json`, `.jsonschema`, `.schema.yaml`, `.schema.yml` | **A** | - | JSON Schema draft定義をdialect/ID metadataとboundedなschema path表（type、title/description、common constraint、required/enum件数）として表示。`$ref`、`$id`、URI、pattern、example、format annotationは不活性です。上限: JSON入力64 MiB、YAML入力16 MiB、深さ100、300,000 value、200,000 schema node、表示文字列2 MiB。出典: [JSON Schema specifications](https://json-schema.org/specification)。 |
-| | `.har` | **A** | - | HTTP Archive 1.2 network logのrequest/response method、URL、status、MIME、byte数、timingをboundedな不活性表として表示。secretらしいquery valueはmaskし、header、cookie、request/response bodyは省略。URLは取得・再生しません。上限: 入力128 MiB、深さ100、400,000 value、200,000 entry、表示文字列2 MiB。出典: [W3C HAR](https://w3c.github.io/web-performance/specs/HAR/Overview.html)。 |
-| | `.warc`, `.warc.gz` | **A** | - | WARC 1.0/1.1 web archive recordをrecord type、target URI、embedded HTTP status/MIME、date、検証済みContent-Lengthとして表示。payload bytesはskipし、URL/resourceは開きません。gzip展開はboundedで、secretらしいtarget query valueはmaskします。出典: [IIPC WARC 1.1](https://iipc.github.io/warc-specifications/specifications/warc-format/warc-1.1/)。 |
-| | `.wacz` | **A** | - | WACZ ZIP packageの`datapackage.json` metadataと`pages/pages.jsonl` page rowをbounded表示。archive WARC payload、CDXJ index、script、replay resourceは開かず、page URLのquery secretはmaskします。ZIP entryとJSONL lineに上限を適用。出典: [WACZ specification](https://specs.webrecorder.net/wacz/1.1.1/)。 |
-| | `.postman_collection.json` | **A** | - | Postman Collection v2.1のfolder、method、URL、response status/count、auth type、script countを不活性表として表示。secretらしいURL query valueをmaskし、credential、variable、header、cookie、request/response body、pre-request/test scriptは表示・実行しません。出典: [Postman Collection schema v2.1](https://schema.postman.com/json/collection/v2.1.0/collection.json)。 |
-| | `.graphql`, `.graphqls`, `.gql` | **A** | - | GraphQL SDLのobject/interface/input/enum/scalar/union定義、field、argument、signature、directiveを不活性なschema表として表示。resolver、introspection、query、mutation、subscription、外部resourceは実行・取得しません。出典: [GraphQL specification](https://spec.graphql.org/October2021/)。 |
-| | `.proto` | **A** | - | Protocol Buffers proto2/proto3 schemaのsyntax/package metadata、message field、enum value、oneof member、service RPC signatureを不活性表として表示。import、option、annotation、URL、code generation、RPC call、外部fileは不活性です。出典: [Protocol Buffers proto3 language guide](https://protobuf.dev/programming-guides/proto3/)。 |
-| | `.k8s.yaml`, `.k8s.yml`, `.kubernetes.yaml`, `.kube.yaml` | **A** | - | Kubernetes API manifestの`apiVersion`、`kind`、`metadata`、spec/status shape count、label/annotation、複数documentをbounded表示。Secretのdata/stringData値、template、URLは隠し、kubectl、Helm、cluster call、外部referenceは実行しません。出典: [Kubernetes API](https://kubernetes.io/docs/concepts/overview/kubernetes-api/)。 |
-| | `compose.yaml`, `compose.yml`, `docker-compose.yaml`, `docker-compose.yml`, `.compose.yaml`, `.compose.yml` | **A** | - | Docker Composeのserviceをimage/build有無、port数、依存、volume/network/secret件数、command有無の不活性な表として表示。Docker daemon、image pull/build、command/healthcheck実行、interpolation/include/merge、environment値、secret値の取得・表示はしません。JSON Composeもcontent sniffingで認識します。出典: [Compose Specification](https://compose-spec.github.io/compose-spec/03-compose-file.html)。 |
-| | `.github/workflows/*.yaml`, `.github/workflows/*.yml` | **A** | - | GitHub Actions workflowをrunner、needs、step数、action/run数、matrix有無の不活性なjob計画表として表示。`run`/`uses` command、expression、environment/secret値、permission、reusable workflow、artifact、trigger、runner/network操作は実行・解決しません。出典: [GitHub Actions workflow syntax](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax)。 |
-| | `junit.xml`, `test-results.xml`, `test-report.xml`, `TEST-*.xml`, `.junit.xml`, `.junit-report.xml`, `.test-results.xml` | **A** | - | JUnit互換XMLのsuiteごとのtests/pass/fail/error/skip/time集計を表示。failure/error本文、stdout/stderr、property、attachmentは省略し、test実行、外部DTD、resource取得はしません。出典: [Maven Surefire XML reporter](https://maven.apache.org/surefire/maven-surefire-common/apidocs/org/apache/maven/plugin/surefire/report/StatelessXmlReporter.html)。 |
-| | `.sarif`, `.sarif.json` | **A** | - | SARIF 2.1.0静的解析結果をtool/rule単位のerror/warning/note/other件数として表示。message、source location、artifact URI、snippet、fingerprint、fix、invocation detailは省略し、upload、URL取得、code実行はしません。出典: [GitHub SARIF support](https://docs.github.com/en/code-security/reference/code-scanning/sarif-files/sarif-support)。 |
-| | `tfplan.json`, `.tfplan.json`, `terraform-plan.json`, `.terraform-plan.json` | **A** | - | Terraform `terraform show -json` planのresource address/type/action/reasonとcreate/update/delete/read、drift、output、variable件数を表示。before/after、sensitive value、state、configuration、provider dataは省略し、plan/apply/refresh、provider、filesystem、network操作は実行しません。出典: [Terraform JSON output format](https://developer.hashicorp.com/terraform/internals/json-format)。 |
-| | `bom.json`, `bom.xml`, `*.cdx.json`, `*.cdx.xml` | **A** | - | CycloneDX BOMのcomponent type/name/version/scopeとvulnerability、dependency、service件数をJSON/XMLで表示。serial number、bom-ref、hash、license、package URL、property、vulnerability detail、外部referenceは省略し、registryやURLへ接続しません。出典: [CycloneDX specification overview](https://cyclonedx.org/specification/overview/)。 |
-| | `spdx.json`, `sbom.spdx.json`, `*.spdx.json`, `.spdx`, `.spdx.txt` | **A** | - | SPDX-2.x JSONとtag:valueのpackage/file ID、name、version、relationship、annotation、snippet、external document件数を表示。checksum、license/supplier data、PURL、download location、comment、外部URIは省略し、registry、URL、code操作は行いません。出典: [SPDX Specification 2.3](https://spdx.github.io/spdx-spec/v2.3/)。 |
-| | `jacoco.xml`, `cobertura.xml`, `coverage.xml`, `.jacoco.xml`, `.cobertura.xml`, `.coverage.xml` | **A** | - | JaCoCo/Cobertura coverage XMLのpackage別class数、line/branch/methodのcovered/missed counter、line率を表示。source path、class/method内部、session data、log、attachment、quality gate評価は省略し、testや外部resourceは実行しません。出典: [JaCoCo coverage counters](https://www.jacoco.org/jacoco/trunk/doc/api/org/jacoco/core/analysis/ICounter.html)。 |
-| | `.info`, `lcov.info`, `coverage.info`, `.lcov.info` | **A** | - | LCOV tracefileを安全なsource basenameとline/function/branchのcovered/missed counter、line率として表示。絶対path、function name、`DA`/`BRDA` execution record、commentは省略し、source file、test、外部resourceは読みません。出典: [lcov tracefile format](https://github.com/linux-test-project/lcov/blob/master/docs/man/geninfo.rst)。 |
-| | `.jsonpatch`, `.json-patch`, `.patch.json` | **A** | - | RFC 6902 JSON Patchのordered add/remove/replace/move/copy/test操作をJSON Pointer path、from path、value typeとして表示。value本文は省略し、patch適用、pointer評価、target document、外部resource取得はしません。出典: [RFC 6902 JSON Patch](https://www.rfc-editor.org/rfc/rfc6902.html)。 |
-| | `.mergepatch`, `.json-merge-patch`, `.merge-patch.json` | **A** | - | RFC 7396 JSON Merge Patchの影響pathをset/delete/merge action、value type、depthとして表示。value本文は省略し、null削除やobject mergeの適用、target document評価、外部resource取得はしません。出典: [RFC 7396 JSON Merge Patch](https://www.rfc-editor.org/rfc/rfc7396.html)。 |
-| | `.csv`, `.tsv` | **A** | **C** | RFC 4180形式のquote field（escaped quote、quoted newlineを含む）をSVG tableへ変換。100行×32列でページ分割。上限: 入力64 MiB、50,000 record、256列、100万cell、64 KiB/field、1 MiB/record。512文字超のcellはpreviewで省略しwarning。8 MiB以下・1ページのCSVはexact sourceをSVGに埋め込み逆変換で復元し、複数ページ/large tableは埋め込みません。<br>逆: 埋め込みsourceの復元、またはchart CSV抽出。 |
-| | `.toml` | **A** | - | TOML 1.0/1.1 configurationを不活性なkey-path/value rowとして表示。nested table、array、array-of-tables、boolean、number、string、date/timeに対応し、設定値を実行しません。上限: 入力4 MiB、50,000行、64 KiB/行、深さ80、200,000 value、2 MiB/string、4 KiB/path、描画text 32 MiB。float表記は正規化され、元のTOMLは埋め込みません。出典: [TOML 1.1.0仕様](https://toml.io/en/v1.1.0)。 |
-| | `.xml`（generic XML fallback） | **A** | - | 未認識XML documentをnamespace URIを一度だけ表示するprefix付きelement path、attribute、textの不活性な行として表示。Project XML、draw.io、SVG、HTMLなど認識済みXMLは専用converterを優先。DTDは拒否し、外部entity/resourceを読みません。上限: 入力16 MiB、100,000行、1 MiB/行、深さ80、400,000 parser event、200,000 node/row、4 KiB/path、描画text 32 MiB。UTF-8のみ。出典: [W3C XML 1.0](https://www.w3.org/TR/xml/)。 |
-| | `.properties` | **A** | - | Java `Properties.load(InputStream)`準拠の形式をpreview。ISO-8859-1 byte、escaped separator、`\t`/`\n`/`\r`/`\f`/`\uXXXX`、logical line continuationを処理し、duplicate keyは最後の値を使います。値や`${...}`は実行しません。上限: 入力16 MiB、100,000行、1 MiB/行、2 MiB/logical line、200,000 key、2 MiB/key/value、4 KiB/path、描画text 32 MiB。不正escapeと不正UTF-16 surrogate pairは拒否します。出典: [Java Properties API](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/util/Properties.html)。 |
-| | `.plist`, `.plist.xml` または内容判定されたApple Property List | **A** | - | XML plistはboundedなkey path、dict、array、scalar型、data byte数を表示し、binary `bplist00`はtrailer・offset・object markerを検証した構造summaryを表示。URL/secretらしいscalar値、data payload、外部entity/resourceは省略またはredactし、アプリケーションデータは実行しません。上限: 入力64 MiB、XML event 1,000,000、XML node/object 500,000、深さ96、row 200,000。出典: [Apple PropertyListSerialization](https://developer.apple.com/documentation/foundation/propertylistserialization)。 |
-| | `.yaml`, `.yml` | **A** | - | YAML 1.2 streamを不活性なkey-path/value rowとして複数document表示。alias referenceはplaceholderとして表示し、展開しません。custom tagの意味は適用せず、complex mapping keyは拒否します。上限: 入力16 MiB、100,000行、1 MiB/行、深さ80、400,000 parser event、100 document、2 MiB/scalar、4 KiB/path、描画text 32 MiB。出典: [YAML 1.2.2仕様](https://yaml.org/spec/1.2.2/)。 |
-| | `.xmi` | **A** | - | OMG XMI 2.1–2.5 model-interchangeを、xmi:id、xmi:type、name、包含depth、不活性attributeとして表示。UML/SysML referenceはtextのまま、外部href、XMI extension、model実行は行いません。上限: 入力64 MiB、1,000,000 XML event、500,000 XML node、深さ96、200,000 element、128 attribute/element、描画text 64 MiB。出典: [OMG XMI](https://www.omg.org/spec/XMI/)。 |
-| | `.reqif`, `.reqif.xml` | **A** | - | ReqIF 1.0.1/1.2 requirements exchangeのspecification、階層requirements、typed attribute value、local relationをbounded SVG tableとして表示。XHTMLはtextへ平坦化し、外部reference・binary・要求管理toolの意味処理は実行しません。上限: 入力64 MiB、1,000,000 XML event、500,000 XML node、深さ96、200,000 requirement/relation、描画text 64 MiB。出典: [OMG ReqIF](https://www.omg.org/reqif/)。 |
-| | `.dmn` | **A** | - | DMN 1.1–1.5 decision tableをsource orderでbounded SVG tableとして表示。input/output clause、rule entry、hit policy、local input/decision requirementを表示し、FEEL式やruleはtextのまま（評価しません）。DMNDI diagram、annotation、外部referenceは解決しません。上限: 入力32 MiB、500,000 XML event、200,000 XML node、10,000 table、200,000 rule、128列、100万cell、描画text32 MiB。出典: [OMG DMN 1.5](https://www.omg.org/spec/DMN/1.5/PDF)。 |
-| | `.citygml`, `.citygml.xml`, `.citygml.gml` または内容判定されたOGC CityGML | **A** | - | OGC CityGML 2.0/3.0 XMLのBuilding、Road、Railway、WaterBody、Relief、Vegetation地物数とLoD、Envelope、CRS、XLink metadataをbounded表示。geometry、texture、attribute、XLink、外部resourceは不活性で、CRS変換や3D処理は行いません。上限: 入力64 MiB、XML event 1,000,000、node 500,000、深さ96、row 200,000。出典: [OGC CityGML](https://www.ogc.org/standards/citygml/)。 |
-| | `.cityjson`, `.city.json`, `.cityjson.json` または内容判定されたOGC CityJSON | **A** | - | OGC CityJSON 1.x/2.0のCityObject type、geometry、LoD数、vertex／boundary index数、transform／metadata有無をbounded表示。座標、boundary、semantics、material、texture、attribute、extension、外部resourceは展開・変換しません。上限: 入力64 MiB、深さ100、JSON300,000 value、object100,000、vertex500,000、geometry/row200,000、文字列2 MiB。出典: [OGC CityJSON](https://www.ogc.org/standards/cityjson/)。 |
-| | `.stix.json`, `.stix-json`, `.stix` または内容判定されたSTIX 2.1 JSON | **A** | - | OASIS STIX 2.1 bundle/objectをtype/id、created/modified timestamp、label数、relationship/reference数としてbounded表示。description、indicator pattern、hash、URL、marking内容、custom propertyは省略し、TAXII/API/network operationは実行しません。上限: 入力64 MiB、深さ100、JSON300,000 value、100,000 object、200,000 row、文字列2 MiB。出典: [OASIS STIX 2.1](https://docs.oasis-open.org/cti/stix/v2.1/os/stix-v2.1-os.html)。 |
-| | `.taxii.json`, `.taxii-json`, `.taxii` または内容判定されたTAXII 2.1 JSON | **A** | - | OASIS TAXII 2.1 envelope、manifest、collection、discovery、status、errorをID、object/version count、capability/status metadataとしてbounded表示。STIX payload、URL、description、authorization data、TAXII endpointは省略し、HTTP/network operationは実行しません。上限: 入力64 MiB、深さ100、JSON300,000 value、100,000 entry、200,000 row、文字列2 MiB。出典: [OASIS TAXII 2.1](https://docs.oasis-open.org/cti/taxii/v2.1/os/taxii-v2.1-os.html)。 |
-| | `.citygml`, `.citygml.xml`, `.citygml.gml` または内容判定されたOGC CityGML | **A** | - | OGC CityGML 2.0/3.0 XMLのBuilding、Road、Railway、WaterBody、Relief、Vegetation地物数とLoD、Envelope、CRS、XLink metadataをbounded表示。geometry、texture、attribute、XLink、外部resourceは不活性で、CRS変換や3D処理は行いません。上限: 入力64 MiB、XML event 1,000,000、node 500,000、深さ96、row 200,000。出典: [OGC CityGML](https://www.ogc.org/standards/citygml/)。 |
-| | `.json` | **A** | - | 任意のJSON valueを不活性なpath/type/value rowとして描画。field/URLは実行・取得せず、深さ・value数・path・文字列・出力文字数を制限。 |
-| | `.jsons`, `.jsonseq`, `.jsonl` | **A** | - | RFC 7464 Record Separatorで区切ったJSON valueをrecord順に見出し付き表示。`.jsonl`は互換newline-delimited mode。不正RFC recordはwarning付きskip。RFC 7464に標準拡張子はなく、`.jsons`/`.jsonseq`はalias。上限: 入力64 MiB、1 record 4 MiB、100,000 record、200,000 rendered block。出典: [RFC 7464](https://www.rfc-editor.org/rfc/rfc7464.html)。 |
-| | `.geojson` | **A** | - | GeoJSON Feature/Geometry/FeatureCollectionのpoint・line・polygonを上限付きWeb Mercator map previewとして描画。propertyとaltitudeは省略し、CRS変換は行いません。 |
-| | `.geojsons`, `.geojsonseq`, `.geojsonl` | **A** | - | RFC 8142のRS-delimited GeoJSON Text SequenceからFeature/Geometry/FeatureCollectionを集約し、上限付きWeb Mercator pageを1枚生成。RFC 8142に標準の拡張子はないため`.geojsons`/`.geojsonseq`は便宜的なalias。`.geojsonl`は互換newline-delimited mode。propertyとIDを省略。上限: 入力32 MiB、1 record 8 MiB、100,000 record/feature、500,000 position。出典: [RFC 8142](https://www.rfc-editor.org/rfc/rfc8142.html)、[RFC 7946](https://www.rfc-editor.org/info/rfc7946/)。 |
-| | `.topojson` | **A** | - | TopoJSON Topologyのshared arc、delta-quantized coordinate、transform、reverse arc indexを復元し、bounded Web Mercator mapへ描画。GeometryCollection、Point/MultiPoint、LineString/MultiLineString、Polygon/MultiPolygonに対応。WGS84経緯度を仮定し、他CRS/追加ordinateは変換しません。property、ID、object名、bboxを省略。上限: 入力32 MiB、200,000 arc/geometry、500,000 source/expanded position、100,000 object、16 nested collection。出典: [TopoJSON Format Specification](https://github.com/topojson/topojson-specification)。 |
-| | `.rss`, `.atom`, `.georss` | **A** | - | RSS/Atom内のGeoRSS Simple point・line・polygon・boxと対応するGML point・line・polygon・envelopeを描画。既定GeoRSSはlatitude/longitude順、明示CRS84/EPSG:4326/EPSG:4979にも対応。feed本文・curve・未対応extensionは省略し、リンク先は取得しません。 |
-| | `.rss`, `.atom`, `.georss`（GeoRSS geometryなし）または内容判定RSS/Atom | **A** | - | RSS 2.0/Atom 1.0のchannel/feed title、更新日時、item/entry title・日時、link/author/content/enclosure件数をbounded表示。link、description、summary、content payload、author address、enclosure、外部resourceは省略し、refresh・script・network operationは実行しません。上限: 入力32 MiB、XML event 500,000、node 300,000、深さ96、row 100,000。出典: [RSS 2.0 Specification](https://www.rssboard.org/rss-specification)、[RFC 4287 Atom](https://www.rfc-editor.org/info/rfc4287/)。 |
-| | `.jsonfeed`, `.json-feed`, `.feed.json` | **A** | - | JSON Feed 1.0/1.1のfeed title/versionとitem id/title/content種別/date/author/attachment数をbounded表示。HTML/text本文、item URL、画像、tag、attachment URLは省略し、feed・link・外部resourceは取得・実行しません。出典: [JSON Feed specification](https://jsonfeed.org/version/1.1)。 |
-| | `.cloudevent.json`, `.cloud-event.json`, `.cloudevents.json`, `.ce.json`, `.cloudevent`, `.cloudevents` または内容判定されたCloudEvents JSON | **A** | - | CloudEvents JSON 1.0の単一eventとJSON batchをtype、id、source host、time、subject、data種別/サイズのbounded metadataとして表示。source URIのquery値はmaskし、data/data_base64 payload、dataschema、extension値は省略します。URI、broker、handler、network resourceは解決・実行しません。上限: 入力64 MiB、深さ100、JSON300,000 value、100,000 event、文字列2 MiB。出典: [CloudEvents JSON Event Format](https://github.com/cloudevents/spec/blob/main/cloudevents/formats/json-format.md)。 |
-| | `.fhir.json`, `.fhirjson`, `.fhir`, `.bundle.fhir.json`, `.fhir-bundle.json` または内容判定されたFHIR JSON | **A** | - | HL7 FHIR R4 JSON resourceとBundleをresourceType、id、status/type、profile数、構造countのbounded表示。clinical value、Narrative XHTML、name、identifier、coded display、extension値、referenceは省略し、terminology lookup、validation、URL取得、clinical operationは実行しません。上限: 入力64 MiB、深さ100、JSON300,000 value、100,000 resource、文字列2 MiB。出典: [FHIR R4 JSON representation](https://hl7.org/fhir/R4/json.html)。 |
-| | `.avsc`, `.avpr`, `.avro.json`, `.avro-schema.json` または内容判定されたAvro JSON | **A** | - | Apache Avro schema/protocol JSONをrecord、field、union、enum、fixed、array、map、message pathとtype summaryとしてbounded表示。default、doc、alias、logical type、import、field value、code generation、RPC実行は不活性です。上限: 入力64 MiB、深さ100、JSON300,000 value、200,000 row、文字列2 MiB。出典: [Apache Avro Specification](https://avro.apache.org/docs/1.12.0/specification/)。 |
-| | `.otlp.json`, `.otlp-json`, `.otel.json`, `.otlp.trace.json`, `.otlp.metrics.json`, `.otlp.logs.json` または内容判定されたOTLP JSON | **A** | - | OpenTelemetry OTLP JSONのtrace、metric、log、profile envelopeをsignal/resource/scope数、service名、data point/event/link summaryとしてbounded表示。attribute値、log body、ID、exemplar、link、schema URL、endpointは省略し、collector、exporter、network operationは実行しません。上限: 入力64 MiB、深さ100、JSON300,000 value、200,000 row、文字列2 MiB。出典: [OpenTelemetry OTLP specification](https://opentelemetry.io/docs/specs/otlp/)。 |
-| | `.jsonocel`, `.ocel.json`, `.ocel-json` または内容判定されたOCEL 2.0 JSON | **A** | - | Object-Centric Event Log 2.0 JSONをevent/object type定義、event/object ID・type・time、attribute数、event-object/object-object relation数としてbounded表示。attribute値、qualifier、URL、外部resourceは省略し、process discovery/filteringは実行しません。上限: 入力64 MiB、深さ100、JSON300,000 value、100,000 node、200,000 row、文字列2 MiB。出典: [OCEL 2.0 JSON format](https://www.ocel-standard.org/specification/formats/json/)。 |
-| | `.jsonapi`, `.json-api.json`, `.jsonapi.json` または内容判定されたJSON:API | **A** | - | JSON:API 1.1のprimary/included resourceをtype/id、status metadata、attribute key数、relationship数としてbounded表示。attribute値、linkage payload、meta/error detail、link URLは省略し、endpoint/API operationは接続しません。上限: 入力64 MiB、深さ100、JSON300,000 value、100,000 resource、200,000 row、文字列2 MiB。出典: [JSON:API 1.1 specification](https://jsonapi.org/format/)。 |
-| | `.gml` | **A** | - | GML 2/GML 3.2のPoint/LineString/Polygonと対応するmulti geometryを描画。CRS84はlon/lat、EPSG:4326/4979はGML軸順を考慮して変換。未知CRS・curve・非線形surfaceは拒否または省略し、外部link/schemaは取得しません。 |
-| | `.wkt`, `.ewkt` | **A** | - | OGC linear simple featureのPOINT/MULTIPOINT/LINESTRING/MULTILINESTRING/POLYGON/MULTIPOLYGON/GEOMETRYCOLLECTIONを描画。SRID省略時はWGS84 longitude/latitudeと仮定し、SRID 4326以外は拒否。Z/Mは省略し、curve geometryは未対応です。 |
-| | `.gpx` | **A** | - | GPX 1.1のwaypointをpoint、routeを順序付きline、trackをsegmentごとのlineとして描画。elevation・name・timestamp・extension・link先は省略し、外部取得はしません。 |
-| | `.kml`, `.kmz` | **A** | - | KML 2.2 PlacemarkのPoint/LineString/Polygon/MultiGeometryと`gx:Track`、KMZの`doc.kml`または最初のKMLエントリをWeb Mercatorで描画。altitude・property・style・overlay・リンク先は省略し、外部リソースは取得しません。 |
-| | `.shp` | **A** | - | ESRI ShapefileのPoint/PolyLine/Polygon/MultiPointを描画し、Z/Mレコード形式も読み込みます。対応するSHX indexは検証し、degree単位のWGS84 geographic `.prj`を認識します。CRS省略時はWGS84経緯度と明記して仮定し、その他CRSは拒否。DBF属性・Z/M値は描画せず、MultiPatchは未対応。 |
-| | `.dbf` | **A** | - | dBASE III/III+属性テーブルを100行・32列ずつのSVG tableとして出力。character/numeric/float/logical/date fieldに対応し、deleted rowは省略、memo/unknown fieldはplaceholderで表示。`.cpg`のUTF-8/Windows-125x/Shift-JIS/GBK/EUC-KR/Big5/ISO-8859-1/2を認識し、LDID `0x57`はWindows-1252、LDID欠落/0はwarning付きでWindows-1252を仮定。上限:入力128 MiB、100,000 record、200万cell、255 field、record 4,000 byte。出典: [OGC dBASE構造](https://docs.ogc.org/bp/16-070r3/16-070r3.pdf)、[Esri属性制限](https://doc.esri.com/en/arcgis-pro/latest/tool-reference/appendices/geoprocessing-considerations-for-shapefile-output.html)。 |
-| | `.asc` | **A** | - | ESRI ASCII GridのNCOLS/NROWS・lower-left corner/center・CELLSIZE・optional NODATA_VALUE（default `-9999`）・row-major cell valuesを読み、continuous preview rampとmin/max legend付きPNG-backed SVG heatmapを出します。NoData cellはtransparentで、全セルNoDataなら数値scaleを省略します。CRS再投影とclassification color tableは適用しません。上限: 入力128 MiB、500万cell、1辺100,000 cell、PNG 32 MiB。出典: [Esri ASCII raster format](https://doc.esri.com/en/arcgis-pro/latest/tool-reference/conversion/raster-to-ascii.html)。 |
-| | `.gpkg` | **A** | - | OGC GeoPackageのSQLite feature tableはlayerごとにbounded Web Mercator pageへ描画し、EPSG:3857 PNG/JPEG tileも再エンコードして画像ページとして出力。VectorはEPSG:4326/4979/3857に対応し、その他CRSは再投影せず拒否。read-onlyでgeometry列だけを読込み、attribute・feature/tile view・未対応tile CRS・Z/M値は省略。上限: database/WAL 128 MiB、256 layer、layerあたり100,000 feature、合計200,000 row、512 tile、20 million tile pixels。出典: [OGC GeoPackage 1.4](https://www.geopackage.org/spec140/)。 |
-| | `.chart`, `.chart.json` | **A** | **C** | 棒・折れ線・円グラフ。<br>逆: グラフ幾何からCSV表データを復元。 |
-| | `.tex`, `.latex` | **A** | **A** / **C** | LaTeX数式ASTに加え、完全な文書のbounded preview（title/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、ローカルPNG/JPEG `\\includegraphics`）。TeX macro、`\\input`/bibliography、shell escape、外部URL、文書実行は行わず、figure floatと厳密な組版は近似。<br>逆: `<desc>`メタデータ復元(**A**)または数式ヒューリスティック(**C**)。 |
-| | `.qr`, `.qrcode` | **A** | **A** | Reed-SolomonベクターQRマトリクス。<br>逆: マトリクス復号。 |
-| **画像 / コード** | `.png`, `.jpg`, `.jpeg`, `.bmp`, `.gif`, `.webp` | **B** | **A** | 順: PNG/JPEG/BMP/GIF/WebPを上限内でdecodeし、白黒閾値処理と輪郭追跡でベクター化。最大2,000万画素・1辺10万px・500,000 path span。Animated GIF/WebPはwarning付きで先頭frameのみ表示。CMYK JPEGはprofileなしで近似し、16-bit lossless JPEGはwarning付きで8-bitへ縮小。<br>逆: `resvg`および`image-webp`による決定論的PNG/WebPラスタライズ。 |
-| | `.pbm`, `.pgm`, `.ppm`, `.pnm`, `.pam` | **B** | - | Netpbm PBM/PGM/PPM/PAMのASCII/binary画像。16-bit sampleとRGB/alpha PAM tupleを含め、同じ上限付きgrayscale contour pipelineへ変換します。dimension、maxval、sample範囲、payload長を検証し、先頭画像だけを使います。外部resourceは読みません。 |
-| | `.tif`, `.tiff` | **A** | - | 複数画像directoryとBigTIFFをページ別にbounded decodeし、カラーPNGをSVGへ埋め込み。unsigned integerのgrayscale（packed 1/2/4-bitを含む）・RGB/RGBA・CMYKを扱い、WhiteIsZero/BlackIsZeroを反映し、8-bit超のchannelは8-bitへ縮小。palette・signed/浮動小数点sample・color profileは未対応。 |
-| | `.jp2`, `.j2k`, `.j2c`, `.jpc`, `.jpx` | **A** | - | standalone JPEG 2000 raw codestream/JP2。共通header検証でdimension、component、precision、signedness、subsamplingを検査してからPNG-backed SVGへ変換。unsigned grayscale/gray-alpha/RGB/RGBAに対応し、multi-codestream、未対応color space、signed component、危険なdimensionは拒否またはwarning。 |
-| | `.dcm`, `.dicom` | **A** | - | DICOM Part 10 grayscale/RGBをframeごとにPNG埋め込みSVGとして出力。非圧縮のImplicit/Explicit VR Little Endian、retired Explicit VR Big Endian、JPEG Baseline/Extended/Lossless、JPEG 2000 Part 1（`.90` lossless / `.91`）、RLE Losslessに対応。JPEG 2000はcodestreamのdimension/component/precisionをDICOM attributeと照合してからdecode。利用可能なModality/VOI transformを適用し、16-bit sampleは8-bit表示へ変換。患者/検査metadataはSVGへ出さないが、pixelに焼き込まれた文字は残ります。JPEG-LS、JPEG 2000のYBR_RCT/YBR_ICT色変換、Part 2、HTJ2K、空間方向・実寸pixel spacingは未対応。 |
-| | `DICOMDIR`, `.dicomdir` | **A** | - | DICOMメディアFile-setのroot/next/lower-level Directory Record offsetを追跡し、階層順に`IMAGE` recordを描画。File IDは安全な規格subsetのみ許可し、DICOMDIR folder配下へcanonicalizeして範囲外参照を拒否。見つからない/未対応imageはwarning付きでskipし、患者/検査labelは表示しません。 |
-| | DICOM Encapsulated PDF Storage | **A** | - | SOP Classと`application/pdf` MIME typeを確認し、埋め込みPDFを64 MiB以内で読み、optional document lengthとzero paddingを検証してPDF rendererへ渡します。DICOM attributeは追加しませんが、PDF本文の識別情報は残るためde-identificationではありません。 |
-| | `.jsx`, `.tsx`, `.vue`, `.svelte`, `.datauri`, `.path` | - | **A** | SVG DOMを直接React/Vue/Svelteコンポーネントコード、生パスデータ（`d="..."`）、またはData URIへ構文変換。 |
-| | `.svg`, `.svgz` | **A** | **A** | SVGとgzip圧縮SVGZを、圧縮/展開後それぞれのサイズ上限付きで読込。`docsvg transform`はminify、単色化、レスポンシブ化に対応。 |
-
-XLSXは注意が必要です。180行のシートは1枚のSVGにはなりません。用紙設定に従って分割され、
-[サンプル](samples/svg/xlsx/)では4ページになります。Excelと完全同一の組版を保証するものではありません。
-
-### conversion.jsonは飾りではない
-
-変換のたびに書かれるレポートです。ページ数と所要時間のほかに、**warnings**が入ります。
-
-```json
-{
-  "page_count": 2,
-  "elapsed_ms": 6,
-  "warnings": []
+  // ファイルに書かずにメモリ上で受け取る（ブラウザへ送るときなど）
+  const result = await preview('slides.pptx')
+  const firstPageSvg = result.pages[0].svg
+  console.log('要確認:', result.needsReview)
 }
+
+main().catch(console.error)
 ```
 
-ここには未対応要素や近似処理、利用時の確認事項が入ります。見た目が同じでも通知が出る場合があります。
-たとえば、埋め込みフォントを代替した、対応していない網掛けを飛ばした、といった内容です。
+変換は Node.js（サーバーや Electron のメインプロセス）で、メインスレッドを止めずに動きます。
+ブラウザ側では、ネイティブコードを読み込まない小さな `document-svg/preview-ui` を使って、各ページを画像として表示します。
+詳しくは [Node.js ガイド](bindings/node/README.md)と[プレビューガイド](bindings/node/docs/preview.ja.md)を見てください。
 
-`warnings`が空でない変換を「完全再現」として扱わないでください。人に見せる前にレビューへ回すのか、
-そこで失敗させるのか、許容するのか。判断は呼び出し側で決められます。
+### Python から
 
-## 使う
+```python
+from document_svg import convert, preview
 
-### コマンドライン
+report = convert("report.docx", "out/report")
+print(report["page_count"], report["warnings"])
 
-```bash
-docsvg input.pdf --output out/            # 変換
-docsvg input.pdf --output out/ --jobs 4   # PDFを4ページ並列で処理
-docsvg input.pdf --output out/ --outline-embedded-pdf-text
-
-# SVGマークアップの最適化・不要メタデータ削除
-docsvg transform input.svg --output output.svg --minify --remove-metadata --clean-paths --strip-empty-groups
+result = preview("report.docx")          # ファイルに書かず、メモリ上で受け取る
+first_page_svg = result["pages"][0]["svg"]
 ```
 
-`--jobs`はPDFだけに効きます。手元のMac（Apple Silicon）で9.7MB・96ページのPDFは
-1ワーカー1.8秒、4ワーカー1.0秒。12MB・252ページの画像とType 1フォントが多い資料は
-1ワーカー10.8秒、4ワーカー4.3秒でした。Office形式は常に1ページずつ流すので、
-`--jobs`を上げてもメモリだけ増えて速くはなりません。
+詳しくは [Python ガイド](bindings/python/README.md)を見てください。
 
-`--outline-embedded-pdf-text`は見た目を優先する指定です。埋め込みフォントの字形を
-SVGのパスに変換するため代替フォントとの差が消えますが、その文字はSVGのテキストとして
-編集も検索もできなくなります。フォントの埋め込み権利を確認する警告も残ります。
-
-安全のための上限は引数で変えられます。
-
-```bash
---max-input-mib 512   # 入力ファイルの大きさ
---max-entry-mib 128   # ZIPの1エントリ、PDFの1ストリームを展開したときの大きさ
---max-pages 10000     # 出力ページ数
-```
-
-### Rust
+### Rust から
 
 ```rust
 use document_svg::{convert_path, ConvertOptions};
 
-let report = convert_path("input.pptx", "out", &ConvertOptions::default())?;
-println!("{} pages", report.page_count);
-# Ok::<(), document_svg::Error>(())
+fn main() -> Result<(), document_svg::Error> {
+    let report = convert_path("report.pdf", "out/report", &ConvertOptions::default())?;
+    println!("{} pages, {} warnings", report.page_count, report.warnings.len());
+    Ok(())
+}
 ```
 
-通常の変換は`convert_path`だけで足ります。自前のデータから直接SVGを組み立てたい場合は
-`document_svg::ir`と`document_svg::svg::write_page`を使います。例が
-[`examples/custom_ir.rs`](examples/custom_ir.rs)にあります。
+APIの説明は [docs.rs](https://docs.rs/document-svg) にあります。
 
-### Python
+### ブラウザだけで動かす
 
-```python
-from document_svg import convert, preview, transform
+PDF、Word、Excel、PowerPoint に限り、ブラウザの中だけで変換する WebAssembly 版があります。サーバーもアップロードも要りません。
+パッケージとしては配布していないので、[`bindings/wasm`](bindings/wasm/README.md) から自分でビルドしてください。
 
-# ファイルへ変換
-report = convert("input.pptx", "out", jobs=4)
-print(report["page_count"])
+## アプリに表示する
 
-# メモリ上で直接プレビュー（ファイル書き出し不要）
-preview_report = preview("input.pptx", max_pages=10)
-first_svg = preview_report["pages"][0]["svg"]
+各ページは画像として表示してください（`<img>` 要素など）。SVGの中身をページのHTMLに直接貼り込むのは避けてください。
+付属の表示用ヘルパーは簡単な確認をしますが、どんなSVGでも無害にするフィルターではありません。
+画像として表示した文字は、選択や検索ができません。
 
-# SVGの最適化・不要メタデータの除去
-clean_svg = transform(first_svg, minify=True, remove_metadata=True, clean_paths=True, strip_empty_groups=True)
+文字は、SVGを表示する環境にあるフォントで描かれます。別のPCでは少し違って見えることがあります。
+PDFでは、文字を選べることより見た目を優先したいときに、埋め込みフォントの文字を図形（アウトライン）にできます。
+
+## SVGを Office や CAD のファイルに戻す
+
+```sh
+docsvg reverse out/slides --output slides.pptx
+docsvg reverse out/report --output report.docx
+docsvg reverse out/drawing --output drawing.dxf
 ```
 
-変換中はGILを解放するので、他のスレッドは止まりません。ビルドにはmaturinが要ります。
+出力ファイルの拡張子で形式が決まります。PowerPoint、Word、Excel、PDF、draw.io、DXF、G-code、STL などに対応しています。
+戻るのはページの見た目です。段落、セル、数式、グラフまでは組み立て直しません。Wordで編集し直せるファイルに変換する機能ではない、と考えてください。
 
-```bash
-python3 -m pip wheel --no-deps --wheel-dir dist ./bindings/python
-```
+draw.io の図だけは例外です。`--embed-drawio-source` を付けて変換しておくと、`reverse` で元の編集できる図に戻ります。
 
-詳細は[`bindings/python/README.md`](bindings/python/README.md)へ。
+## 対応形式
 
-### Node.js
+| 分野 | 例 |
+|---|---|
+| オフィス文書 | PDF、Word、Excel、PowerPoint（新旧どちらの形式も）、OpenDocument、RTF、メール、カレンダー、電子書籍、Markdown、HTML |
+| 図 | draw.io、Visio、Mermaid、PlantUML、D2、Graphviz、BPMN |
+| CAD・CAM・3D | DXF、Gerber、G-code、HP-GL、STL、OBJ、STEP、IGES、glTF、IFC |
+| シミュレーション | Gmsh、VTK、OpenFOAM、Abaqus、Nastran などのメッシュ |
+| データ・地図 | CSV、JSON、YAML、グラフ、LaTeX の数式、GeoJSON、KML、GeoPackage |
+| 画像 | PNG、JPEG、TIFF、WebP、DICOM、SVG |
 
-```javascript
-const { convert, preview, transform } = require("document-svg")
+図全体を描ける形式もあれば、DWG や Access のデータベースのように、中身の概要を表示する形式もあります。
+各形式には、A（ファイルの中身をそのまま描く）、B（ピクセルから輪郭をなぞる）、C（表などの構造を図から推測する）の評価を付けています。
 
-const report = await convert("input.pptx", "out", { jobs: 4 })
-console.log(report.pageCount)
+- [対応形式の一覧（検索できます）](https://ryusui-hiro.github.io/document-svg/ja/formats.html) — お使いのファイルが使えるか調べる
+- [対応形式の詳細](docs/FORMATS.ja.md) — 拡張子ごとの技術的な注意
+- [対応機能と制限](docs/SUPPORT.md)
 
-// SVGのminify・メタデータ除去
-const cleanSvg = transform(rawSvg, { minify: true, removeMetadata: true, cleanPaths: true, stripEmptyGroups: true })
-```
-
-`convert()`はlibuvのワーカースレッドで動くので、イベントループを止めません。
-
-画面に出すだけならファイルを書かずに済みます。`preview()`はSVGの文字列を直接返します。
-
-```typescript
-import { preview } from "document-svg"
-
-const report = await preview("input.pptx", { maxPages: 100 })
-const svg = report.pages[0].svg
-console.log(report.needsReview)
-```
-
-ブラウザ側には、表示とコピー用のヘルパーが別入口で入っています。
-
-```typescript
-import { copySvgToClipboard, createSvgPreviewUrl } from "document-svg/preview-ui"
-
-const url = createSvgPreviewUrl(svg)
-await copySvgToClipboard(svg)   // クリック時に呼ぶ
-```
-
-`preview()`は一時ファイルを自動で消し、既定では1ページ64MiB・全体256MiBまでをメモリに載せます。
-Electronやサーバーでの安全な出し方は、プレビューガイドを読んでください。
-[日本語](bindings/node/docs/preview.ja.md) / [English](bindings/node/docs/preview.en.md) /
-[简体中文](bindings/node/docs/preview.zh-CN.md)
-
-自分の環境向けにビルドする場合:
-
-```bash
-cd bindings/node && npm install && npm run build && npm test
-```
-
-PythonとNode.jsのAPIは、Rustの`ConvertOptions`と同じ上限を公開しています。
-レポートのキーだけ違います。Pythonは`snake_case`、Node.jsは`camelCase`。
-静的サイトのフロントエンドだけでPDF／DOCX／XLSX／PPTXを可視化する場合は、WASM版を使えます。
-文書はWeb Worker内で処理され、サーバーへアップロードされません。pdf.jsは使いません。
-ビルド手順と静的ビューアの例は[`bindings/wasm/README.md`](bindings/wasm/README.md)を参照してください。
-
-## SVGからOffice文書へ戻す
-
-1枚のSVGでも、`page-NNNN.svg`が入ったディレクトリでも渡せます。出力の拡張子で形式が決まります。
-
-```bash
-docsvg reverse page.svg --output page.pptx
-docsvg reverse out/ --output pages.docx
-docsvg reverse out/ --output pages.pdf
-docsvg reverse page.svg --output preview.html    # レスポンシブHTMLビューア
-docsvg reverse page.svg --output preview.webp    # WebPラスター画像
-```
-
-SVGはベクター画像のまま格納され、SVGを読めないソフト向けにPNGも同梱されます
-（PowerPointが自分で書き出すのと同じ形です）。1枚のSVGがPPTXでは1スライド、
-DOCXでは1ページ、XLSXでは1シートになります。
-
-**元の文書構造は戻りません。** 段落も表もセルも数式も、画像の中の線と文字になります。
-「Wordで編集し直せるファイルに変換する機能」ではない、と理解して使ってください。
-
-drawioだけは例外があります。出力先を`.drawio`にすると、SVGは`<diagram>`1枚になります。
-
-```bash
-docsvg reverse out/ --output diagram.drawio
-```
-
-このとき、**元の図面のsourceを持っているSVGは、画像ではなく編集可能な図形として復元します。**
-対象は2種類です。drawioのSVG書き出しで「Include a copy of my diagram」を付けたもの（rootの
-`content`属性に`mxfile`が入っています）と、`--embed-drawio-source`を付けて変換した本ツールの
-SVGです。
-
-```bash
-docsvg diagram.drawio --output out/ --embed-drawio-source
-docsvg reverse out/ --output diagram.drawio   # 元の図面に戻る
-```
-
-sourceを持たないSVG（PDFやOfficeから変換したものなど）は、これまでどおり画像として1ページに
-貼り付けます。図形には戻りません。
-
-CAD（AutoCAD Release 12 DXF）への逆変換もサポートしています。出力先を`.dxf`にすると、
-SVGの`<path>`, `<line>`, `<circle>`, `<rect>`などのベクター図形、テキスト、および
-レイヤー構造（`<g id="layer-...">`）から、DXFエンティティ（LINE, CIRCLE, ARC, TEXT）を再構築します。
-
-```bash
-docsvg reverse page.svg --output drawing.dxf
-```
-
-スクリプトや外部参照を含むSVGは受け付けません。既存の出力ファイルも上書きしません。
-
-## 対応している範囲
-
-現物で確かめるのが早いので、まず[サンプル](samples/)と[対応表](docs/SUPPORT.md)を見てください。
-形式ごとの詳細は長いので畳んであります。
-
-<details>
-<summary>形式別の対応内容</summary>
-
-**PDF** — MediaBox/CropBox/Rotate/UserUnit、パス、字形単位で配置されたテキスト、画像、Form
-XObject、ExtGStateの線・文字状態、入れ子のクリップ、透明グループ・ソフトマスク・ノックアウト、
-特殊な色空間、JPEGのSMaskと外部CCITT、関数タイプ0/2/3/4、共有Decodeとページ単位の上限を持つ
-シェーディング（タイプ1〜7）、シェーディング／タイリングパターン、埋め込みTrueType・CFF・Type1の
-字形、文字体系を見た代替フォント。埋め込みのない標準14フォント（Helvetica、Times、Courier、
-Symbol、ZapfDingbats）は、`/Widths`がなくても正しい字幅で配置します。
-
-**PPTX** — マスターとレイアウトの継承、種別ごとのフォールバック、フッターとスライド番号の
-既定位置、マスターごとのテーマとeffectRef、入れ子のグループ、調整可能なプリセット図形と
-カスタム図形（brace/arc/コネクタ/フローチャート/吹き出し/円柱/立方体/月/ドーナツ/括弧/矢印ほか）、
-グラデーションと不透明度、プリセットの網掛け、範囲を限った外側の影とグロー、srcRectによる画像の
-切り抜き、デュオトーン・グレースケール・輝度・色変換、SmartArtのキャッシュ描画、行が空のときの
-復旧を含むネイティブの表、回転、単語単位で折り返す段落、埋め込みラスターとSVG、上限つきの
-EMF/WMF→SVG、キャッシュされたグラフ、動画・音声のポスター、OLEのプレビューと代替表示
-
-**XLSX** — セル、スタイル、結合、非表示の行と列、Excelの数値・日付書式、シート間参照や
-定義名を含むキャッシュ欠落数式の上限つき評価（数値・文字列・空白）、式による条件付き書式、
-図形と画像とテキスト、キャッシュされたグラフ、印刷範囲・改ページ・印刷タイトル・用紙設定、
-巨大なシートの自動分割
-
-**DOCX** — 用紙と余白、basedOnによるスタイル継承、文字体系を見たフォント選択、単語単位の
-折り返し、上付き・下付き、OMMLの分数・根号・添字、多階層のリスト、脚注・文末脚注・コメント、
-変更履歴の最終版表示、DrawingMLとVMLのテキストボックス、段落途中の改ページ、表、画像、
-セクションごとの先頭・偶数・既定のヘッダーとフッター、PAGEフィールド
-
-**drawio** — 複数ページ（`<diagram>`）、圧縮されたページ本体（URIエンコード＋raw
-deflate＋base64）の展開、基本図形とフローチャート図形、グループの入れ子と座標、塗り・線・
-破線・グラデーション・影・不透明度、`direction`と`rotation`と反転、HTMLラベル（`<br>`・
-太字・斜体・`<font>`）と折り返し、直交・直線・曲線のコネクタ、固定接続点（`exitX`/`entryX`）と
-経由点、mxGraph準拠の矢尻、スイムレーン、背景色
-
-**CAD (DXF)** — AutoCAD ASCII DXF（Release 12〜2018+）。外部GPL/Cライブラリ不使用のPure Rust自作実装。
-レイヤー（可視/フリーズ）、線種（実線・破線・点線・一点鎖線）、AutoCAD Color Index (ACI 1〜255) および TrueColor、
-ブロック定義と再帰参照（INSERT: 深度上限16）、LINE、POINT、CIRCLE、ARC、ELLIPSE、
-LWPOLYLINE（バルジ係数による円弧計算・ポリライン）、SPLINE、SOLID、3DFACE、TEXT、MTEXT（制御コード整形）。
-Windows-1252/ANSIフォールバック付きデコードで度記号（°）などを含む実CADファイルも対応。
-
-**CAD (Gerber RS-274X)** — プリント基板（PCB）CAMデータ。アパーチャ定義（円形・矩形・長円・多角形）、
-フラッシュ（D03）、補間（D01/D02）、G36/G37ポリゴン輪郭塗りつぶし、基板外形プレビューと銅箔配線レイヤー（Copper Layer）。
-
-**CAD (HP-GL / HP-GL/2)** — プロッター制御言語。ペン選択（SP）、絶対/相対座標プロット（PA, PR, PD, PU）、
-円弧（AA）、円（CI）、ペン幅設定（PW）と8色ペンパレット。
-
-</details>
-
-### やらないこと
-
-- **パスワードは破りません。** ユーザーパスワードが必要なPDFとOffice文書は、その旨を返して止まります。一方、ユーザーパスワードが空の暗号化PDF（印刷禁止などの権限フラグだけを持ついわゆるオーナーパスワード形式）は、他のビューアと同じように開きます。権限フラグは宣言であってアクセス制御ではなく、`docsvg`はこれを強制しません。この扱いで良いかは変換前に判断してください
-- **Officeの意味構造は復元しません。** 逆変換はSVGを画像として包み直すだけ
-- **drawioのシェイプライブラリは、ステンシルを渡せば描きます。** `--stencils`にdrawioのステンシルファイル（またはそのディレクトリ）を渡すと、AWS・Azure・GCP・フロアプランなどのアイコンを本物どおり描きます。渡さない場合はラベル付きの矩形に置き換えて警告に出します。drawioがJavaScriptで実装しているシェイプは、ステンシルを渡しても描けないものがあります。ベンダーアイコン自体はライセンスと容量の都合で同梱しません
-- 経由点のないコネクタの経路は、drawio独自のルーターの近似です
-- **変換コアはローカルで動きます。** 入力文書を外部サービスへ送信しません。公式アイコン取得やライセンス監査は、必要な公開情報を取得する別ツールです
-
-## 安全のための境界
-
-信頼できない文書を受け取る前提で書かれています。
-
-- 入力サイズ、ZIP展開後のサイズ、XMLイベント数、ページ数、PDFの展開ストリームに上限があります。ZIPベースの文書パッケージは、partを展開する前にcentral directoryが100,000エントリを超える場合を拒否します
-- ZIPのパス、埋め込みリソースの参照先を検査します
-- 逆変換は、スクリプト・`file://`・外部URL・`javascript:`・イベントハンドラ属性・`foreignObject`・
-  外部実体参照を含むSVGを拒否します
-- 各ページは一時ファイルに書いてから名前を変えます。途中で失敗したページが、完成したファイルとして残りません
-- 同じ入力からは常に同じバイト列が出ます。並列度を変えても変わりません
-
-## 構成図を描く（変換とは別の機能）
-
-Azure・AWS・Google Cloudの公式アイコンを使って、構成図をSVGで組み立てるツールも入っています。
-変換コアとは独立していて、Rustの依存も生成AIのAPIキーも要りません。
-
-```bash
-python3 authoring/cloud_icons.py fetch                    # 公式アイコンを取得
-python3 authoring/cloud_icons.py search "app service"     # IDを調べる
-python3 authoring/cloud_icons.py build-examples --output out/arch
-```
-
-使い方は[クラウド構成図ガイド](docs/CLOUD_ARCHITECTURE.md)、業務資料向けのテンプレートと
-直角配線は[3社の構成図テンプレート](docs/BUSINESS_ARCHITECTURE.md)にまとめています。
-PNGを書き出すには`rsvg-convert`が要ります。
-
-## エディタとAIエージェントから使う
-
-Codex、Claude Code、GitHub Copilot、GitHub CLI、GitHub Actionsから呼べます。配線の全体は
-[GitHub連携ガイド](docs/GITHUB_INTEGRATION.md)、導入条件と依頼例は
-[導入ガイド](docs/PLUGIN_INSTALLATION.md)にまとめました。
+## AIアシスタントや GitHub から使う
 
 | 使う場所 | やること |
 |---|---|
-| Codex | `./scripts/install-codex-plugin.sh` を実行して `$document-svg` を呼ぶ |
 | Claude Code | `/plugin marketplace add ryusui-hiro/document-svg` のあと `/plugin install document-svg@document-svg` |
-| GitHub Copilot | `.github/copilot-instructions.md` を読みます。別のリポジトリなら `copilot-setup-steps.yml` に下のsetupアクションを足すとCLIが使えます |
-| GitHub CLI | `./scripts/install-gh-extension.sh` を実行して `gh docsvg convert report.pdf --output preview/report` |
+| Codex | リポジトリを手元に置いて `./scripts/install-codex-plugin.sh` を実行し、新しいタスクを始める |
+| GitHub Copilot | Copilot のセットアップ手順に、下のセットアップ用アクションを足す |
+| GitHub CLI | `./scripts/install-gh-extension.sh` を実行し、`gh docsvg convert report.pdf --output preview/report` |
 | GitHub Actions | `uses: ryusui-hiro/document-svg/.github/actions/setup-docsvg@main` |
 
-```bash
-./scripts/install-codex-plugin.sh    # Codex
-./scripts/install-claude-plugin.sh   # Claude Code（再起動が要ります）
-./scripts/install-gh-extension.sh    # gh docsvg
-```
-
-インストーラはcargoがあればこのチェックアウトからビルドし、なければ配布済みのリリースを
-SHA256で照合してから置きます。Rustツールチェーンは要りません。
-
-`gh extension install ryusui-hiro/document-svg` は動きません。GitHub CLIは拡張のリポジトリ名が
-`gh-` で始まることを求めるので、リモートから一発で入れるには別リポジトリが要ります。上の
-インストーラがこのリポジトリでの入口です。
-
-導入後は、たとえばこう頼めます。
-
-```text
-$document-svg を使って report.docx をページ別SVGへ変換し、警告も確認して
-$document-svg を使って page-*.svg を slides.pptx に戻して
-```
-
-Claude Codeにはコマンドも入ります。`/document-svg:convert`、`/document-svg:reverse`、
-`/document-svg:preview`、`/document-svg:setup` の4つ。
-
-プラグインはSVGへのリンクに加えて、librsvgで描いたPNGも出します。エディタやOSでSVGの
-扱いが違うため、画像なら確実に見えます。
-
-```bash
-plugins/document-svg/skills/document-svg/scripts/render-preview.sh \
-  out/slides out/slides-preview 1400
-```
-
-リポジトリを開いただけでは何もインストールしません。利用者が頼んだときだけ上のスクリプトが走ります。
-
-### プルリクエストで文書の差分を見る
-
-PDFやOffice文書を置いているリポジトリに、これを足します。
+インストーラーは、Rust がなければSHA256で照合したリリース版を入れます。
+プルリクエストで変わった文書を確かめるには、次のワークフローをリポジトリに足します。
 
 ```yaml
 name: Document preview
@@ -689,34 +199,48 @@ jobs:
       pull-requests: write
 ```
 
-変更された文書がSVGページに変換され、実行の成果物として添付され、ページ数と警告数の表が
-プルリクエストにコメントされます。警告が1件でも出たら、その変換は元の見た目を保証しません。
+変わった文書がページごとの画像になり、実行結果からダウンロードできます。文書ごとのページ数と警告の数は、コメントで知らせます。
+詳しくは [GitHub 連携ガイド](docs/GITHUB_INTEGRATION.md)、[プラグイン導入ガイド](docs/PLUGIN_INSTALLATION.md)、[AIエージェント向けガイド](docs/AI_USAGE_GUIDE.md)を見てください。
 
-## 開発
+## 安全性と限界
 
-```bash
-cargo fmt --all -- --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace --all-targets
-cargo build --release
+- ファイルはどこにも送りません。マクロ、スクリプト、外部リンクを実行したり取得したりもしません。
+- 開くのにパスワードが要るPDFは、変換を断ります。パスワードを破ろうとはしません。「印刷禁止」などの権限パスワードだけが付いたPDFは、ほかのビューアと同じように開きます。その制限を守らせる仕組みはありません。
+- 入力の大きさ、圧縮ファイルの中身、ページ数に上限があります。難しいファイルを通すためだけに引き上げないでください。
+- 既存のファイルを上書きしません。
+- 誰でもファイルを上げられるサービスでは、メモリと時間に上限をかけた別のプロセスで変換してください。
+- 警告は「確認してください」という合図で、正確さや安全性の証明ではありません。医療画像やレポートの匿名化もしません。
 
-(cd bindings/node && npm run build && npm test)
-python3 -m pip wheel --no-deps --wheel-dir dist ./bindings/python
+公開サービスで使う前に、[安全性と限界](https://ryusui-hiro.github.io/document-svg/ja/safety.html)と[セキュリティポリシー](SECURITY.md)を読んでください。
+
+### 対応環境とトラブルシューティング
+
+| 環境（x64・ARM64） | npm パッケージ | Python パッケージ | コマンド |
+|---|---|---|---|
+| Windows | ビルド済み | ビルド済み | ビルド済み |
+| macOS | ビルド済み | ビルド済み | ビルド済み |
+| Linux（Ubuntu、Debian など glibc 系） | ビルド済み | ビルド済み | ビルド済み |
+| Linux（Alpine など musl 系） | ビルド済み | ソースからビルド | ビルド済み |
+
+- pip がソースからのビルドを始めたら、その Python と環境向けのビルド済みパッケージがありません。まず pip を更新してください。ビルドには Rust とCのリンカーが要ります。
+- npm で入れたのに読み込めないときは、オプションの依存パッケージが入っているか、Node.js とマシンのCPUの種類が合っているかを確かめてください。`node_modules` を別のOSにコピーしても動きません。
+- 変換したSVGは、最近のブラウザ、resvg、librsvg 2.46 以降で表示できます。
+
+## クラウド構成図を描く
+
+変換とは別に、Azure、AWS、Google Cloud の公式アイコンで構成図を組み立てるツールも入っています。
+使い方は[クラウド構成図ガイド](docs/CLOUD_ARCHITECTURE.md)と[業務資料向けテンプレート](docs/BUSINESS_ARCHITECTURE.md)を見てください。
+
+## 開発に参加する
+
+```sh
+cargo test --workspace --locked
 ```
 
-テストは5形式の最小ファイルと機能別ファイルをテスト内で生成し、公開APIからSVGまで通します。
-サンプルを作り直すときは`python3 scripts/make_samples.py`を実行してください。
-
-設計は[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)、対応範囲は[docs/SUPPORT.md](docs/SUPPORT.md)、
-実測値は[docs/BENCHMARKS.md](docs/BENCHMARKS.md)にあります。
+確認手順の全体は [CONTRIBUTING.md](CONTRIBUTING.md)、変換の仕組みは [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) にあります。
+リリース手順は [docs/PUBLISHING.md](docs/PUBLISHING.md)、変更履歴は [CHANGELOG.md](CHANGELOG.md) を見てください。
 
 ## ライセンス
 
-`MIT OR Apache-2.0`。どちらかを選んで使えます。再配布するときは、選んだライセンスの
-著作権表示とライセンス文を残してください（[LICENSE](LICENSE)）。
-依存パッケージは直接・推移とも許容的なライセンスだけを選び、監査手順を
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)に記録しています。
-現在の確認結果は[依存ライセンス監査](docs/LICENSE_AUDIT.md)、同梱する通知全文は
-[THIRD_PARTY_LICENSES.txt](THIRD_PARTY_LICENSES.txt)を参照してください。
-
-`samples/`のファイルは`scripts/make_samples.py`が生成したもので、このリポジトリと同じライセンスです。
+**MIT OR Apache-2.0** です。どちらかを選んで使えます。再配布するときは、選んだライセンスが求める著作権表示とライセンス文を残してください。
+[LICENSE](LICENSE)、[LICENSE-MIT](LICENSE-MIT)、[LICENSE-APACHE](LICENSE-APACHE)、同梱の[第三者ライセンス](THIRD_PARTY_LICENSES.txt)を見てください。

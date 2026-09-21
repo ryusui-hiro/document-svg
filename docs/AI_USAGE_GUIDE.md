@@ -36,7 +36,7 @@ drawio（1 diagram/SVG。sourceを持つSVGは元の図面を復元）
   対応しています。全リストと形式ごとの忠実度ティア（A/B/C）は
   [`../site/assets/data/formats.json`](../site/assets/data/formats.json)
   （プロジェクトサイトの「対応形式マップ」の元データ）と、ルートの
-  [`../README.md`](../README.md) の対応形式表を参照してください。
+  [`FORMATS.md`](FORMATS.md) の対応形式表を参照してください。
 - 文書全体を1個のSVGにするのではなく、ページ、スライド、またはシートの出力ページ
   ごとにSVGを1個生成します。
 - 通常の利用者は`convert_path`だけを呼びます。PDF/Officeのparserを選ぶ処理は
