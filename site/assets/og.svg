@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Social preview card. Rendered to og.png with: rsvg-convert site/assets/og.svg -o site/assets/og.png -->
+  <rect width="1200" height="630" fill="#16181d"/>
+  <rect x="0" y="0" width="1200" height="8" fill="#3454d1"/>
+  <text x="72" y="150" fill="#ffffff" font-family="Helvetica, Arial, sans-serif" font-size="76" font-weight="700">document-svg</text>
+  <text x="72" y="222" fill="#c9cede" font-family="Helvetica, Arial, sans-serif" font-size="38">PDF, Word, Excel, PowerPoint, diagrams and CAD</text>
+  <text x="72" y="272" fill="#c9cede" font-family="Helvetica, Arial, sans-serif" font-size="38">→ one SVG per page, on your own machine</text>
+  <g font-family="Helvetica, Arial, sans-serif" font-size="22" fill="#9aa1b1">
+    <rect x="72" y="330" width="240" height="180" rx="10" fill="#ffffff"/>
+    <image x="82" y="340" width="220" height="160" xlink:href="samples/pptx/page-0001.svg" preserveAspectRatio="xMidYMid meet"/>
+    <text x="72" y="545">PowerPoint</text>
+    <rect x="344" y="330" width="240" height="180" rx="10" fill="#ffffff"/>
+    <image x="354" y="340" width="220" height="160" xlink:href="samples/xlsx/page-0001.svg" preserveAspectRatio="xMidYMid meet"/>
+    <text x="344" y="545">Excel</text>
+    <rect x="616" y="330" width="240" height="180" rx="10" fill="#ffffff"/>
+    <image x="626" y="340" width="220" height="160" xlink:href="samples/drawio/page-0001.svg" preserveAspectRatio="xMidYMid meet"/>
+    <text x="616" y="545">draw.io</text>
+    <rect x="888" y="330" width="240" height="180" rx="10" fill="#ffffff"/>
+    <image x="898" y="340" width="220" height="160" xlink:href="samples/dxf/page-0001.svg" preserveAspectRatio="xMidYMid meet"/>
+    <text x="888" y="545">CAD (DXF)</text>
+  </g>
+  <text x="72" y="600" fill="#7f9bff" font-family="Helvetica, Arial, sans-serif" font-size="26">Rust · Node.js · Python · CLI — free and open source</text>
+</svg>

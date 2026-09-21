@@ -121,3 +121,13 @@ def test_every_referenced_sample_is_published():
             assert set(item["note"]) >= set(LANGS), item["ext"]
     for tier in ("A", "B", "C"):
         assert set(FORMATS["tiers"][tier]) >= set(LANGS)
+
+
+def test_structured_data_and_social_card():
+    assert (SITE / "assets/og.png").is_file()
+    for path in HTML_FILES:
+        text = path.read_text(encoding="utf-8")
+        assert f'<meta property="og:image" content="{build.OG_IMAGE}" />' in text, path.name
+        blocks = text.split('<script type="application/ld+json">')[1:]
+        types = [json.loads(block.split("</script>", 1)[0])["@type"] for block in blocks]
+        assert "BreadcrumbList" in types, path.name

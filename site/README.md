@@ -39,8 +39,10 @@ cases (who, problem, result, how to begin), formats (searchable list),
 samples, get started, safety & limits, and AI agents.
 
 Each page carries a canonical URL, `hreflang` links to its other languages,
-Open Graph tags, and (on the home page) schema.org `SoftwareApplication`
-data. Links to the old single-page anchors (`#formats`, `#install`, …) and
+Open Graph tags with a social preview card (`assets/og.png`, rendered from
+`assets/og.svg` with `rsvg-convert assets/og.svg -o assets/og.png` from
+`site/`), breadcrumb data, and (on the home page) schema.org
+`SoftwareApplication` data. Links to the old single-page anchors (`#formats`, `#install`, …) and
 the short-lived `?lang=` URLs are redirected by `app.js`.
 
 ## Search engines
