@@ -88,6 +88,7 @@ a.plain { color: inherit; text-decoration: none; }
 }
 .topnav a { color: var(--fg-muted); text-decoration: none; }
 .topnav a:hover { color: var(--fg); }
+.topnav a[aria-current="page"] { color: var(--fg); font-weight: 600; }
 
 .langswitch {
   display: flex;
@@ -209,18 +210,11 @@ section + section { border-top: 1px solid var(--border); }
 .usecase-card h3 { margin: 0.5rem 0 0.4rem; font-size: 1.02rem; }
 .usecase-card p { margin: 0; color: var(--fg-muted); font-size: 0.92rem; }
 
-/* --- for AI --- */
-.ai-grid {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 1.5rem;
-  align-items: start;
-}
-@media (max-width: 800px) { .ai-grid { grid-template-columns: 1fr; } }
 .contract-list {
   margin: 0;
   padding: 0;
   list-style: none;
+  counter-reset: rule;
   display: grid;
   gap: 0.6rem;
 }
@@ -233,15 +227,6 @@ section + section { border-top: 1px solid var(--border); }
   color: var(--fg-muted);
 }
 .contract-list li b { color: var(--fg); }
-.llms-card {
-  background: var(--code-bg);
-  color: var(--code-fg);
-  border-radius: var(--radius);
-  padding: 1.3rem;
-}
-.llms-card h3 { margin-top: 0; font-family: monospace; }
-.llms-card p { color: #b8bfd1; font-size: 0.9rem; }
-.llms-card a.btn { margin-top: 0.5rem; }
 
 /* --- formats --- */
 .tier-legend {
@@ -277,27 +262,6 @@ section + section { border-top: 1px solid var(--border); }
 .tier-badge.B { background: var(--tier-b); }
 .tier-badge.C { background: var(--tier-c); }
 .tier-chip span { color: var(--fg-muted); }
-
-.category-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 1.1rem;
-}
-.category-filter button {
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--fg-muted);
-  padding: 0.35rem 0.8rem;
-  border-radius: 999px;
-  font-size: 0.82rem;
-  cursor: pointer;
-}
-.category-filter button[aria-pressed="true"] {
-  background: var(--fg);
-  color: var(--bg);
-  border-color: var(--fg);
-}
 
 .table-scroll {
   overflow-x: auto;
@@ -453,19 +417,6 @@ table.formats .cat-heading td {
 }
 .usage-snippet pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
 
-/* --- install --- */
-.install-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-}
-.install-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-card);
-  padding: 1.1rem;
-}
-.install-card h3 { margin: 0 0 0.6rem; font-size: 0.98rem; }
 pre {
   background: var(--code-bg);
   color: var(--code-fg);
@@ -499,4 +450,196 @@ footer {
   overflow: hidden;
   clip: rect(0,0,0,0);
   white-space: nowrap;
+}
+
+/* --- skip link --- */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  background: var(--accent);
+  color: var(--accent-fg);
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  z-index: 10;
+}
+.skip-link:focus { top: 0.5rem; }
+
+/* --- linked cards (home) --- */
+.usecase-card.linked { display: block; transition: border-color 0.15s; }
+.usecase-card.linked:hover { border-color: var(--accent); }
+.text-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.4rem;
+  margin: 1.2rem 0 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.text-links a { text-decoration: none; }
+.text-links a:hover { text-decoration: underline; }
+.next-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 1rem;
+}
+.next-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-alt);
+  padding: 1.1rem 1.2rem;
+  transition: border-color 0.15s;
+}
+.next-card:hover { border-color: var(--accent); }
+.next-card h3 { margin: 0 0 0.35rem; font-size: 1rem; color: var(--accent); }
+.next-card p { margin: 0; color: var(--fg-muted); font-size: 0.9rem; }
+
+/* --- pages with a sidebar --- */
+.page-grid {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 2.75rem;
+  padding-top: 2.25rem;
+  padding-bottom: 3rem;
+}
+.sidenav {
+  position: sticky;
+  top: 1.25rem;
+  align-self: start;
+  max-height: calc(100vh - 2.5rem);
+  overflow-y: auto;
+  font-size: 0.88rem;
+}
+.sidenav > summary { display: none; }
+.sidenav ol { list-style: none; margin: 0; padding: 0; border-left: 1px solid var(--border); }
+.sidenav a {
+  display: block;
+  padding: 0.35rem 0 0.35rem 0.9rem;
+  margin-left: -1px;
+  border-left: 2px solid transparent;
+  color: var(--fg-muted);
+  text-decoration: none;
+  line-height: 1.4;
+}
+.sidenav a:hover { color: var(--fg); }
+.sidenav a[aria-current="true"] { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+
+.page-head { margin-bottom: 1.5rem; max-width: 70ch; }
+.page-head h1 {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.25;
+  margin: 0 0 0.6rem;
+  letter-spacing: -0.01em;
+}
+.page-head p { color: var(--fg-muted); font-size: 1.02rem; margin: 0; }
+
+.doc-section { padding: 1.9rem 0; scroll-margin-top: 1rem; }
+.doc-section + .doc-section { border-top: 1px solid var(--border); }
+.doc-section h2 {
+  font-size: 1.3rem;
+  margin: 0 0 0.7rem;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.doc-section > p { max-width: 70ch; }
+.doc-section p.lead { color: var(--fg-muted); margin-top: 0; }
+.h-ico { font-size: 1.3rem; }
+.bullets { padding-left: 1.2rem; max-width: 70ch; }
+.bullets li { margin: 0.35rem 0; }
+.doc-section pre { margin: 0.9rem 0; }
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 0.7rem 1.25rem;
+  margin: 1rem 0 0;
+  max-width: 78ch;
+}
+.detail-grid dt { font-weight: 700; font-size: 0.85rem; color: var(--accent); padding-top: 0.1rem; }
+.detail-grid dd { margin: 0; }
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.info-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+}
+.info-card h3 { margin: 0 0 0.4rem; font-size: 0.98rem; }
+.info-card p { margin: 0 0 0.8rem; color: var(--fg-muted); font-size: 0.9rem; flex: 1; }
+.info-card pre { margin: 0; }
+
+.contract-list li { counter-increment: rule; }
+.contract-list li::before { content: counter(rule) ". "; font-weight: 700; color: var(--fg); }
+
+/* --- formats page --- */
+.how-box {
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.3rem 1.2rem;
+  margin-bottom: 1.5rem;
+}
+.how-box h2 { font-size: 1.05rem; margin: 0 0 0.4rem; }
+.how-box h3 { font-size: 0.9rem; margin: 1rem 0 0.6rem; }
+.how-box ul { margin: 0; padding-left: 1.2rem; }
+.how-box li { margin: 0.25rem 0; font-size: 0.92rem; }
+.how-box .tier-legend { margin-bottom: 0; }
+
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin-bottom: 0.5rem;
+}
+.search-bar > label:first-child { font-weight: 700; font-size: 0.92rem; flex-basis: 100%; }
+.search-bar input[type="search"] {
+  flex: 1 1 260px;
+  font: inherit;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--fg);
+}
+.search-bar input[type="search"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.search-bar .check { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; cursor: pointer; }
+.result-count { color: var(--fg-muted); font-size: 0.88rem; margin-left: auto; }
+.empty-note { color: var(--fg-muted); }
+.count-chip {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--fg-muted);
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.05rem 0.55rem;
+}
+.format-group .table-scroll { margin-top: 0.4rem; }
+
+@media (max-width: 860px) {
+  .page-grid { grid-template-columns: 1fr; gap: 0.5rem; padding-top: 1.25rem; }
+  .sidenav {
+    position: static;
+    max-height: none;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-alt);
+  }
+  .sidenav > summary { display: block; padding: 0.7rem 1rem; font-weight: 600; cursor: pointer; }
+  .sidenav nav { padding: 0 1rem 0.8rem; }
+  .detail-grid { grid-template-columns: 1fr; gap: 0.2rem; }
+  .detail-grid dd { margin-bottom: 0.7rem; }
+  .result-count { margin-left: 0; }
 }

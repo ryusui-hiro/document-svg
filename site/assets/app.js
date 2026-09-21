@@ -52,15 +52,85 @@
     "gpkg-tiles": "sample.gpkg"
   };
 
-  var REPO_RAW = "https://github.com/ryusui-hiro/document-svg/blob/main/samples/source/";
+  var REPO = "https://github.com/ryusui-hiro/document-svg";
+  var REPO_RAW = REPO + "/blob/main/samples/source/";
+
+  // Page key (in content.json strings) → file. Order is the navigation order.
+  var PAGES = [
+    ["home", "index.html"],
+    ["useCases", "use-cases.html"],
+    ["formats", "formats.html"],
+    ["samples", "samples.html"],
+    ["start", "start.html"],
+    ["safety", "safety.html"],
+    ["ai", "ai.html"]
+  ];
+
+  // Sections of the old single-page site, so existing links keep working.
+  var OLD_ANCHORS = {
+    usecases: "use-cases.html",
+    "for-ai": "ai.html",
+    formats: "formats.html",
+    samples: "samples.html",
+    install: "start.html#choose",
+    usage: "start.html#convert"
+  };
+
+  var HOME_SAMPLES = ["pptx", "xlsx", "drawio", "dxf", "stl", "chart"];
+  var USAGE_TAB_ORDER = ["cli", "node", "python", "rust"];
+  var DESKTOP = window.matchMedia("(min-width: 861px)");
 
   var state = {
     lang: "en",
+    page: document.body.getAttribute("data-page") || "home",
     content: null,
     formats: null,
-    activeCategory: "all",
-    activeUsageTab: "cli"
+    usageTab: "cli",
+    query: "",
+    reverseOnly: new URLSearchParams(location.search).get("reverse") === "1"
   };
+
+  // --- helpers -------------------------------------------------------------
+
+  function el(tag, props, children) {
+    var node = document.createElement(tag);
+    props = props || {};
+    Object.keys(props).forEach(function (key) {
+      var value = props[key];
+      if (value === undefined || value === null || value === false) return;
+      if (key === "className") node.className = value;
+      else if (key === "text") node.textContent = value;
+      else node.setAttribute(key, value === true ? "" : value);
+    });
+    (children || []).forEach(function (child) {
+      if (child === null || child === undefined) return;
+      node.appendChild(typeof child === "string" ? document.createTextNode(child) : child);
+    });
+    return node;
+  }
+
+  function strings() { return state.content.strings[state.lang]; }
+
+  function isInternal(href) {
+    return !/^[a-z]+:/i.test(href) && /\.html(#|$)/.test(href);
+  }
+
+  // Internal page links carry the language so it survives without localStorage.
+  function localize(href) {
+    if (!isInternal(href)) return href;
+    var parts = href.split("#");
+    return parts[0] + "?lang=" + state.lang + (parts[1] ? "#" + parts[1] : "");
+  }
+
+  function link(href, text, className) {
+    var external = /^https?:/.test(href);
+    return el("a", {
+      href: localize(href),
+      className: className,
+      text: text,
+      rel: external ? "noopener" : null
+    });
+  }
 
   function extTokens(ext) {
     return ext.split("/").map(function (s) { return s.trim(); }).filter(Boolean);
@@ -70,44 +140,191 @@
     return ext.split(/[\s/]+/).filter(Boolean)[0] || ext;
   }
 
-  function get(obj, path) {
-    return path.split(".").reduce(function (o, k) {
-      return o && o[k] !== undefined ? o[k] : undefined;
-    }, obj);
+  function allItems() {
+    var items = [];
+    state.formats.categories.forEach(function (cat) { items = items.concat(cat.items); });
+    return items;
   }
 
   function detectDefaultLang(content) {
+    var q = new URLSearchParams(location.search).get("lang");
+    if (q && content.strings[q]) return q;
     try {
       var saved = localStorage.getItem("docsvg-lang");
       if (saved && content.strings[saved]) return saved;
     } catch (e) {}
-    var params = new URLSearchParams(location.search);
-    var q = params.get("lang");
-    if (q && content.strings[q]) return q;
     var nav = (navigator.language || "en").toLowerCase();
     if (nav.indexOf("ja") === 0) return "ja";
     if (nav.indexOf("zh") === 0) return "zh";
     return content.defaultLang || "en";
   }
 
-  function applyI18n() {
-    var strings = state.content.strings[state.lang];
-    document.documentElement.lang = state.lang;
-    document.querySelectorAll("[data-i18n]").forEach(function (el) {
-      var value = get(strings, el.getAttribute("data-i18n"));
-      if (typeof value === "string") el.textContent = value;
+  // --- shared chrome -------------------------------------------------------
+
+  function renderHeader() {
+    var s = strings().site;
+    var header = document.getElementById("site-header");
+    header.innerHTML = "";
+    var nav = el("nav", { className: "topnav", "aria-label": "Site" });
+    PAGES.slice(1).forEach(function (entry) {
+      var a = link(entry[1], s.nav[entry[0]]);
+      if (entry[0] === state.page) a.setAttribute("aria-current", "page");
+      nav.appendChild(a);
     });
-    var metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc && strings.meta) metaDesc.setAttribute("content", strings.meta.description);
-    document.querySelectorAll(".langswitch button").forEach(function (btn) {
-      btn.setAttribute("aria-pressed", String(btn.getAttribute("data-lang") === state.lang));
+    nav.appendChild(link(REPO, s.nav.github));
+
+    var langs = el("div", { className: "langswitch", role: "group", "aria-label": "Language" });
+    state.content.languages.forEach(function (lang) {
+      var btn = el("button", {
+        type: "button",
+        text: lang.code === "en" ? "EN" : lang.label,
+        "aria-pressed": String(lang.code === state.lang)
+      });
+      btn.addEventListener("click", function () { setLang(lang.code); });
+      langs.appendChild(btn);
+    });
+
+    header.appendChild(el("div", { className: "topbar-inner" }, [
+      link("index.html", "document-svg", "brand plain"),
+      nav,
+      langs
+    ]));
+  }
+
+  function renderFooter() {
+    var f = strings().site.footer;
+    var footer = document.getElementById("site-footer");
+    footer.innerHTML = "";
+    footer.appendChild(el("div", { className: "footer-links" }, [
+      link(REPO, f.repo),
+      link(REPO + "/releases", f.releases),
+      link(REPO + "/tree/main/docs", f.docs),
+      link(REPO + "/blob/main/docs/SUPPORT.md", f.support),
+      link(REPO + "/blob/main/docs/ARCHITECTURE.md", f.architecture)
+    ]));
+    footer.appendChild(el("p", { text: f.tagline }));
+  }
+
+  function applyMeta() {
+    var meta = strings()[state.page].meta;
+    document.documentElement.lang = state.lang;
+    document.title = meta.title;
+    var desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute("content", meta.description);
+  }
+
+  // Sidebar: a sticky list on wide screens, a collapsible "On this page" on phones.
+  function sidebar(entries) {
+    var list = el("ol");
+    entries.forEach(function (entry) {
+      list.appendChild(el("li", {}, [el("a", { href: "#" + entry.id, text: entry.label, "data-target": entry.id })]));
+    });
+    var details = el("details", { className: "sidenav" }, [
+      el("summary", { text: strings().site.toc }),
+      el("nav", { "aria-label": strings().site.toc }, [list])
+    ]);
+    details.open = DESKTOP.matches;
+    list.addEventListener("click", function (event) {
+      if (event.target.tagName === "A" && !DESKTOP.matches) details.open = false;
+    });
+    return details;
+  }
+
+  function pageHead(title, description) {
+    return el("div", { className: "page-head" }, [
+      el("h1", { text: title }),
+      el("p", { text: description })
+    ]);
+  }
+
+  function withSidebar(main, entries, body) {
+    main.className = "wrap page-grid";
+    main.appendChild(sidebar(entries));
+    main.appendChild(el("article", { className: "page-body" }, body));
+  }
+
+  function linkList(links) {
+    if (!links || !links.length) return null;
+    return el("p", { className: "text-links" }, links.map(function (l) {
+      return link(l.href, l.label + " →");
+    }));
+  }
+
+  function card(item, href) {
+    var children = [
+      el("div", { className: "ico", text: item.icon, "aria-hidden": "true" }),
+      el("h3", { text: item.title }),
+      el("p", { text: item.description || item.summary })
+    ];
+    if (href) return el("a", { className: "usecase-card plain linked", href: localize(href) }, children);
+    return el("div", { className: "usecase-card" }, children);
+  }
+
+  function galleryCard(item, sampleKey, title, category) {
+    var s = strings().samples;
+    var svgPath = "assets/samples/" + sampleKey + "/page-0001.svg";
+    var links = el("div", { className: "gallery-links" }, [
+      el("a", { href: svgPath, target: "_blank", rel: "noopener", text: s.viewSvg })
+    ]);
+    if (SAMPLE_SOURCE_FILES[sampleKey]) {
+      links.appendChild(el("a", {
+        href: REPO_RAW + SAMPLE_SOURCE_FILES[sampleKey], target: "_blank", rel: "noopener", text: s.viewSource
+      }));
+    }
+    return el("div", { className: "gallery-card" }, [
+      el("div", { className: "gallery-thumb" }, [el("img", { alt: title, src: svgPath, loading: "lazy" })]),
+      el("div", { className: "gallery-body" }, [
+        el("h4", { text: title }),
+        el("div", { className: "ext-tag", text: category.name[state.lang] }),
+        links
+      ])
+    ]);
+  }
+
+  // Every sample in formats.json, grouped by category, each key shown once.
+  function samplesByCategory() {
+    var seen = {};
+    return state.formats.categories.map(function (cat) {
+      var cards = [];
+      cat.items.forEach(function (item) {
+        if (!item.sample) return;
+        var keys = Array.isArray(item.sample) ? item.sample : [item.sample];
+        var tokens = extTokens(item.ext);
+        keys.forEach(function (key, i) {
+          if (seen[key]) return;
+          seen[key] = true;
+          cards.push({ item: item, cat: cat, key: key, title: (keys.length > 1 ? tokens[i] : firstExt(item.ext)) || key });
+        });
+      });
+      return { cat: cat, cards: cards };
+    }).filter(function (group) { return group.cards.length; });
+  }
+
+  function tierPill(value) {
+    if (!value) return el("span", { className: "tier-pill none", text: "—" });
+    var letter = value.trim().charAt(0);
+    return el("span", {
+      className: "tier-pill " + (["A", "B", "C"].indexOf(letter) >= 0 ? letter : "none"),
+      text: value
     });
   }
 
-  // Counted from formats.json so the headline numbers cannot drift from the map.
+  function tierLegend() {
+    var wrap = el("div", { className: "tier-legend" });
+    ["A", "B", "C"].forEach(function (tier) {
+      wrap.appendChild(el("div", { className: "tier-chip" }, [
+        el("div", { className: "tier-badge " + tier, text: tier }),
+        el("span", { text: state.formats.tiers[tier][state.lang] })
+      ]));
+    });
+    return wrap;
+  }
+
+  // --- home ----------------------------------------------------------------
+
   function renderStats() {
-    var items = [];
-    state.formats.categories.forEach(function (cat) { items = items.concat(cat.items); });
+    var s = strings().home.stats;
+    var items = allItems();
     var extensions = {};
     items.forEach(function (item) {
       if (!item.forward) return;
@@ -116,256 +333,288 @@
       });
     });
     var locale = state.lang === "zh" ? "zh-CN" : state.lang;
-    function show(id, n) { document.getElementById(id).textContent = n.toLocaleString(locale); }
-    show("stat-formats", items.filter(function (item) { return item.forward; }).length);
-    show("stat-extensions", Object.keys(extensions).length);
-    show("stat-reverse", items.filter(function (item) { return item.reverse; }).length);
-  }
-
-  function renderCards(gridId, items) {
-    var grid = document.getElementById(gridId);
-    grid.innerHTML = "";
-    (items || []).forEach(function (item) {
-      var card = document.createElement("div");
-      card.className = "usecase-card";
-      card.innerHTML =
-        '<div class="ico">' + item.icon + "</div>" +
-        "<h3></h3><p></p>";
-      card.querySelector("h3").textContent = item.title;
-      card.querySelector("p").textContent = item.description;
-      grid.appendChild(card);
-    });
-  }
-
-  function renderUseCases() {
-    var strings = state.content.strings[state.lang];
-    renderCards("why-grid", strings.whySection.items);
-    renderCards("usecases-grid", strings.useCasesSection.items);
-  }
-
-  function renderContract() {
-    var strings = state.content.strings[state.lang];
-    var list = document.getElementById("contract-list");
-    list.innerHTML = "";
-    (strings.forAISection.contractItems || []).forEach(function (text) {
-      var li = document.createElement("li");
-      li.textContent = text;
-      list.appendChild(li);
-    });
-  }
-
-  function renderTierLegend() {
-    var strings = state.content.strings[state.lang];
-    var wrap = document.getElementById("tier-legend");
-    wrap.innerHTML = "";
-    ["A", "B", "C"].forEach(function (tier) {
-      var chip = document.createElement("div");
-      chip.className = "tier-chip";
-      var badge = document.createElement("div");
-      badge.className = "tier-badge " + tier;
-      badge.textContent = tier;
-      var span = document.createElement("span");
-      span.textContent = state.formats.tiers[tier][state.lang];
-      chip.appendChild(badge);
-      chip.appendChild(span);
-      wrap.appendChild(chip);
-    });
-  }
-
-  function tierPill(value) {
-    if (!value) {
-      var none = document.createElement("span");
-      none.className = "tier-pill none";
-      none.textContent = "—";
-      return none;
+    function stat(n, label) {
+      return el("div", { className: "stat" }, [el("b", { text: n.toLocaleString(locale) }), el("span", { text: label })]);
     }
-    var pill = document.createElement("span");
-    var letter = value.trim().charAt(0);
-    pill.className = "tier-pill " + (["A", "B", "C"].indexOf(letter) >= 0 ? letter : "none");
-    pill.textContent = value;
-    return pill;
+    return el("div", { className: "stats" }, [
+      stat(items.filter(function (i) { return i.forward; }).length, s.formats),
+      stat(Object.keys(extensions).length, s.extensions),
+      stat(items.filter(function (i) { return i.reverse; }).length, s.reverse),
+      stat(0, s.uploads)
+    ]);
   }
 
-  function renderCategoryFilter() {
-    var strings = state.content.strings[state.lang];
-    var wrap = document.getElementById("category-filter");
-    wrap.innerHTML = "";
-    var allBtn = document.createElement("button");
-    allBtn.type = "button";
-    allBtn.textContent = strings.formatsSection.filterAll;
-    allBtn.setAttribute("aria-pressed", String(state.activeCategory === "all"));
-    allBtn.addEventListener("click", function () {
-      state.activeCategory = "all";
-      render();
+  function section(id, title, description, children) {
+    var head = el("div", { className: "section-head" }, [el("h2", { text: title }), description ? el("p", { text: description }) : null]);
+    return el("section", { id: id, className: "wrap" }, [head].concat(children));
+  }
+
+  function renderHome(main) {
+    var h = strings().home;
+    var useCases = strings().useCases.items;
+
+    var byKey = {};
+    samplesByCategory().forEach(function (group) {
+      group.cards.forEach(function (c) { byKey[c.key] = c; });
     });
-    wrap.appendChild(allBtn);
-    state.formats.categories.forEach(function (cat) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.textContent = cat.name[state.lang];
-      btn.setAttribute("aria-pressed", String(state.activeCategory === cat.id));
-      btn.addEventListener("click", function () {
-        state.activeCategory = cat.id;
-        render();
+
+    main.appendChild(el("header", { className: "wrap hero" }, [
+      el("span", { className: "eyebrow", text: h.hero.eyebrow }),
+      el("h1", { text: h.hero.title }),
+      el("p", { text: h.hero.description }),
+      el("div", { className: "hero-ctas" }, [
+        link("start.html", h.hero.ctaPrimary, "btn primary"),
+        link("formats.html", h.hero.ctaSecondary, "btn"),
+        link("samples.html", h.hero.ctaTertiary, "btn")
+      ]),
+      renderStats()
+    ]));
+
+    main.appendChild(section("why", h.why.title, h.why.description, [
+      el("div", { className: "usecases" }, h.why.items.map(function (item) { return card(item); }))
+    ]));
+
+    main.appendChild(section("use-cases", h.useCases.title, h.useCases.description, [
+      el("div", { className: "usecases" }, useCases.map(function (item) {
+        return card(item, "use-cases.html#" + item.id);
+      })),
+      linkList([{ href: "use-cases.html", label: h.useCases.more }])
+    ]));
+
+    main.appendChild(section("samples", h.samples.title, h.samples.description, [
+      el("div", { className: "gallery" }, HOME_SAMPLES.filter(function (k) { return byKey[k]; }).map(function (k) {
+        return galleryCard(byKey[k].item, k, byKey[k].title, byKey[k].cat);
+      })),
+      linkList([{ href: "samples.html", label: h.samples.more }])
+    ]));
+
+    main.appendChild(section("next", strings().site.next, null, [
+      el("div", { className: "next-grid" }, h.next.map(function (n) {
+        return el("a", { className: "next-card plain", href: localize(n.href) }, [
+          el("h3", { text: n.title + " →" }),
+          el("p", { text: n.description })
+        ]);
+      }))
+    ]));
+  }
+
+  // --- use cases -----------------------------------------------------------
+
+  function renderUseCases(main) {
+    var u = strings().useCases;
+    var body = [pageHead(u.title, u.description)];
+    u.items.forEach(function (item) {
+      var rows = el("dl", { className: "detail-grid" });
+      ["who", "problem", "after", "start"].forEach(function (key) {
+        rows.appendChild(el("dt", { text: u.labels[key] }));
+        rows.appendChild(el("dd", { text: item[key] }));
       });
-      wrap.appendChild(btn);
+      body.push(el("section", { id: item.id, className: "doc-section" }, [
+        el("h2", {}, [el("span", { className: "h-ico", text: item.icon, "aria-hidden": "true" }), item.title]),
+        el("p", { className: "lead", text: item.summary }),
+        rows,
+        linkList([item.link])
+      ]));
     });
+    withSidebar(main, u.items.map(function (i) { return { id: i.id, label: i.title }; }), body);
   }
 
-  function renderFormatsTable() {
-    var body = document.getElementById("formats-body");
-    body.innerHTML = "";
-    var cats = state.formats.categories.filter(function (c) {
-      return state.activeCategory === "all" || state.activeCategory === c.id;
-    });
-    cats.forEach(function (cat) {
-      var headRow = document.createElement("tr");
-      headRow.className = "cat-heading";
-      var headCell = document.createElement("td");
-      headCell.colSpan = 4;
-      headCell.textContent = cat.name[state.lang];
-      headRow.appendChild(headCell);
-      body.appendChild(headRow);
+  // --- formats -------------------------------------------------------------
 
-      cat.items.forEach(function (item) {
-        var row = document.createElement("tr");
+  function matches(item, cat, query) {
+    if (state.reverseOnly && !item.reverse) return false;
+    if (!query) return true;
+    var haystack = [item.ext, item.note[state.lang], item.note.en, cat.name[state.lang], cat.name.en].join(" ").toLowerCase();
+    return query.split(/\s+/).every(function (word) { return haystack.indexOf(word) >= 0; });
+  }
 
-        var extCell = document.createElement("td");
-        extCell.className = "ext";
+  function renderFormatRows(container, countNode, emptyNode) {
+    var f = strings().formats;
+    var query = state.query.trim().toLowerCase();
+    var total = 0;
+    container.innerHTML = "";
+    state.formats.categories.forEach(function (cat) {
+      var rows = cat.items.filter(function (item) { return matches(item, cat, query); });
+      total += rows.length;
+      var tbody = el("tbody");
+      rows.forEach(function (item) {
+        var ext = el("td", { className: "ext" });
         extTokens(item.ext).forEach(function (token, i) {
-          if (i > 0) extCell.appendChild(document.createTextNode(" "));
-          var code = document.createElement("code");
-          code.textContent = token;
-          extCell.appendChild(code);
+          if (i > 0) ext.appendChild(document.createTextNode(" "));
+          ext.appendChild(el("code", { text: token }));
         });
-        row.appendChild(extCell);
-
-        var fwdCell = document.createElement("td");
-        fwdCell.appendChild(tierPill(item.forward));
-        row.appendChild(fwdCell);
-
-        var revCell = document.createElement("td");
-        revCell.appendChild(tierPill(item.reverse));
-        row.appendChild(revCell);
-
-        var noteCell = document.createElement("td");
-        noteCell.className = "notes-cell";
-        noteCell.textContent = item.note[state.lang];
-        row.appendChild(noteCell);
-
-        body.appendChild(row);
+        tbody.appendChild(el("tr", {}, [
+          ext,
+          el("td", {}, [tierPill(item.forward)]),
+          el("td", {}, [tierPill(item.reverse)]),
+          el("td", { className: "notes-cell", text: item.note[state.lang] })
+        ]));
       });
+      var sec = el("section", { id: cat.id, className: "doc-section format-group" }, [
+        el("h2", {}, [cat.name[state.lang], el("span", { className: "count-chip", text: String(rows.length) })]),
+        el("div", { className: "table-scroll" }, [
+          el("table", { className: "formats" }, [
+            el("thead", {}, [el("tr", {}, [
+              el("th", { text: f.colExt }), el("th", { text: f.colForward }),
+              el("th", { text: f.colReverse }), el("th", { text: f.colNotes })
+            ])]),
+            tbody
+          ])
+        ])
+      ]);
+      sec.hidden = rows.length === 0;
+      container.appendChild(sec);
     });
+    countNode.textContent = f.count.replace("{n}", total.toLocaleString(state.lang === "zh" ? "zh-CN" : state.lang));
+    emptyNode.hidden = total > 0;
   }
 
-  function renderGallery() {
-    var strings = state.content.strings[state.lang];
-    var grid = document.getElementById("gallery-grid");
-    grid.innerHTML = "";
-    var seen = {};
-    state.formats.categories.forEach(function (cat) {
-      cat.items.forEach(function (item) {
-        if (!item.sample) return;
-        var samples = Array.isArray(item.sample) ? item.sample : [item.sample];
-        var tokens = extTokens(item.ext);
-        samples.forEach(function (sampleKey, idx) {
-          if (seen[sampleKey]) return;
-          seen[sampleKey] = true;
-          var card = document.createElement("div");
-          card.className = "gallery-card";
-          var svgPath = "assets/samples/" + sampleKey + "/page-0001.svg";
-          var sourceFile = SAMPLE_SOURCE_FILES[sampleKey];
-          card.innerHTML =
-            '<div class="gallery-thumb"><img alt="" src="' + svgPath + '"></div>' +
-            '<div class="gallery-body">' +
-            "<h4></h4>" +
-            '<div class="ext-tag"></div>' +
-            '<div class="gallery-links"></div>' +
-            "</div>";
-          card.querySelector("h4").textContent = (samples.length > 1 ? tokens[idx] : firstExt(item.ext)) || sampleKey;
-          card.querySelector(".ext-tag").textContent = item.note[state.lang].slice(0, 64) + (item.note[state.lang].length > 64 ? "…" : "");
-          var links = card.querySelector(".gallery-links");
-          var a1 = document.createElement("a");
-          a1.href = svgPath;
-          a1.target = "_blank";
-          a1.rel = "noopener";
-          a1.textContent = strings.gallerySection.viewSvg;
-          links.appendChild(a1);
-          if (sourceFile) {
-            var a2 = document.createElement("a");
-            a2.href = REPO_RAW + sourceFile;
-            a2.target = "_blank";
-            a2.rel = "noopener";
-            a2.textContent = strings.gallerySection.viewSource;
-            links.appendChild(a2);
-          }
-          grid.appendChild(card);
+  function renderFormats(main) {
+    var f = strings().formats;
+    var groups = el("div");
+    var count = el("span", { className: "result-count", "aria-live": "polite" });
+    var empty = el("p", { className: "empty-note", text: f.none });
+    var input = el("input", { type: "search", id: "format-search", placeholder: f.searchPlaceholder, autocomplete: "off" });
+    input.value = state.query;
+    input.addEventListener("input", function () {
+      state.query = input.value;
+      renderFormatRows(groups, count, empty);
+    });
+    var reverse = el("input", { type: "checkbox", id: "reverse-only" });
+    reverse.checked = state.reverseOnly;
+    reverse.addEventListener("change", function () {
+      state.reverseOnly = reverse.checked;
+      renderFormatRows(groups, count, empty);
+    });
+
+    var body = [
+      pageHead(f.title, f.description),
+      el("div", { className: "how-box" }, [
+        el("h2", { text: f.howTitle }),
+        el("ul", {}, f.how.map(function (t) { return el("li", { text: t }); })),
+        el("h3", { text: f.legendTitle }),
+        tierLegend()
+      ]),
+      el("div", { className: "search-bar" }, [
+        el("label", { for: "format-search", text: f.searchLabel }),
+        input,
+        el("label", { className: "check", for: "reverse-only" }, [reverse, f.reverseOnly]),
+        count
+      ]),
+      empty,
+      groups,
+      el("p", { className: "text-links" }, [link(REPO + "/issues", f.request + " →")])
+    ];
+    withSidebar(main, state.formats.categories.map(function (c) { return { id: c.id, label: c.name[state.lang] }; }), body);
+    renderFormatRows(groups, count, empty);
+  }
+
+  // --- samples -------------------------------------------------------------
+
+  function renderSamples(main) {
+    var s = strings().samples;
+    var groups = samplesByCategory();
+    var body = [pageHead(s.title, s.description)];
+    groups.forEach(function (group) {
+      body.push(el("section", { id: group.cat.id, className: "doc-section" }, [
+        el("h2", { text: group.cat.name[state.lang] }),
+        el("div", { className: "gallery" }, group.cards.map(function (c) { return galleryCard(c.item, c.key, c.title, c.cat); }))
+      ]));
+    });
+    withSidebar(main, groups.map(function (g) { return { id: g.cat.id, label: g.cat.name[state.lang] }; }), body);
+  }
+
+  // --- generic section pages (start, safety, ai) ---------------------------
+
+  function usageBlock() {
+    var tabs = el("div", { className: "usage-tabs", role: "tablist" });
+    var panels = el("div", { className: "usage-panels" });
+    function draw() {
+      tabs.innerHTML = "";
+      panels.innerHTML = "";
+      USAGE_TAB_ORDER.forEach(function (key) {
+        var btn = el("button", { type: "button", role: "tab", "aria-selected": String(state.usageTab === key), text: strings().usageTabs[key] });
+        btn.addEventListener("click", function () { state.usageTab = key; draw(); });
+        tabs.appendChild(btn);
+      });
+      (state.content.usageSnippets[state.usageTab] || []).forEach(function (snippet) {
+        panels.appendChild(el("div", { className: "usage-snippet" }, [
+          el("h4", {}, [snippet.caption[state.lang], el("span", { className: "lang-tag", text: snippet.lang })]),
+          el("pre", {}, [el("code", { text: snippet.code })])
+        ]));
+      });
+    }
+    draw();
+    return el("div", {}, [tabs, panels]);
+  }
+
+  function renderSectionPage(main) {
+    var p = strings()[state.page];
+    var body = [pageHead(p.title, p.description)];
+    p.sections.forEach(function (sec) {
+      var parts = [el("h2", { text: sec.title })];
+      (sec.paras || []).forEach(function (t) { parts.push(el("p", { text: t })); });
+      if (sec.cards) {
+        parts.push(el("div", { className: "info-grid" }, sec.cards.map(function (c) {
+          return el("div", { className: "info-card" }, [
+            el("h3", { text: c.title }),
+            el("p", { text: c.text }),
+            c.code ? el("pre", {}, [el("code", { text: c.code })]) : null
+          ]);
+        })));
+      }
+      if (sec.code) parts.push(el("pre", {}, [el("code", { text: sec.code })]));
+      if (sec.bullets) parts.push(el("ul", { className: "bullets" }, sec.bullets.map(function (t) { return el("li", { text: t }); })));
+      if (sec.usage) parts.push(usageBlock());
+      if (sec.contract) {
+        parts.push(el("ol", { className: "contract-list" }, p.contractItems.map(function (t) { return el("li", { text: t }); })));
+      }
+      parts.push(linkList(sec.links));
+      body.push(el("section", { id: sec.id, className: "doc-section" }, parts));
+    });
+    withSidebar(main, p.sections.map(function (s) { return { id: s.id, label: s.title }; }), body);
+  }
+
+  // --- wiring --------------------------------------------------------------
+
+  var observer = null;
+
+  function watchSections(main) {
+    if (observer) observer.disconnect();
+    var links = main.querySelectorAll(".sidenav a[data-target]");
+    if (!links.length || !("IntersectionObserver" in window)) return;
+    observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        links.forEach(function (a) {
+          a.setAttribute("aria-current", String(a.getAttribute("data-target") === entry.target.id));
         });
       });
-    });
-  }
-
-  var USAGE_TAB_ORDER = ["cli", "node", "python", "rust"];
-
-  function renderUsageTabs() {
-    var strings = state.content.strings[state.lang];
-    var tabLabels = strings.usageSection.tabs;
-    var wrap = document.getElementById("usage-tabs");
-    wrap.innerHTML = "";
-    USAGE_TAB_ORDER.forEach(function (key) {
-      var btn = document.createElement("button");
-      btn.type = "button";
-      btn.setAttribute("role", "tab");
-      btn.setAttribute("aria-selected", String(state.activeUsageTab === key));
-      btn.textContent = tabLabels[key];
-      btn.addEventListener("click", function () {
-        state.activeUsageTab = key;
-        renderUsageTabs();
-        renderUsagePanels();
-      });
-      wrap.appendChild(btn);
-    });
-  }
-
-  function renderUsagePanels() {
-    var wrap = document.getElementById("usage-panels");
-    wrap.innerHTML = "";
-    USAGE_TAB_ORDER.forEach(function (key) {
-      var panel = document.createElement("div");
-      panel.className = "usage-panel";
-      panel.hidden = state.activeUsageTab !== key;
-      (state.content.usageSnippets[key] || []).forEach(function (snippet) {
-        var card = document.createElement("div");
-        card.className = "usage-snippet";
-        var heading = document.createElement("h4");
-        var langTag = document.createElement("span");
-        langTag.className = "lang-tag";
-        langTag.textContent = snippet.lang;
-        heading.appendChild(document.createTextNode(snippet.caption[state.lang]));
-        heading.appendChild(langTag);
-        var pre = document.createElement("pre");
-        var code = document.createElement("code");
-        code.textContent = snippet.code;
-        pre.appendChild(code);
-        card.appendChild(heading);
-        card.appendChild(pre);
-        panel.appendChild(card);
-      });
-      wrap.appendChild(panel);
+    }, { rootMargin: "0px 0px -70% 0px" });
+    links.forEach(function (a) {
+      var target = document.getElementById(a.getAttribute("data-target"));
+      if (target) observer.observe(target);
     });
   }
 
   function render() {
-    applyI18n();
-    renderStats();
-    renderUseCases();
-    renderContract();
-    renderTierLegend();
-    renderCategoryFilter();
-    renderFormatsTable();
-    renderGallery();
-    renderUsageTabs();
-    renderUsagePanels();
+    applyMeta();
+    renderHeader();
+    renderFooter();
+    var main = document.getElementById("main");
+    main.innerHTML = "";
+    main.className = "";
+    var renderers = {
+      home: renderHome,
+      useCases: renderUseCases,
+      formats: renderFormats,
+      samples: renderSamples,
+      start: renderSectionPage,
+      safety: renderSectionPage,
+      ai: renderSectionPage
+    };
+    renderers[state.page](main);
+    watchSections(main);
   }
 
   function setLang(lang) {
@@ -377,11 +626,17 @@
     render();
   }
 
-  document.querySelectorAll(".langswitch button").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      setLang(btn.getAttribute("data-lang"));
-    });
+  DESKTOP.addEventListener("change", function () {
+    var nav = document.querySelector(".sidenav");
+    if (nav) nav.open = DESKTOP.matches;
   });
+
+  var oldAnchor = location.hash.slice(1);
+  if (state.page === "home" && OLD_ANCHORS[oldAnchor]) {
+    var target = OLD_ANCHORS[oldAnchor].split("#");
+    location.replace(target[0] + location.search + (target[1] ? "#" + target[1] : ""));
+    return;
+  }
 
   Promise.all([
     fetch("assets/data/content.json").then(function (r) { return r.json(); }),
@@ -391,6 +646,11 @@
     state.formats = results[1];
     state.lang = detectDefaultLang(state.content);
     render();
+    // The content is rendered after load, so the browser could not jump to the hash itself.
+    if (location.hash) {
+      var node = document.getElementById(decodeURIComponent(location.hash.slice(1)));
+      if (node) node.scrollIntoView();
+    }
   }).catch(function (err) {
     console.error("document-svg site: failed to load data", err);
   });
