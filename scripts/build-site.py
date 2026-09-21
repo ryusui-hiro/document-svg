@@ -25,6 +25,8 @@ REPO = "https://github.com/ryusui-hiro/document-svg"
 REPO_RAW = REPO + "/blob/main/samples/source/"
 # Social preview card; assets/og.svg is its source.
 OG_IMAGE = BASE_URL + "assets/og.png"
+# Google Search Console ownership token for the URL-prefix property above; public by design.
+GOOGLE_SITE_VERIFICATION = "sye-NAawOjxnr-8EcugowaQyv_USJT87rgJIHBKPo3w"
 
 PAGES = [
     ("home", "index.html"),
@@ -174,6 +176,7 @@ class Page:
 <meta property="og:image:height" content="630" />
 <meta property="og:image:alt" content="{e(site['ogImageAlt'])}" />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="google-site-verification" content="{GOOGLE_SITE_VERIFICATION}" />
 <link rel="icon" href="{ICON}" />
 <link rel="stylesheet" href="{self.prefix}assets/style.css" />
 <link rel="alternate" type="text/plain" href="{self.prefix}llms.txt" title="llms.txt" />{structured}
