@@ -47,6 +47,8 @@ DOCX, XLSX, draw.io, DXF, G-code, STL, and several other native formats.
 
 ## Project site pages
 
+English pages are listed; the same pages exist in Japanese under /ja/ and Chinese under /zh/.
+
 - Use cases, each with the problem, the result and how to begin: https://ryusui-hiro.github.io/document-svg/use-cases.html
 - Searchable format list: https://ryusui-hiro.github.io/document-svg/formats.html
 - Getting started (install, first conversion, reading the report): https://ryusui-hiro.github.io/document-svg/start.html

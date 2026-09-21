@@ -5,3 +5,9 @@ tests/fixtures/*.emlx -text
 tests/fixtures/*.fdf -text
 tests/fixtures/*.pdf -text
 tests/fixtures/*.warc -text
+
+# Written by scripts/build-site.py; edit site/assets/data/*.json instead.
+site/*.html linguist-generated=true
+site/ja/*.html linguist-generated=true
+site/zh/*.html linguist-generated=true
+site/sitemap.xml linguist-generated=true

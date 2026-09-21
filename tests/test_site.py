@@ -1,15 +1,58 @@
 """Consistency checks for the static project site under site/."""
 
+from html.parser import HTMLParser
+import importlib.util
 import json
 from pathlib import Path
-import re
+from urllib.parse import urlsplit
 
-SITE = Path(__file__).resolve().parents[1] / "site"
+ROOT = Path(__file__).resolve().parents[1]
+SITE = ROOT / "site"
+SPEC = importlib.util.spec_from_file_location("build_site", ROOT / "scripts/build-site.py")
+build = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(build)
+
 CONTENT = json.loads((SITE / "assets/data/content.json").read_text(encoding="utf-8"))
 FORMATS = json.loads((SITE / "assets/data/formats.json").read_text(encoding="utf-8"))
 LANGS = [lang["code"] for lang in CONTENT["languages"]]
-APP = (SITE / "assets/app.js").read_text(encoding="utf-8")
-PAGES = dict(re.findall(r'\["(\w+)", "([\w-]+\.html)"\]', APP))
+HTML_FILES = sorted(p for p in build.outputs() if p.suffix == ".html")
+
+
+class Collect(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.ids = set()
+        self.refs = []
+        self.links = {}
+        self.h1 = 0
+        self.title = ""
+        self._in_title = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if "id" in attrs:
+            self.ids.add(attrs["id"])
+        for key in ("href", "src"):
+            if attrs.get(key) and tag in ("a", "img", "script", "link"):
+                self.refs.append(attrs[key])
+        if tag == "link":
+            self.links.setdefault(attrs.get("rel"), []).append(attrs)
+        if tag == "h1":
+            self.h1 += 1
+        self._in_title = tag == "title"
+
+    def handle_data(self, data):
+        if self._in_title:
+            self.title += data
+
+    def handle_endtag(self, tag):
+        self._in_title = False
+
+
+def parse(path):
+    parser = Collect()
+    parser.feed(path.read_text(encoding="utf-8"))
+    return parser
 
 
 def shape(value):
@@ -20,26 +63,10 @@ def shape(value):
     return type(value).__name__
 
 
-def walk(value):
-    if isinstance(value, dict):
-        yield value
-        for item in value.values():
-            yield from walk(item)
-    elif isinstance(value, list):
-        for item in value:
-            yield from walk(item)
-
-
-def anchors(page):
-    """Section ids a page renders, as app.js builds them."""
-    strings = CONTENT["strings"]["en"][page]
-    if page == "home":
-        return {"why", "use-cases", "samples", "next"}
-    if page == "useCases":
-        return {item["id"] for item in strings["items"]}
-    if page in ("formats", "samples"):
-        return {category["id"] for category in FORMATS["categories"]}
-    return {section["id"] for section in strings["sections"]}
+def test_generated_pages_are_up_to_date():
+    stale = [str(path.relative_to(ROOT)) for path, text in build.outputs().items()
+             if not path.exists() or path.read_text(encoding="utf-8") != text]
+    assert not stale, "run python3 scripts/build-site.py: " + ", ".join(stale)
 
 
 def test_every_language_has_the_same_strings():
@@ -48,47 +75,49 @@ def test_every_language_has_the_same_strings():
         assert shape(CONTENT["strings"][lang]) == reference, lang
 
 
-def test_every_page_has_a_shell_and_copy():
-    assert set(PAGES) == {"home", "useCases", "formats", "samples", "start", "safety", "ai"}
-    for page, filename in PAGES.items():
-        html = (SITE / filename).read_text(encoding="utf-8")
-        assert f'<body data-page="{page}">' in html, filename
-        for lang in LANGS:
-            meta = CONTENT["strings"][lang][page]["meta"]
-            assert meta["title"] and meta["description"], (lang, page)
-            assert CONTENT["strings"][lang]["site"]["nav"][page], (lang, page)
+def test_every_page_exists_in_every_language():
+    assert len(HTML_FILES) == len(build.PAGES) * len(build.LANG_DIRS)
+    for lang, folder in build.LANG_DIRS.items():
+        for key, filename in build.PAGES:
+            assert (SITE / folder / filename).is_file(), (lang, filename)
 
 
-def test_internal_links_point_at_real_pages_and_sections():
-    by_file = {filename: page for page, filename in PAGES.items()}
-    for lang in LANGS:
-        for node in walk(CONTENT["strings"][lang]):
-            href = node.get("href")
-            if not isinstance(href, str) or href.startswith("http"):
+def test_local_links_and_anchors_resolve():
+    ids = {path: parse(path).ids for path in HTML_FILES}
+    for path in HTML_FILES:
+        for ref in parse(path).refs:
+            parts = urlsplit(ref)
+            if parts.scheme or ref.startswith("data:"):
                 continue
-            path, _, fragment = href.partition("#")
-            assert (SITE / path).is_file(), (lang, href)
-            if fragment:
-                assert fragment in anchors(by_file[path]), (lang, href)
+            target = (path.parent / parts.path).resolve() if parts.path else path
+            assert target.is_file(), f"{path.relative_to(SITE)} → {ref}"
+            if parts.fragment and target.suffix == ".html":
+                assert parts.fragment in ids[target], f"{path.relative_to(SITE)} → {ref}"
+
+
+def test_pages_carry_search_metadata():
+    for path in HTML_FILES:
+        page = parse(path)
+        rel = path.relative_to(SITE)
+        assert page.title.strip() and page.h1 == 1, rel
+        canonical = page.links["canonical"][0]["href"]
+        assert canonical.startswith(build.BASE_URL), rel
+        hreflangs = {link["hreflang"] for link in page.links["alternate"] if "hreflang" in link}
+        assert hreflangs == set(build.HREFLANG.values()) | {"x-default"}, rel
+
+
+def test_sitemap_lists_every_page():
+    sitemap = (SITE / "sitemap.xml").read_text(encoding="utf-8")
+    assert sitemap.count("<loc>") == len(HTML_FILES)
 
 
 def test_every_referenced_sample_is_published():
     for category in FORMATS["categories"]:
+        assert set(category["name"]) >= set(LANGS), category["id"]
         for item in category["items"]:
             samples = item.get("sample") or []
             for key in [samples] if isinstance(samples, str) else samples:
                 assert (SITE / "assets/samples" / key / "page-0001.svg").is_file(), key
             assert set(item["note"]) >= set(LANGS), item["ext"]
-
-
-def test_home_highlights_exist():
-    keys = re.search(r"HOME_SAMPLES = \[([^\]]+)\]", APP).group(1)
-    for key in re.findall(r'"([\w-]+)"', keys):
-        assert (SITE / "assets/samples" / key / "page-0001.svg").is_file(), key
-
-
-def test_tier_legend_and_categories_are_translated():
     for tier in ("A", "B", "C"):
         assert set(FORMATS["tiers"][tier]) >= set(LANGS)
-    for category in FORMATS["categories"]:
-        assert set(category["name"]) >= set(LANGS), category["id"]
