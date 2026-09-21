@@ -51,6 +51,8 @@ English pages are listed; the same pages exist in Japanese under /ja/ and Chines
 
 - Use cases, each with the problem, the result and how to begin: https://ryusui-hiro.github.io/document-svg/use-cases.html
 - Searchable format list: https://ryusui-hiro.github.io/document-svg/formats.html
+- Developer reference (every function, option, default, result and error for the CLI, Node.js, Python, Rust and the browser): https://ryusui-hiro.github.io/document-svg/reference.html (also docs/API.md in the repository)
+- In-browser viewer demo (PDF/Office converted locally with WebAssembly): https://ryusui-hiro.github.io/document-svg/viewer/
 - Getting started (install, first conversion, reading the report): https://ryusui-hiro.github.io/document-svg/start.html
 - Safety and limits (what is never executed or uploaded, and what is not guaranteed): https://ryusui-hiro.github.io/document-svg/safety.html
 - For AI agents (Claude Code, Codex and Copilot setup): https://ryusui-hiro.github.io/document-svg/ai.html

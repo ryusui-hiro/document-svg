@@ -67,7 +67,7 @@ npm 和 pip 的软件包已经为 Windows、macOS 和 Linux 预编译好，不�
 | GitHub 发布页面 | [发布版本](https://github.com/ryusui-hiro/document-svg/releases) | 解压到的位置；把 `docsvg` 放到 `PATH` 中 |
 
 可以用 `npm ls document-svg`、`python -m pip show document-svg` 或 `docsvg --version` 确认是否已安装以及安装位置。
-Rust API 文档在 [docs.rs](https://docs.rs/document-svg)。GitHub Packages 上需要认证的 npm 镜像见 [docs/PUBLISHING.md](docs/PUBLISHING.md#installing-the-github-packages-mirror)。
+Rust API 文档在 [docs.rs](https://docs.rs/document-svg)。四种用法的全部函数、选项和默认值汇总在[开发者参考](docs/API.zh-CN.md)（[网站版](https://ryusui-hiro.github.io/document-svg/zh/reference.html)）中。GitHub Packages 上需要认证的 npm 镜像见 [docs/PUBLISHING.md](docs/PUBLISHING.md#installing-the-github-packages-mirror)。
 
 ## 试一试
 
@@ -143,7 +143,7 @@ API 文档在 [docs.rs](https://docs.rs/document-svg)。
 ### 只在浏览器里运行
 
 对于 PDF、Word、Excel 和 PowerPoint，有一个完全在浏览器里完成转换的 WebAssembly 版本，不需要服务器，也不会上传文件。
-它没有作为软件包发布，需要你从 [`bindings/wasm`](bindings/wasm/README.md) 自己构建。
+它没有作为软件包发布，需要你从 [`bindings/wasm`](bindings/wasm/README.md) 自己构建。构建之前可以先[在浏览器中试用](https://ryusui-hiro.github.io/document-svg/viewer/)。
 
 ## 在应用中显示页面
 

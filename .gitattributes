@@ -11,3 +11,4 @@ site/*.html linguist-generated=true
 site/ja/*.html linguist-generated=true
 site/zh/*.html linguist-generated=true
 site/sitemap.xml linguist-generated=true
+docs/API*.md linguist-generated=true

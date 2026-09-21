@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Add a developer reference in English, Japanese and Chinese — every function, option, default, result and error for the command line, Node.js, Python, Rust and the browser viewer, plus how to show pages in a web page — on the project site and as `docs/API.md`, generated from one source.
+- Publish a live in-browser viewer demo on the project site (`/viewer/`), built from the WebAssembly package when the site deploys.
 - Rewrite the Node.js preview guides (English, Japanese, Chinese) as a step-by-step walkthrough: convert on the server or in Electron's main process, show pages as images, tell people about warnings, add a copy button, and handle uploads and limits safely. Every example was run against the published package.
 
 ## 2.0.1 - 2026-09-21

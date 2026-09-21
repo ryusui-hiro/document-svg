@@ -182,6 +182,10 @@ and the [security policy](https://github.com/ryusui-hiro/document-svg/blob/main/
   [WebAssembly build](https://github.com/ryusui-hiro/document-svg/tree/main/bindings/wasm)
   you build yourself.
 
+## Reference
+
+Every function, option and default is listed in the [developer reference](https://ryusui-hiro.github.io/document-svg/reference.html).
+
 ## Building from source
 
 For contributors: `npm install && npm run build` in `bindings/node` builds the

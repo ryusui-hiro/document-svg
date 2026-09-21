@@ -171,14 +171,15 @@ fn main() -> Result<(), document_svg::Error> {
 }
 ```
 
-API documentation is on [docs.rs](https://docs.rs/document-svg).
+API documentation is on [docs.rs](https://docs.rs/document-svg). Every function and option for all four interfaces, with defaults, is in the [developer reference](docs/API.md) ([on the site](https://ryusui-hiro.github.io/document-svg/reference.html)).
 
 ### Only in the browser
 
 A separate WebAssembly build converts PDF, Word, Excel and PowerPoint files
 entirely inside the browser, without a server and without uploading the
 file. It is not published as a package; you build it yourself from
-[`bindings/wasm`](bindings/wasm/README.md).
+[`bindings/wasm`](bindings/wasm/README.md). [Try it in your browser](https://ryusui-hiro.github.io/document-svg/viewer/)
+before you build it.
 
 ## Show the pages in your app
 

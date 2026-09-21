@@ -30,3 +30,4 @@ __pycache__/
 .gh-extension/
 # Local tool settings (may hold machine-specific paths or permissions).
 .claude/settings.local.json
+/_site/

@@ -90,6 +90,8 @@ def test_local_links_and_anchors_resolve():
             if parts.scheme or ref.startswith("data:"):
                 continue
             target = (path.parent / parts.path).resolve() if parts.path else path
+            if target == (SITE / "viewer").resolve():
+                continue  # the browser viewer demo is built by scripts/stage-pages.sh at deploy time
             assert target.is_file(), f"{path.relative_to(SITE)} → {ref}"
             if parts.fragment and target.suffix == ".html":
                 assert parts.fragment in ids[target], f"{path.relative_to(SITE)} → {ref}"
@@ -131,3 +133,18 @@ def test_structured_data_and_social_card():
         blocks = text.split('<script type="application/ld+json">')[1:]
         types = [json.loads(block.split("</script>", 1)[0])["@type"] for block in blocks]
         assert "BreadcrumbList" in types, path.name
+
+
+def test_api_docs_are_generated_for_every_language():
+    for lang, name in build.MD_FILES.items():
+        text = (ROOT / name).read_text(encoding="utf-8")
+        assert text.startswith("# ") and "Do not edit by hand" in text, name
+        for section in CONTENT["strings"][lang]["reference"]["sections"]:
+            assert f"## {section['title']}" in text, (name, section["id"])
+
+
+def test_pages_workflow_stages_the_viewer():
+    workflow = (ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
+    assert "sh scripts/stage-pages.sh _site" in workflow and "path: _site" in workflow
+    stage = (ROOT / "scripts/stage-pages.sh").read_text(encoding="utf-8")
+    assert '"$OUT/viewer/web/"' in stage
