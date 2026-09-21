@@ -1,12 +1,12 @@
 # Security policy
 
-Only the latest release receives security fixes. Before the first release, the default branch is the supported development version.
+Only the latest release receives security fixes.
 
-Report vulnerabilities through GitHub's private vulnerability reporting on this repository once enabled. Do not post confidential documents, credentials, or exploit details in public issues. If the private reporting option is unavailable, wait until the maintainer enables it before submitting sensitive details.
+Report vulnerabilities privately through [GitHub's vulnerability reporting](https://github.com/ryusui-hiro/document-svg/security/advisories/new) (the Security tab → Report a vulnerability). Do not post confidential documents, credentials, or exploit details in public issues.
 
 Treat document input as untrusted. Use conversion limits and process isolation for public upload services. Conversion warnings require review; they do not certify security or visual fidelity.
 
-Changes require maintainer review. No workflow in this repository publishes packages automatically or receives publishing credentials. Repository-side protections must be activated after repository creation; CODEOWNERS alone does not enforce them.
+Changes require maintainer review. Packages are published only by workflows a maintainer starts by hand from `main`, in protected environments, with short-lived OIDC credentials from npm, PyPI and crates.io; no long-lived registry token is stored in the repository. Repository-side protections are configured on GitHub; CODEOWNERS alone does not enforce them (see [docs/REPOSITORY_SECURITY.md](docs/REPOSITORY_SECURITY.md)).
 
 ## Dependency maintenance
 

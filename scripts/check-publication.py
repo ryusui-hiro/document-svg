@@ -18,6 +18,11 @@ rules = [
     ("private key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
     ("GitHub token", re.compile(r"(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,})")),
     ("AWS access key", re.compile(r"(?:AKIA|ASIA)[A-Z0-9]{16}")),
+    ("npm token", re.compile(r"\bnpm_[A-Za-z0-9]{36}\b")),
+    ("PyPI token", re.compile(r"\bpypi-AgE[A-Za-z0-9_-]{50,}")),
+    ("Slack token", re.compile(r"\bxox[abposr]-[A-Za-z0-9-]{10,}")),
+    ("Google API key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
+    ("AI provider API key", re.compile(r"\bsk-(?:ant|proj)-[A-Za-z0-9_-]{20,}")),
 ]
 if names:
     rules.append(("internal organization name", re.compile("|".join(map(re.escape, names)), re.I)))

@@ -15,7 +15,7 @@
 | memory-oriented | page単位`PageConsumer`、ZIP part単位read、PDF jobs上限、input/entry/page/XML上限、mesh page budgetを実装 | 達成 |
 | high speed | release LTO、PDF bounded parallelism、OOXML streaming、formula cache、XLSX prefix grid、theme cacheを実装 | 達成 |
 | deterministic SVG | page番号・resource ID・float precisionを決定化。4形式の実入力を2回変換し全SVG hash一致 | 達成 |
-| 参照実装を踏まえた独立再実装 | `slidekit`のSVG契約と`pdfsvgpptx`のscene/QA方針を比較し、code/assetsをvendorせず独立実装。READMEとthird-party noticeに記録 | 達成 |
+| 参照実装を踏まえた独立再実装 | 非公開の参照実装2件のSVG契約とscene/QA方針を比較し、code/assetsをvendorせず独立実装。READMEとthird-party noticeに記録 | 達成 |
 | 精度改善の実測 | crop、table、callout、DOCX layout/OMML、PDF mesh/soft mask等のMAE・warning・IR比較を`BENCHMARKS.md`へ記録 | 達成 |
 
 ## 最終current-release smoke

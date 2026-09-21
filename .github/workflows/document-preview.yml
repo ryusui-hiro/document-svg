@@ -45,6 +45,12 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+    env:
+      # In a called workflow the github context belongs to the caller, so a
+      # caller's pull request also reports event_name == 'pull_request'.
+      # Only this repository's own pull requests build the proposed docsvg;
+      # every caller installs a released one and uses the actions from main.
+      SELF_TEST: ${{ github.repository == 'ryusui-hiro/document-svg' && github.event_name == 'pull_request' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -54,19 +60,19 @@ jobs:
       - name: Check out document-svg actions
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: ${{ github.event.pull_request.head.repo.full_name || 'ryusui-hiro/document-svg' }}
-          ref: ${{ github.event.pull_request.head.sha || 'main' }}
+          repository: ${{ env.SELF_TEST == 'true' && github.event.pull_request.head.repo.full_name || 'ryusui-hiro/document-svg' }}
+          ref: ${{ env.SELF_TEST == 'true' && github.event.pull_request.head.sha || 'main' }}
           path: .document-svg-actions
           persist-credentials: false
 
       - name: Install docsvg
-        if: github.event_name != 'pull_request'
+        if: env.SELF_TEST != 'true'
         uses: ./.document-svg-actions/.github/actions/setup-docsvg
         with:
           version: ${{ inputs.docsvg-version || 'latest' }}
 
       - name: Build the pull request's docsvg
-        if: github.event_name == 'pull_request'
+        if: env.SELF_TEST == 'true'
         run: cargo build --release --locked --bin docsvg
 
       - name: Convert changed documents
@@ -79,7 +85,7 @@ jobs:
           output: document-svg-preview
           summary: preview-report.md
           max-documents: ${{ inputs.max-documents || 20 }}
-          docsvg: ${{ github.event_name == 'pull_request' && format('{0}/target/release/docsvg', github.workspace) || 'docsvg' }}
+          docsvg: ${{ env.SELF_TEST == 'true' && format('{0}/target/release/docsvg', github.workspace) || 'docsvg' }}
 
       - name: Upload SVG pages
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a

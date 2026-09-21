@@ -3,6 +3,9 @@
 ## Unreleased
 - Rewrite the English and Japanese READMEs, and add a Chinese README, for people deciding whether to use the project: what it does, why, how to try it, and its limits, in plain words. The full technical format matrix moves to `docs/FORMATS.md` and `docs/FORMATS.ja.md`.
 - Rewrite the npm and PyPI package READMEs around installing, previewing, reading warnings and safety, and describe the packages in the terms people search for. The package home pages now point to the project site.
+- Fix the reusable document preview workflow for other repositories: a caller's pull request no longer tries to build docsvg in the caller's repository or look for the actions there. Only this repository's own pull requests build the proposed docsvg.
+- The pull request preview now converts documents whose names contain non-ASCII characters (they were silently skipped), passes names starting with `-` safely, and shows file names, formats and warnings literally in the comment so they cannot add links, images or mentions.
+- Update the security policy: private vulnerability reporting is enabled, and packages are published only by manually started workflows with short-lived OIDC credentials. The publication check also recognises npm, PyPI, Slack, Google and AI provider keys.
 
 ## 2.0.0 - 2026-09-20
 - Add a bounded ISO 19115/19139 geographic metadata preview for `.iso19115`, `.iso19115.xml`, `.iso19139`, `.gmd.xml` and content-sniffed XML. Identification title/date/topic, hierarchy/language, CRS codes, geographic bounding boxes and quality/distribution counts render while abstract/lineage text, contact payloads, identifiers and online-resource URLs remain inert; no network retrieval or CRS transformation runs.
