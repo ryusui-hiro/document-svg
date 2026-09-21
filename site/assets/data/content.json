@@ -87,7 +87,7 @@
           {
             "icon": "🔍",
             "title": "See document changes in code review",
-            "description": "When a slide deck, spreadsheet or PDF changes in a pull request, reviewers normally see only \"binary file changed\". The included GitHub Action posts the changed pages as images, so people review what actually changed."
+            "description": "When a slide deck, spreadsheet, Word file or PDF changes in a pull request, reviewers normally see only \"binary file changed\". The included GitHub Action converts each changed document into pages you can download from the run, and comments with how many pages each one has and how many warnings came up."
           },
           {
             "icon": "🖥️",
@@ -253,7 +253,7 @@
           {
             "icon": "🔍",
             "title": "コードレビューで、文書の変更を目で見る",
-            "description": "プルリクエストでスライドや表計算、PDFが変わっても、ふだんは「バイナリファイルが変更されました」としか出ません。付属の GitHub Action を使えば、変わったページが画像でコメントに付きます。中身を見てレビューできます。"
+            "description": "プルリクエストでスライドや表計算、Word、PDFが変わっても、ふだんは「バイナリファイルが変更されました」としか出ません。付属の GitHub Action を使えば、変わった文書がページごとの画像になり、実行結果からダウンロードできます。文書ごとのページ数と警告の数は、コメントで知らせます。"
           },
           {
             "icon": "🖥️",
@@ -419,7 +419,7 @@
           {
             "icon": "🔍",
             "title": "在代码审查中直接看到文档改动",
-            "description": "有人在拉取请求里改了幻灯片、表格或 PDF，平时只能看到“二进制文件已更改”。用附带的 GitHub Action，改动后的页面会以图片形式贴到评论里，审查者看得到实际内容。"
+            "description": "有人在拉取请求里改了幻灯片、表格、Word 或 PDF，平时只能看到“二进制文件已更改”。用附带的 GitHub Action，每个改动的文档都会转换成页面，可以从运行结果中下载；每个文档有几页、出现了几条警告，会以评论形式告诉你。"
           },
           {
             "icon": "🖥️",
