@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Rewrite the Node.js preview guides (English, Japanese, Chinese) as a step-by-step walkthrough: convert on the server or in Electron's main process, show pages as images, tell people about warnings, add a copy button, and handle uploads and limits safely. Every example was run against the published package.
 
 ## 2.0.1 - 2026-09-21
 - The READMEs now list where each package is published and where it is installed (npm `node_modules`, pip `site-packages`, `~/.cargo/bin`), and how to check it. The sample guide opens with what the samples are for and how to try one.

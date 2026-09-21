@@ -1,158 +1,188 @@
-# document-svg 预览指南
+# 在应用中显示文档预览（Node.js）
 
 [日本語](preview.ja.md) · [English](preview.en.md) · [简体中文](preview.zh-CN.md)
 
-`document-svg` 是一个 Node.js 模块，可将支持的 PDF、Office/OpenDocument、网页/文本、图表、CAD 和 CAE 文件逐页转换为 SVG 预览。转换由 Rust 原生代码在 Node.js worker 中执行，不会阻塞事件循环。
+我们来把用户上传的 PDF、Word、Excel、PowerPoint、图表和 CAD 图纸显示在网页应用或 Electron 应用里。
+本指南会一步步讲到把每一页显示成图片为止。服务器上不需要安装 Office，文件也不会发送到任何地方。
 
-## 可以做什么
+哪些文件能用，可以在[支持格式列表](https://ryusui-hiro.github.io/document-svg/zh/formats.html)里查到。
 
-- 将 PDF、旧版 Word Binary `.doc`/`.dot`、仅提取文本的旧版 PowerPoint Binary `.ppt`、旧版 Excel（`.xls` / `.xlsb`）、PPTX、XLSX、DOCX、Flat OPC（`.flatopc` / `.fopc` / `.flatopc.xml`）、AASX（`.aasx`）、OpenSCAD（`.scad`）、AMF（`.amf`）、PLMXML（`.plmxml` / `.plm.xml`）、STEP-XML（`.stepxml` / `.stpx`）、QIF（`.qif` / `.qif.xml`）、B2MML/JDF（`.b2mml` / `.jdf`）、ODT/ODS、Visio Open XML（`.vsdx` / `.vsdm` / `.vstx` / `.vstm`）和旧版 Visio XML（`.vdx`）、iCalendar（`.ics`）、旧版 vCalendar（`.vcs`）、vCard 联系人（`.vcf` / `.vcard`）、MIME 邮件（`.eml`）、Apple Mail EMLX（`.emlx`）、Outlook 邮件（`.msg`）、MBOX 邮件归档（`.mbox`）、MHTML 网页归档（`.mht` / `.mhtml`）、DocBook 4/5（`.dbk` / `.docbook`）、DITA 主题/映射（`.dita` / `.ditamap`）、PDB 坐标模型（`.pdb` / `.ent`）、HWPX（`.hwpx`）、COLLADA（`.dae`）、X3D（`.x3d`）、XMind（`.xmind`）、NIfTI（`.nii` / `.nii.gz`）、FITS（`.fits` / `.fit` / `.fts` / `.fits.gz`）、MRC（`.mrc` / `.map` / `.mrc.gz`）、SQLite（`.sqlite` / `.sqlite3` / `.db`）、mmCIF/PDBx（`.cif` / `.mmcif`）、MOL2（`.mol2`）、RDF Turtle（`.ttl` / `.nt` / `.nq`）、EPS/PostScript（`.eps` / `.ps`）、DICOM 医学图像（`.dcm` / `.dicom`）、HTML、EPUB、Jupyter Notebook（`.ipynb`）、Quarto（`.qmd`）、R Markdown（`.Rmd`）、reStructuredText（`.rst` / `.rest`）、Org-mode（`.org`）、GNU gettext PO/POT 翻译目录（`.po` / `.pot`）、BibTeX 书目（`.bib` / `.bibtex`）、PNG/JPEG/BMP/GIF/WebP 位图、CBZ 漫画压缩包、独立 JPEG 2000（`.jp2`、`.j2k`、`.j2c`、`.jpc`、`.jpx`）、多页 TIFF/BigTIFF、glTF/GLB（`.gltf` / `.glb`）、OFF 多边形网格（`.off`）、IFC4 BIM（`.ifc` / `.ifczip`）、buildingSMART BCFZIP（`.bcfzip`）、KiCad PCB（`.kicad_pcb`）、ASCII XYZ/PCL PCD/ASTM E57/Leica PTS/PTX/ASPRS LAS/LAZ 点云（`.xyz` / `.pcd` / `.e57` / `.pts` / `.ptx` / `.las` / `.laz`）、Abaqus 网格文件（`.inp`）、LS-DYNA Keyword（`.k` / `.key`）、MEDIT ASCII/二进制（`.mesh` / `.meshb`）、Nastran Bulk Data（`.bdf` / `.nas`）、SU2 CFD 网格（`.su2`）、OpenFOAM（`.foam`）、ARFF 数据集（`.arff`）、JSON-LD 1.1（`.jsonld` / `.json-ld`）、NetCDF classic（`.nc`、`.nc3`、`.cdf`）、GraphML（`.graphml`）、GEXF（`.gexf`）、XGMML（`.xgmml`）、Graph Modeling Language（`.gml`）和带引号 CSV/TSV 表格、TOML 配置（`.toml`）、YAML 1.2 配置（`.yaml` / `.yml`）、通用 XML（`.xml` fallback）、Java Properties（`.properties`）、BPMN 2.0（`.bpmn` / `.bpmn2`）、CMMN 案例计划（`.cmmn`）、DMN 决策表（`.dmn`）、ReqIF 需求（`.reqif`）、XMI 模型（`.xmi`）、ESRI ASCII Grid 栅格（`.asc`）、dBASE III/III+ 表（`.dbf`）、GeoJSON/GeoRSS/GML/GPX/KML/KMZ/ESRI Shapefile（`.shp`）/WKT/EWKT、draw.io、VTK 和 CAD 等支持格式转换为每页一个完整的 SVG 字符串
-- 在内存中生成预览，不保留输出文件
-- 用于 Node.js 服务端、Electron main process 和服务端 TypeScript
-- 为 `<img>` 创建 Blob URL 或 Data URL
-- 将 SVG 图像或完整 XML 源码复制到剪贴板
-- 通过 `needsReview` 报告转换警告
-- 将 SVG 页面作为矢量图打包到 PPTX、DOCX 或 XLSX
+## 整体思路
 
-DICOMDIR（`DICOMDIR` 或 `.dicomdir`）按目录记录偏移遍历层级，并且只在 DICOMDIR 文件夹内解析 File ID。
+转换和显示在不同的地方进行。
 
-BCFZIP 问题包（`.bcfzip`）会渲染 buildingSMART 项目/主题元数据及有界的 markup 计数。快照图像、IFC/模型载荷、文档 URL 和协作操作保持惰性；不会执行或解析包内条目。
+1. **在 Node.js 端**（服务器，或 Electron 的主进程），`preview()` 把文件转换成每页一个 SVG 字符串。转换在单独的线程中运行，不会阻塞其他请求。
+2. **在界面端**（浏览器，或 Electron 的渲染进程），用 `document-svg/preview-ui` 把每个 SVG 显示成 `<img>` 图片。
 
-Flat OPC 包（`.flatopc` / `.fopc` / `.flatopc.xml`）会在验证后于内存中重建，并交给现有 DOCX/XLSX/PPTX 渲染器。宏、外部关系、URL、活动内容和文件系统提取保持惰性。
-
-AASX 包（`.aasx`）会渲染有界的 Asset Administration Shell 关系和规范元数据。补充 CAD/手册文件、标识符、值、URL、签名和加密材料保持惰性。
-
-Jupyter 笔记本仅显示文件中已保存的代码和输出，不会启动内核或执行代码。
-Quarto/R Markdown 代码块和 YAML 执行选项也不会被执行。
-
-它不是仅在浏览器中运行的 WASM 转换器。文档转换应在 Node.js 端执行；renderer 或浏览器端只使用`document-svg/preview-ui`。
+`preview-ui` 是一个不加载原生代码的小工具，可以放心打包进浏览器端代码。
+反过来，`preview()` 等转换功能不能在浏览器中运行。
 
 ## 安装
 
-发布后：
+需要 Node.js 18 或更高版本。
 
 ```bash
 npm install document-svg
 ```
 
-从本仓库试用：
+会一起装上适用于 Windows、macOS、Linux（x64 和 ARM64）的预编译原生代码，不需要 Rust。
+请不要禁用 npm 的可选依赖（optional dependencies），适合你系统的那一个就是从这里选出来的。
 
-```bash
-cd bindings/node
-npm install
-npm run build
-npm test
-```
-
-需要 Node.js 18 或更高版本。正式发布时，会同时安装与用户操作系统和CPU匹配的原生包。
-
-## 最小示例：取得SVG字符串
+## 第 1 步：在 Node.js 端转换
 
 ```js
 const { preview } = require('document-svg')
 
-async function main() {
-  const report = await preview('slides.pptx', { maxPages: 100 })
-  console.log(`${report.pageCount} pages`)
-  console.log(`review required: ${report.needsReview}`)
-  const firstPageSvg = report.pages[0]?.svg
-  console.log(firstPageSvg)
+async function renderPreview(filePath) {
+  const result = await preview(filePath, { maxPages: 50 })
+  return {
+    pages: result.pages.map((page) => ({
+      number: page.number,
+      svg: page.svg,
+      width: page.widthPoints,   // 单位为点（1 pt = 1/72 英寸）
+      height: page.heightPoints,
+    })),
+    needsReview: result.needsReview,
+    warnings: result.warnings,
+  }
 }
-main().catch(console.error)
 ```
 
-`report.pages`中的每个项目都包含页码、完整SVG、以pt为单位的宽高、警告和估算的IR大小。Promise完成前，临时转换文件会被删除。
-
-## 在`<img>`中显示
+`preview()` 接收文件路径。上传的文件请先保存到临时文件夹再传入。`preview()` 自己用到的临时文件会在它返回之前删除。
 
 ```js
-import {
-  createSvgPreviewUrl,
-  revokeSvgPreviewUrl,
-} from 'document-svg/preview-ui'
+const { mkdtemp, writeFile, rm } = require('node:fs/promises')
+const { join, extname, basename } = require('node:path')
+const { tmpdir } = require('node:os')
 
-const url = createSvgPreviewUrl(svgMarkup)
-imageElement.src = url
+async function renderUpload(buffer, originalName) {
+  const dir = await mkdtemp(join(tmpdir(), 'preview-'))
+  try {
+    // 格式按扩展名判断，所以要保留原来的扩展名
+    const file = join(dir, 'upload' + extname(basename(originalName)).toLowerCase())
+    await writeFile(file, buffer)
+    return await renderPreview(file)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+```
 
-// 更换页面或卸载视图时释放URL
+在 Electron 中，在主进程里转换，再把结果交给渲染进程：
+
+```js
+// main.js（主进程）
+const { ipcMain } = require('electron')
+ipcMain.handle('document:preview', (_event, filePath) => renderPreview(filePath))
+```
+
+## 第 2 步：显示在界面上
+
+把收到的 SVG 当作图片显示。
+
+```js
+import { createSvgPreviewUrl, revokeSvgPreviewUrl } from 'document-svg/preview-ui'
+
+const url = createSvgPreviewUrl(page.svg)
+image.src = url            // <img> 元素
+
+// 切换页面或关闭界面时释放
 revokeSvgPreviewUrl(url)
 ```
 
-如果需要跨进程、Markdown或renderer边界传递，Blob URL无法共享时可使用Data URL：
+`createSvgPreviewUrl()` 会在浏览器内存中创建 Blob URL，用完后务必用 `revokeSvgPreviewUrl()` 释放。
+在不能使用 Blob URL 的场合（把 URL 传给别的窗口或进程、嵌入 Markdown 等），可以改用 `createSvgPreviewDataUrl(page.svg)` 生成 `data:` URL。
+不过它的字符串要长得多，同一个页面内请优先使用 Blob URL。
+
+**不要用 `innerHTML` 把 SVG 内容插入页面。** `preview-ui` 会拒绝包含脚本、事件属性、外部 URL 或动画的 SVG，但它并不能让任意 SVG 都变得无害，所以请始终用 `<img>` 显示。
+以图片形式显示的文字无法选中或搜索。
+
+## 第 3 步：有近似处理时告诉用户
+
+没有报错，不代表页面和原件完全一样。
+图表或字体被近似处理或省略时，`needsReview` 会是 `true`，具体内容在 `warnings` 里。
 
 ```js
-import { createSvgPreviewDataUrl } from 'document-svg/preview-ui'
-imageElement.src = createSvgPreviewDataUrl(svgMarkup)
+const result = await preview(file)
+if (result.needsReview) {
+  banner.textContent = '此预览可能与原文档有差异。'
+  console.warn(result.warnings)
+}
 ```
 
-Data URL字符串更大，因此在同一个renderer中建议使用Blob URL。
+每一页也有自己的 `page.warnings`。重要文档请先和原件对照再使用。
+即使没有警告，也不保证和用 Office 打开时逐像素一致。比如文字会使用显示环境中已有的字体。
 
-## React示例
+## 添加复制按钮
 
-[`../examples/SvgPreview.tsx`](../examples/SvgPreview.tsx)包含Blob URL的创建与释放、复制操作，以及可访问的`aria-live`状态提示。
+```js
+import { copySvgToClipboard } from 'document-svg/preview-ui'
+
+copyButton.addEventListener('click', async () => {
+  const copied = await copySvgToClipboard(page.svg)
+  status.textContent = copied === 'image/svg+xml' ? '已复制图片' : '已复制 SVG 源码'
+})
+```
+
+不能以图片形式复制 SVG 的浏览器，会以文本形式复制 SVG 源码。想始终复制源码，请用 `copySvgSourceToClipboard()`。
+剪贴板只能在 HTTPS 或 localhost 页面中、由点击等用户操作触发时使用。
+
+## React 组件示例
+
+[`examples/SvgPreview.tsx`](../examples/SvgPreview.tsx) 是现成的组件，包含 Blob URL 的释放、复制按钮和成功/失败提示。
 
 ```tsx
-const report = await preview(filePath)
-return <SvgPreview svg={report.pages[currentPage].svg} />
+<SvgPreview svg={pages[currentPage].svg} />
 ```
 
-## 可运行的HTML示例
+## 把所有页面写到一个 HTML 文件
 
-附带示例可将文档的所有页面写入一个独立HTML预览文件：
+在开发界面之前，想先看看效果时很方便。
 
 ```bash
 npm run example:preview -- ./slides.pptx ./preview.html
 ```
 
-实现请参阅[`../examples/preview-to-html.cjs`](../examples/preview-to-html.cjs)。转换警告会显示在HTML中；需要人工检查时，进程退出码为`2`。
+用浏览器打开 `preview.html`，就能看到所有页面。有警告时会显示在页面中，退出码为 `2`。
+代码见 [`examples/preview-to-html.cjs`](../examples/preview-to-html.cjs)。
 
-## 复制到剪贴板
+## 大文件和公开服务的注意事项
+
+如果任何人都能向你的服务上传文件，请把所有文件都当作不可信的，并在单独的、限制了内存和时间的进程中运行转换。
+
+输入大小和页数默认就有上限。按用途调小是没问题的：
 
 ```js
-import { copySvgToClipboard } from 'document-svg/preview-ui'
-
-button.addEventListener('click', async () => {
-  const copiedType = await copySvgToClipboard(svgMarkup)
-  console.log(copiedType) // image/svg+xml 或 text/plain
+await preview(file, {
+  maxInputBytes: 64 * 1024 * 1024,      // 输入文件大小上限
+  maxPages: 50,                         // 转换页数上限
+  maxSvgBytes: 16 * 1024 * 1024,        // 单页 SVG 大小上限
+  maxTotalSvgBytes: 128 * 1024 * 1024,  // 所有页面 SVG 的总大小上限
+  jobs: 1,                              // 同时转换的页数
 })
 ```
 
-剪贴板API可能要求HTTPS或localhost环境，并且必须由点击等用户操作触发。如果浏览器不支持写入SVG MIME类型，辅助函数会将完整SVG源码作为文本复制。
+不要只是为了让难处理的文件通过而调高上限。上限是为了保护机器免受超大或损坏文件的影响。
 
-## 警告和安全限制
+## API 速查表
 
-```js
-const report = await preview('report.docx', {
-  maxInputBytes: 512 * 1024 * 1024,
-  maxZipEntryBytes: 128 * 1024 * 1024,
-  maxPages: 100,
-  maxXmlEvents: 20_000_000,
-  maxSvgBytes: 64 * 1024 * 1024,
-  maxTotalSvgBytes: 256 * 1024 * 1024,
-  jobs: 1,
-})
-
-if (report.needsReview) {
-  console.warn(report.warnings)
-  console.warn(report.pages.flatMap((page) => page.warnings))
-}
-```
-
-`preview-ui`会拒绝包含脚本、事件属性、外部URL、DOCTYPE或动画的SVG。请通过`<img>`显示预览，不要用`innerHTML`注入。重要文档应与原文件进行目视比较；没有警告并不代表与Office像素级完全一致。
-
-## API选择
-
-| API | 用途 | 是否保留文件 |
+| 使用 | 作用 | 是否留下文件 |
 |---|---|---|
-| `preview(input, options)` | 为UI返回SVG字符串 | 否 |
-| `convert(input, output, options)` | 批量转换并保存结果 | 是 |
-| `reverse(input, output, options)` | 将SVG放入Office文件 | 是 |
-| `createSvgPreviewUrl(svg)` | 在同一renderer的`<img>`中显示 | 仅Blob URL |
-| `createSvgPreviewDataUrl(svg)` | 跨进程边界显示 | 否 |
-| `copySvgToClipboard(svg)` | 复制图像或源码 | 否 |
+| `preview(file, options)` | 为了在界面上显示，拿到每页一个 SVG 字符串 | 否 |
+| `convert(file, folder, options)` | 把 SVG 文件和 `conversion.json` 报告写到文件夹 | 是 |
+| `reverse(svg, file)` | 把 SVG 页面打包成 PowerPoint、Word、Excel、CAD 等文件 | 是 |
+| `createSvgPreviewUrl(svg)` | 在同一页面的 `<img>` 中显示 | 否（Blob URL） |
+| `createSvgPreviewDataUrl(svg)` | 在别的窗口或进程中显示 | 否 |
+| `copySvgToClipboard(svg)` | 复制图片或源码 | 否 |
 
-生成的SVG以保留可编辑外观为目标，但不会保留段落、单元格、公式等Office语义结构。
+`reverse()` 转回去的是页面外观，段落、单元格和公式不会重建。
+
+## 了解更多
+
+- [Node.js 包的 README](../README.md)
+- [安全与局限](https://ryusui-hiro.github.io/document-svg/zh/safety.html)
+- [npm 软件包页面](https://www.npmjs.com/package/document-svg)
 
 ## 许可证
 
-`MIT OR Apache-2.0`，您可以选择其中一种。再分发时，必须按照所选许可证保留版权声明和许可证文本。参阅[完整条款](../LICENSE)。
+`MIT OR Apache-2.0`，任选其一。再分发时，请保留你所选许可证要求的版权声明和许可证文本（[LICENSE](../LICENSE)）。

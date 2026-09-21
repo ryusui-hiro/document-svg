@@ -1,158 +1,214 @@
-# document-svg preview guide
+# Show document previews in your app (Node.js)
 
 [日本語](preview.ja.md) · [English](preview.en.md) · [简体中文](preview.zh-CN.md)
 
-`document-svg` is a Node.js module that turns supported PDF, Office/OpenDocument/Visio (`.vsdx`, `.vsdm`, `.vstx`, `.vstm`, `.vdx`), iCalendar (`.ics`), legacy vCalendar (`.vcs`), vCard contacts (`.vcf`, `.vcard`), MIME e-mail (`.eml`), Apple Mail messages (`.emlx`), Outlook messages (`.msg`), MBOX archives (`.mbox`), MHTML web archives (`.mht`, `.mhtml`), DocBook 4/5 (`.dbk`, `.docbook`), DITA topics/maps (`.dita`, `.ditamap`), PDB coordinate models (`.pdb`, `.ent`), HWPX (`.hwpx`), COLLADA (`.dae`), X3D (`.x3d`), XMind (`.xmind`), NIfTI (`.nii`, `.nii.gz`), FITS (`.fits`, `.fit`, `.fts`, `.fits.gz`), MRC (`.mrc`, `.map`, `.mrc.gz`), SQLite (`.sqlite`, `.sqlite3`, `.db`), mmCIF/PDBx (`.cif`, `.mmcif`), MOL2 (`.mol2`), RDF Turtle (`.ttl`, `.nt`, `.nq`), EPS/PostScript (`.eps`, `.ps`), DICOM medical images (`.dcm`, `.dicom`), Jupyter notebooks, Quarto/R Markdown, reStructuredText (`.rst`, `.rest`), Org-mode (`.org`), GNU gettext catalogs (`.po`, `.pot`), BibTeX bibliographies (`.bib`, `.bibtex`), web/text, ARFF datasets (`.arff`), JSON-LD 1.1 (`.jsonld`, `.json-ld`), NetCDF classic (`.nc`, `.nc3`, `.cdf`), GraphML (`.graphml`), GEXF (`.gexf`), XGMML (`.xgmml`), Graph Modeling Language (`.gml`), CSV/TSV tables, TOML configuration (`.toml`), YAML 1.2 configuration (`.yaml`, `.yml`), generic XML (`.xml` fallback), Java Properties (`.properties`), BPMN 2.0 (`.bpmn`, `.bpmn2`), CMMN case plans (`.cmmn`), DMN decision tables (`.dmn`), ReqIF requirements (`.reqif`), XMI models (`.xmi`), diagram, CAD, simulation, glTF/GLB, raster PNG/JPEG/BMP/GIF/WebP, CBZ comic archives, standalone JPEG 2000 (`.jp2`, `.j2k`, `.j2c`, `.jpc`, `.jpx`), multi-page TIFF/BigTIFF, OFF polygon meshes, ASCII XYZ, PCL PCD, ASTM E57, Leica PTS/PTX and ASPRS LAS/LAZ point clouds, Abaqus, LS-DYNA, MEDIT ASCII/binary and Nastran mesh decks, GeoJSON, GeoRSS, GML, GPX, KML/KMZ, ESRI Shapefile, dBASE III/III+ tables, and WKT/EWKT maps into page-by-page SVG previews. Its Rust-native conversion runs on a Node.js worker, so it does not block the event loop.
+Let's show the PDFs, Word, Excel and PowerPoint files, diagrams and CAD
+drawings your users upload inside a web or Electron app. This guide walks
+through it step by step, up to showing each page as an image. You don't need
+Office on the server, and files are never sent anywhere.
 
-DICOMDIR media directories (`DICOMDIR` or `.dicomdir`) follow directory-record offsets and resolve File IDs only inside the DICOMDIR folder.
+Look up which files work in the [format list](https://ryusui-hiro.github.io/document-svg/formats.html).
 
-BCFZIP issue packages (`.bcfzip`) render buildingSMART project/topic metadata and bounded markup counts. Snapshot images, IFC/model payloads, document URLs and collaboration actions remain inert; package entries are never executed or dereferenced.
+## How it fits together
 
-Flat OPC packages (`.flatopc`, `.fopc`, `.flatopc.xml`) are validated and reconstructed in memory before using the existing DOCX/XLSX/PPTX renderers. Macros, external relationships, URLs, active content and filesystem extraction remain inert.
+Conversion and display happen in different places.
 
-AASX packages (`.aasx`) render bounded Asset Administration Shell relationship and specification metadata. Supplementary CAD/manual files, identifiers, values, URLs, signatures and encryption material remain inert.
+1. **On the Node.js side** (a server, or Electron's main process), `preview()`
+   turns the file into one SVG string per page. It runs on a separate thread,
+   so other requests keep being served.
+2. **On the screen side** (a browser, or Electron's renderer),
+   `document-svg/preview-ui` shows each SVG as an `<img>`.
 
-## What it can do
-
-- Convert supported inputs such as PDF, legacy Word Binary `.doc`/`.dot`, text-only legacy PowerPoint Binary `.ppt`, legacy Excel `.xls` and Excel Binary Workbook `.xlsb`, PPTX, XLSX, DOCX, Flat OPC (`.flatopc`, `.fopc`, `.flatopc.xml`), AASX (`.aasx`), OpenSCAD (`.scad`), AMF (`.amf`), PLMXML (`.plmxml`, `.plm.xml`), STEP-XML (`.stepxml`, `.stpx`), QIF (`.qif`, `.qif.xml`), B2MML/JDF/XJDF (`.b2mml`, `.jdf`, `.xjdf`), CDA/CCD (`.cda`, `.cda.xml`), ISO 20022 (`.iso20022.xml`), SBML (`.sbml`), CellML (`.cellml`), OCEL XML (`.xmlocel`), EnergyPlus IDF/EPW (`.idf`, `.epw`), RINEX (`.rnx`, `.obs`, `.nav`) and ACIS SAT (`.sat`), TMX/TBX (`.tmx`, `.tbx`), gbXML (`.gbxml`), FHIR XML (`.fhir.xml`) and Adobe IDML (`.idml`), ODT/ODS, Visio `.vsdx`/`.vsdm`/`.vstx`/`.vstm` and `.vdx`, iCalendar `.ics`, vCalendar `.vcs`, vCard `.vcf`/`.vcard`, EML `.eml`, Apple Mail `.emlx`, Outlook `.msg`, MBOX `.mbox`, MHTML `.mht`/`.mhtml`, HTML, DocBook 4/5 `.dbk`/`.docbook`, EPUB, Jupyter `.ipynb`, Quarto `.qmd`, R Markdown `.Rmd`, reStructuredText `.rst`/`.rest`, Org-mode `.org`, GNU gettext `.po`/`.pot`, BibTeX `.bib`/`.bibtex`, raster PNG/JPEG/BMP/GIF/WebP, CBZ comic archives, multi-page TIFF/BigTIFF, glTF/GLB `.gltf`/`.glb`, OFF `.off`, IFC4 BIM `.ifc`/`.ifczip`, buildingSMART BCFZIP `.bcfzip`, KiCad PCB `.kicad_pcb`, ASCII XYZ, ASTM E57 and Leica PTS/PTX point clouds, Abaqus `.inp`, LS-DYNA `.k`/`.key`, MEDIT `.mesh`/`.meshb`, Nastran `.bdf`/`.nas`, SU2 CFD `.su2`, OpenFOAM `.foam`, draw.io, quoted CSV/TSV tables, ESRI ASCII Grid rasters (`.asc`), dBASE III/III+ tables (`.dbf`), GeoJSON/GeoRSS/GML/GPX/KML/KMZ, WKT/EWKT maps, VTK and CAD files into complete SVG strings, one per page
-- Produce in-memory previews without retaining output files
-- Run in Node.js servers, Electron main processes, and server-side TypeScript
-- Create Blob URLs or Data URLs for an `<img>`
-- Copy an SVG image or its exact XML source to the clipboard
-- Surface conversion warnings through `needsReview`
-- Package SVG pages into PPTX, DOCX, or XLSX as vector images
-
-For Jupyter notebooks, the preview displays stored code and saved outputs; it never starts a kernel or runs notebook code.
-Quarto and R Markdown source chunks are also displayed without evaluating code or YAML execution options.
-
-This is not a browser-only WASM converter. Run document conversion in Node.js and use only `document-svg/preview-ui` in a renderer or browser context.
+`preview-ui` is a small helper that loads no native code, so it is safe to put
+in a browser bundle. The conversion itself (`preview()` and friends) does not
+run in a browser.
 
 ## Install
 
-After publication:
+Requires Node.js 18 or newer.
 
 ```bash
 npm install document-svg
 ```
 
-To try the repository build:
+Ready-made native code for Windows, macOS and Linux (x64 and ARM64) comes with
+it, so you don't need Rust. Keep npm's optional dependencies enabled: that is
+how the right one for your machine is chosen.
 
-```bash
-cd bindings/node
-npm install
-npm run build
-npm test
-```
-
-Node.js 18 or newer is required. A published release installs the native package matching the user's operating system and CPU.
-
-## Minimal example: get SVG markup
+## Step 1: convert on the Node.js side
 
 ```js
 const { preview } = require('document-svg')
 
-async function main() {
-  const report = await preview('slides.pptx', { maxPages: 100 })
-  console.log(`${report.pageCount} pages`)
-  console.log(`review required: ${report.needsReview}`)
-  const firstPageSvg = report.pages[0]?.svg
-  console.log(firstPageSvg)
+async function renderPreview(filePath) {
+  const result = await preview(filePath, { maxPages: 50 })
+  return {
+    pages: result.pages.map((page) => ({
+      number: page.number,
+      svg: page.svg,
+      width: page.widthPoints,   // in points (1 pt = 1/72 inch)
+      height: page.heightPoints,
+    })),
+    needsReview: result.needsReview,
+    warnings: result.warnings,
+  }
 }
-main().catch(console.error)
 ```
 
-Each entry in `report.pages` includes its page number, complete SVG, dimensions in points, warnings, and estimated IR size. Temporary conversion files are removed before the Promise resolves.
-
-## Display in an `<img>`
+`preview()` takes a file path. Save an uploaded file to a temporary folder
+first. The temporary files `preview()` makes for itself are removed before it
+returns.
 
 ```js
-import {
-  createSvgPreviewUrl,
-  revokeSvgPreviewUrl,
-} from 'document-svg/preview-ui'
+const { mkdtemp, writeFile, rm } = require('node:fs/promises')
+const { join, extname, basename } = require('node:path')
+const { tmpdir } = require('node:os')
 
-const url = createSvgPreviewUrl(svgMarkup)
-imageElement.src = url
+async function renderUpload(buffer, originalName) {
+  const dir = await mkdtemp(join(tmpdir(), 'preview-'))
+  try {
+    // The format is chosen by extension, so keep the original one
+    const file = join(dir, 'upload' + extname(basename(originalName)).toLowerCase())
+    await writeFile(file, buffer)
+    return await renderPreview(file)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+```
 
-// Release the URL when replacing the page or unmounting the view.
+In Electron, convert in the main process and hand the result to the renderer:
+
+```js
+// main.js (main process)
+const { ipcMain } = require('electron')
+ipcMain.handle('document:preview', (_event, filePath) => renderPreview(filePath))
+```
+
+## Step 2: show it on screen
+
+Show each SVG you receive as an image.
+
+```js
+import { createSvgPreviewUrl, revokeSvgPreviewUrl } from 'document-svg/preview-ui'
+
+const url = createSvgPreviewUrl(page.svg)
+image.src = url            // an <img> element
+
+// When switching pages or closing the view, release it
 revokeSvgPreviewUrl(url)
 ```
 
-Use a Data URL across process, Markdown, or renderer boundaries where Blob URLs cannot be shared:
+`createSvgPreviewUrl()` makes a Blob URL in the browser's memory; always
+release it with `revokeSvgPreviewUrl()`. Where a Blob URL can't be used — when
+passing the URL to another window or process, or embedding it in Markdown —
+`createSvgPreviewDataUrl(page.svg)` gives a `data:` URL instead. It is a much
+longer string, so prefer Blob URLs within one page.
+
+**Don't insert the SVG markup into your page with `innerHTML`.** `preview-ui`
+refuses SVG that contains scripts, event attributes, external URLs or
+animation, but it is not a filter that makes any SVG harmless, so always show
+pages with `<img>`. Text in an image cannot be selected or searched.
+
+## Step 3: tell people when something was approximated
+
+Finishing without an error does not mean the page looks exactly like the
+original. When a chart or a font had to be approximated or left out,
+`needsReview` is `true` and the details are in `warnings`.
 
 ```js
-import { createSvgPreviewDataUrl } from 'document-svg/preview-ui'
-imageElement.src = createSvgPreviewDataUrl(svgMarkup)
+const result = await preview(file)
+if (result.needsReview) {
+  banner.textContent = 'This preview may differ from the original document.'
+  console.warn(result.warnings)
+}
 ```
 
-Data URLs are larger strings, so prefer Blob URLs within one renderer.
+Each page also has its own `page.warnings`. Compare important documents with
+the original before relying on them. Even with no warnings, the pages are not
+guaranteed to match Office pixel for pixel: text, for example, uses the fonts
+available where it is shown.
 
-## React example
+## Add a copy button
 
-[`../examples/SvgPreview.tsx`](../examples/SvgPreview.tsx) includes Blob URL lifecycle management, copying, and an accessible `aria-live` status message.
+```js
+import { copySvgToClipboard } from 'document-svg/preview-ui'
+
+copyButton.addEventListener('click', async () => {
+  const copied = await copySvgToClipboard(page.svg)
+  status.textContent = copied === 'image/svg+xml' ? 'Image copied' : 'SVG source copied'
+})
+```
+
+Browsers that can't copy SVG as an image get the SVG source as text. Use
+`copySvgSourceToClipboard()` to always copy the source. The clipboard only
+works on HTTPS or localhost pages, when called from a user action such as a
+click.
+
+## A React component
+
+[`examples/SvgPreview.tsx`](../examples/SvgPreview.tsx) is a ready-made
+component with Blob URL cleanup, a copy button, and success/failure messages.
 
 ```tsx
-const report = await preview(filePath)
-return <SvgPreview svg={report.pages[currentPage].svg} />
+<SvgPreview svg={pages[currentPage].svg} />
 ```
 
-## Runnable HTML example
+## Write every page to one HTML file
 
-The included example converts every page into one standalone HTML preview:
+Handy for checking results before you build any UI.
 
 ```bash
 npm run example:preview -- ./slides.pptx ./preview.html
 ```
 
-See [`../examples/preview-to-html.cjs`](../examples/preview-to-html.cjs). It renders conversion warnings in the output and exits with status `2` when review is required.
+Open `preview.html` in a browser to see every page. Warnings are shown on the
+page and the exit code is `2`. The code is in
+[`examples/preview-to-html.cjs`](../examples/preview-to-html.cjs).
 
-## Copy to the clipboard
+## Large files and public services
+
+If anyone can upload files to your service, treat every file as untrusted, and
+run conversion in a separate process with memory and time limits.
+
+Input size and page count are limited by default. Lowering the limits for your
+use case is fine:
 
 ```js
-import { copySvgToClipboard } from 'document-svg/preview-ui'
-
-button.addEventListener('click', async () => {
-  const copiedType = await copySvgToClipboard(svgMarkup)
-  console.log(copiedType) // image/svg+xml or text/plain
+await preview(file, {
+  maxInputBytes: 64 * 1024 * 1024,      // largest input file
+  maxPages: 50,                         // most pages to convert
+  maxSvgBytes: 16 * 1024 * 1024,        // largest SVG for one page
+  maxTotalSvgBytes: 128 * 1024 * 1024,  // largest total for all pages
+  jobs: 1,                              // pages converted at once
 })
 ```
 
-Clipboard APIs may require HTTPS or localhost and a user gesture such as a click. When the browser cannot write the SVG MIME type, the helper copies the exact SVG source as text.
+Don't raise them just to push a difficult file through; they protect the
+machine from huge or broken files.
 
-## Warnings and limits
+## API at a glance
 
-```js
-const report = await preview('report.docx', {
-  maxInputBytes: 512 * 1024 * 1024,
-  maxZipEntryBytes: 128 * 1024 * 1024,
-  maxPages: 100,
-  maxXmlEvents: 20_000_000,
-  maxSvgBytes: 64 * 1024 * 1024,
-  maxTotalSvgBytes: 256 * 1024 * 1024,
-  jobs: 1,
-})
-
-if (report.needsReview) {
-  console.warn(report.warnings)
-  console.warn(report.pages.flatMap((page) => page.warnings))
-}
-```
-
-`preview-ui` rejects SVG containing scripts, event attributes, external URLs, DOCTYPE declarations, or animation. Display previews through `<img>` instead of injecting them with `innerHTML`. Visually compare important files with their originals; zero warnings does not promise pixel-identical Office layout.
-
-## Choosing an API
-
-| API | Use case | Keeps files |
+| Use | What it does | Leaves files? |
 |---|---|---|
-| `preview(input, options)` | SVG strings for a UI | No |
-| `convert(input, output, options)` | Batch conversion and saved artifacts | Yes |
-| `reverse(input, output, options)` | Put SVG into an Office file | Yes |
-| `createSvgPreviewUrl(svg)` | `<img>` in the same renderer | Blob URL only |
-| `createSvgPreviewDataUrl(svg)` | Preview across process boundaries | No |
-| `copySvgToClipboard(svg)` | Copy image or source | No |
+| `preview(file, options)` | Get one SVG string per page, for showing on screen | No |
+| `convert(file, folder, options)` | Write SVG files and a `conversion.json` report to a folder | Yes |
+| `reverse(svg, file)` | Package SVG pages as a PowerPoint, Word, Excel, CAD or other file | Yes |
+| `createSvgPreviewUrl(svg)` | Show a page in an `<img>` on the same page | No (a Blob URL) |
+| `createSvgPreviewDataUrl(svg)` | Show a page in another window or process | No |
+| `copySvgToClipboard(svg)` | Copy the image or its source | No |
 
-The generated SVG aims to preserve editable appearance. It does not preserve Office semantics such as paragraphs, cells, or formulas.
+`reverse()` brings back how pages look; paragraphs, cells and formulas are not
+rebuilt.
+
+## More
+
+- [Node.js package README](../README.md)
+- [Safety and limits](https://ryusui-hiro.github.io/document-svg/safety.html)
+- [npm package page](https://www.npmjs.com/package/document-svg)
 
 ## License
 
-`MIT OR Apache-2.0`, at your option. When redistributing, you must retain copyright and license notices as required by the license you choose. See the [full terms](../LICENSE).
+`MIT OR Apache-2.0`, at your option. When you redistribute it, keep the
+copyright and license notices required by the license you choose
+([LICENSE](../LICENSE)).

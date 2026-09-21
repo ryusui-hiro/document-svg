@@ -1,158 +1,191 @@
-# document-svg プレビューガイド
+# アプリに文書のプレビューを出す（Node.js）
 
 [日本語](preview.ja.md) · [English](preview.en.md) · [简体中文](preview.zh-CN.md)
 
-`document-svg`は、PDF・Office/OpenDocument・Apple Mail EMLX（`.emlx`）・Web/テキスト・reStructuredText（`.rst`、`.rest`）・図面・CAD/CAEなど対応形式を、アプリで安全に表示しやすいページ別SVGへ変換するNode.jsモジュールです。変換はRustのネイティブ処理をNode.jsのworkerで実行するため、イベントループを占有しません。
+利用者がアップロードした PDF、Word、Excel、PowerPoint、図やCAD図面を、Webアプリや Electron アプリの画面に表示してみましょう。このガイドでは、ページごとの画像として表示するまでを順に説明します。
+サーバーに Office を入れる必要はありません。ファイルが外部に送られることもありません。
 
-## できること
+対応している形式は[対応形式の一覧](https://ryusui-hiro.github.io/document-svg/ja/formats.html)で調べられます。
 
-- PDF、legacy Word Binary `.doc`/`.dot`、text-only legacy PowerPoint Binary `.ppt`、旧Excel（`.xls` / `.xlsb`）、PPTX、XLSX、DOCX、Flat OPC（`.flatopc` / `.fopc` / `.flatopc.xml`）、AASX（`.aasx`）、OpenSCAD（`.scad`）、AMF（`.amf`）、PLMXML（`.plmxml` / `.plm.xml`）、STEP-XML（`.stepxml` / `.stpx`）、QIF（`.qif` / `.qif.xml`）、B2MML/JDF（`.b2mml` / `.jdf`）、ODT/ODS、Visio Open XML（`.vsdx` / `.vsdm` / `.vstx` / `.vstm`）と旧Visio XML（`.vdx`）、iCalendar（`.ics`）、legacy vCalendar（`.vcs`）、vCard contact（`.vcf` / `.vcard`）、MIMEメール（`.eml`）、Apple Mail EMLX（`.emlx`）、Outlook message（`.msg`）、MBOX archive（`.mbox`）、MHTML web archive（`.mht` / `.mhtml`）、DocBook 4/5（`.dbk` / `.docbook`）、DITA topic/map（`.dita` / `.ditamap`）、PDB coordinate models（`.pdb` / `.ent`）、HWPX（`.hwpx`）、COLLADA（`.dae`）、X3D（`.x3d`）、XMind（`.xmind`）、NIfTI（`.nii` / `.nii.gz`）、FITS（`.fits` / `.fit` / `.fts` / `.fits.gz`）、MRC（`.mrc` / `.map` / `.mrc.gz`）、SQLite（`.sqlite` / `.sqlite3` / `.db`）、mmCIF/PDBx（`.cif` / `.mmcif`）、MOL2（`.mol2`）、RDF Turtle（`.ttl` / `.nt` / `.nq`）、EPS/PostScript（`.eps` / `.ps`）、DICOM medical image（`.dcm` / `.dicom`）、HTML、EPUB、Jupyter notebook（`.ipynb`）、Quarto（`.qmd`）、R Markdown（`.Rmd`）、reStructuredText（`.rst` / `.rest`）、Org-mode（`.org`）、GNU gettext PO/POT翻訳カタログ（`.po` / `.pot`）、BibTeX bibliography（`.bib` / `.bibtex`）、raster PNG/JPEG/BMP/GIF/WebP、CBZコミックarchive、standalone JPEG 2000（`.jp2` / `.j2k` / `.j2c` / `.jpc` / `.jpx`）、複数ページTIFF/BigTIFF、glTF/GLB（`.gltf` / `.glb`）、OFF polygon mesh（`.off`）、IFC4 BIM（`.ifc` / `.ifczip`）、buildingSMART BCFZIP（`.bcfzip`）、KiCad PCB（`.kicad_pcb`）、ASCII XYZ/PCL PCD/ASTM E57/Leica PTS/PTX/ASPRS LAS/LAZ point cloud（`.xyz` / `.pcd` / `.e57` / `.pts` / `.ptx` / `.las` / `.laz`）、Abaqus mesh deck（`.inp`）、LS-DYNA Keyword（`.k` / `.key`）、MEDIT ASCII/binary (`.mesh` / `.meshb`)、Nastran Bulk Data（`.bdf` / `.nas`）、SU2 CFD mesh（`.su2`）、OpenFOAM（`.foam`）、ARFF (`.arff`), JSON-LD 1.1 (`.jsonld`, `.json-ld`), NetCDF classic (`.nc`, `.nc3`, `.cdf`), GraphML (`.graphml`), GEXF (`.gexf`), XGMML (`.xgmml`), Graph Modeling Language (`.gml`), CSV/TSV table、TOML configuration（`.toml`）、YAML 1.2 configuration（`.yaml` / `.yml`）、generic XML（`.xml` fallback）、Java Properties（`.properties`）、BPMN 2.0（`.bpmn` / `.bpmn2`）、CMMN case plan（`.cmmn`）、DMN decision table（`.dmn`）、ReqIF requirements（`.reqif`）、XMI model（`.xmi`）、ESRI ASCII Grid raster（`.asc`）、dBASE III/III+ table（`.dbf`）、GeoJSON/GeoRSS/GML/GPX/KML/KMZ/ESRI Shapefile（`.shp`）/WKT/EWKT、drawio、VTK、CADなどの対応入力を1ページずつSVG文字列へ変換
-- 出力ファイルを残さないインメモリプレビュー
-- Node.jsサーバー、Electronのmain process、サーバー側TypeScriptでの利用
-- `<img>`向けBlob URL／Data URLの生成
-- SVG画像またはSVGソースのクリップボードコピー
-- 変換警告を`needsReview`で検出
-- SVGページをPPTX、DOCX、XLSXへベクター画像として格納
+## 仕組み
 
-DICOMDIR（`DICOMDIR` / `.dicomdir`）はDirectory Record offsetで階層をたどり、File IDを同じfile set folder内だけで解決します。
+変換と表示を、別の場所で行います。
 
-BCFZIP issue package（`.bcfzip`）はbuildingSMARTのproject/topic metadata、topic title/status/priority、markup countをbounded表示します。snapshot画像、IFC/model payload、document URL、協調actionは不活性で、entryの実行・外部参照は行いません。
+1. **Node.js 側（サーバーや Electron のメインプロセス）** で、`preview()` がファイルをページごとのSVGの文字列に変換します。変換は別スレッドで動くので、ほかのリクエストの処理を止めません。
+2. **画面側（ブラウザや Electron のレンダラー）** で、`document-svg/preview-ui` を使って、そのSVGを `<img>` の画像として表示します。
 
-Flat OPC package（`.flatopc` / `.fopc` / `.flatopc.xml`）は検証後にメモリ内で再構成し、既存のDOCX/XLSX/PPTX rendererへ渡します。macro、外部relationship、URL、active content、filesystem extractionは不活性です。
-
-AASX package（`.aasx`）はAsset Administration Shellのrelationshipとspecification metadataをbounded表示します。supplementary CAD/manual file、identifier、value、URL、signature、encryption materialは不活性です。
-
-Jupyter notebookは保存済みのcodeとoutputを表示するだけで、kernelを起動してcodeを実行することはありません。
-Quarto/R Markdownのcode chunkとYAML execution optionも評価しません。
-
-純粋なブラウザだけで文書を変換するWASMモジュールではありません。文書変換はNode.js側で実行し、表示ヘルパー`document-svg/preview-ui`だけをrenderer／ブラウザ側で使います。
+`preview-ui` はネイティブコードを読み込まない小さなヘルパーなので、ブラウザ向けのバンドルに入れても問題ありません。
+逆に、`preview()` などの変換はブラウザの中では動きません。
 
 ## インストール
 
-公開後:
+Node.js 18 以降が必要です。
 
 ```bash
 npm install document-svg
 ```
 
-このリポジトリから試す場合:
+Windows、macOS、Linux（x64・ARM64）向けのビルド済みパッケージが一緒に入るので、Rust は要りません。
+npm の optional dependencies（オプションの依存パッケージ）は無効にしないでください。そこから自分のOSに合ったものが選ばれます。
 
-```bash
-cd bindings/node
-npm install
-npm run build
-npm test
-```
-
-Node.js 18以上が必要です。配布版では実行OS／CPUに合うネイティブパッケージも同時にインストールされます。
-
-## 最小例: 文書をSVG文字列へ変換
+## 手順1：Node.js 側でSVGに変換する
 
 ```js
 const { preview } = require('document-svg')
 
-async function main() {
-  const report = await preview('slides.pptx', { maxPages: 100 })
-  console.log(`${report.pageCount} pages`)
-  console.log(`review required: ${report.needsReview}`)
-  const firstPageSvg = report.pages[0]?.svg
-  console.log(firstPageSvg)
+async function renderPreview(filePath) {
+  const result = await preview(filePath, { maxPages: 50 })
+  return {
+    pages: result.pages.map((page) => ({
+      number: page.number,
+      svg: page.svg,
+      width: page.widthPoints,   // ポイント単位（1pt = 1/72 インチ）
+      height: page.heightPoints,
+    })),
+    needsReview: result.needsReview,
+    warnings: result.warnings,
+  }
 }
-main().catch(console.error)
 ```
 
-`report.pages`にはページ番号、SVG、pt単位の幅と高さ、警告、推定IRサイズが入ります。一時出力はPromiseの完了前に削除されます。
-
-## `<img>`で表示する
+`preview()` はファイルのパスを受け取ります。アップロードされたファイルは、いったん一時フォルダに保存してから渡してください。
+作業用の一時ファイルは、`preview()` が終わる前に自動で消えます。
 
 ```js
-import {
-  createSvgPreviewUrl,
-  revokeSvgPreviewUrl,
-} from 'document-svg/preview-ui'
+const { mkdtemp, writeFile, rm } = require('node:fs/promises')
+const { join, extname, basename } = require('node:path')
+const { tmpdir } = require('node:os')
 
-const url = createSvgPreviewUrl(svgMarkup)
-imageElement.src = url
+async function renderUpload(buffer, originalName) {
+  const dir = await mkdtemp(join(tmpdir(), 'preview-'))
+  try {
+    // 形式は拡張子で判断するので、元の拡張子を残す
+    const file = join(dir, 'upload' + extname(basename(originalName)).toLowerCase())
+    await writeFile(file, buffer)
+    return await renderPreview(file)
+  } finally {
+    await rm(dir, { recursive: true, force: true })
+  }
+}
+```
 
-// ページを差し替える時や画面を破棄する時に必ず解放する
+Electron なら、メインプロセスで変換して、結果をレンダラーに渡します。
+
+```js
+// main.js（メインプロセス）
+const { ipcMain } = require('electron')
+ipcMain.handle('document:preview', (_event, filePath) => renderPreview(filePath))
+```
+
+## 手順2：画面に表示する
+
+受け取ったSVGは、画像として表示します。
+
+```js
+import { createSvgPreviewUrl, revokeSvgPreviewUrl } from 'document-svg/preview-ui'
+
+const url = createSvgPreviewUrl(page.svg)
+image.src = url            // <img> 要素
+
+// ページを切り替えるとき、画面を閉じるときに解放する
 revokeSvgPreviewUrl(url)
 ```
 
-プロセス境界、Markdown、Blob URLを共有できないrendererにはData URLを使えます。
+`createSvgPreviewUrl()` はブラウザのメモリ上に Blob URL を作ります。使い終わったら `revokeSvgPreviewUrl()` で必ず解放してください。
+Blob URL が使えない場面（別のウィンドウやプロセスへURLを渡すとき、Markdown に埋め込むときなど）では、代わりに `createSvgPreviewDataUrl(page.svg)` で `data:` URL を作れます。
+ただし文字列が大きくなるので、同じ画面の中では Blob URL を使ってください。
+
+**SVGの中身を `innerHTML` でページに差し込まないでください。** `preview-ui` は、スクリプト、イベント属性、外部URL、アニメーションなどを含むSVGを受け付けません。
+それでも、どんなSVGでも無害にするフィルターではないので、必ず `<img>` で表示してください。
+画像として表示した文字は、選択も検索もできません。
+
+## 手順3：警告を利用者に知らせる
+
+変換はエラーなく終わっても、元の見た目を完全に再現できたとは限りません。
+グラフやフォントを近似したり省略したりした場合は、`needsReview` が `true` になります。その内容は `warnings` に入ります。
 
 ```js
-import { createSvgPreviewDataUrl } from 'document-svg/preview-ui'
-imageElement.src = createSvgPreviewDataUrl(svgMarkup)
+const result = await preview(file)
+if (result.needsReview) {
+  banner.textContent = 'このプレビューは元の文書と一部違う可能性があります。'
+  console.warn(result.warnings)
+}
 ```
 
-Data URLは文字列が大きくなるため、同一画面内ではBlob URLを推奨します。
+ページごとの警告は `page.warnings` にあります。大事な文書は、元のファイルと見比べてから使ってください。
+警告がゼロでも、Office で開いたときと1ピクセル単位で同じになる保証はありません。たとえば文字は、表示する環境にあるフォントで描かれます。
 
-## React例
+## コピーボタンを付ける
 
-Blob URLの作成・解放、コピー操作、`aria-live`の状態表示まで含む実装は[`../examples/SvgPreview.tsx`](../examples/SvgPreview.tsx)にあります。
+```js
+import { copySvgToClipboard } from 'document-svg/preview-ui'
+
+copyButton.addEventListener('click', async () => {
+  const copied = await copySvgToClipboard(page.svg)
+  status.textContent = copied === 'image/svg+xml' ? '画像をコピーしました' : 'SVGのソースをコピーしました'
+})
+```
+
+画像としてコピーできないブラウザでは、SVGのソースをテキストとしてコピーします。常にソースをコピーしたいときは `copySvgSourceToClipboard()` を使います。
+クリップボードは、HTTPS か localhost のページで、クリックなどの操作から呼んだときだけ使えます。
+
+## React の例
+
+Blob URL の作成と解放、コピーボタン、成功・失敗の表示までそろった部品が [`examples/SvgPreview.tsx`](../examples/SvgPreview.tsx) にあります。
 
 ```tsx
-const report = await preview(filePath)
-return <SvgPreview svg={report.pages[currentPage].svg} />
+<SvgPreview svg={pages[currentPage].svg} />
 ```
 
-## 実行できるHTML生成例
+## 全ページを1つのHTMLに書き出す例
 
-同梱の例は、文書の全ページを1つのHTMLプレビューへ書き出します。
+画面を作る前に、仕上がりだけ確かめたいときに便利です。
 
 ```bash
 npm run example:preview -- ./slides.pptx ./preview.html
 ```
 
-実装は[`../examples/preview-to-html.cjs`](../examples/preview-to-html.cjs)を参照してください。変換警告がある場合はHTML内に表示し、終了コードを`2`にします。
+`preview.html` をブラウザで開くと全ページが並びます。警告があればページ内に表示し、終了コードは `2` になります。
+中身は [`examples/preview-to-html.cjs`](../examples/preview-to-html.cjs) です。
 
-## クリップボードへコピー
+## 大きなファイルと公開サービスでの注意
+
+誰でもファイルを上げられるサービスでは、すべてのファイルを信用できないものとして扱ってください。
+変換は、メモリと時間に上限をかけた別のプロセスで動かすのが安全です。
+
+入力の大きさやページ数には、はじめから上限があります。用途に合わせて小さくするのはかまいません。
 
 ```js
-import { copySvgToClipboard } from 'document-svg/preview-ui'
-
-button.addEventListener('click', async () => {
-  const copiedType = await copySvgToClipboard(svgMarkup)
-  console.log(copiedType) // image/svg+xml または text/plain
+await preview(file, {
+  maxInputBytes: 64 * 1024 * 1024,      // 入力ファイルの大きさの上限
+  maxPages: 50,                         // 変換するページ数の上限
+  maxSvgBytes: 16 * 1024 * 1024,        // 1ページ分のSVGの大きさの上限
+  maxTotalSvgBytes: 128 * 1024 * 1024,  // 全ページのSVGの合計の上限
+  jobs: 1,                              // 同時に変換するページ数
 })
 ```
 
-クリップボードAPIはHTTPS／localhostなどのsecure contextと、クリック等のユーザー操作を要求する場合があります。ブラウザがSVG MIMEを扱えない場合は、正確なSVGソースをテキストとしてコピーします。
+難しいファイルを通すためだけに、上限を引き上げないでください。上限は、巨大なファイルや壊れたファイルからマシンを守るためのものです。
 
-## 警告と安全上限
+## API の早見表
 
-```js
-const report = await preview('report.docx', {
-  maxInputBytes: 512 * 1024 * 1024,
-  maxZipEntryBytes: 128 * 1024 * 1024,
-  maxPages: 100,
-  maxXmlEvents: 20_000_000,
-  maxSvgBytes: 64 * 1024 * 1024,
-  maxTotalSvgBytes: 256 * 1024 * 1024,
-  jobs: 1,
-})
-
-if (report.needsReview) {
-  console.warn(report.warnings)
-  console.warn(report.pages.flatMap((page) => page.warnings))
-}
-```
-
-`preview-ui`は`script`、イベント属性、外部URL、DOCTYPE、animation等を含むSVGを拒否します。表示には`innerHTML`ではなく`<img>`を使ってください。重要文書は元文書との目視比較を行い、警告ゼロを画素単位の完全一致と解釈しないでください。
-
-## APIの使い分け
-
-| API | 用途 | ファイルを残す |
+| 使うもの | 何をするか | ファイルを残すか |
 |---|---|---|
-| `preview(input, options)` | UI向けSVG文字列 | いいえ |
-| `convert(input, output, options)` | バッチ変換、成果物保存 | はい |
-| `reverse(input, output, options)` | SVGをOffice形式へ格納 | はい |
-| `createSvgPreviewUrl(svg)` | 同一rendererの`<img>`表示 | Blob URLのみ |
-| `createSvgPreviewDataUrl(svg)` | プロセス境界を越える表示 | いいえ |
-| `copySvgToClipboard(svg)` | 画像／ソースをコピー | いいえ |
+| `preview(file, options)` | 画面に出すために、ページごとのSVGの文字列を受け取る | 残さない |
+| `convert(file, folder, options)` | SVGファイルと記録（`conversion.json`）をフォルダに書き出す | 残す |
+| `reverse(svg, file)` | SVGのページを PowerPoint、Word、Excel、CAD などのファイルにまとめる | 残す |
+| `createSvgPreviewUrl(svg)` | 同じ画面の `<img>` に表示する | 残さない（Blob URL） |
+| `createSvgPreviewDataUrl(svg)` | 別のウィンドウやプロセスで表示する | 残さない |
+| `copySvgToClipboard(svg)` | 画像かソースをコピーする | 残さない |
 
-変換後のSVGは編集可能な見た目を優先しますが、Officeの段落・セル・数式等の意味構造を保持するものではありません。
+`reverse()` で戻るのは見た目です。段落、セル、数式などの構造は戻りません。
+
+## もっと知る
+
+- [Node.js パッケージの README](../README.md)
+- [安全性と限界](https://ryusui-hiro.github.io/document-svg/ja/safety.html)
+- [npm のパッケージページ](https://www.npmjs.com/package/document-svg)
 
 ## ライセンス
 
-`MIT OR Apache-2.0`。いずれかを選択できます。再配布時は、選択したライセンスに従い著作権表示・ライセンス文を必ず保持してください。[全文](../LICENSE)。
+`MIT OR Apache-2.0` です。どちらかを選んで使えます。再配布するときは、選んだライセンスが求める著作権表示とライセンス文を残してください（[LICENSE](../LICENSE)）。
