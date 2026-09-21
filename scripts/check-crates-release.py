@@ -20,8 +20,12 @@ TAG_PATTERN = re.compile(
 
 
 def sha256(path: Path) -> str:
+    # hashlib.file_digest needs Python 3.11; the publish runner ships 3.10.
+    digest = hashlib.sha256()
     with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+        for chunk in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def version_from_tag(tag: str) -> str:

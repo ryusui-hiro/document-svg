@@ -89,3 +89,18 @@ def test_registry_version_rejects_different_checksum():
         crates.registry_publish_required(
             "2.0.0", "abc", opener=lambda _request, timeout: Response(payload)
         )
+
+
+def test_workflow_runs_main_tooling_against_tagged_source():
+    workflow = (
+        Path(__file__).resolve().parents[1] / ".github/workflows/publish-crates.yml"
+    ).read_text(encoding="utf-8")
+
+    # Older tags do not contain the verification script, so it must run from
+    # the main checkout while cargo packages and publishes the tagged source.
+    assert "path: release-source" in workflow
+    assert "python3 scripts/check-crates-release.py" in workflow
+    assert '--local-crate "release-source/target/package/$crate"' in workflow
+    for step in ("Package and verify", "Publish"):
+        block = workflow.split(f"- name: {step}\n", 1)[1].split("- name:", 1)[0]
+        assert "working-directory: release-source" in block
