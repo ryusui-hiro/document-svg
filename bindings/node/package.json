@@ -1,7 +1,7 @@
 {
   "name": "document-svg",
   "version": "2.0.0",
-  "description": "Convert documents, diagrams, CAD/CAE, and image archives to page-by-page SVG from Node.js",
+  "description": "Preview PDF, Word, Excel, PowerPoint, draw.io and CAD files as SVG pages in Node.js and Electron, locally and without Office",
   "keywords": [
     "pcb",
     "eda",
@@ -295,7 +295,7 @@
     "url": "https://github.com/ryusui-hiro/document-svg.git",
     "directory": "bindings/node"
   },
-  "homepage": "https://github.com/ryusui-hiro/document-svg#readme",
+  "homepage": "https://ryusui-hiro.github.io/document-svg/",
   "bugs": {
     "url": "https://github.com/ryusui-hiro/document-svg/issues"
   }

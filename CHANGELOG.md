@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- Rewrite the English and Japanese READMEs, and add a Chinese README, for people deciding whether to use the project: what it does, why, how to try it, and its limits, in plain words. The full technical format matrix moves to `docs/FORMATS.md` and `docs/FORMATS.ja.md`.
+- Rewrite the npm and PyPI package READMEs around installing, previewing, reading warnings and safety, and describe the packages in the terms people search for. The package home pages now point to the project site.
 
 ## 2.0.0 - 2026-09-20
 - Add a bounded ISO 19115/19139 geographic metadata preview for `.iso19115`, `.iso19115.xml`, `.iso19139`, `.gmd.xml` and content-sniffed XML. Identification title/date/topic, hierarchy/language, CRS codes, geographic bounding boxes and quality/distribution counts render while abstract/lineage text, contact payloads, identifiers and online-resource URLs remain inert; no network retrieval or CRS transformation runs.

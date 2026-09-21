@@ -67,9 +67,9 @@ over HTTP.
   like `"A / C"`, or `null`), an optional `sample` key (or array of keys) into
   `assets/samples/`, and a `note` object with `en`/`ja`/`zh` strings. This file
   is also fetched directly by anyone (or any agent) who wants the format list
-  as data instead of scraping HTML — keep it in sync with the table in the
-  root [`README.md`](../README.md); they describe the same set of formats and
-  should not drift apart.
+  as data instead of scraping HTML — keep it in sync with the matrix in
+  [`docs/FORMATS.md`](../docs/FORMATS.md); they describe the same set of
+  formats and should not drift apart.
 - **Page copy**: edit `assets/data/content.json`. `strings.<lang>.site` holds
   the navigation and footer; every other key under `strings.<lang>` is one
   page (`home`, `useCases`, `formats`, `samples`, `start`, `safety`, `ai`),
