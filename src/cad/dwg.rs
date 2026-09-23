@@ -19,10 +19,19 @@
 //! versions fall back to the bounded header-only preview in
 //! [`crate::document::dwg`]. Within a recognized AC1009 file, the
 //! model-space `entities` section and, when present, the `block_entities`
-//! (block definitions) and BLOCK/LAYER tables are decoded (the `extra_entities`
-//! region and the STYLE/LTYPE/VIEW tables are not read). LINE, POINT, CIRCLE,
-//! ARC, SOLID, TRACE, TEXT, the classic POLYLINE/VERTEX/SEQEND group, and
-//! 3DFACE are turned into geometry. INSERT is expanded: its `block_index` is
+//! (block definitions) and BLOCK/LAYER/LTYPE tables are decoded (the
+//! `extra_entities` region and the STYLE/VIEW tables are not read). LINE,
+//! POINT, CIRCLE, ARC, SOLID, TRACE, TEXT, the classic POLYLINE/VERTEX/SEQEND
+//! group, and 3DFACE are turned into geometry. An entity's own linetype
+//! index, or its layer's, is resolved through the LTYPE table to that
+//! linetype's dash pattern, which the shared DXF renderer draws as a dash
+//! array. TEXT's horizontal/vertical justification and second alignment
+//! point are read and mapped exactly as the DXF reader maps group codes
+//! 72/73/11. A POLYLINE group's flags choose how it is drawn — plain,
+//! spline-fit (fit vertices only), M×N polygon mesh (row and column
+//! polylines) or polyface mesh (visible face edges) — through
+//! [`crate::cad::dxf::polyline::expand_classic_polyline`], the same code the
+//! DXF reader uses. INSERT is expanded: its `block_index` is
 //! resolved through the BLOCK table to a name, matched against a block
 //! definition decoded from `block_entities`, and drawn with the INSERT's own
 //! translation/scale/rotation and the block's base point — including nested
@@ -78,8 +87,10 @@
 use std::collections::HashMap;
 
 use crate::cad::color::aci_to_hex;
+use crate::cad::dxf::polyline::{ClassicPolyline, ClassicVertex, expand_classic_polyline};
+use crate::cad::dxf::reader::{MAX_VERTICES_PER_POLYLINE, text_anchor_point};
 use crate::cad::dxf::render_dxf_to_page;
-use crate::cad::dxf::types::{Block, DxfDocument, Entity, Layer, LwVertex};
+use crate::cad::dxf::types::{Block, DxfDocument, Entity, Layer, LineType, LwVertex};
 use crate::convert::PageConsumer;
 use crate::error::{Error, Result};
 use crate::ir::Page;
@@ -109,9 +120,21 @@ const BLOCK_TABLE_SENTINEL_END: [u8; 16] = [
     0x24, 0x10, 0x4C, 0x0F, 0x38, 0xC1, 0x92, 0x59, 0x36, 0x49, 0xDB, 0xA3, 0xB3, 0x90, 0xCD, 0x34,
 ];
 
+const LTYPE_TABLE_SENTINEL_BEGIN: [u8; 16] = [
+    0xAC, 0x90, 0x1A, 0xCA, 0x1C, 0xBD, 0x95, 0x15, 0x16, 0x16, 0x4C, 0x14, 0xCE, 0x18, 0x88, 0xAF,
+];
+const LTYPE_TABLE_SENTINEL_END: [u8; 16] = [
+    0x53, 0x6F, 0xE5, 0x35, 0xE3, 0x42, 0x6A, 0xEA, 0xE9, 0xE9, 0xB3, 0xEB, 0x31, 0xE7, 0x77, 0x50,
+];
+
 /// Minimum plausible AC1009 layer record: 1-byte flags, 32-byte name,
 /// `used`/`color`/`linetype_index` (2 bytes each), 2-byte CRC.
 const LAYER_RECORD_MIN_BYTES: usize = 41;
+/// AC1009 LTYPE table record: 1-byte flags, 32-byte name, `used` (2),
+/// 48-byte description, 1-byte alignment, 1-byte dash count, 8-byte pattern
+/// length, twelve 8-byte dash lengths, 2-byte CRC.
+const LTYPE_RECORD_MIN_BYTES: usize = 191;
+const LTYPE_MAX_DASHES: usize = 12;
 /// Minimum plausible AC1009 BLOCK table record: 1-byte flags, 32-byte name,
 /// `used` (2), `begin_address_in_block_table_raw` (4), `block_entity` (2),
 /// 1-byte flags2, 1-byte `u1`, 2-byte CRC.
@@ -148,15 +171,36 @@ pub(crate) fn convert(bytes: &[u8], sink: &mut dyn PageConsumer) -> Result<Optio
         Err(BlockTableError::Limit(msg)) => return Err(Error::LimitExceeded(msg)),
         Err(BlockTableError::NotFound) => Vec::new(),
     };
+    let linetypes = match read_linetype_table(bytes, &header) {
+        Ok(rows) => rows,
+        Err(LinetypeTableError::Limit(msg)) => return Err(Error::LimitExceeded(msg)),
+        Err(LinetypeTableError::NotFound) => Vec::new(),
+    };
+    let linetype_names: Vec<String> = linetypes
+        .iter()
+        .map(|row| row.name.to_ascii_uppercase())
+        .collect();
 
     let mut doc = DxfDocument::default();
+    for row in &linetypes {
+        let key = row.name.to_ascii_uppercase();
+        doc.linetypes.insert(
+            key.clone(),
+            LineType {
+                name: key,
+                description: row.description.clone(),
+                pattern: row.pattern.clone(),
+            },
+        );
+    }
     for row in &layers {
         doc.layers.insert(
             row.name.clone(),
             Layer {
                 name: row.name.clone(),
                 color_hex: aci_to_hex(row.color_aci),
-                linetype: "CONTINUOUS".into(),
+                linetype: resolve_linetype(&linetype_names, Some(row.linetype_index))
+                    .unwrap_or_else(|| "CONTINUOUS".into()),
                 is_off: row.is_off,
                 is_frozen: row.is_frozen,
                 line_weight: None,
@@ -174,6 +218,7 @@ pub(crate) fn convert(bytes: &[u8], sink: &mut dyn PageConsumer) -> Result<Optio
             block_content,
             &layers,
             &block_names,
+            &linetype_names,
             &mut block_state,
             &mut warnings,
         )?;
@@ -192,6 +237,7 @@ pub(crate) fn convert(bytes: &[u8], sink: &mut dyn PageConsumer) -> Result<Optio
         content,
         &layers,
         &block_names,
+        &linetype_names,
         &mut main_state,
         &mut warnings,
     )?;
@@ -216,6 +262,9 @@ struct DwgHeader {
     table_layer_item_size: u16,
     table_layer_items: u16,
     table_layer_begin: u32,
+    table_ltype_item_size: u16,
+    table_ltype_items: u16,
+    table_ltype_begin: u32,
 }
 
 fn read_header(bytes: &[u8]) -> Option<DwgHeader> {
@@ -240,6 +289,11 @@ fn read_header(bytes: &[u8]) -> Option<DwgHeader> {
     let table_layer_item_size = u16::from_le_bytes(bytes[54..56].try_into().ok()?);
     let table_layer_items = u16::from_le_bytes(bytes[56..58].try_into().ok()?);
     let table_layer_begin = u32::from_le_bytes(bytes[60..64].try_into().ok()?);
+    // The header's table directory continues with STYLE (0x44) and then
+    // LTYPE (0x50); only LTYPE is needed here.
+    let table_ltype_item_size = u16::from_le_bytes(bytes[80..82].try_into().ok()?);
+    let table_ltype_items = u16::from_le_bytes(bytes[82..84].try_into().ok()?);
+    let table_ltype_begin = u32::from_le_bytes(bytes[86..90].try_into().ok()?);
     Some(DwgHeader {
         entities_start,
         entities_end,
@@ -251,6 +305,9 @@ fn read_header(bytes: &[u8]) -> Option<DwgHeader> {
         table_layer_item_size,
         table_layer_items,
         table_layer_begin,
+        table_ltype_item_size,
+        table_ltype_items,
+        table_ltype_begin,
     })
 }
 
@@ -302,6 +359,8 @@ struct DwgLayerRow {
     color_aci: i16,
     is_off: bool,
     is_frozen: bool,
+    /// 0-based index into the LTYPE table (`LAYER/6`).
+    linetype_index: i16,
 }
 
 enum LayerTableError {
@@ -348,6 +407,7 @@ fn read_layer_table(
         let flag_byte = rec[0];
         let name = decode_dwg_text(&rec[1..33]);
         let color = i16::from_le_bytes([rec[35], rec[36]]);
+        let linetype_index = i16::from_le_bytes([rec[37], rec[38]]);
         out.push(DwgLayerRow {
             name: if name.is_empty() {
                 format!("LAYER_{i}")
@@ -357,6 +417,84 @@ fn read_layer_table(
             color_aci: color,
             is_off: color < 0,
             is_frozen: bit(flag_byte, 8),
+            linetype_index,
+        });
+    }
+    Ok(out)
+}
+
+struct DwgLinetypeRow {
+    name: String,
+    description: String,
+    /// Dash pattern in DXF `LTYPE/49` convention: positive = dash length,
+    /// negative = gap length, zero = dot.
+    pattern: Vec<f64>,
+}
+
+enum LinetypeTableError {
+    NotFound,
+    Limit(String),
+}
+
+/// Reads the LTYPE table's fixed-width records (name plus up to twelve
+/// dash/gap lengths) so entity and layer `linetype_index` fields can be
+/// resolved to a name and its dash pattern. Errors the same way
+/// [`read_layer_table`] does: `NotFound` means "not available" (every
+/// line then draws continuous), not "corrupt file".
+fn read_linetype_table(
+    bytes: &[u8],
+    header: &DwgHeader,
+) -> std::result::Result<Vec<DwgLinetypeRow>, LinetypeTableError> {
+    let items = header.table_ltype_items as usize;
+    let item_size = header.table_ltype_item_size as usize;
+    let begin = header.table_ltype_begin as usize;
+    if items == 0 {
+        return Ok(Vec::new());
+    }
+    if items > MAX_LAYERS {
+        return Err(LinetypeTableError::Limit(format!(
+            "DWG linetype table exceeds maximum supported entries ({MAX_LAYERS})"
+        )));
+    }
+    if item_size < LTYPE_RECORD_MIN_BYTES || begin < 16 {
+        return Err(LinetypeTableError::NotFound);
+    }
+    if bytes.get(begin - 16..begin) != Some(&LTYPE_TABLE_SENTINEL_BEGIN[..]) {
+        return Err(LinetypeTableError::NotFound);
+    }
+    let Some(content_len) = items.checked_mul(item_size) else {
+        return Err(LinetypeTableError::NotFound);
+    };
+    let Some(end) = begin.checked_add(content_len) else {
+        return Err(LinetypeTableError::NotFound);
+    };
+    if bytes.get(end..end + 16) != Some(&LTYPE_TABLE_SENTINEL_END[..]) {
+        return Err(LinetypeTableError::NotFound);
+    }
+
+    let mut out = Vec::with_capacity(items);
+    for i in 0..items {
+        let rec_start = begin + i * item_size;
+        let rec = &bytes[rec_start..rec_start + item_size];
+        let name = decode_dwg_text(&rec[1..33]);
+        let description = decode_dwg_text(&rec[35..83]);
+        let num_dashes = (rec[84] as usize).min(LTYPE_MAX_DASHES);
+        let mut pattern = Vec::with_capacity(num_dashes);
+        for d in 0..num_dashes {
+            let off = 93 + d * 8;
+            let value = f64::from_le_bytes(rec[off..off + 8].try_into().unwrap_or([0; 8]));
+            if value.is_finite() {
+                pattern.push(value);
+            }
+        }
+        out.push(DwgLinetypeRow {
+            name: if name.is_empty() {
+                format!("LTYPE_{i}")
+            } else {
+                name
+            },
+            description,
+            pattern,
         });
     }
     Ok(out)
@@ -621,6 +759,9 @@ struct CommonPrefix {
     /// Raw `entity_common` low byte (`flag3_1`..`flag3_8`, MSB-first).
     common_lo: u8,
     color_aci: Option<i16>,
+    /// 0-based LTYPE table index when the entity overrides its layer's
+    /// linetype (`has_linetype`); `None` means BYLAYER.
+    linetype_index: Option<i16>,
     /// The entity's shared elevation (Z in its own OCS), when this entity
     /// type stores one and it was present; `0.0` otherwise. Combined with
     /// an extrusion vector via [`ocs_point_to_world_xy`] to place a planar
@@ -654,9 +795,7 @@ fn read_common_prefix(cur: &mut Cursor, mode: u8, use_elevation: bool) -> Option
     } else {
         None
     };
-    if bit(mode, 7) {
-        cur.skip(2)?; // entity_linetype_index
-    }
+    let linetype_index = if bit(mode, 7) { Some(cur.i16()?) } else { None };
     if bit(mode, 5) {
         cur.skip(8)?; // entity_thickness
     }
@@ -676,6 +815,7 @@ fn read_common_prefix(cur: &mut Cursor, mode: u8, use_elevation: bool) -> Option
         common_hi,
         common_lo,
         color_aci,
+        linetype_index,
         elevation,
     })
 }
@@ -696,9 +836,7 @@ fn read_common_prefix_late(
     } else {
         None
     };
-    if bit(mode, 7) {
-        cur.skip(2)?;
-    }
+    let linetype_index = if bit(mode, 7) { Some(cur.i16()?) } else { None };
     if bit(mode, 5) {
         cur.skip(8)?;
     }
@@ -728,6 +866,7 @@ fn read_common_prefix_late(
         common_hi,
         common_lo,
         color_aci,
+        linetype_index,
         elevation,
     })
 }
@@ -780,14 +919,31 @@ fn read_insert_prefix(cur: &mut Cursor, mode: u8) -> Option<InsertPrefix> {
 }
 
 struct OpenPolyline {
-    layer: String,
-    color: Option<String>,
-    closed: bool,
-    vertices: Vec<LwVertex>,
+    polyline: ClassicPolyline,
     /// The POLYLINE's own shared elevation/extrusion, applied to every
     /// VERTEX belonging to it (VERTEX has no OCS fields of its own).
     elevation: f64,
     extrusion: Option<Vec3>,
+}
+
+/// Expands a finished POLYLINE group (plain, spline-fit, polygon mesh or
+/// polyface mesh) into `out` through the DXF-shared expander.
+fn close_polyline(open: Option<OpenPolyline>, out: &mut Vec<Entity>) {
+    if let Some(open) = open {
+        expand_classic_polyline(open.polyline, out);
+    }
+}
+
+/// Resolves an entity's or layer's 0-based LTYPE table index to the
+/// uppercased linetype name keyed in [`DxfDocument::linetypes`]. `None`
+/// (BYLAYER, or an index this file's table doesn't have) lets the shared
+/// renderer fall back to the layer's linetype.
+fn resolve_linetype(linetype_names: &[String], index: Option<i16>) -> Option<String> {
+    let index = index?;
+    if index < 0 {
+        return None;
+    }
+    linetype_names.get(index as usize).cloned()
 }
 
 /// A BLOCK/ENDBLK definition currently being accumulated while walking an
@@ -843,23 +999,10 @@ impl WalkState {
 /// Pushes a finished POLYLINE (if any vertices were accumulated) into
 /// whichever entity list is current: the open BLOCK's, or the top level.
 fn finalize_open_polyline(state: &mut WalkState) {
-    let Some(open) = state.open_polyline.take() else {
-        return;
-    };
-    if open.vertices.is_empty() {
-        return;
-    }
-    let entity = Entity::LwPolyline {
-        vertices: open.vertices,
-        is_closed: open.closed,
-        layer: open.layer,
-        color: open.color,
-        line_weight: None,
-        linetype: None,
-    };
+    let open = state.open_polyline.take();
     match state.open_block.as_mut() {
-        Some(ob) => ob.entities.push(entity),
-        None => state.top_level.push(entity),
+        Some(ob) => close_polyline(open, &mut ob.entities),
+        None => close_polyline(open, &mut state.top_level),
     }
 }
 
@@ -890,6 +1033,7 @@ fn walk_entity_stream(
     content: &[u8],
     layers: &[DwgLayerRow],
     block_names: &[String],
+    linetype_names: &[String],
     state: &mut WalkState,
     warnings: &mut Vec<String>,
 ) -> Result<()> {
@@ -989,6 +1133,7 @@ fn walk_entity_stream(
                     target,
                     &mut state.open_polyline,
                     block_names,
+                    linetype_names,
                 );
                 match outcome {
                     DecodeOutcome::Ok | DecodeOutcome::Insert => {}
@@ -1079,6 +1224,7 @@ fn decode_entity(
     entities_out: &mut Vec<Entity>,
     open_polyline: &mut Option<OpenPolyline>,
     block_names: &[String],
+    linetype_names: &[String],
 ) -> DecodeOutcome {
     match entity_type {
         1 => {
@@ -1123,7 +1269,7 @@ fn decode_entity(
                 layer: layer.into(),
                 color: pre.color_aci.map(aci_to_hex),
                 line_weight: None,
-                linetype: None,
+                linetype: resolve_linetype(linetype_names, pre.linetype_index),
             });
             DecodeOutcome::Ok
         }
@@ -1189,7 +1335,7 @@ fn decode_entity(
                         layer: layer.into(),
                         color: pre.color_aci.map(aci_to_hex),
                         line_weight: None,
-                        linetype: None,
+                        linetype: resolve_linetype(linetype_names, pre.linetype_index),
                     });
                 }
                 None => {
@@ -1199,7 +1345,7 @@ fn decode_entity(
                         layer: layer.into(),
                         color: pre.color_aci.map(aci_to_hex),
                         line_weight: None,
-                        linetype: None,
+                        linetype: resolve_linetype(linetype_names, pre.linetype_index),
                     });
                 }
             }
@@ -1236,7 +1382,7 @@ fn decode_entity(
                 layer: layer.into(),
                 color: pre.color_aci.map(aci_to_hex),
                 line_weight: None,
-                linetype: None,
+                linetype: resolve_linetype(linetype_names, pre.linetype_index),
             });
             DecodeOutcome::Ok
         }
@@ -1300,16 +1446,60 @@ fn decode_entity(
             } else {
                 0.0
             };
+            // Optional tail, in declaration order: width factor, obliquing
+            // angle, style index, generation flags, horizontal alignment,
+            // second alignment point, vertical alignment. Only the
+            // justification fields change where the text lands; the
+            // others are stepped over. A truncated tail keeps the defaults
+            // rather than discarding the text.
+            let mut h_align = 0u8;
+            let mut v_align = 0u8;
+            let mut align_pt = None;
+            let tail_ok = (|| {
+                if bit(pre.common_hi, 7) {
+                    cur.f64()?; // width_factor
+                }
+                if bit(pre.common_hi, 6) {
+                    cur.f64()?; // obliquing_angle
+                }
+                if bit(pre.common_hi, 5) {
+                    cur.u8()?; // style_index
+                }
+                if bit(pre.common_hi, 4) {
+                    cur.u8()?; // generation flags
+                }
+                if bit(pre.common_hi, 3) {
+                    h_align = cur.u8()?;
+                }
+                if bit(pre.common_hi, 2) {
+                    align_pt = Some((cur.f64()?, cur.f64()?));
+                }
+                if bit(pre.common_lo, 8) {
+                    v_align = cur.u8()?;
+                }
+                Some(())
+            })();
+            if tail_ok.is_none() {
+                h_align = 0;
+                v_align = 0;
+                align_pt = None;
+            }
+            if h_align > 5 {
+                h_align = 0;
+            }
+            if v_align > 3 {
+                v_align = 0;
+            }
             if !text.is_empty() {
                 entities_out.push(Entity::Text {
                     text,
-                    insert: (x, y),
+                    insert: text_anchor_point((x, y), align_pt, h_align, v_align),
                     height,
                     rotation_deg,
                     layer: layer.into(),
                     color: pre.color_aci.map(aci_to_hex),
-                    h_align: 0,
-                    v_align: 0,
+                    h_align,
+                    v_align,
                 });
             }
             DecodeOutcome::Ok
@@ -1416,17 +1606,20 @@ fn decode_entity(
             // shared elevation/extrusion (note: extrusion is gated by
             // flag2_5 here, not flag2_8 as in most other entity types)
             // apply to every VERTEX in the group, since VERTEX carries
-            // neither itself.
+            // neither itself. The flags byte has exactly the DXF group-70
+            // bit layout, and the optional M/N counts describe a polygon
+            // mesh; how the group is finally drawn is decided by the
+            // shared expander once SEQEND arrives.
             let Some(pre) = read_common_prefix(cur, mode, true) else {
                 return DecodeOutcome::Malformed;
             };
-            let closed = if bit(pre.common_hi, 8) {
+            let flags = if bit(pre.common_hi, 8) {
                 match cur.u8() {
-                    Some(flags) => bit(flags, 8),
+                    Some(flags) => u16::from(flags),
                     None => return DecodeOutcome::Malformed,
                 }
             } else {
-                false
+                0
             };
             if bit(pre.common_hi, 7) && cur.f64().is_none() {
                 return DecodeOutcome::Malformed; // start_width
@@ -1442,23 +1635,36 @@ fn decode_entity(
             } else {
                 None
             };
-            if let Some(previous) = open_polyline.take()
-                && !previous.vertices.is_empty()
-            {
-                entities_out.push(Entity::LwPolyline {
-                    vertices: previous.vertices,
-                    is_closed: previous.closed,
-                    layer: previous.layer,
-                    color: previous.color,
-                    line_weight: None,
-                    linetype: None,
-                });
-            }
+            let m_count = if bit(pre.common_hi, 4) {
+                match cur.u16() {
+                    Some(v) => usize::from(v),
+                    None => return DecodeOutcome::Malformed,
+                }
+            } else {
+                0
+            };
+            let n_count = if bit(pre.common_hi, 3) {
+                match cur.u16() {
+                    Some(v) => usize::from(v),
+                    None => return DecodeOutcome::Malformed,
+                }
+            } else {
+                0
+            };
+            // m_density / n_density / curve_type / z follow but don't
+            // change what is drawn; the record's own size bounds them.
+            close_polyline(open_polyline.take(), entities_out);
             *open_polyline = Some(OpenPolyline {
-                layer: layer.into(),
-                color: pre.color_aci.map(aci_to_hex),
-                closed,
-                vertices: Vec::new(),
+                polyline: ClassicPolyline {
+                    flags,
+                    m_count,
+                    n_count,
+                    vertices: Vec::new(),
+                    layer: layer.into(),
+                    color: pre.color_aci.map(aci_to_hex),
+                    line_weight: None,
+                    linetype: resolve_linetype(linetype_names, pre.linetype_index),
+                },
                 elevation: pre.elevation,
                 extrusion,
             });
@@ -1471,7 +1677,9 @@ fn decode_entity(
             // still leaves bulge (circular-arc) segments drawn as circular
             // arcs between the transformed endpoints rather than the
             // foreshortened elliptical arcs a true projection would need
-            // — see the module docs.
+            // — see the module docs. The optional vertex flags byte has
+            // the DXF group-70 layout; a polyface-mesh face record has no
+            // x/y of its own and instead carries up to four corner indices.
             let Some(pre) = read_common_prefix_late(cur, mode, true) else {
                 return DecodeOutcome::Malformed;
             };
@@ -1498,31 +1706,63 @@ fn decode_entity(
             } else {
                 0.0
             };
-            if let (Some((x, y)), Some(accum)) = (xy, open_polyline.as_mut()) {
-                let (wx, wy) = ocs_point_to_world_xy(x, y, accum.elevation, accum.extrusion);
-                accum.vertices.push(LwVertex {
-                    x: wx,
-                    y: wy,
-                    bulge,
-                });
+            let flags = if bit(pre.common_hi, 5) {
+                match cur.u8() {
+                    Some(f) => f,
+                    None => return DecodeOutcome::Malformed,
+                }
+            } else {
+                0
+            };
+            if bit(pre.common_hi, 4) && cur.f64().is_none() {
+                return DecodeOutcome::Malformed; // tangent direction
+            }
+            let mut face = [0i16; 4];
+            let mut has_face = false;
+            for (slot, present) in [
+                bit(pre.common_hi, 3),
+                bit(pre.common_hi, 2),
+                bit(pre.common_hi, 1),
+                bit(pre.common_lo, 8),
+            ]
+            .into_iter()
+            .enumerate()
+            {
+                if present {
+                    match cur.i16() {
+                        Some(v) => face[slot] = v,
+                        None => return DecodeOutcome::Malformed,
+                    }
+                    has_face = true;
+                }
+            }
+            if let Some(accum) = open_polyline.as_mut() {
+                if accum.polyline.vertices.len() >= MAX_VERTICES_PER_POLYLINE {
+                    return DecodeOutcome::Ok;
+                }
+                if has_face {
+                    accum.polyline.vertices.push(ClassicVertex {
+                        flags,
+                        face: Some(face),
+                        ..ClassicVertex::default()
+                    });
+                } else if let Some((x, y)) = xy {
+                    let (wx, wy) = ocs_point_to_world_xy(x, y, accum.elevation, accum.extrusion);
+                    accum.polyline.vertices.push(ClassicVertex {
+                        x: wx,
+                        y: wy,
+                        bulge,
+                        flags,
+                        face: None,
+                    });
+                }
             }
             DecodeOutcome::Ok
         }
         17 => {
             // SEQEND: finalize the open POLYLINE, if any. Its own body
             // (an address field) is never needed.
-            if let Some(open) = open_polyline.take()
-                && !open.vertices.is_empty()
-            {
-                entities_out.push(Entity::LwPolyline {
-                    vertices: open.vertices,
-                    is_closed: open.closed,
-                    layer: open.layer,
-                    color: open.color,
-                    line_weight: None,
-                    linetype: None,
-                });
-            }
+            close_polyline(open_polyline.take(), entities_out);
             DecodeOutcome::Ok
         }
         22 => {
@@ -1681,7 +1921,7 @@ fn decode_entity(
                     layer: layer.into(),
                     color: pre.color_aci.map(aci_to_hex),
                     line_weight: None,
-                    linetype: None,
+                    linetype: resolve_linetype(linetype_names, pre.linetype_index),
                 });
             }
             DecodeOutcome::Ok
@@ -2519,6 +2759,91 @@ mod tests {
         file.extend_from_slice(&rec);
         file.extend_from_slice(&LAYER_SENTINEL_END);
         file
+    }
+
+    #[test]
+    fn text_justification_anchors_at_the_second_alignment_point() {
+        // TEXT with h_align = 2 (right) and v_align = 2 (middle), second
+        // point (80, 5): common_hi flag2_3|flag2_2 = 0x20|0x40, common_lo
+        // flag3_8 = 0x01.
+        let mut body = Vec::new();
+        body.extend_from_slice(&le16(0)); // layer_index
+        body.push(0x60);
+        body.push(0x01);
+        body.extend_from_slice(&le64(0.0)); // insert x
+        body.extend_from_slice(&le64(0.0)); // insert y
+        body.extend_from_slice(&le64(2.5)); // height
+        body.extend_from_slice(&le16(2)); // len
+        body.extend_from_slice(b"RT");
+        body.push(2); // horiz_alignment = right
+        body.extend_from_slice(&le64(80.0));
+        body.extend_from_slice(&le64(5.0));
+        body.push(2); // vert_type = middle
+        let mut rec = vec![7i8 as u8, 0u8];
+        rec.extend_from_slice(&le16((4 + body.len()) as i16));
+        rec.extend_from_slice(&body);
+
+        let mut entities = Vec::new();
+        let mut open = None;
+        let mut cur = Cursor::new(&rec[6..]);
+        let outcome = decode_entity(7, 0, &mut cur, "0", &mut entities, &mut open, &[], &[]);
+        assert!(matches!(outcome, DecodeOutcome::Ok));
+        match &entities[0] {
+            Entity::Text {
+                insert,
+                h_align,
+                v_align,
+                text,
+                ..
+            } => {
+                assert_eq!(text, "RT");
+                assert_eq!(*insert, (80.0, 5.0));
+                assert_eq!((*h_align, *v_align), (2, 2));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
+    fn entity_linetype_index_resolves_through_the_table_names() {
+        // LINE with has_linetype (0x02) and has_elevation (0x04): linetype
+        // index 1 -> "DASHED".
+        let mut body = Vec::new();
+        body.extend_from_slice(&le16(0));
+        body.extend_from_slice(&[0, 0]);
+        body.extend_from_slice(&le16(1)); // entity_linetype_index
+        for v in [0.0, 0.0, 10.0, 0.0] {
+            body.extend_from_slice(&le64(v));
+        }
+        let names = vec!["CONTINUOUS".to_string(), "DASHED".to_string()];
+        let mut entities = Vec::new();
+        let mut open = None;
+        let mut cur = Cursor::new(&body[2..]);
+        let outcome = decode_entity(
+            1,
+            0x06,
+            &mut cur,
+            "0",
+            &mut entities,
+            &mut open,
+            &[],
+            &names,
+        );
+        assert!(matches!(outcome, DecodeOutcome::Ok));
+        assert!(matches!(&entities[0], Entity::Line { linetype: Some(lt), .. } if lt == "DASHED"));
+        // An index the table doesn't have falls back to BYLAYER.
+        let mut cur = Cursor::new(&body[2..]);
+        decode_entity(
+            1,
+            0x06,
+            &mut cur,
+            "0",
+            &mut entities,
+            &mut open,
+            &[],
+            &names[..1],
+        );
+        assert!(matches!(&entities[1], Entity::Line { linetype: None, .. }));
     }
 
     #[test]

@@ -2,6 +2,7 @@
 
 pub(crate) mod binary;
 pub mod geometry;
+pub(crate) mod polyline;
 pub mod reader;
 pub mod types;
 pub mod writer;
@@ -374,6 +375,30 @@ fn resolve_dash_array(
     }
 }
 
+/// Maps a `TEXT` entity's DXF horizontal (`72`) and vertical (`73`)
+/// justification onto an SVG text anchor and a baseline offset (in page
+/// units, Y down) from the entity's alignment point.
+///
+/// Horizontal: Left -> start; Center, Middle, Aligned and Fit -> middle;
+/// Right -> end. Vertical: Baseline sits on the point; Bottom puts the
+/// descender bottom there; Middle centres the cap height on it; Top hangs
+/// the cap height below it. The 0.7 cap-height and 0.2 descent ratios are
+/// the usual sans-serif proportions, since no CAD font metrics are known.
+fn text_alignment(h_align: u8, v_align: u8, font_size: f64) -> (TextAnchor, f64) {
+    let anchor = match h_align {
+        1 | 3 | 4 | 5 => TextAnchor::Middle,
+        2 => TextAnchor::End,
+        _ => TextAnchor::Start,
+    };
+    let baseline_dy = match v_align {
+        1 => -0.2 * font_size,
+        2 => 0.35 * font_size,
+        3 => 0.7 * font_size,
+        _ => 0.0,
+    };
+    (anchor, baseline_dy)
+}
+
 fn make_stroke(color_hex: &str, width: f64, dash_array: Vec<f64>) -> Stroke {
     Stroke {
         paint: Paint::solid(color_hex),
@@ -673,9 +698,59 @@ fn render_entity(
             insert,
             height,
             rotation_deg,
+            h_align,
+            v_align,
             ..
+        } => {
+            if !text.is_empty() {
+                let (x, y) = map_pt(insert.0, insert.1);
+                let font_size = (height * scale).clamp(6.0, 100.0);
+                let (anchor, baseline_dy) = text_alignment(*h_align, *v_align, font_size);
+                // Negative rotation because Y is flipped
+                let rad = deg_to_rad(-*rotation_deg);
+                let transform = if rotation_deg.abs() > 1e-4 {
+                    let cos = rad.cos();
+                    let sin = rad.sin();
+                    // Rotate around the alignment point (x, y); the baseline
+                    // origin below is offset from it along the (pre-rotation)
+                    // vertical, so the offset turns with the text.
+                    [
+                        cos,
+                        sin,
+                        -sin,
+                        cos,
+                        x * (1.0 - cos) + y * sin,
+                        y * (1.0 - cos) - x * sin,
+                    ]
+                } else {
+                    IDENTITY
+                };
+                let run = TextRun {
+                    text: clean_dxf_text(text),
+                    font_family: "sans-serif, Arial, 'Hiragino Sans'".into(),
+                    font_size,
+                    bold: false,
+                    italic: false,
+                    fill: Paint::solid(color_hex),
+                    baseline_shift: 0.0,
+                    glyph_x_offsets: Vec::new(),
+                    target_advance: None,
+                };
+                nodes.push(Node::Text {
+                    id: String::new(),
+                    x,
+                    y: y + baseline_dy,
+                    runs: vec![run],
+                    anchor,
+                    transform,
+                    opacity: 1.0,
+                    stroke: Stroke::default(),
+                    clip_id: None,
+                    meta: SourceMeta::default(),
+                });
+            }
         }
-        | Entity::MText {
+        Entity::MText {
             text,
             insert,
             height,

@@ -22400,6 +22400,57 @@ fn draws_ac1009_dwg_viewport_border_and_reports_shape_entities_distinctly() {
 }
 
 #[test]
+fn draws_ac1009_dwg_linetypes_text_justification_and_mesh_polylines() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_r12_ltype_text_mesh.dwg");
+    let output = temporary.path().join("dwg-r12-ltype-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dwg);
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty(), "{:?}", report.warnings);
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // Three LINEs: one with an entity-level DASHED override (2 dashes), one
+    // BYLAYER on a layer whose LTYPE is DASHDOT (4 dashes), one continuous.
+    let dash_arrays: Vec<&str> = svg
+        .match_indices("stroke-dasharray=\"")
+        .map(|(i, _)| {
+            let rest = &svg[i + "stroke-dasharray=\"".len()..];
+            &rest[..rest.find('"').unwrap()]
+        })
+        .collect();
+    assert_eq!(dash_arrays.len(), 2, "{dash_arrays:?}");
+    assert!(
+        dash_arrays
+            .iter()
+            .any(|d| d.split_whitespace().count() == 2)
+    );
+    assert!(
+        dash_arrays
+            .iter()
+            .any(|d| d.split_whitespace().count() == 4)
+    );
+    // TEXT justification: centre-justified text anchors at the middle of
+    // its second alignment point, right/top text at its end.
+    assert!(svg.contains("text-anchor=\"middle\""));
+    assert!(svg.contains("text-anchor=\"end\""));
+    assert!(svg.contains("CENTERED"));
+    assert!(svg.contains("RIGHT"));
+    // Spline-fit POLYLINE: only its three fit vertices are drawn (the two
+    // frame control points are dropped), so its path has exactly one M and
+    // two L commands.
+    assert!(
+        svg.lines().any(|l| l.contains("<path ")
+            && l.matches(" L ").count() == 2
+            && l.contains(" d=\"M ")),
+        "expected a 3-vertex spline-fit polyline"
+    );
+    // 3 LINEs + 1 spline-fit polyline + 2x3 polygon mesh (2 rows + 3
+    // columns) + polyface triangle with one hidden edge (2 edges).
+    assert_eq!(svg.matches("<path ").count(), 3 + 1 + 5 + 2);
+}
+
+#[test]
 fn applies_ac1009_dwg_ocs_extrusion_to_circle_and_polyline() {
     let temporary = TempDir::new().unwrap();
     let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_r12_ocs.dwg");
