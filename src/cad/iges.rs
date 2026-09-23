@@ -1,7 +1,8 @@
 //! Initial Graphics Exchange Specification (IGES / .iges / .igs) CAD parser and vector wireframe renderer.
 //!
 //! Parses standard 80-column ASCII IGES sections (Directory Entry & Parameter Data),
-//! extracts 3D wireframe entities (Lines 110, Arcs 100, Copious Data 106),
+//! extracts 3D wireframe entities (Lines 110, Arcs 100, Copious Data 106, and
+//! Rational B-Spline Curves 126 tessellated through [`crate::cad::nurbs`]),
 //! and projects them with an isometric camera into clean vector SVG drawings.
 
 use std::collections::HashMap;
@@ -14,6 +15,12 @@ use crate::ir::{IDENTITY, LineCap, LineJoin, Node, Page, Paint, SourceMeta, Stro
 const TARGET_PAGE_LONG_EDGE: f64 = 1200.0;
 const MIN_PAGE_DIMENSION: f64 = 400.0;
 const MAX_IGES_ENTITIES: usize = 100_000;
+/// Bound on control points accepted from a single entity 126 so a crafted
+/// K value cannot force a huge allocation before parameter data is validated.
+const MAX_IGES_SPLINE_CONTROL_POINTS: usize = 20_000;
+/// Points sampled along a tessellated B-spline curve; bounded and independent
+/// of curve complexity to keep rendering deterministic and inexpensive.
+const IGES_SPLINE_TESSELLATION_STEPS: usize = 64;
 
 #[derive(Clone, Copy, Debug)]
 struct Vec3 {
@@ -373,11 +380,104 @@ fn parse_iges(text: &str) -> Result<Vec<IgesEntity>> {
                     }
                 }
             }
+            126 => {
+                // Rational B-Spline Curve:
+                // 126, K, M, PROP1, PROP2, PROP3, PROP4,
+                //      T(-M)..T(N+M),        (K+M+2 knots)
+                //      W(0)..W(K),           (K+1 weights)
+                //      X(0),Y(0),Z(0)..X(K),Y(K),Z(K),  (3*(K+1) coords)
+                //      V(0), V(1)            (parameter domain)
+                //      [, XNORM, YNORM, ZNORM]          (optional, ignored)
+                if let Some(curve) = parse_iges_126(&params) {
+                    let (v0, v1) = curve.domain;
+                    let pts = curve
+                        .curve
+                        .tessellate_domain(v0, v1, IGES_SPLINE_TESSELLATION_STEPS);
+                    if pts.len() >= 2 {
+                        entities.push(IgesEntity::Polyline {
+                            points: pts
+                                .into_iter()
+                                .map(|p| Vec3 {
+                                    x: p.x,
+                                    y: p.y,
+                                    z: p.z,
+                                })
+                                .collect(),
+                        });
+                    }
+                }
+            }
             _ => {}
         }
     }
 
     Ok(entities)
+}
+
+struct Iges126Curve {
+    curve: crate::cad::nurbs::NurbsCurve,
+    domain: (f64, f64),
+}
+
+/// Parses the IGES entity 126 parameter list (`params[0]` is the literal
+/// entity type code `126.0`, matching the convention used elsewhere in this
+/// file) into a [`crate::cad::nurbs::NurbsCurve`] plus its declared `V(0)`/`V(1)`
+/// parameter domain. Returns `None` for truncated data or a control-point
+/// count outside the bounded range this reader accepts.
+fn parse_iges_126(params: &[f64]) -> Option<Iges126Curve> {
+    if params.len() < 7 {
+        return None;
+    }
+    let k = params[1];
+    let m = params[2];
+    if !k.is_finite()
+        || !m.is_finite()
+        || k < 1.0
+        || m < 1.0
+        || k > MAX_IGES_SPLINE_CONTROL_POINTS as f64 - 1.0
+    {
+        return None;
+    }
+    let k = k.round() as usize;
+    let m = m.round() as usize;
+    if m > k {
+        return None;
+    }
+    let num_cp = k + 1;
+    let num_knots = k + m + 2;
+
+    let knots_start = 7;
+    let weights_start = knots_start + num_knots;
+    let cp_start = weights_start + num_cp;
+    let cp_end = cp_start + 3 * num_cp;
+    if params.len() < cp_end + 2 {
+        return None;
+    }
+
+    let knots = params[knots_start..weights_start].to_vec();
+    let weights = params[weights_start..cp_start].to_vec();
+    let control_points = (0..num_cp)
+        .map(|i| {
+            let base = cp_start + i * 3;
+            crate::cad::nurbs::Point3 {
+                x: params[base],
+                y: params[base + 1],
+                z: params[base + 2],
+            }
+        })
+        .collect();
+    let domain = (params[cp_end], params[cp_end + 1]);
+
+    let curve = crate::cad::nurbs::NurbsCurve {
+        degree: m,
+        control_points,
+        weights,
+        knots,
+    };
+    if !curve.is_valid() {
+        return None;
+    }
+    Some(Iges126Curve { curve, domain })
 }
 
 /// Converts SVG elements to standard ANSI IGES 5.3 ASCII CAD file (.igs / .iges).
@@ -706,5 +806,43 @@ mod tests {
         };
         let entities = parse_iges(&text).expect("parse non-utf8 iges");
         assert!(!entities.is_empty());
+    }
+
+    #[test]
+    fn parses_entity_126_rational_b_spline_curve() {
+        // Degree-1 (piecewise linear), 3-control-point clamped B-spline
+        // through (0,0,0) -> (10,0,0) -> (10,10,0), unit weights.
+        let param_str = "126,2,1,0,0,1,0,0,0,1,2,2,1,1,1,0,0,0,10,0,0,10,10,0,0,2;".to_string();
+        let de_line1 = format!("{:<72}D{:>7}\n", format!("{:<8}{:<8}", "126", "1"), 1);
+        let de_line2 = format!("{:<72}D{:>7}\n", "126", 2);
+        let p_line = format!("{:<72}P{:>7}\n", param_str, 1);
+        let text = format!("{de_line1}{de_line2}{p_line}");
+
+        let entities = parse_iges(&text).expect("parse iges with entity 126");
+        assert_eq!(entities.len(), 1);
+        match &entities[0] {
+            IgesEntity::Polyline { points } => {
+                assert!(points.len() >= 2);
+                let first = points.first().unwrap();
+                let last = points.last().unwrap();
+                assert!((first.x).abs() < 1e-6 && (first.y).abs() < 1e-6);
+                assert!((last.x - 10.0).abs() < 1e-6 && (last.y - 10.0).abs() < 1e-6);
+            }
+            other => panic!("expected tessellated polyline, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn rejects_entity_126_with_truncated_parameter_data() {
+        // K=2, M=1 declared but the parameter list is cut short; must not
+        // panic on out-of-bounds indexing and must simply skip the entity.
+        let param_str = "126,2,1,0,0,1,0,0,0,1,2,2;".to_string();
+        let de_line1 = format!("{:<72}D{:>7}\n", format!("{:<8}{:<8}", "126", "1"), 1);
+        let de_line2 = format!("{:<72}D{:>7}\n", "126", 2);
+        let p_line = format!("{:<72}P{:>7}\n", param_str, 1);
+        let text = format!("{de_line1}{de_line2}{p_line}");
+
+        let entities = parse_iges(&text).expect("parse without panicking");
+        assert!(entities.is_empty());
     }
 }

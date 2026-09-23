@@ -22325,6 +22325,109 @@ fn converts_dwg_header_without_loading_binary_object_sections() {
 }
 
 #[test]
+fn converts_ac1009_dwg_entities_into_real_vector_geometry() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_r12.dwg");
+    let output = temporary.path().join("dwg-r12-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dwg);
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty());
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // A LINE, CIRCLE, ARC and open POLYLINE were decoded into actual paths,
+    // not just a header-metadata table.
+    assert!(svg.contains("<path"));
+    assert!(svg.contains(">HI<") || svg.contains("HI</tspan"));
+    assert!(svg.contains("#ff0000")); // explicit LINE color (ACI 1)
+    assert!(!svg.contains("Autodesk DWG header"));
+}
+
+#[test]
+fn expands_ac1009_dwg_insert_block_references_into_real_geometry() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_r12_insert.dwg");
+    let output = temporary.path().join("dwg-r12-insert-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dwg);
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty());
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The fixture inserts a "PAIR" block (itself two nested INSERTs of a
+    // "DOT" block) plus one direct LINE, for three drawn paths total —
+    // proof the block/table sections were decoded and INSERT was expanded,
+    // not just skipped.
+    assert_eq!(svg.matches("<path ").count(), 3);
+}
+
+#[test]
+fn draws_ac1009_dwg_attdef_attrib_text_and_dimension_block_geometry() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_r12_attr_dim.dwg");
+    let output = temporary.path().join("dwg-r12-attr-dim-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dwg);
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty());
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // ATTDEF's default value and ATTRIB's displayed value are drawn...
+    assert!(svg.contains("PARTNO-001"));
+    assert!(svg.contains("REV-A"));
+    // ...but entities flagged invisible are not.
+    assert!(!svg.contains("SHOULD_NOT_APPEAR"));
+    // The DIMENSION entity expanded its cached "*D1" block into 3 LINEs
+    // (two extension lines and the dimension line) at identity transform.
+    assert_eq!(svg.matches("<path ").count(), 3);
+}
+
+#[test]
+fn draws_ac1009_dwg_viewport_border_and_reports_shape_entities_distinctly() {
+    let temporary = TempDir::new().unwrap();
+    let input =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_r12_shape_viewport.dwg");
+    let output = temporary.path().join("dwg-r12-shape-viewport-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dwg);
+    assert_eq!(report.page_count, 1);
+    // The VIEWPORT entity's border rectangle and the reference LINE are
+    // both drawn; the SHAPE entity draws nothing (its glyph lives in an
+    // external, un-embedded .SHX file) but is called out by name.
+    assert_eq!(report.warnings.len(), 1);
+    assert!(report.warnings[0].contains("SHAPE"));
+    assert!(report.warnings[0].contains(".SHX"));
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    assert_eq!(svg.matches("<path ").count(), 2);
+}
+
+#[test]
+fn applies_ac1009_dwg_ocs_extrusion_to_circle_and_polyline() {
+    let temporary = TempDir::new().unwrap();
+    let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample_r12_ocs.dwg");
+    let output = temporary.path().join("dwg-r12-ocs-out");
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.source_format, SourceFormat::Dwg);
+    assert_eq!(report.page_count, 1);
+    assert!(report.warnings.is_empty());
+    let svg = fs::read_to_string(output.join("page-0001.svg")).unwrap();
+    // The CIRCLE has a (1,1,1)-tilted extrusion, so it must foreshorten
+    // into a genuine ellipse (unequal arc radii), not stay a plain circle.
+    let ellipse_path = svg
+        .lines()
+        .find(|l| l.contains(" A "))
+        .expect("expected the tilted CIRCLE's elliptical path");
+    let after_a = ellipse_path.split(" A ").nth(1).unwrap();
+    let mut nums = after_a.split_whitespace();
+    let rx: f64 = nums.next().unwrap().parse().unwrap();
+    let ry: f64 = nums.next().unwrap().parse().unwrap();
+    assert!(
+        (rx - ry).abs() > rx * 0.05,
+        "expected an ellipse (rx != ry), got rx={rx} ry={ry}"
+    );
+    // Two drawn shapes: the ellipse and the mirrored polyline.
+    assert_eq!(svg.matches("<path ").count(), 2);
+}
+
+#[test]
 fn converts_rhino_3dm_marker_without_loading_binary_model_chunks() {
     let temporary = TempDir::new().unwrap();
     let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/sample.3dm");
