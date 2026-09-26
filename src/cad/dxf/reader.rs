@@ -6,12 +6,13 @@ use std::io::BufRead;
 
 use crate::cad::color::{aci_to_hex, truecolor_to_hex};
 use crate::cad::dxf::geometry::parse_cad_float;
+use crate::cad::dxf::polyline::{ClassicPolyline, ClassicVertex, expand_classic_polyline};
 use crate::cad::dxf::types::{Block, DxfDocument, Entity, Layer, LineType, LwVertex};
 use crate::error::{Error, Result};
 
 const MAX_DXF_LINES: usize = 5_000_000;
 const MAX_ENTITIES: usize = 500_000;
-const MAX_VERTICES_PER_POLYLINE: usize = 100_000;
+pub(crate) const MAX_VERTICES_PER_POLYLINE: usize = 100_000;
 
 #[inline]
 fn parse_f64(s: &str) -> f64 {
@@ -933,109 +934,96 @@ fn parse_old_polyline<R: BufRead>(
     reader: &mut DxfReader<R>,
     entities: &mut Vec<Entity>,
 ) -> Result<Option<DxfPair>> {
-    let mut layer = "0".to_string();
-    let mut color = None;
-    let mut line_weight = None;
-    let mut linetype = None;
-    let mut is_closed = false;
-    let mut vertices = Vec::new();
+    let mut polyline = ClassicPolyline {
+        layer: "0".to_string(),
+        ..Default::default()
+    };
 
     let mut pair = reader.next_pair()?;
     while let Some(p) = pair {
         if p.code == 0 {
             if p.value.eq_ignore_ascii_case("VERTEX") {
                 let (v, next_p) = parse_vertex_entity(reader)?;
-                if let Some(vtx) = v {
-                    if vertices.len() < MAX_VERTICES_PER_POLYLINE {
-                        vertices.push(vtx);
-                    }
+                if polyline.vertices.len() < MAX_VERTICES_PER_POLYLINE {
+                    polyline.vertices.push(v);
                 }
                 pair = next_p;
                 continue;
             } else if p.value.eq_ignore_ascii_case("SEQEND") {
-                entities.push(Entity::LwPolyline {
-                    vertices,
-                    is_closed,
-                    layer,
-                    color,
-                    line_weight,
-                    linetype,
-                });
+                expand_classic_polyline(polyline, entities);
                 return reader.next_pair();
             } else {
-                entities.push(Entity::LwPolyline {
-                    vertices,
-                    is_closed,
-                    layer,
-                    color,
-                    line_weight,
-                    linetype,
-                });
+                expand_classic_polyline(polyline, entities);
                 return Ok(Some(p));
             }
         }
         match p.code {
-            8 => layer = p.value,
-            70 => {
-                let flag: u16 = p.value.parse().unwrap_or(0);
-                is_closed = (flag & 1) != 0;
-            }
+            8 => polyline.layer = p.value,
+            70 => polyline.flags = p.value.parse().unwrap_or(0),
+            71 => polyline.m_count = p.value.parse::<i64>().unwrap_or(0).clamp(0, 65_535) as usize,
+            72 => polyline.n_count = p.value.parse::<i64>().unwrap_or(0).clamp(0, 65_535) as usize,
             62 => {
                 if let Ok(aci) = p.value.parse::<i16>() {
-                    color = Some(aci_to_hex(aci.abs()));
+                    polyline.color = Some(aci_to_hex(aci.abs()));
                 }
             }
             420 => {
                 if let Ok(tc) = p.value.parse::<u32>() {
-                    color = Some(truecolor_to_hex(tc));
+                    polyline.color = Some(truecolor_to_hex(tc));
                 }
             }
             370 => {
                 if let Ok(lw) = p.value.parse::<i32>() {
                     if lw >= 0 {
-                        line_weight = Some(lw as f64 / 100.0);
+                        polyline.line_weight = Some(lw as f64 / 100.0);
                     }
                 }
             }
-            6 => linetype = Some(p.value.to_ascii_uppercase()),
+            6 => polyline.linetype = Some(p.value.to_ascii_uppercase()),
             _ => {}
         }
         pair = reader.next_pair()?;
     }
 
-    entities.push(Entity::LwPolyline {
-        vertices,
-        is_closed,
-        layer,
-        color,
-        line_weight,
-        linetype,
-    });
+    expand_classic_polyline(polyline, entities);
     Ok(None)
 }
 
+/// Reads one `VERTEX` record. A record carrying any of the polyface-mesh
+/// corner indices (`71`..`74`) is a face record rather than a location.
 fn parse_vertex_entity<R: BufRead>(
     reader: &mut DxfReader<R>,
-) -> Result<(Option<LwVertex>, Option<DxfPair>)> {
-    let mut x = 0.0;
-    let mut y = 0.0;
-    let mut bulge = 0.0;
+) -> Result<(ClassicVertex, Option<DxfPair>)> {
+    let mut vertex = ClassicVertex::default();
+    let mut face = [0i16; 4];
+    let mut has_face = false;
 
     let mut pair = reader.next_pair()?;
     while let Some(p) = pair {
         if p.code == 0 {
-            return Ok((Some(LwVertex { x, y, bulge }), Some(p)));
+            if has_face {
+                vertex.face = Some(face);
+            }
+            return Ok((vertex, Some(p)));
         }
         match p.code {
-            10 => x = parse_f64(&p.value),
-            20 => y = parse_f64(&p.value),
-            42 => bulge = parse_f64(&p.value),
+            10 => vertex.x = parse_f64(&p.value),
+            20 => vertex.y = parse_f64(&p.value),
+            42 => vertex.bulge = parse_f64(&p.value),
+            70 => vertex.flags = p.value.parse::<i64>().unwrap_or(0).clamp(0, 255) as u8,
+            71..=74 => {
+                face[(p.code - 71) as usize] =
+                    p.value.parse::<i64>().unwrap_or(0).clamp(-32_768, 32_767) as i16;
+                has_face = true;
+            }
             _ => {}
         }
         pair = reader.next_pair()?;
     }
-
-    Ok((Some(LwVertex { x, y, bulge }), None))
+    if has_face {
+        vertex.face = Some(face);
+    }
+    Ok((vertex, None))
 }
 
 fn parse_solid<R: BufRead>(
@@ -1089,6 +1077,26 @@ fn parse_solid<R: BufRead>(
     Ok(None)
 }
 
+/// Picks the point a `TEXT` entity is anchored at: the first alignment point
+/// (`10`/`20`) for plain left/baseline text, otherwise the second one
+/// (`11`/`21`). "Aligned" (`72 = 3`) and "Fit" (`72 = 5`) text spans
+/// *between* the two points, so it is anchored at their midpoint (and drawn
+/// centered there).
+pub(crate) fn text_anchor_point(
+    insert: (f64, f64),
+    align_pt: Option<(f64, f64)>,
+    h_align: u8,
+    v_align: u8,
+) -> (f64, f64) {
+    match align_pt {
+        Some(second) if matches!(h_align, 3 | 5) => {
+            ((insert.0 + second.0) / 2.0, (insert.1 + second.1) / 2.0)
+        }
+        Some(second) if h_align > 0 || v_align > 0 => second,
+        _ => insert,
+    }
+}
+
 fn parse_text<R: BufRead>(
     reader: &mut DxfReader<R>,
     entities: &mut Vec<Entity>,
@@ -1106,11 +1114,7 @@ fn parse_text<R: BufRead>(
     let mut pair = reader.next_pair()?;
     while let Some(p) = pair {
         if p.code == 0 {
-            let final_insert = if h_align > 0 || v_align > 0 {
-                align_pt.unwrap_or(insert)
-            } else {
-                insert
-            };
+            let final_insert = text_anchor_point(insert, align_pt, h_align, v_align);
             entities.push(Entity::Text {
                 text,
                 insert: final_insert,
@@ -1155,11 +1159,7 @@ fn parse_text<R: BufRead>(
         pair = reader.next_pair()?;
     }
 
-    let final_insert = if h_align > 0 || v_align > 0 {
-        align_pt.unwrap_or(insert)
-    } else {
-        insert
-    };
+    let final_insert = text_anchor_point(insert, align_pt, h_align, v_align);
     entities.push(Entity::Text {
         text,
         insert: final_insert,
@@ -1646,6 +1646,70 @@ EOF
             }
             _ => panic!("expected Text"),
         }
+    }
+
+    #[test]
+    fn aligned_text_is_anchored_at_the_midpoint_of_its_two_points() {
+        let dxf_content = "0\nSECTION\n2\nENTITIES\n0\nTEXT\n1\nSPAN\n72\n3\n10\n0.0\n20\n0.0\n11\n40.0\n21\n10.0\n0\nENDSEC\n0\nEOF\n";
+        let doc = parse_dxf(Cursor::new(dxf_content)).expect("parse DXF");
+        match &doc.entities[0] {
+            Entity::Text {
+                insert, h_align, ..
+            } => {
+                assert_eq!(*insert, (20.0, 5.0));
+                assert_eq!(*h_align, 3);
+            }
+            _ => panic!("expected Text"),
+        }
+    }
+
+    #[test]
+    fn classic_polyline_spline_fit_skips_frame_control_points() {
+        let dxf_content = "0\nSECTION\n2\nENTITIES\n0\nPOLYLINE\n8\n0\n70\n4\n0\nVERTEX\n10\n0\n20\n50\n70\n16\n0\nVERTEX\n10\n1\n20\n1\n70\n8\n0\nVERTEX\n10\n2\n20\n2\n70\n8\n0\nSEQEND\n0\nENDSEC\n0\nEOF\n";
+        let doc = parse_dxf(Cursor::new(dxf_content)).expect("parse DXF");
+        assert_eq!(doc.entities.len(), 1);
+        match &doc.entities[0] {
+            Entity::LwPolyline { vertices, .. } => {
+                assert_eq!(vertices.len(), 2);
+                assert_eq!((vertices[0].x, vertices[0].y), (1.0, 1.0));
+            }
+            other => panic!("expected LwPolyline, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn classic_polyline_polygon_mesh_expands_to_rows_and_columns() {
+        let mut dxf =
+            String::from("0\nSECTION\n2\nENTITIES\n0\nPOLYLINE\n8\n0\n70\n16\n71\n2\n72\n2\n");
+        for (x, y) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
+            dxf.push_str(&format!("0\nVERTEX\n10\n{x}\n20\n{y}\n70\n64\n"));
+        }
+        dxf.push_str("0\nSEQEND\n0\nENDSEC\n0\nEOF\n");
+        let doc = parse_dxf(Cursor::new(dxf)).expect("parse DXF");
+        assert_eq!(doc.entities.len(), 4);
+        assert!(
+            doc.entities
+                .iter()
+                .all(|e| matches!(e, Entity::LwPolyline { vertices, .. } if vertices.len() == 2))
+        );
+    }
+
+    #[test]
+    fn classic_polyline_polyface_mesh_expands_to_visible_edges() {
+        let dxf_content = "0\nSECTION\n2\nENTITIES\n0\nPOLYLINE\n8\n0\n70\n64\n71\n3\n72\n1\n0\nVERTEX\n10\n0\n20\n0\n70\n192\n0\nVERTEX\n10\n10\n20\n0\n70\n192\n0\nVERTEX\n10\n0\n20\n10\n70\n192\n0\nVERTEX\n10\n0\n20\n0\n70\n128\n71\n1\n72\n2\n73\n-3\n0\nSEQEND\n0\nENDSEC\n0\nEOF\n";
+        let doc = parse_dxf(Cursor::new(dxf_content)).expect("parse DXF");
+        let lines: Vec<((f64, f64), (f64, f64))> = doc
+            .entities
+            .iter()
+            .filter_map(|e| match e {
+                Entity::Line { start, end, .. } => Some((*start, *end)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            lines,
+            vec![((0.0, 0.0), (10.0, 0.0)), ((10.0, 0.0), (0.0, 10.0))]
+        );
     }
 
     #[test]

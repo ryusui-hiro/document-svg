@@ -57,8 +57,51 @@ enum StepEntity {
         ref_dir_id: Option<u64>,
     },
     Polyline(Vec<u64>),
+    Ellipse {
+        axis_id: u64,
+        semi_axis_1: f64,
+        semi_axis_2: f64,
+    },
+    /// Raw (unresolved) `B_SPLINE_CURVE` + `B_SPLINE_CURVE_WITH_KNOTS` (+
+    /// optional `RATIONAL_B_SPLINE_CURVE`) complex entity. Control points
+    /// are resolved and the curve tessellated later, once every entity in
+    /// the file has been parsed, so forward references work like every
+    /// other curve type here.
+    BSplineCurve {
+        degree: usize,
+        control_point_ids: Vec<u64>,
+        knot_multiplicities: Vec<u64>,
+        knot_values: Vec<f64>,
+        weights: Option<Vec<f64>>,
+    },
+    /// `TRIMMED_CURVE('', #basis, (trim_1), (trim_2), sense_agreement,
+    /// master_representation)`: a bounded piece of another curve. Each
+    /// trim may name a `CARTESIAN_POINT`, a `PARAMETER_VALUE(t)`, or both.
+    TrimmedCurve {
+        basis_id: u64,
+        trim_1: StepTrim,
+        trim_2: StepTrim,
+        sense_agreement: bool,
+    },
+    /// `COMPOSITE_CURVE('', (#segment, ...), self_intersect)`.
+    CompositeCurve(Vec<u64>),
+    /// `COMPOSITE_CURVE_SEGMENT(transition, same_sense, #parent_curve)`.
+    CompositeCurveSegment {
+        curve_id: u64,
+    },
     Other,
 }
+
+/// One end of a `TRIMMED_CURVE`.
+#[derive(Clone, Copy, Debug, Default)]
+struct StepTrim {
+    point_id: Option<u64>,
+    parameter: Option<f64>,
+}
+
+/// How deep `TRIMMED_CURVE`/`COMPOSITE_CURVE` references are followed before
+/// a cycle or absurd nesting is cut off.
+const MAX_STEP_CURVE_DEPTH: usize = 8;
 
 pub(crate) fn convert<R: Read>(
     input: R,
@@ -154,6 +197,24 @@ pub(crate) fn convert<R: Read>(
     let mut segments: Vec<(Point3D, Point3D)> = Vec::new();
     let mut referenced_curves: std::collections::HashSet<u64> = std::collections::HashSet::new();
 
+    // A curve drawn as part of something else (an edge, a trimmed curve's
+    // basis, a composite curve's segment) must not be drawn again on its own.
+    for entity in entities.values() {
+        match entity {
+            StepEntity::EdgeCurve { curve_id, .. }
+            | StepEntity::CompositeCurveSegment { curve_id } => {
+                referenced_curves.insert(*curve_id);
+            }
+            StepEntity::TrimmedCurve { basis_id, .. } => {
+                referenced_curves.insert(*basis_id);
+            }
+            StepEntity::CompositeCurve(segment_ids) => {
+                referenced_curves.extend(segment_ids.iter().copied());
+            }
+            _ => {}
+        }
+    }
+
     for entity in entities.values() {
         if let StepEntity::EdgeCurve {
             start_v,
@@ -161,45 +222,28 @@ pub(crate) fn convert<R: Read>(
             curve_id,
         } = entity
         {
-            referenced_curves.insert(*curve_id);
             let p1 = resolve_vertex_point(*start_v, &entities);
             let p2 = resolve_vertex_point(*end_v, &entities);
-            if let Some(StepEntity::Circle { axis_id, radius }) = entities.get(curve_id) {
-                sample_step_circle(*axis_id, *radius, p1, p2, &entities, &mut segments);
-            } else if let Some(StepEntity::Polyline(pt_ids)) = entities.get(curve_id) {
-                for w in pt_ids.windows(2) {
-                    let pa = resolve_cartesian_point(w[0], &entities);
-                    let pb = resolve_cartesian_point(w[1], &entities);
-                    if let (Some(a), Some(b)) = (pa, pb) {
-                        segments.push((a, b));
-                    }
-                }
-            } else if let (Some(pt1), Some(pt2)) = (p1, p2) {
-                let dist_sq =
-                    (pt1.x - pt2.x).powi(2) + (pt1.y - pt2.y).powi(2) + (pt1.z - pt2.z).powi(2);
-                if dist_sq > 1e-12 {
-                    segments.push((pt1, pt2));
-                }
-            }
+            push_curve_segments(*curve_id, p1, p2, &entities, &mut segments, 0);
         }
     }
 
-    // Include standalone circles and polylines if any exist
+    // Include standalone curves (not referenced by any edge, trimmed curve
+    // or composite curve) if any exist.
     for (id, entity) in &entities {
-        if let StepEntity::Circle { axis_id, radius } = entity
-            && !referenced_curves.contains(id)
-        {
-            sample_step_circle(*axis_id, *radius, None, None, &entities, &mut segments);
-        } else if let StepEntity::Polyline(pt_ids) = entity
-            && !referenced_curves.contains(id)
-        {
-            for w in pt_ids.windows(2) {
-                let pa = resolve_cartesian_point(w[0], &entities);
-                let pb = resolve_cartesian_point(w[1], &entities);
-                if let (Some(a), Some(b)) = (pa, pb) {
-                    segments.push((a, b));
-                }
-            }
+        if referenced_curves.contains(id) {
+            continue;
+        }
+        if matches!(
+            entity,
+            StepEntity::Circle { .. }
+                | StepEntity::Ellipse { .. }
+                | StepEntity::BSplineCurve { .. }
+                | StepEntity::Polyline(_)
+                | StepEntity::TrimmedCurve { .. }
+                | StepEntity::CompositeCurve(_)
+        ) {
+            push_curve_segments(*id, None, None, &entities, &mut segments, 0);
         }
     }
 
@@ -424,17 +468,13 @@ fn dot(a: Point3D, b: Point3D) -> f64 {
     a.x * b.x + a.y * b.y + a.z * b.z
 }
 
-fn sample_step_circle(
+/// Resolves an `AXIS2_PLACEMENT_3D` into a right-handed `(center, u, v)`
+/// in-plane frame, shared by circle and ellipse sampling. Falls back to the
+/// world XY plane at the origin when the placement is missing or unresolved.
+fn resolve_axis_frame(
     axis_id: u64,
-    radius: f64,
-    start_pt: Option<Point3D>,
-    end_pt: Option<Point3D>,
     entities: &HashMap<u64, StepEntity>,
-    segments: &mut Vec<(Point3D, Point3D)>,
-) {
-    if radius <= 1e-6 {
-        return;
-    }
+) -> (Point3D, Point3D, Point3D) {
     let (center, normal, ref_dir) = match entities.get(&axis_id) {
         Some(StepEntity::Axis2Placement3D {
             location_id,
@@ -495,6 +535,260 @@ fn sample_step_circle(
     };
     let u = normalize(u_ortho);
     let v = cross(n, u);
+    (center, u, v)
+}
+
+/// Appends the segments of curve `curve_id`, bounded by the optional start
+/// and end points an `EDGE_CURVE` supplies. Unbounded curves (a bare
+/// `LINE`) draw only when both endpoints are known; a `TRIMMED_CURVE`
+/// bounds its basis curve itself and a `COMPOSITE_CURVE` draws each of its
+/// segments' curves in turn, both recursing up to [`MAX_STEP_CURVE_DEPTH`].
+fn push_curve_segments(
+    curve_id: u64,
+    p1: Option<Point3D>,
+    p2: Option<Point3D>,
+    entities: &HashMap<u64, StepEntity>,
+    segments: &mut Vec<(Point3D, Point3D)>,
+    depth: usize,
+) {
+    if depth > MAX_STEP_CURVE_DEPTH {
+        return;
+    }
+    match entities.get(&curve_id) {
+        Some(StepEntity::Circle { axis_id, radius }) => {
+            sample_step_circle(*axis_id, *radius, p1, p2, entities, segments);
+        }
+        Some(StepEntity::Ellipse {
+            axis_id,
+            semi_axis_1,
+            semi_axis_2,
+        }) => {
+            sample_step_ellipse(
+                *axis_id,
+                *semi_axis_1,
+                *semi_axis_2,
+                p1,
+                p2,
+                entities,
+                segments,
+            );
+        }
+        Some(bspline @ StepEntity::BSplineCurve { .. }) => {
+            push_bspline_segments(bspline, entities, segments);
+        }
+        Some(StepEntity::Polyline(pt_ids)) => {
+            for w in pt_ids.windows(2) {
+                let pa = resolve_cartesian_point(w[0], entities);
+                let pb = resolve_cartesian_point(w[1], entities);
+                if let (Some(a), Some(b)) = (pa, pb) {
+                    segments.push((a, b));
+                }
+            }
+        }
+        Some(StepEntity::TrimmedCurve {
+            basis_id,
+            trim_1,
+            trim_2,
+            sense_agreement,
+        }) => {
+            push_trimmed_curve_segments(
+                *basis_id,
+                *trim_1,
+                *trim_2,
+                *sense_agreement,
+                entities,
+                segments,
+                depth + 1,
+            );
+        }
+        Some(StepEntity::CompositeCurve(segment_ids)) => {
+            for seg_id in segment_ids {
+                let inner = match entities.get(seg_id) {
+                    Some(StepEntity::CompositeCurveSegment { curve_id }) => *curve_id,
+                    // Some exporters list the curves directly.
+                    _ => *seg_id,
+                };
+                push_curve_segments(inner, None, None, entities, segments, depth + 1);
+            }
+        }
+        _ => {
+            if let (Some(pt1), Some(pt2)) = (p1, p2) {
+                let dist_sq =
+                    (pt1.x - pt2.x).powi(2) + (pt1.y - pt2.y).powi(2) + (pt1.z - pt2.z).powi(2);
+                if dist_sq > 1e-12 {
+                    segments.push((pt1, pt2));
+                }
+            }
+        }
+    }
+}
+
+/// Resolves a `LINE`'s point and direction vector (already scaled by the
+/// `VECTOR` magnitude), so its parameter `t` maps to `pnt + t * dir`.
+fn resolve_line(line_id: u64, entities: &HashMap<u64, StepEntity>) -> Option<(Point3D, Point3D)> {
+    let StepEntity::Line { point_id, dir_id } = entities.get(&line_id)? else {
+        return None;
+    };
+    let pnt = resolve_cartesian_point(*point_id, entities)?;
+    let (dir, length) = match entities.get(dir_id) {
+        Some(StepEntity::Vector { dir_id, length }) => {
+            (resolve_direction(*dir_id, entities)?, *length)
+        }
+        Some(StepEntity::Direction(d)) => (*d, 1.0),
+        _ => return None,
+    };
+    Some((
+        pnt,
+        Point3D {
+            x: dir.x * length,
+            y: dir.y * length,
+            z: dir.z * length,
+        },
+    ))
+}
+
+/// A trim's angle parameter for a circle/ellipse basis: STEP parameterises
+/// both by angle in the unit of the file's context, which is nearly always
+/// radians; a value beyond a full turn is taken to be degrees.
+fn trim_angle(parameter: f64) -> f64 {
+    if parameter.abs() > std::f64::consts::TAU + 1e-6 {
+        parameter.to_radians()
+    } else {
+        parameter
+    }
+}
+
+/// Draws the bounded piece of a `TRIMMED_CURVE`'s basis curve. A trim given
+/// as a point is used directly; one given only as a parameter is evaluated
+/// on the basis (`pnt + t * dir` for a line, the angle for a circle or
+/// ellipse, the knot parameter for a B-spline). A `.F.` sense agreement
+/// runs the piece the other way round the basis, which for the closed
+/// conics means the complementary arc. A basis this reader can't evaluate
+/// still draws a straight segment between two point trims.
+fn push_trimmed_curve_segments(
+    basis_id: u64,
+    trim_1: StepTrim,
+    trim_2: StepTrim,
+    sense_agreement: bool,
+    entities: &HashMap<u64, StepEntity>,
+    segments: &mut Vec<(Point3D, Point3D)>,
+    depth: usize,
+) {
+    let point_of = |trim: StepTrim| {
+        trim.point_id
+            .and_then(|id| resolve_cartesian_point(id, entities))
+    };
+    match entities.get(&basis_id) {
+        Some(StepEntity::Line { .. }) => {
+            let line = resolve_line(basis_id, entities);
+            let eval = |trim: StepTrim| -> Option<Point3D> {
+                point_of(trim).or_else(|| {
+                    let (pnt, dir) = line?;
+                    let t = trim.parameter?;
+                    Some(Point3D {
+                        x: pnt.x + t * dir.x,
+                        y: pnt.y + t * dir.y,
+                        z: pnt.z + t * dir.z,
+                    })
+                })
+            };
+            if let (Some(a), Some(b)) = (eval(trim_1), eval(trim_2))
+                && (a.x - b.x).powi(2) + (a.y - b.y).powi(2) + (a.z - b.z).powi(2) > 1e-12
+            {
+                segments.push((a, b));
+            }
+        }
+        Some(StepEntity::Circle { axis_id, radius }) => {
+            let (center, u, v) = resolve_axis_frame(*axis_id, entities);
+            let eval = |trim: StepTrim| -> Option<Point3D> {
+                point_of(trim).or_else(|| {
+                    let angle = trim_angle(trim.parameter?);
+                    Some(Point3D {
+                        x: center.x + radius * (angle.cos() * u.x + angle.sin() * v.x),
+                        y: center.y + radius * (angle.cos() * u.y + angle.sin() * v.y),
+                        z: center.z + radius * (angle.cos() * u.z + angle.sin() * v.z),
+                    })
+                })
+            };
+            if let (Some(a), Some(b)) = (eval(trim_1), eval(trim_2)) {
+                let (a, b) = if sense_agreement { (a, b) } else { (b, a) };
+                sample_step_circle(*axis_id, *radius, Some(a), Some(b), entities, segments);
+            }
+        }
+        Some(StepEntity::Ellipse {
+            axis_id,
+            semi_axis_1,
+            semi_axis_2,
+        }) => {
+            let (center, u, v) = resolve_axis_frame(*axis_id, entities);
+            let eval = |trim: StepTrim| -> Option<Point3D> {
+                point_of(trim).or_else(|| {
+                    let angle = trim_angle(trim.parameter?);
+                    let (sin, cos) = angle.sin_cos();
+                    Some(Point3D {
+                        x: center.x + semi_axis_1 * cos * u.x + semi_axis_2 * sin * v.x,
+                        y: center.y + semi_axis_1 * cos * u.y + semi_axis_2 * sin * v.y,
+                        z: center.z + semi_axis_1 * cos * u.z + semi_axis_2 * sin * v.z,
+                    })
+                })
+            };
+            if let (Some(a), Some(b)) = (eval(trim_1), eval(trim_2)) {
+                let (a, b) = if sense_agreement { (a, b) } else { (b, a) };
+                sample_step_ellipse(
+                    *axis_id,
+                    *semi_axis_1,
+                    *semi_axis_2,
+                    Some(a),
+                    Some(b),
+                    entities,
+                    segments,
+                );
+            }
+        }
+        Some(bspline @ StepEntity::BSplineCurve { .. }) => {
+            match (trim_1.parameter, trim_2.parameter) {
+                (Some(t0), Some(t1)) if t0.is_finite() && t1.is_finite() && t0 != t1 => {
+                    push_bspline_domain_segments(
+                        bspline,
+                        t0.min(t1),
+                        t0.max(t1),
+                        entities,
+                        segments,
+                    );
+                }
+                _ => push_bspline_segments(bspline, entities, segments),
+            }
+        }
+        Some(StepEntity::TrimmedCurve { .. }) | Some(StepEntity::CompositeCurve(_)) => {
+            push_curve_segments(
+                basis_id,
+                point_of(trim_1),
+                point_of(trim_2),
+                entities,
+                segments,
+                depth,
+            );
+        }
+        _ => {
+            if let (Some(a), Some(b)) = (point_of(trim_1), point_of(trim_2)) {
+                segments.push((a, b));
+            }
+        }
+    }
+}
+
+fn sample_step_circle(
+    axis_id: u64,
+    radius: f64,
+    start_pt: Option<Point3D>,
+    end_pt: Option<Point3D>,
+    entities: &HashMap<u64, StepEntity>,
+    segments: &mut Vec<(Point3D, Point3D)>,
+) {
+    if radius <= 1e-6 {
+        return;
+    }
+    let (center, u, v) = resolve_axis_frame(axis_id, entities);
 
     let get_pt = |angle: f64| -> Point3D {
         Point3D {
@@ -548,6 +842,173 @@ fn sample_step_circle(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+fn sample_step_ellipse(
+    axis_id: u64,
+    semi_axis_1: f64,
+    semi_axis_2: f64,
+    start_pt: Option<Point3D>,
+    end_pt: Option<Point3D>,
+    entities: &HashMap<u64, StepEntity>,
+    segments: &mut Vec<(Point3D, Point3D)>,
+) {
+    if !(semi_axis_1 > 1e-6 && semi_axis_2 > 1e-6) {
+        return;
+    }
+    let (center, u, v) = resolve_axis_frame(axis_id, entities);
+
+    let get_pt = |angle: f64| -> Point3D {
+        Point3D {
+            x: center.x + semi_axis_1 * angle.cos() * u.x + semi_axis_2 * angle.sin() * v.x,
+            y: center.y + semi_axis_1 * angle.cos() * u.y + semi_axis_2 * angle.sin() * v.y,
+            z: center.z + semi_axis_1 * angle.cos() * u.z + semi_axis_2 * angle.sin() * v.z,
+        }
+    };
+    let angle_of = |p: Point3D| -> f64 {
+        let d = Point3D {
+            x: p.x - center.x,
+            y: p.y - center.y,
+            z: p.z - center.z,
+        };
+        (dot(d, v) / semi_axis_2).atan2(dot(d, u) / semi_axis_1)
+    };
+
+    let is_closed = match (start_pt, end_pt) {
+        (Some(p1), Some(p2)) => {
+            let dist_sq = (p1.x - p2.x).powi(2) + (p1.y - p2.y).powi(2) + (p1.z - p2.z).powi(2);
+            dist_sq < 1e-8
+        }
+        _ => true,
+    };
+
+    if is_closed {
+        let steps = 40;
+        let mut prev = get_pt(0.0);
+        for i in 1..=steps {
+            let angle = (i as f64 / steps as f64) * std::f64::consts::TAU;
+            let curr = get_pt(angle);
+            segments.push((prev, curr));
+            prev = curr;
+        }
+    } else if let (Some(p1), Some(p2)) = (start_pt, end_pt) {
+        let a1 = angle_of(p1);
+        let mut a2 = angle_of(p2);
+        if a2 <= a1 {
+            a2 += std::f64::consts::TAU;
+        }
+        let steps = 32;
+        let mut prev = p1;
+        for i in 1..=steps {
+            let angle = a1 + (i as f64 / steps as f64) * (a2 - a1);
+            let curr = get_pt(angle);
+            segments.push((prev, curr));
+            prev = curr;
+        }
+    }
+}
+
+/// Bounded points sampled along a STEP B-spline curve edge; independent of
+/// curve degree/knot complexity to keep rendering deterministic and cheap.
+const STEP_BSPLINE_TESSELLATION_STEPS: usize = 64;
+
+/// Resolves a [`StepEntity::BSplineCurve`]'s control points, expands its
+/// knot multiplicities, evaluates the resulting NURBS curve, and appends the
+/// tessellated segments. Silently omits the curve (no segments pushed) when
+/// control points are unresolved or the curve fails validation, matching
+/// this reader's bounded, warn-or-omit contract for unsupported geometry.
+fn push_bspline_segments(
+    entity: &StepEntity,
+    entities: &HashMap<u64, StepEntity>,
+    segments: &mut Vec<(Point3D, Point3D)>,
+) {
+    let Some(curve) = build_bspline_curve(entity, entities) else {
+        return;
+    };
+    push_tessellated_points(&curve.tessellate(STEP_BSPLINE_TESSELLATION_STEPS), segments);
+}
+
+/// Like [`push_bspline_segments`], but only over the knot-parameter range
+/// `[t0, t1]` a `TRIMMED_CURVE` asked for.
+fn push_bspline_domain_segments(
+    entity: &StepEntity,
+    t0: f64,
+    t1: f64,
+    entities: &HashMap<u64, StepEntity>,
+    segments: &mut Vec<(Point3D, Point3D)>,
+) {
+    let Some(curve) = build_bspline_curve(entity, entities) else {
+        return;
+    };
+    push_tessellated_points(
+        &curve.tessellate_domain(t0, t1, STEP_BSPLINE_TESSELLATION_STEPS),
+        segments,
+    );
+}
+
+fn push_tessellated_points(
+    points: &[crate::cad::nurbs::Point3],
+    segments: &mut Vec<(Point3D, Point3D)>,
+) {
+    for w in points.windows(2) {
+        segments.push((
+            Point3D {
+                x: w[0].x,
+                y: w[0].y,
+                z: w[0].z,
+            },
+            Point3D {
+                x: w[1].x,
+                y: w[1].y,
+                z: w[1].z,
+            },
+        ));
+    }
+}
+
+/// Resolves a [`StepEntity::BSplineCurve`]'s control points, expands its
+/// knot multiplicities and validates the resulting NURBS curve. `None` when
+/// control points are unresolved or the curve fails validation, matching
+/// this reader's bounded, warn-or-omit contract for unsupported geometry.
+fn build_bspline_curve(
+    entity: &StepEntity,
+    entities: &HashMap<u64, StepEntity>,
+) -> Option<crate::cad::nurbs::NurbsCurve> {
+    let StepEntity::BSplineCurve {
+        degree,
+        control_point_ids,
+        knot_multiplicities,
+        knot_values,
+        weights,
+    } = entity
+    else {
+        return None;
+    };
+
+    let mut control_points = Vec::with_capacity(control_point_ids.len());
+    for &pid in control_point_ids {
+        let p = resolve_cartesian_point(pid, entities)?;
+        control_points.push(crate::cad::nurbs::Point3 {
+            x: p.x,
+            y: p.y,
+            z: p.z,
+        });
+    }
+    let knots = crate::cad::nurbs::expand_knot_multiplicities(knot_multiplicities, knot_values)?;
+    let curve_weights = match weights {
+        Some(w) if w.len() == control_points.len() => w.clone(),
+        Some(_) => return None,
+        None => vec![1.0; control_points.len()],
+    };
+
+    let curve = crate::cad::nurbs::NurbsCurve {
+        degree: *degree,
+        control_points,
+        weights: curve_weights,
+        knots,
+    };
+    curve.is_valid().then_some(curve)
+}
+
 fn parse_step_statement(stmt: &str, entities: &mut HashMap<u64, StepEntity>) {
     let trimmed = stmt.trim().trim_end_matches(';');
     let eq_pos = match trimmed.find('=') {
@@ -569,6 +1030,18 @@ fn parse_step_statement(stmt: &str, entities: &mut HashMap<u64, StepEntity>) {
 
     let keyword = rest[..paren_pos].trim().to_ascii_uppercase();
     let args = &rest[paren_pos..];
+
+    if keyword.is_empty() {
+        // A STEP "complex entity" instance: several simple entities joined
+        // without an outer keyword, e.g.
+        // #50=(BOUNDED_CURVE()B_SPLINE_CURVE(3,(#51,#52,#53,#54),.UNSPECIFIED.,.F.,.F.)
+        //      B_SPLINE_CURVE_WITH_KNOTS((4,4),(0.,1.),.UNSPECIFIED.)CURVE()
+        //      GEOMETRIC_REPRESENTATION_ITEM()
+        //      RATIONAL_B_SPLINE_CURVE((1.,1.,1.,1.))REPRESENTATION_ITEM(''));
+        // is how real CAD exporters express a NURBS edge curve.
+        parse_step_complex_entity(id, rest, entities);
+        return;
+    }
 
     match keyword.as_str() {
         "CARTESIAN_POINT" => {
@@ -691,6 +1164,66 @@ fn parse_step_statement(stmt: &str, entities: &mut HashMap<u64, StepEntity>) {
                 entities.insert(id, StepEntity::Circle { axis_id, radius });
             }
         }
+        "ELLIPSE" => {
+            let inner = args.trim_start_matches('(').trim_end_matches(')');
+            let parts: Vec<&str> = inner.split(',').collect();
+            if parts.len() >= 4 {
+                let axis_id = parts[1].trim().trim_start_matches('#').parse().unwrap_or(0);
+                let semi_axis_1 =
+                    crate::cad::dxf::geometry::parse_cad_float(parts[2]).unwrap_or(0.0);
+                let semi_axis_2 =
+                    crate::cad::dxf::geometry::parse_cad_float(parts[3]).unwrap_or(0.0);
+                entities.insert(
+                    id,
+                    StepEntity::Ellipse {
+                        axis_id,
+                        semi_axis_1,
+                        semi_axis_2,
+                    },
+                );
+            }
+        }
+        "TRIMMED_CURVE" => {
+            // TRIMMED_CURVE('', #basis, (#p | PARAMETER_VALUE(t) ...), (...), .T., .CARTESIAN.)
+            let parts = split_top_level(strip_one_paren_level(args));
+            if parts.len() >= 4 {
+                let basis_id = parts[1].trim().trim_start_matches('#').parse().unwrap_or(0);
+                let trim_1 = parse_step_trim(parts[2]);
+                let trim_2 = parse_step_trim(parts[3]);
+                let sense_agreement = !parts
+                    .get(4)
+                    .map(|s| s.trim().eq_ignore_ascii_case(".F."))
+                    .unwrap_or(false);
+                entities.insert(
+                    id,
+                    StepEntity::TrimmedCurve {
+                        basis_id,
+                        trim_1,
+                        trim_2,
+                        sense_agreement,
+                    },
+                );
+            }
+        }
+        "COMPOSITE_CURVE" => {
+            if let Some(tuple_str) = extract_inner_tuple(args) {
+                let segment_ids: Vec<u64> = tuple_str
+                    .split(',')
+                    .filter_map(|s| s.trim().trim_start_matches('#').parse().ok())
+                    .collect();
+                if !segment_ids.is_empty() {
+                    entities.insert(id, StepEntity::CompositeCurve(segment_ids));
+                }
+            }
+        }
+        "COMPOSITE_CURVE_SEGMENT" => {
+            let inner = args.trim_start_matches('(').trim_end_matches(')');
+            let parts: Vec<&str> = inner.split(',').collect();
+            if parts.len() >= 3 {
+                let curve_id = parts[2].trim().trim_start_matches('#').parse().unwrap_or(0);
+                entities.insert(id, StepEntity::CompositeCurveSegment { curve_id });
+            }
+        }
         "POLYLINE" => {
             if let Some(tuple_str) = extract_inner_tuple(args) {
                 let point_ids: Vec<u64> = tuple_str
@@ -706,6 +1239,165 @@ fn parse_step_statement(stmt: &str, entities: &mut HashMap<u64, StepEntity>) {
             entities.insert(id, StepEntity::Other);
         }
     }
+}
+
+/// Parses one `TRIMMED_CURVE` trim selector list, e.g. `(#12)`,
+/// `(PARAMETER_VALUE(1.5708))` or `(#12,PARAMETER_VALUE(0.))`.
+fn parse_step_trim(text: &str) -> StepTrim {
+    let mut trim = StepTrim::default();
+    for item in split_top_level(strip_one_paren_level(text.trim())) {
+        let item = item.trim();
+        if let Some(rest) = item.strip_prefix('#') {
+            trim.point_id = rest.trim().parse().ok();
+        } else if let Some(args) = find_keyword_args(item, "PARAMETER_VALUE") {
+            trim.parameter =
+                crate::cad::dxf::geometry::parse_cad_float(strip_one_paren_level(args));
+        }
+    }
+    trim
+}
+
+/// Parses a STEP complex entity instance (`#id=(A()B(...)C(...));`), looking
+/// specifically for the `B_SPLINE_CURVE` / `B_SPLINE_CURVE_WITH_KNOTS` /
+/// `RATIONAL_B_SPLINE_CURVE` combination that real CAD exporters use for
+/// NURBS edges. Any other complex entity is recorded as [`StepEntity::Other`]
+/// so it never resolves as a curve reference.
+fn parse_step_complex_entity(id: u64, rest: &str, entities: &mut HashMap<u64, StepEntity>) {
+    if let (Some(base_args), Some(knots_args)) = (
+        find_keyword_args(rest, "B_SPLINE_CURVE"),
+        find_keyword_args(rest, "B_SPLINE_CURVE_WITH_KNOTS"),
+    ) {
+        let base_inner = &base_args[1..base_args.len().saturating_sub(1)];
+        let base_parts = split_top_level(base_inner);
+        let knots_inner = &knots_args[1..knots_args.len().saturating_sub(1)];
+        let knots_parts = split_top_level(knots_inner);
+
+        if base_parts.len() >= 2 && knots_parts.len() >= 2 {
+            let degree = base_parts[0].trim().parse::<i64>().ok();
+            let control_point_ids: Option<Vec<u64>> = Some(
+                strip_one_paren_level(base_parts[1])
+                    .split(',')
+                    .filter_map(|p| p.trim().trim_start_matches('#').parse().ok())
+                    .collect(),
+            );
+            let knot_multiplicities: Option<Vec<u64>> = Some(
+                strip_one_paren_level(knots_parts[0])
+                    .split(',')
+                    .filter_map(|p| p.trim().parse::<u64>().ok())
+                    .collect(),
+            );
+            let knot_values: Option<Vec<f64>> = Some(
+                strip_one_paren_level(knots_parts[1])
+                    .split(',')
+                    .filter_map(crate::cad::dxf::geometry::parse_cad_float)
+                    .collect(),
+            );
+            let weights = find_keyword_args(rest, "RATIONAL_B_SPLINE_CURVE").and_then(|w_args| {
+                let w_inner = &w_args[1..w_args.len().saturating_sub(1)];
+                let w_parts = split_top_level(w_inner);
+                w_parts.first().map(|p| {
+                    strip_one_paren_level(p)
+                        .split(',')
+                        .filter_map(crate::cad::dxf::geometry::parse_cad_float)
+                        .collect::<Vec<f64>>()
+                })
+            });
+
+            if let (
+                Some(degree),
+                Some(control_point_ids),
+                Some(knot_multiplicities),
+                Some(knot_values),
+            ) = (degree, control_point_ids, knot_multiplicities, knot_values)
+                && degree >= 1
+                && (degree as usize) < 10_000
+                && !control_point_ids.is_empty()
+                && control_point_ids.len() <= 20_000
+                && knot_multiplicities.len() == knot_values.len()
+                && !knot_multiplicities.is_empty()
+            {
+                entities.insert(
+                    id,
+                    StepEntity::BSplineCurve {
+                        degree: degree as usize,
+                        control_point_ids,
+                        knot_multiplicities,
+                        knot_values,
+                        weights,
+                    },
+                );
+                return;
+            }
+        }
+    }
+    entities.insert(id, StepEntity::Other);
+}
+
+/// Finds a top-level, word-bounded `KEYWORD(...)` occurrence in `text` and
+/// returns its balanced-parenthesis argument string, parens included.
+/// Word-boundary checking keeps `B_SPLINE_CURVE` from matching inside
+/// `B_SPLINE_CURVE_WITH_KNOTS` or `RATIONAL_B_SPLINE_CURVE`.
+fn find_keyword_args<'a>(text: &'a str, keyword: &str) -> Option<&'a str> {
+    let bytes = text.as_bytes();
+    let mut search_from = 0usize;
+    while let Some(rel) = text[search_from..].find(keyword) {
+        let start = search_from + rel;
+        let before_ok = start == 0 || !is_step_word_byte(bytes[start - 1]);
+        let after = start + keyword.len();
+        if before_ok && after < bytes.len() && bytes[after] == b'(' {
+            let mut depth = 0i32;
+            for (off, ch) in text[after..].char_indices() {
+                match ch {
+                    '(' => depth += 1,
+                    ')' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            return Some(&text[after..after + off + ch.len_utf8()]);
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            return None;
+        }
+        search_from = start + keyword.len();
+    }
+    None
+}
+
+fn is_step_word_byte(b: u8) -> bool {
+    b.is_ascii_alphanumeric() || b == b'_'
+}
+
+/// Strips exactly one leading `(` and trailing `)` from a STEP tuple
+/// literal such as `(#51,#52,#53)`, leaving the interior untouched.
+fn strip_one_paren_level(s: &str) -> &str {
+    let s = s.trim();
+    match s.strip_prefix('(') {
+        Some(inner) => inner.strip_suffix(')').unwrap_or(inner),
+        None => s,
+    }
+}
+
+/// Splits a STEP argument-list interior (no outer parens) on top-level
+/// commas, treating nested `(...)` groups as opaque.
+fn split_top_level(s: &str) -> Vec<&str> {
+    let mut parts = Vec::new();
+    let mut depth = 0i32;
+    let mut start = 0usize;
+    for (i, ch) in s.char_indices() {
+        match ch {
+            '(' => depth += 1,
+            ')' => depth -= 1,
+            ',' if depth == 0 => {
+                parts.push(&s[start..i]);
+                start = i + ch.len_utf8();
+            }
+            _ => {}
+        }
+    }
+    parts.push(&s[start..]);
+    parts
 }
 
 fn extract_inner_tuple(args: &str) -> Option<&str> {
@@ -782,6 +1474,357 @@ END-ISO-10303-21;
         assert_eq!(page.nodes.len(), 3);
         if let Node::Group { nodes, .. } = &page.nodes[1] {
             assert_eq!(nodes.len(), 12);
+        } else {
+            panic!("expected wireframe group");
+        }
+    }
+
+    #[test]
+    fn find_keyword_args_respects_word_boundaries() {
+        let text = "(BOUNDED_CURVE()B_SPLINE_CURVE(3,(#1,#2))B_SPLINE_CURVE_WITH_KNOTS((4,4),(0.,1.),.UNSPECIFIED.)RATIONAL_B_SPLINE_CURVE((1.,1.)))";
+        assert_eq!(
+            find_keyword_args(text, "B_SPLINE_CURVE"),
+            Some("(3,(#1,#2))")
+        );
+        assert_eq!(
+            find_keyword_args(text, "B_SPLINE_CURVE_WITH_KNOTS"),
+            Some("((4,4),(0.,1.),.UNSPECIFIED.)")
+        );
+        assert_eq!(
+            find_keyword_args(text, "RATIONAL_B_SPLINE_CURVE"),
+            Some("((1.,1.))")
+        );
+        assert_eq!(find_keyword_args(text, "MISSING_KEYWORD"), None);
+    }
+
+    #[test]
+    fn parses_complex_bspline_curve_entity() {
+        let stmt = "#50=(BOUNDED_CURVE()B_SPLINE_CURVE(3,(#10,#11,#12,#13),.UNSPECIFIED.,.F.,.F.)B_SPLINE_CURVE_WITH_KNOTS((4,4),(0.,1.),.UNSPECIFIED.)CURVE()GEOMETRIC_REPRESENTATION_ITEM()RATIONAL_B_SPLINE_CURVE((1.,1.,1.,1.))REPRESENTATION_ITEM(''));";
+        let mut entities = HashMap::new();
+        parse_step_statement(stmt, &mut entities);
+        match entities.get(&50) {
+            Some(StepEntity::BSplineCurve {
+                degree,
+                control_point_ids,
+                knot_multiplicities,
+                knot_values,
+                weights,
+            }) => {
+                assert_eq!(*degree, 3);
+                assert_eq!(control_point_ids, &vec![10, 11, 12, 13]);
+                assert_eq!(knot_multiplicities, &vec![4, 4]);
+                assert_eq!(knot_values, &vec![0.0, 1.0]);
+                assert_eq!(weights.as_deref(), Some([1.0, 1.0, 1.0, 1.0].as_slice()));
+            }
+            other => panic!("expected BSplineCurve, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn tessellates_step_bspline_curve_through_endpoints() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            10,
+            StepEntity::CartesianPoint(Point3D {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        entities.insert(
+            11,
+            StepEntity::CartesianPoint(Point3D {
+                x: 0.0,
+                y: 10.0,
+                z: 0.0,
+            }),
+        );
+        entities.insert(
+            12,
+            StepEntity::CartesianPoint(Point3D {
+                x: 10.0,
+                y: 10.0,
+                z: 0.0,
+            }),
+        );
+        entities.insert(
+            13,
+            StepEntity::CartesianPoint(Point3D {
+                x: 10.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        let curve = StepEntity::BSplineCurve {
+            degree: 3,
+            control_point_ids: vec![10, 11, 12, 13],
+            knot_multiplicities: vec![4, 4],
+            knot_values: vec![0.0, 1.0],
+            weights: None,
+        };
+        let mut segments = Vec::new();
+        push_bspline_segments(&curve, &entities, &mut segments);
+        assert!(segments.len() > 10);
+        let first = segments.first().unwrap().0;
+        let last = segments.last().unwrap().1;
+        assert!(first.x.abs() < 1e-6 && first.y.abs() < 1e-6);
+        assert!((last.x - 10.0).abs() < 1e-6 && last.y.abs() < 1e-6);
+    }
+
+    fn pt(id: u64, x: f64, y: f64, z: f64, entities: &mut HashMap<u64, StepEntity>) {
+        entities.insert(id, StepEntity::CartesianPoint(Point3D { x, y, z }));
+    }
+
+    #[test]
+    fn trimmed_line_by_parameter_evaluates_point_plus_t_times_vector() {
+        let mut entities = HashMap::new();
+        pt(1, 1.0, 2.0, 3.0, &mut entities);
+        entities.insert(
+            2,
+            StepEntity::Direction(Point3D {
+                x: 0.0,
+                y: 1.0,
+                z: 0.0,
+            }),
+        );
+        entities.insert(
+            3,
+            StepEntity::Vector {
+                dir_id: 2,
+                length: 2.0,
+            },
+        );
+        entities.insert(
+            4,
+            StepEntity::Line {
+                point_id: 1,
+                dir_id: 3,
+            },
+        );
+        entities.insert(
+            5,
+            StepEntity::TrimmedCurve {
+                basis_id: 4,
+                trim_1: StepTrim {
+                    point_id: None,
+                    parameter: Some(0.5),
+                },
+                trim_2: StepTrim {
+                    point_id: None,
+                    parameter: Some(2.0),
+                },
+                sense_agreement: true,
+            },
+        );
+        let mut segments = Vec::new();
+        push_curve_segments(5, None, None, &entities, &mut segments, 0);
+        assert_eq!(segments.len(), 1);
+        let (a, b) = segments[0];
+        assert!((a.x - 1.0).abs() < 1e-9 && (a.y - 3.0).abs() < 1e-9 && (a.z - 3.0).abs() < 1e-9);
+        assert!((b.x - 1.0).abs() < 1e-9 && (b.y - 6.0).abs() < 1e-9 && (b.z - 3.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn trimmed_circle_by_angle_draws_only_that_arc_and_honours_sense() {
+        let mut entities = HashMap::new();
+        pt(1, 0.0, 0.0, 0.0, &mut entities);
+        entities.insert(
+            2,
+            StepEntity::Axis2Placement3D {
+                location_id: 1,
+                axis_id: None,
+                ref_dir_id: None,
+            },
+        );
+        entities.insert(
+            3,
+            StepEntity::Circle {
+                axis_id: 2,
+                radius: 10.0,
+            },
+        );
+        let trimmed = |sense: bool| StepEntity::TrimmedCurve {
+            basis_id: 3,
+            trim_1: StepTrim {
+                point_id: None,
+                parameter: Some(0.0),
+            },
+            trim_2: StepTrim {
+                point_id: None,
+                parameter: Some(std::f64::consts::FRAC_PI_2),
+            },
+            sense_agreement: sense,
+        };
+        entities.insert(4, trimmed(true));
+        entities.insert(5, trimmed(false));
+
+        let mut quarter = Vec::new();
+        push_curve_segments(4, None, None, &entities, &mut quarter, 0);
+        assert!(!quarter.is_empty());
+        // Every sample of the quarter arc lies in the first quadrant.
+        assert!(
+            quarter
+                .iter()
+                .all(|(a, b)| a.x >= -1e-9 && a.y >= -1e-9 && b.x >= -1e-9 && b.y >= -1e-9)
+        );
+        let last = quarter.last().unwrap().1;
+        assert!(last.x.abs() < 1e-6 && (last.y - 10.0).abs() < 1e-6);
+
+        // .F. sense runs the complementary three-quarter arc instead.
+        let mut complement = Vec::new();
+        push_curve_segments(5, None, None, &entities, &mut complement, 0);
+        assert!(complement.iter().any(|(a, _)| a.x < -1.0));
+    }
+
+    #[test]
+    fn composite_curve_draws_each_segment_once_and_hides_its_bases() {
+        let stmts = [
+            "#1=CARTESIAN_POINT('',(0.,0.,0.));",
+            "#2=CARTESIAN_POINT('',(10.,0.,0.));",
+            "#3=CARTESIAN_POINT('',(10.,10.,0.));",
+            "#4=DIRECTION('',(1.,0.,0.));",
+            "#5=VECTOR('',#4,1.);",
+            "#6=LINE('',#1,#5);",
+            "#7=TRIMMED_CURVE('',#6,(#1,PARAMETER_VALUE(0.)),(#2,PARAMETER_VALUE(10.)),.T.,.CARTESIAN.);",
+            "#8=DIRECTION('',(0.,1.,0.));",
+            "#9=VECTOR('',#8,1.);",
+            "#10=LINE('',#2,#9);",
+            "#11=TRIMMED_CURVE('',#10,(PARAMETER_VALUE(0.)),(PARAMETER_VALUE(10.)),.T.,.PARAMETER.);",
+            "#12=COMPOSITE_CURVE_SEGMENT(.CONTINUOUS.,.T.,#7);",
+            "#13=COMPOSITE_CURVE_SEGMENT(.CONTINUOUS.,.T.,#11);",
+            "#14=COMPOSITE_CURVE('',(#12,#13),.F.);",
+        ];
+        let mut entities = HashMap::new();
+        for stmt in stmts {
+            parse_step_statement(stmt, &mut entities);
+        }
+        assert!(matches!(
+            entities.get(&7),
+            Some(StepEntity::TrimmedCurve { basis_id: 6, .. })
+        ));
+        match entities.get(&11) {
+            Some(StepEntity::TrimmedCurve { trim_2, .. }) => {
+                assert_eq!(trim_2.point_id, None);
+                assert_eq!(trim_2.parameter, Some(10.0));
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+
+        let text = format!(
+            "ISO-10303-21;\nHEADER;\nENDSEC;\nDATA;\n{}\nENDSEC;\nEND-ISO-10303-21;\n",
+            stmts.join("\n")
+        );
+        let mut sink = DummySink(Vec::new());
+        let warnings = convert(
+            std::io::Cursor::new(text),
+            &ConvertOptions::default(),
+            &mut sink,
+        )
+        .expect("convert");
+        assert!(warnings.is_empty(), "{warnings:?}");
+        let page = &sink.0[0];
+        // Exactly the two trimmed segments, drawn once each (not again as
+        // standalone trimmed curves, and the unbounded LINEs not at all).
+        let edge_count = page
+            .nodes
+            .iter()
+            .filter_map(|n| match n {
+                Node::Group { id, nodes, .. } if id == "step-edges" => Some(nodes.len()),
+                _ => None,
+            })
+            .sum::<usize>();
+        assert_eq!(edge_count, 2);
+    }
+
+    #[test]
+    fn tessellates_step_ellipse_arc() {
+        let mut entities = HashMap::new();
+        entities.insert(
+            100,
+            StepEntity::CartesianPoint(Point3D {
+                x: 0.0,
+                y: 0.0,
+                z: 0.0,
+            }),
+        );
+        entities.insert(
+            103,
+            StepEntity::Axis2Placement3D {
+                location_id: 100,
+                axis_id: None,
+                ref_dir_id: None,
+            },
+        );
+        let start = Point3D {
+            x: 20.0,
+            y: 0.0,
+            z: 0.0,
+        };
+        let end = Point3D {
+            x: 0.0,
+            y: 10.0,
+            z: 0.0,
+        };
+        let mut segments = Vec::new();
+        sample_step_ellipse(
+            103,
+            20.0,
+            10.0,
+            Some(start),
+            Some(end),
+            &entities,
+            &mut segments,
+        );
+        assert!(!segments.is_empty());
+        assert!((segments.first().unwrap().0.x - 20.0).abs() < 1e-6);
+        let last = segments.last().unwrap().1;
+        assert!(last.x.abs() < 1e-6 && (last.y - 10.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn end_to_end_step_with_nurbs_and_ellipse_edges() {
+        let step_content = r#"
+ISO-10303-21;
+HEADER;
+FILE_DESCRIPTION(('NURBS + ellipse sample'),'2;1');
+FILE_NAME('curves.step','2026-09-22',('Engineer'),('Testing'),'','','');
+FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));
+ENDSEC;
+DATA;
+#10 = CARTESIAN_POINT('', (0.0, 0.0, 0.0));
+#11 = CARTESIAN_POINT('', (0.0, 10.0, 0.0));
+#12 = CARTESIAN_POINT('', (10.0, 10.0, 0.0));
+#13 = CARTESIAN_POINT('', (10.0, 0.0, 0.0));
+#20 = VERTEX_POINT('', #10);
+#21 = VERTEX_POINT('', #13);
+#50=(
+BOUNDED_CURVE()
+B_SPLINE_CURVE(3,(#10,#11,#12,#13),.UNSPECIFIED.,.F.,.F.)
+B_SPLINE_CURVE_WITH_KNOTS((4,4),(0.,1.),.UNSPECIFIED.)
+CURVE()
+GEOMETRIC_REPRESENTATION_ITEM()
+RATIONAL_B_SPLINE_CURVE((1.,1.,1.,1.))
+REPRESENTATION_ITEM('')
+);
+#60 = EDGE_CURVE('', #20, #21, #50, .T.);
+
+#100 = CARTESIAN_POINT('', (50.0, 0.0, 0.0));
+#103 = AXIS2_PLACEMENT_3D('', #100, $, $);
+#104 = ELLIPSE('', #103, 20.0, 10.0);
+ENDSEC;
+END-ISO-10303-21;
+"#;
+        let mut sink = DummySink(Vec::new());
+        let options = ConvertOptions::default();
+        let warnings =
+            convert(Cursor::new(step_content), &options, &mut sink).expect("convert step");
+        assert!(warnings.is_empty());
+        assert_eq!(sink.0.len(), 1);
+        let page = &sink.0[0];
+        if let Node::Group { nodes, .. } = &page.nodes[1] {
+            // 1 tessellated NURBS edge (~64 segments) + a standalone closed
+            // ellipse (40 segments), well beyond the old line-only coverage.
+            assert!(nodes.len() > 60);
         } else {
             panic!("expected wireframe group");
         }
