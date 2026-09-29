@@ -5453,7 +5453,7 @@
     },
     {
       "name": "content-type",
-      "version": "3.1.0",
+      "version": "3.1.1",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5687,6 +5687,6 @@
   ],
   "lockfiles": {
     "Cargo.lock": "81788e02b504bd5f6fea5c9dcec54efda93cabe430171a8a0fe386896a7b1a82",
-    "bindings/node/package-lock.json": "f66e6e114e00906c725a22afb14e1e8b22fc94eb28b9ede304d7c216f380d0cd"
+    "bindings/node/package-lock.json": "ab2ff214675009ecc1df1fc9a771590f44332cfa33ffcf9af0f1dcf5105a02c8"
   }
 }
