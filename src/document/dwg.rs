@@ -1,16 +1,20 @@
-//! Bounded Autodesk DWG header previews.
+//! Autodesk DWG previews.
 //!
-//! DWG is a binary CAD database.  Its first six ASCII bytes identify the
-//! drawing version (for example `AC1027`); the remainder contains compressed
-//! sections and object data that require a full DWG implementation.  This
-//! adapter reads only the version header and file size, never allocates based
-//! on object counts, and never executes embedded objects or external paths.
+//! DWG is a binary CAD database whose specification Autodesk does not
+//! publish. Its first six ASCII bytes identify the drawing version (for
+//! example `AC1027`). For the AC1009 (AutoCAD R11/R12) variant, the model
+//! space entities are decoded into real vector geometry by
+//! [`crate::cad::dwg`] (see that module for the format sources consulted).
+//! Every other version, and any AC1009 file whose binary layout does not
+//! validate, falls back to this bounded header-only preview: only the
+//! fixed six-byte version identifier and file size are inspected, and the
+//! binary drawing database is never executed or expanded.
 
 use std::fs::{self, File};
 use std::io::Read;
 use std::path::Path;
 
-use crate::convert::{ConvertOptions, PageConsumer};
+use crate::convert::{ConvertOptions, PageConsumer, read_limited_file};
 use crate::document::html::{HtmlBlock, render_blocks_to_pages};
 use crate::error::{Error, Result};
 use crate::table::{TableAlign, TableData};
@@ -67,6 +71,20 @@ pub(crate) fn convert(
             "unsupported or invalid DWG version header '{code}'"
         )));
     }
+
+    let mut r12_decode_failed = false;
+    if code == "AC1009" {
+        let bytes = read_limited_file(path, max_bytes, "DWG input")?;
+        if let Some(warnings) = crate::cad::dwg::convert(&bytes, sink)? {
+            return Ok(warnings);
+        }
+        // Version matched but the binary layout didn't validate as a
+        // well-formed AC1009 file (corrupt, nonstandard, or a pre-release
+        // variant this reader doesn't recognize); fall through to the
+        // header-only preview below rather than failing outright.
+        r12_decode_failed = true;
+    }
+
     let release = known_version(code).unwrap_or("unknown AutoCAD release");
     let rows = vec![
         vec!["Version code".into(), code.into()],
@@ -74,10 +92,17 @@ pub(crate) fn convert(
         vec!["File bytes".into(), metadata.len().to_string()],
         vec!["Header bytes read".into(), "6".into()],
     ];
-    let warnings = vec![
-        "DWG sections, entities, blocks, layers, proxy graphics, text, styles, thumbnails, and object maps are not decoded".into(),
-        "Embedded objects, VBA/ActiveX content, external references, file paths, and plotting/solver operations remain inert".into(),
-    ];
+    let warnings = if r12_decode_failed {
+        vec![
+            "This file's version header is AC1009 (R11/R12), but its binary layout did not match the expected structure, so entities were not decoded".into(),
+            "Embedded objects, VBA/ActiveX content, external references, file paths, and plotting/solver operations remain inert".into(),
+        ]
+    } else {
+        vec![
+            "DWG sections, entities, blocks, layers, proxy graphics, text, styles, thumbnails, and object maps are not decoded".into(),
+            "Embedded objects, VBA/ActiveX content, external references, file paths, and plotting/solver operations remain inert".into(),
+        ]
+    };
     let blocks = vec![
         HtmlBlock::Heading {
             level: 1,
