@@ -205,8 +205,8 @@ PDF, draw.io, DXF, G-code, STL and more. What comes back is how the pages
 look — paragraphs, cells, formulas and charts are not rebuilt.
 
 An SVG folder becomes a single multipage HTML gallery with `--output pages.html`.
-PNG, WebP, 3MF, and UI components or Data URIs take one SVG page; pass a single
-SVG file for those formats.
+PNG, WebP, CAD/CAM and 3D mesh files, DOT/Mermaid, and UI components or Data
+URIs take one SVG page; pass a single SVG file for those formats.
 
 draw.io diagrams are the exception: convert with `--embed-drawio-source`, and
 `reverse` restores the original, editable diagram.

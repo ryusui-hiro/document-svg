@@ -140,9 +140,23 @@ impl ReverseFormat {
     const fn requires_single_page(self) -> bool {
         matches!(
             self,
-            Self::Png
+            Self::Dxf
+                | Self::Dot
+                | Self::Mermaid
+                | Self::Png
                 | Self::Webp
+                | Self::Gcode
+                | Self::Gerber
+                | Self::Hpgl
+                | Self::Excellon
+                | Self::Stl
+                | Self::Obj
+                | Self::Ply
                 | Self::ThreeMf
+                | Self::Step
+                | Self::Iges
+                | Self::Gmsh
+                | Self::Vtk
                 | Self::Jsx
                 | Self::Tsx
                 | Self::Vue

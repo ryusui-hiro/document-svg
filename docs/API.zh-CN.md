@@ -22,7 +22,7 @@
 
 格式根据文件扩展名决定；没有扩展名或扩展名很通用时，还会查看文件开头的内容。成功时退出码为 0；失败时退出码为 1，并在标准错误中输出原因。
 
-reverse 可将多页 SVG 文件夹输出为 Office、PDF、draw.io 或 HTML；HTML 会将所有页面放在同一个图库中。PNG、WebP、3MF、JSX、TSX、Vue、Svelte 和 Data URI 只接受一页；多页文件夹会在写入前被拒绝。
+reverse 可将多页 SVG 文件夹输出为 Office、PDF、draw.io 或 HTML；HTML 会将所有页面放在同一个图库中。PNG、WebP、DXF、G-code、Gerber、HP-GL、Excellon、STL、OBJ、PLY、3MF、STEP、IGES、Gmsh、VTK、DOT、Mermaid、JSX、TSX、Vue、Svelte 和 Data URI 只接受一页；多页文件夹会在写入前被拒绝。
 
 ```
 docsvg <INPUT> --output <FOLDER> [options]

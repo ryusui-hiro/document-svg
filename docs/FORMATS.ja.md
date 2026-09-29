@@ -4,6 +4,8 @@
 検索できて、ふつうの言葉で書いた一覧は、[プロジェクトサイトの対応形式ページ](https://ryusui-hiro.github.io/document-svg/ja/formats.html)を見てください。
 同じ内容は [formats.json](https://ryusui-hiro.github.io/document-svg/assets/data/formats.json) としても公開しています。
 
+逆変換ではSVGフォルダを複数ページのOffice・PDF・draw.io・HTMLへ出力できます。HTMLは1つのギャラリーになります。PNG/WebP、CAD/CAM・3Dメッシュ、DOT/Mermaid、UIコンポーネント、Data URIはSVG 1ページ用で、複数ページのフォルダは書込み前に拒否します。
+
 ## 変換特性マップ
 
 本リポジトリでは、SVG を中心ハブとした変換を以下の 3 つの変換特性（再現性・忠実度モデル）に分類しています。

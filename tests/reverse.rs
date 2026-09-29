@@ -222,7 +222,8 @@ fn rejects_multiple_svg_pages_before_writing_a_single_page_output() {
     let temporary = TempDir::new().unwrap();
     let input = make_svg_pages(&temporary);
     for extension in [
-        "png", "webp", "3mf", "jsx", "tsx", "vue", "svelte", "datauri",
+        "png", "webp", "3mf", "jsx", "tsx", "vue", "svelte", "datauri", "dxf", "dot", "mmd",
+        "gcode", "gbr", "plt", "drl", "stl", "obj", "ply", "step", "iges", "msh", "vtk",
     ] {
         let output = temporary.path().join(format!("pages.{extension}"));
         let error = svg_to_document(&input, &output, &ReverseOptions::default()).unwrap_err();

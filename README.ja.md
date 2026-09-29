@@ -165,7 +165,7 @@ docsvg reverse out/drawing --output drawing.dxf
 出力ファイルの拡張子で形式が決まります。PowerPoint、Word、Excel、PDF、draw.io、DXF、G-code、STL などに対応しています。
 戻るのはページの見た目です。段落、セル、数式、グラフまでは組み立て直しません。Wordで編集し直せるファイルに変換する機能ではない、と考えてください。
 
-SVGフォルダを `--output pages.html` に書き戻すと、全ページを1つのHTMLギャラリーで表示できます。PNG・WebP・3MF・UIコンポーネント・Data URIは1ページ用なので、SVGファイルを1件指定してください。
+SVGフォルダを `--output pages.html` に書き戻すと、全ページを1つのHTMLギャラリーで表示できます。PNG・WebP・CAD/CAM・3Dメッシュ・DOT/Mermaid・UIコンポーネント・Data URIは1ページ用なので、SVGファイルを1件指定してください。
 
 draw.io の図だけは例外です。`--embed-drawio-source` を付けて変換しておくと、`reverse` で元の編集できる図に戻ります。
 

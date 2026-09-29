@@ -583,6 +583,8 @@ AASX (`.aasx`; content sniffing) is an OPC/ZIP package for Asset Administration 
 
 ## SVGからOpen XML / CAD / CAM / Plotterへの逆変換
 
+DXF、G-code、Gerber、HP-GL、Excellon、STL、OBJ、PLY、3MF、STEP、IGES、Gmsh、VTK、DOT、Mermaid、PNG、WebP、UIコンポーネント、Data URIはSVG 1ページを入力とします。複数ページのSVGフォルダを渡した場合、先頭ページだけを出力せず、書込み前に拒否します。
+
 | 出力 | 対応 | 契約 |
 |---|---|---|
 | PPTX | 対応 | SVG 1件をスライド1枚のベクター画像として格納し、`mc:AlternateContent`へPNG fallbackを併設 |

@@ -261,7 +261,8 @@
           "\"To SVG\" means the file can be converted into SVG pages.",
           "\"From SVG\" means SVG pages can be turned back into that kind of file.",
           "A, B and C show how closely the result matches the original. A dash means that direction isn't supported.",
-          "Some formats are shown as a summary of their contents (for example page or item counts) rather than a full drawing. The description on each row says which."
+          "Some formats are shown as a summary of their contents (for example page or item counts) rather than a full drawing. The description on each row says which.",
+          "Reverse multipage support depends on the output: Office, PDF, draw.io and HTML keep all pages; raster, CAD/CAM/3D, DOT/Mermaid and UI code outputs take one SVG page."
         ],
         "legendTitle": "How closely it matches",
         "searchLabel": "Search by extension or name",
@@ -471,7 +472,7 @@
             "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
             "paras": [
               "The format is chosen from the file extension, with a look at the file's first bytes when the extension is missing or generic. The command exits with 0 on success, and with 1 and a message on standard error when conversion fails.",
-              "Reverse accepts SVG folders for multipage Office, PDF, draw.io and HTML output; HTML becomes one gallery containing every page. PNG, WebP, 3MF, JSX, TSX, Vue, Svelte and Data URI output require exactly one SVG page. A multipage folder for those formats is rejected before output is written."
+              "Reverse accepts SVG folders for multipage Office, PDF, draw.io and HTML output; HTML becomes one gallery containing every page. PNG, WebP, DXF, G-code, Gerber, HP-GL, Excellon, STL, OBJ, PLY, 3MF, STEP, IGES, Gmsh, VTK, DOT, Mermaid, JSX, TSX, Vue, Svelte and Data URI output require exactly one SVG page. A multipage folder for those formats is rejected before output is written."
             ],
             "tables": [
               {
@@ -1707,7 +1708,8 @@
           "「SVGへ」は、そのファイルをSVGのページに変換できるかどうかです。",
           "「SVGから」は、SVGをその形式のファイルに戻せるかどうかです。",
           "A・B・C は、元とどのくらい一致するかを表します。「—」は、その向きには対応していないという意味です。",
-          "一部の形式は、図全体ではなく、中身の概要（ページ数や項目の数など）を表示します。どちらになるかは各行の説明に書いてあります。"
+          "一部の形式は、図全体ではなく、中身の概要（ページ数や項目の数など）を表示します。どちらになるかは各行の説明に書いてあります。",
+          "逆変換の複数ページ対応は出力形式で異なります。Office・PDF・draw.io・HTMLは全ページを保持し、ラスター・CAD/CAM/3D・DOT/Mermaid・UIコードはSVG 1ページを入力とします。"
         ],
         "legendTitle": "元との一致度",
         "searchLabel": "拡張子や名前で探す",
@@ -1917,7 +1919,7 @@
             "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
             "paras": [
               "形式はファイルの拡張子で決まります。拡張子がないときや汎用的なときは、ファイルの先頭の内容も見て判断します。成功すると終了コード0、失敗すると1で終わり、理由を標準エラーに出します。",
-              "reverse は複数ページのSVGフォルダをOffice・PDF・draw.io・HTMLへ出力できます。HTMLでは全ページを1つのギャラリーにします。PNG・WebP・3MF・JSX・TSX・Vue・Svelte・Data URIは1ページ用で、複数ページのフォルダは出力前に拒否します。"
+              "reverse は複数ページのSVGフォルダをOffice・PDF・draw.io・HTMLへ出力できます。HTMLでは全ページを1つのギャラリーにします。PNG・WebP・DXF・G-code・Gerber・HP-GL・Excellon・STL・OBJ・PLY・3MF・STEP・IGES・Gmsh・VTK・DOT・Mermaid・JSX・TSX・Vue・Svelte・Data URIは1ページ用で、複数ページのフォルダは出力前に拒否します。"
             ],
             "tables": [
               {
@@ -3153,7 +3155,8 @@
           "“转成 SVG”表示该文件能否转换成 SVG 页面。",
           "“从 SVG 转回”表示 SVG 能否转回该格式的文件。",
           "A、B、C 表示结果与原件有多接近。“—”表示不支持这个方向。",
-          "有些格式显示的是内容概要（如页数、条目数），而不是完整图形。每一行的说明里写明了是哪一种。"
+          "有些格式显示的是内容概要（如页数、条目数），而不是完整图形。每一行的说明里写明了是哪一种。",
+          "反向转换是否支持多页取决于输出格式：Office、PDF、draw.io 和 HTML 保留所有页面；光栅、CAD/CAM/3D、DOT/Mermaid 和 UI 代码输出只接受一页 SVG。"
         ],
         "legendTitle": "与原件的接近程度",
         "searchLabel": "按扩展名或名称搜索",
@@ -3363,7 +3366,7 @@
             "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
             "paras": [
               "格式根据文件扩展名决定；没有扩展名或扩展名很通用时，还会查看文件开头的内容。成功时退出码为 0；失败时退出码为 1，并在标准错误中输出原因。",
-              "reverse 可将多页 SVG 文件夹输出为 Office、PDF、draw.io 或 HTML；HTML 会将所有页面放在同一个图库中。PNG、WebP、3MF、JSX、TSX、Vue、Svelte 和 Data URI 只接受一页；多页文件夹会在写入前被拒绝。"
+              "reverse 可将多页 SVG 文件夹输出为 Office、PDF、draw.io 或 HTML；HTML 会将所有页面放在同一个图库中。PNG、WebP、DXF、G-code、Gerber、HP-GL、Excellon、STL、OBJ、PLY、3MF、STEP、IGES、Gmsh、VTK、DOT、Mermaid、JSX、TSX、Vue、Svelte 和 Data URI 只接受一页；多页文件夹会在写入前被拒绝。"
             ],
             "tables": [
               {
