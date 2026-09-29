@@ -44,7 +44,9 @@
 //! - **VRML97** ([`vrml`]): bounded text `Coordinate`/`IndexedFaceSet`/`IndexedLineSet`
 //!   mesh preview. Scene actions, appearances, and external URLs remain inert.
 //! - **STEP ISO 10303-21** ([`step`]): CAD standard exchange format (`.step`, `.stp`).
-//!   Parses Part 21 ASCII geometric representations and renders isometric wireframes.
+//!   Parses Part 21 ASCII geometric representations, including `CIRCLE`/`ELLIPSE`
+//!   axis-placed arcs and `B_SPLINE_CURVE`/`B_SPLINE_CURVE_WITH_KNOTS` NURBS edges
+//!   tessellated through [`nurbs`], and renders isometric wireframes.
 //!   Reverse packaging to standard ISO 10303-21 Part 21 models via [`step::writer`].
 //! - **Industry Foundation Classes** ([`ifc`]): bounded IFC-SPF, buildingSMART IFCXML,
 //!   and IFCZIP previews for IFC4 tessellated faces and selected extruded profiles with
@@ -175,6 +177,7 @@ mod sample_quota_tests {
 pub(crate) mod amf;
 pub(crate) mod collada;
 pub mod color;
+pub(crate) mod dwg;
 pub mod dxf;
 pub(crate) mod e57;
 pub mod eagle;
@@ -190,6 +193,7 @@ pub mod kicad_sch;
 pub mod kicad_sch_modern;
 pub(crate) mod las;
 pub mod ltspice;
+pub(crate) mod nurbs;
 pub mod obj;
 pub(crate) mod off;
 pub(crate) mod openfoam_field;
