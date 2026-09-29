@@ -468,7 +468,7 @@
           {
             "id": "cli",
             "title": "Command line: docsvg",
-            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
+            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]\ndocsvg formats [QUERY] [--lang en|ja|zh] [--details]",
             "paras": [
               "The format is chosen from the file extension, with a look at the file's first bytes when the extension is missing or generic. The command exits with 0 on success, and with 1 and a message on standard error when conversion fails."
             ],
@@ -535,6 +535,11 @@
                     "--stencils PATH",
                     "none",
                     "draw.io shape library files or folders to draw library shapes with. Without them, such shapes become labelled placeholders."
+                  ],
+                  [
+                    "--json",
+                    "off",
+                    "Write the complete conversion report as JSON to standard output."
                   ]
                 ],
                 "codeColumns": [
@@ -563,6 +568,11 @@
                     "--max-pages N",
                     "10,000",
                     "Most SVG pages read."
+                  ],
+                  [
+                    "--json",
+                    "off",
+                    "Write the complete reverse report as JSON to standard output."
                   ]
                 ],
                 "codeColumns": [
@@ -590,12 +600,12 @@
                   [
                     "--responsive",
                     "off",
-                    "Drop the fixed size so the SVG scales to its container."
+                    "Drop fixed width and height so the SVG scales to its container. Requires an existing viewBox or positive absolute dimensions."
                   ],
                   [
                     "--precision N",
                     "none",
-                    "Round coordinates to N decimal places."
+                    "Round coordinates to N decimal places (0–12)."
                   ],
                   [
                     "--remove-metadata",
@@ -812,7 +822,7 @@
                   [
                     "responsive",
                     "off",
-                    "Drop the fixed size so the SVG scales to its container."
+                    "Drop fixed width and height so the SVG scales to its container. Requires an existing viewBox or positive absolute dimensions."
                   ],
                   [
                     "precision",
@@ -1913,7 +1923,7 @@
           {
             "id": "cli",
             "title": "コマンド：docsvg",
-            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
+            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]\ndocsvg formats [QUERY] [--lang en|ja|zh] [--details]",
             "paras": [
               "形式はファイルの拡張子で決まります。拡張子がないときや汎用的なときは、ファイルの先頭の内容も見て判断します。成功すると終了コード0、失敗すると1で終わり、理由を標準エラーに出します。"
             ],
@@ -1980,6 +1990,11 @@
                     "--stencils PATH",
                     "なし",
                     "draw.io の図形ライブラリのファイルやフォルダ。指定しないと、ライブラリの図形はラベル付きの仮の形になります。"
+                  ],
+                  [
+                    "--json",
+                    "オフ",
+                    "変換レポート全体を JSON として標準出力へ書きます。"
                   ]
                 ],
                 "codeColumns": [
@@ -2008,6 +2023,11 @@
                     "--max-pages N",
                     "10,000",
                     "読むSVGページ数の上限。"
+                  ],
+                  [
+                    "--json",
+                    "オフ",
+                    "書き戻しレポート全体を JSON として標準出力へ書きます。"
                   ]
                 ],
                 "codeColumns": [
@@ -2035,12 +2055,12 @@
                   [
                     "--responsive",
                     "オフ",
-                    "固定のサイズを外し、置いた場所の大きさに合わせて伸び縮みするようにします。"
+                    "固定の幅と高さを外して伸縮可能にします。既存の viewBox、または正の絶対寸法が必要です。"
                   ],
                   [
                     "--precision N",
                     "なし",
-                    "座標を小数点以下N桁に丸めます。"
+                    "座標を小数点以下N桁に丸めます（0～12）。"
                   ],
                   [
                     "--remove-metadata",
@@ -2257,7 +2277,7 @@
                   [
                     "responsive",
                     "オフ",
-                    "固定のサイズを外し、置いた場所の大きさに合わせて伸び縮みするようにします。"
+                    "固定の幅と高さを外して伸縮可能にします。既存の viewBox、または正の絶対寸法が必要です。"
                   ],
                   [
                     "precision",
@@ -3358,7 +3378,7 @@
           {
             "id": "cli",
             "title": "命令行：docsvg",
-            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]",
+            "code": "docsvg <INPUT> --output <FOLDER> [options]\ndocsvg reverse <SVG or FOLDER> --output <FILE>\ndocsvg transform <SVG or -> --output <SVG or -> [options]\ndocsvg formats [QUERY] [--lang en|ja|zh] [--details]",
             "paras": [
               "格式根据文件扩展名决定；没有扩展名或扩展名很通用时，还会查看文件开头的内容。成功时退出码为 0；失败时退出码为 1，并在标准错误中输出原因。"
             ],
@@ -3425,6 +3445,11 @@
                     "--stencils PATH",
                     "无",
                     "用于绘制图形库形状的 draw.io 图形库文件或文件夹。不指定时，这类形状会显示为带标签的占位图形。"
+                  ],
+                  [
+                    "--json",
+                    "关闭",
+                    "将完整转换报告以 JSON 写入标准输出。"
                   ]
                 ],
                 "codeColumns": [
@@ -3453,6 +3478,11 @@
                     "--max-pages N",
                     "10,000",
                     "读取的 SVG 页数上限。"
+                  ],
+                  [
+                    "--json",
+                    "关闭",
+                    "将完整反向转换报告以 JSON 写入标准输出。"
                   ]
                 ],
                 "codeColumns": [
@@ -3480,12 +3510,12 @@
                   [
                     "--responsive",
                     "关闭",
-                    "去掉固定尺寸，让 SVG 随容器缩放。"
+                    "去掉固定宽高，让 SVG 随容器缩放。需要已有 viewBox，或正数绝对宽高。"
                   ],
                   [
                     "--precision N",
                     "无",
-                    "把坐标四舍五入到 N 位小数。"
+                    "把坐标四舍五入到 N 位小数（0–12）。"
                   ],
                   [
                     "--remove-metadata",
@@ -3702,7 +3732,7 @@
                   [
                     "responsive",
                     "关闭",
-                    "去掉固定尺寸，让 SVG 随容器缩放。"
+                    "去掉固定宽高，让 SVG 随容器缩放。需要已有 viewBox，或正数绝对宽高。"
                   ],
                   [
                     "precision",

@@ -2615,6 +2615,8 @@ test('transforms and optimizes SVG via Node.js API', async () => {
   assert.ok(!cleaned.includes('nested-empty'))
   assert.ok(cleaned.includes('content-group'))
   assert.ok(cleaned.includes('d="M 0 0 L 10 10 Z"'))
+  assert.throws(() => transform('<html/>'), /input root is not an SVG element/)
+  assert.throws(() => transform('<svg/><svg/>'), /more than one root element/)
 })
 
 test('converts OpenAPI JSON and YAML through Node.js API', async () => {

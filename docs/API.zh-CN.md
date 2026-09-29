@@ -26,6 +26,7 @@
 docsvg <INPUT> --output <FOLDER> [options]
 docsvg reverse <SVG or FOLDER> --output <FILE>
 docsvg transform <SVG or -> --output <SVG or -> [options]
+docsvg formats [QUERY] [--lang en|ja|zh] [--details]
 ```
 
 ### 转换：docsvg <INPUT> --output <FOLDER>
@@ -43,6 +44,7 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 | `--outline-embedded-pdf-text` | 关闭 | 把 PDF 嵌入字体的文字绘制成图形：外观与原件一致，但文字不能再被选中。请确认字体许可证允许这样做。 |
 | `--embed-drawio-source` | 关闭 | 在每个 SVG 中保留 draw.io 源数据，之后可以还原成可编辑的图。文件大约会变成两倍大。 |
 | `--stencils PATH` | 无 | 用于绘制图形库形状的 draw.io 图形库文件或文件夹。不指定时，这类形状会显示为带标签的占位图形。 |
+| `--json` | 关闭 | 将完整转换报告以 JSON 写入标准输出。 |
 
 ### 写回：docsvg reverse
 
@@ -51,6 +53,7 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 | `-o, --output FILE` | 必填 | 要创建的文件。扩展名决定格式：.pptx、.docx、.xlsx、.pdf、.drawio、.dxf、.gcode、.stl、.html、.webp 等。 |
 | `--max-input-mib N` | 512 MiB | 输入 SVG 的总大小上限。 |
 | `--max-pages N` | 10,000 | 读取的 SVG 页数上限。 |
+| `--json` | 关闭 | 将完整反向转换报告以 JSON 写入标准输出。 |
 
 ### 整理：docsvg transform
 
@@ -58,8 +61,8 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 |---|---|---|
 | `--minify` | 关闭 | 去掉注释和多余空白。 |
 | `--monochrome COLOR` | 关闭 | 把所有填充和描边改成同一种颜色，例如 "#1e293b"。 |
-| `--responsive` | 关闭 | 去掉固定尺寸，让 SVG 随容器缩放。 |
-| `--precision N` | 无 | 把坐标四舍五入到 N 位小数。 |
+| `--responsive` | 关闭 | 去掉固定宽高，让 SVG 随容器缩放。需要已有 viewBox，或正数绝对宽高。 |
+| `--precision N` | 无 | 把坐标四舍五入到 N 位小数（0–12）。 |
 | `--remove-metadata` | 关闭 | 去掉 <metadata>、<desc> 和 data-* 属性。 |
 | `--clean-paths` | 关闭 | 整理路径数据（去掉零长度线段和重复的闭合）。 |
 | `--strip-empty-groups` | 关闭 | 去掉不绘制任何内容的分组。 |
@@ -138,7 +141,7 @@ main().catch(console.error)
 |---|---|---|
 | `minify` | 关闭 | 去掉注释和多余空白。 |
 | `monochrome` | 关闭 | 把所有填充和描边改成同一种颜色，例如 "#1e293b"。 |
-| `responsive` | 关闭 | 去掉固定尺寸，让 SVG 随容器缩放。 |
+| `responsive` | 关闭 | 去掉固定宽高，让 SVG 随容器缩放。需要已有 viewBox，或正数绝对宽高。 |
 | `precision` | 无 | 把坐标四舍五入到 N 位小数。 |
 | `removeMetadata` | 关闭 | 去掉 <metadata>、<desc> 和 data-* 属性。 |
 | `cleanPaths` | 关闭 | 整理路径数据（去掉零长度线段和重复的闭合）。 |
