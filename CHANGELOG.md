@@ -233,6 +233,17 @@
 - Reuse the system font database across all pages of one reverse conversion.
 - Ignore Python/native shared-library build artifacts in publication candidates.
 
+## 0.1.1
+
+- Add multi-platform release builds for Node.js bindings, Python ABI3 wheels and standalone CLI archives.
+- Add checksum-verified publishing workflows for npm, PyPI and GitHub Packages, with separate build and publish permissions.
+- Make the main and package READMEs English-first, with pip/npm/Cargo installation examples and an operational release guide.
+- Integrate standard PDF font advances, bounded damaged-xref recovery, paper-aware XLSX pagination, PPTX fill handling and clearer encrypted/legacy Office errors.
+- Add reproducible PDF/PPTX/XLSX/DOCX samples with checked source hashes.
+- Bundle full third-party license notices, audit the locked dependencies and AFM provenance, and check notice freshness in CI.
+- Replace the unmaintained font parser with `skrifa`, preserving TrueType/OpenType outlines and raw Type1/CFF fallbacks.
+- Count serialized page size without retaining a second page-sized JSON buffer, borrow unescaped SVG strings, and reuse the system font database during reverse conversion.
+
 ## 0.1.0 — initial source release
 
 - PDF, PPTX, XLSX and DOCX conversion to per-page SVG.
