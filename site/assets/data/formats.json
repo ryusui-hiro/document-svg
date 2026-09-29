@@ -342,9 +342,9 @@
           "reverse": "A",
           "sample": "html",
           "note": {
-            "en": "Semantic multi-page HTML typesetter — headings, paragraphs, lists, code blocks, tables, and CJK line-breaking rules (Kinsoku Shori). Relative same-directory-tree PNG/JPEG img references are embedded as centered flow blocks; when src is absent, srcset uses its first candidate. CSS sizing/wrapping and responsive selection are approximated, and remote, escaping, or unsupported resources are omitted with warnings. Reverse: wraps SVG in a standalone, responsive HTML5 viewer with dark-mode support and centered layout.",
-            "ja": "セマンティックな複数ページHTML組版 — 見出し、段落、リスト、コードブロック、表、CJKの禁則処理に対応。同じディレクトリ内のPNG/JPEG imgをフロー画像として埋め込み、`src`がないimgは`srcset`の最初の候補を使います。CSS寸法・回り込み・responsive選択は近似。外部・範囲外・未対応画像はwarning付きで省略。逆変換: SVGをダークモード対応・中央配置のスタンドアロンなレスポンシブHTML5ビューアとしてパッケージング。",
-            "zh": "语义化的多页 HTML 排版 — 支持标题、段落、列表、代码块、表格及中日韩换行规则（禁则处理）。嵌入同目录树内的相对 PNG/JPEG img 资源作为居中流式块；当 img 没有 src 时使用 srcset 的首个候选。CSS 尺寸/环绕和响应式选择为近似处理，远程、越界或不支持的资源会警告后省略。反向：将 SVG 封装为支持暗黑模式和居中布局的独立响应式 HTML5 预览页。"
+            "en": "Semantic multi-page HTML typesetter — headings, paragraphs, lists, code blocks, tables, and CJK line-breaking rules (Kinsoku Shori). Relative same-directory-tree PNG/JPEG img references are embedded as centered flow blocks; when src is absent, srcset uses its first candidate. CSS sizing/wrapping and responsive selection are approximated, and remote, escaping, or unsupported resources are omitted with warnings. Reverse: one SVG becomes a centered, dark-mode-aware HTML5 viewer; an SVG folder becomes one standalone gallery with every page.",
+            "ja": "セマンティックな複数ページHTML組版 — 見出し、段落、リスト、コードブロック、表、CJKの禁則処理に対応。同じディレクトリ内のPNG/JPEG imgをフロー画像として埋め込み、`src`がないimgは`srcset`の最初の候補を使います。CSS寸法・回り込み・responsive選択は近似。外部・範囲外・未対応画像はwarning付きで省略。逆変換: 1ページのSVGは中央配置のHTML5ビューア、SVGフォルダは全ページを含む単一のHTMLギャラリーとして出力。どちらもダークモード対応。",
+            "zh": "语义化的多页 HTML 排版 — 支持标题、段落、列表、代码块、表格及中日韩换行规则（禁则处理）。嵌入同目录树内的相对 PNG/JPEG img 资源作为居中流式块；当 img 没有 src 时使用 srcset 的首个候选。CSS 尺寸/环绕和响应式选择为近似处理，远程、越界或不支持的资源会警告后省略。反向：单页 SVG 生成为居中的 HTML5 预览页；SVG 文件夹生成为包含所有页面的独立图库，两者均支持暗黑模式。"
           }
         },
         {
@@ -1078,9 +1078,9 @@
           "reverse": "A (2.5D)",
           "sample": null,
           "note": {
-            "en": "3D Manufacturing Format — follows build-item selection and component/build transforms, and converts declared units to millimeters for the isometric preview. Required extensions are rejected; materials and overlapping-solid unions are not evaluated. Reverse: 2.5D extruded 3D mesh geometry in 3MF XML archive.",
-            "ja": "3D Manufacturing Format — build itemとcomponent/build transformを反映し、宣言unitをmmへ換算して等角投影。未対応required extensionは拒否し、materialと重なったsolidのunionは評価しません。逆変換: 3MF XMLアーカイブ内の2.5D押し出し3Dメッシュ。",
-            "zh": "3D Manufacturing Format — 按 build item 选择对象并应用组件/构建变换，将声明单位换算为毫米后进行等距预览。遇到不支持的必需扩展会拒绝；不处理材质和重叠实体的并集。反向：在 3MF XML 归档中生成 2.5D 挤出三维网格几何。"
+            "en": "3D Manufacturing Format — follows build-item selection and component/build transforms, and converts declared units to millimeters for the isometric preview. Required extensions are rejected; materials and overlapping-solid unions are not evaluated. Reverse: one SVG page becomes 2.5D extruded 3D mesh geometry in a 3MF XML archive.",
+            "ja": "3D Manufacturing Format — build itemとcomponent/build transformを反映し、宣言unitをmmへ換算して等角投影。未対応required extensionは拒否し、materialと重なったsolidのunionは評価しません。逆変換: 1ページのSVGから3MF XMLアーカイブ内の2.5D押し出し3Dメッシュを生成。",
+            "zh": "3D Manufacturing Format — 按 build item 选择对象并应用组件/构建变换，将声明单位换算为毫米后进行等距预览。遇到不支持的必需扩展会拒绝；不处理材质和重叠实体的并集。反向：从单页 SVG 在 3MF XML 归档中生成 2.5D 挤出三维网格几何。"
           }
         },
         {
@@ -2980,9 +2980,9 @@
           "reverse": "A",
           "sample": "raster",
           "note": {
-            "en": "Forward: bounded PNG/JPEG/BMP/GIF/WebP decoding, grayscale thresholding, and contour vector tracing with a 20-million-pixel, 100,000-pixel-side, and 500,000-span limit; animated GIF/WebP uses its first frame with a warning. CMYK JPEG uses an unprofiled color approximation; 16-bit lossless JPEG is reduced with a warning. Reverse: deterministic PNG or WebP rasterization via `resvg` and `image-webp`.",
-            "ja": "変換: PNG/JPEG/BMP/GIF/WebPを上限内でdecodeし、グレースケール閾値処理と輪郭vectorize（最大2,000万画素、1辺10万px、500,000 span）。animated GIF/WebPは先頭frameのみ使用してwarning。CMYK JPEGはprofileなしで近似、16-bit lossless JPEGはwarning付きで縮小。逆変換: `resvg`および`image-webp`による決定的なPNGまたはWebPラスタライズ。",
-            "zh": "正向：有界解码 PNG/JPEG/BMP/GIF/WebP，再进行灰度阈值化和轮廓矢量描摹；限制为 2000 万像素、单边 100,000 像素和 500,000 个轮廓段。动画 GIF/WebP 使用首帧并发出警告。CMYK JPEG 不应用配置文件并采用近似转换；16 位无损 JPEG 缩减位深并发出警告。反向：通过 `resvg` 与 `image-webp` 进行确定性 PNG 或 WebP 光栅化。"
+            "en": "Forward: bounded PNG/JPEG/BMP/GIF/WebP decoding, grayscale thresholding, and contour vector tracing with a 20-million-pixel, 100,000-pixel-side, and 500,000-span limit; animated GIF/WebP uses its first frame with a warning. CMYK JPEG uses an unprofiled color approximation; 16-bit lossless JPEG is reduced with a warning. Reverse: one SVG page becomes a deterministic PNG or WebP raster via `resvg` and `image-webp`.",
+            "ja": "変換: PNG/JPEG/BMP/GIF/WebPを上限内でdecodeし、グレースケール閾値処理と輪郭vectorize（最大2,000万画素、1辺10万px、500,000 span）。animated GIF/WebPは先頭frameのみ使用してwarning。CMYK JPEGはprofileなしで近似、16-bit lossless JPEGはwarning付きで縮小。逆変換: 1ページのSVGを`resvg`および`image-webp`で決定的なPNGまたはWebPにラスタライズ。",
+            "zh": "正向：有界解码 PNG/JPEG/BMP/GIF/WebP，再进行灰度阈值化和轮廓矢量描摹；限制为 2000 万像素、单边 100,000 像素和 500,000 个轮廓段。动画 GIF/WebP 使用首帧并发出警告。CMYK JPEG 不应用配置文件并采用近似转换；16 位无损 JPEG 缩减位深并发出警告。反向：通过 `resvg` 与 `image-webp` 将单页 SVG 确定性地光栅化为 PNG 或 WebP。"
           }
         },
         {
@@ -3046,9 +3046,9 @@
           "reverse": "A",
           "sample": null,
           "note": {
-            "en": "Wraps SVG directly into React JSX/TSX, Vue 3, or Svelte components, raw path data (`d=\"...\"`), or Base64 Data URI strings.",
-            "ja": "SVGをそのままReact JSX/TSX、Vue 3、Svelteコンポーネント、生パスデータ（`d=\"...\"`）、またはBase64データURI文字列として出力。",
-            "zh": "将 SVG 直接封装为 React JSX/TSX、Vue 3 或 Svelte 组件、原始路径数据（`d=\"...\"`）或 Base64 Data URI 字符串。"
+            "en": "Wraps one SVG page into a React JSX/TSX, Vue 3, or Svelte component or a Base64 Data URI; raw path data (`d=\"...\"`) can include paths from multiple pages.",
+            "ja": "1ページのSVGをReact JSX/TSX・Vue 3・SvelteコンポーネントまたはBase64データURIとして出力。生パスデータ（`d=\"...\"`）は複数ページのパスを含められます。",
+            "zh": "将单页 SVG 封装为 React JSX/TSX、Vue 3 或 Svelte 组件或 Base64 Data URI；原始路径数据（`d=\"...\"`）可包含多页路径。"
           }
         },
         {

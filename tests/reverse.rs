@@ -217,6 +217,50 @@ fn make_svg_pages(temporary: &TempDir) -> std::path::PathBuf {
     input
 }
 
+#[test]
+fn rejects_multiple_svg_pages_before_writing_a_single_page_output() {
+    let temporary = TempDir::new().unwrap();
+    let input = make_svg_pages(&temporary);
+    for extension in [
+        "png", "webp", "3mf", "jsx", "tsx", "vue", "svelte", "datauri",
+    ] {
+        let output = temporary.path().join(format!("pages.{extension}"));
+        let error = svg_to_document(&input, &output, &ReverseOptions::default()).unwrap_err();
+        assert!(
+            error.to_string().contains("requires one SVG page"),
+            "{extension}: {error}"
+        );
+        assert!(!output.exists(), "{extension}");
+    }
+}
+
+#[test]
+fn packages_svg_directory_as_one_html_gallery() {
+    let temporary = TempDir::new().unwrap();
+    let input = make_svg_pages(&temporary);
+    let output = temporary.path().join("pages&notes.html");
+
+    let report = svg_to_document(&input, &output, &ReverseOptions::default()).unwrap();
+    assert_eq!(report.page_count, 2);
+    let html = fs::read_to_string(&output).unwrap();
+    assert_eq!(html.matches("<!DOCTYPE html>").count(), 1);
+    assert!(html.contains("<title>pages&amp;notes</title>"));
+    assert_eq!(html.matches("<figure>").count(), 2);
+    assert!(html.contains("<figcaption>Page 1</figcaption>"));
+    assert!(html.contains("<figcaption>Page 2</figcaption>"));
+
+    let pages = html
+        .split("src=\"data:image/svg+xml;base64,")
+        .skip(1)
+        .map(|part| {
+            base64::engine::general_purpose::STANDARD
+                .decode(part.split('"').next().unwrap())
+                .unwrap()
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(pages, vec![svg_one().as_bytes(), svg_two().as_bytes()]);
+}
+
 fn svg_one() -> &'static str {
     r#"<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="612pt" height="792pt" viewBox="0 0 612 792"><rect width="612" height="792" fill="white"/><text x="72" y="96">One</text></svg>"#

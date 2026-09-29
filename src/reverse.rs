@@ -134,6 +134,20 @@ impl ReverseFormat {
             Self::Pptx | Self::Docx | Self::Xlsx | Self::Pdf | Self::Png | Self::Webp
         )
     }
+
+    const fn requires_single_page(self) -> bool {
+        matches!(
+            self,
+            Self::Png
+                | Self::Webp
+                | Self::ThreeMf
+                | Self::Jsx
+                | Self::Tsx
+                | Self::Vue
+                | Self::Svelte
+                | Self::DataUri
+        )
+    }
 }
 
 impl Display for ReverseFormat {
@@ -232,6 +246,12 @@ pub fn svg_to_document(
     }
     let format = ReverseFormat::detect(output)?;
     let paths = collect_svg_paths(input, options.max_pages)?;
+    if format.requires_single_page() && paths.len() != 1 {
+        return Err(Error::InvalidInput(format!(
+            "{format} output requires one SVG page; input contains {}",
+            paths.len()
+        )));
+    }
     let mut pages = Vec::with_capacity(paths.len());
     let mut input_bytes = 0u64;
     let mut render_options = None;
@@ -526,9 +546,11 @@ pub fn svg_to_document(
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("Document SVG");
-        for page in &pages {
-            let html = crate::code::svg_to_html(&page.bytes, doc_title)?;
+        if pages.len() == 1 {
+            let html = crate::code::svg_to_html(&pages[0].bytes, doc_title)?;
             writer.write_all(html.as_bytes())?;
+        } else {
+            write_multipage_html(&mut writer, &pages, doc_title)?;
         }
         writer.flush()?;
     } else if format == ReverseFormat::Pdf {
@@ -698,6 +720,24 @@ pub fn svg_to_document(
         input_bytes,
         warnings,
     })
+}
+
+fn write_multipage_html<W: Write>(writer: &mut W, pages: &[SvgPage], title: &str) -> Result<()> {
+    let title = crate::code::html_escape(title);
+    write!(
+        writer,
+        "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>{title}</title>\n  <style>\n    * {{ box-sizing: border-box; }}\n    body {{ margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, sans-serif; }}\n    main {{ max-width: 1200px; margin: 0 auto; padding: 1.5rem; }}\n    h1 {{ font-size: 1.25rem; margin: 0 0 1.5rem; }}\n    figure {{ margin: 0 0 1.5rem; padding: 1rem; background: #fff; border-radius: 6px; box-shadow: 0 2px 8px #0002; }}\n    img {{ display: block; max-width: 100%; height: auto; margin: 0 auto; }}\n    figcaption {{ margin-top: 0.75rem; color: #475569; text-align: center; }}\n    @media (prefers-color-scheme: dark) {{ body {{ background: #0f172a; color: #e2e8f0; }} figure {{ background: #1e293b; }} figcaption {{ color: #cbd5e1; }} }}\n  </style>\n</head>\n<body>\n<main>\n  <h1>{title}</h1>\n"
+    )?;
+    for (index, page) in pages.iter().enumerate() {
+        let uri = crate::code::svg_to_data_uri(&page.bytes)?;
+        let number = index + 1;
+        writeln!(
+            writer,
+            "  <figure><img src=\"{uri}\" alt=\"Page {number}\"><figcaption>Page {number}</figcaption></figure>"
+        )?;
+    }
+    writer.write_all(b"</main>\n</body>\n</html>\n")?;
+    Ok(())
 }
 
 fn collect_svg_paths(input: &Path, max_pages: usize) -> Result<Vec<PathBuf>> {

@@ -22,6 +22,8 @@ Everything runs on your own machine, in your own process. The Node.js package co
 
 The format is chosen from the file extension, with a look at the file's first bytes when the extension is missing or generic. The command exits with 0 on success, and with 1 and a message on standard error when conversion fails.
 
+Reverse accepts SVG folders for multipage Office, PDF, draw.io and HTML output; HTML becomes one gallery containing every page. PNG, WebP, 3MF, JSX, TSX, Vue, Svelte and Data URI output require exactly one SVG page. A multipage folder for those formats is rejected before output is written.
+
 ```
 docsvg <INPUT> --output <FOLDER> [options]
 docsvg reverse <SVG or FOLDER> --output <FILE>

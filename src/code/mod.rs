@@ -159,7 +159,7 @@ pub fn svg_to_html(svg_bytes: &[u8], title: &str) -> Result<String> {
     Ok(out)
 }
 
-fn html_escape(s: &str) -> String {
+pub(crate) fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
         .replace('>', "&gt;")
