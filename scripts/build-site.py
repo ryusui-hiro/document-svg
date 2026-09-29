@@ -358,7 +358,7 @@ class Page:
                 total += 1
                 # The row's own text is searched too; this adds the category and,
                 # on translated pages, the English wording people may type.
-                extra = [cat["name"][self.lang]]
+                extra = [cat["name"][self.lang], *item.get("keywords", [])]
                 if self.lang != "en":
                     extra += [item["note"]["en"], cat["name"]["en"]]
                 search = " ".join(extra).lower()
