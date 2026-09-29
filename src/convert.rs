@@ -4358,6 +4358,7 @@ pub(crate) trait PageConsumer {
     fn consume(&mut self, page: Page) -> Result<()>;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) struct PageSink<'a> {
     output_directory: &'a Path,
     svg_options: SvgOptions,
@@ -4365,6 +4366,7 @@ pub(crate) struct PageSink<'a> {
     max_pages: usize,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<'a> PageSink<'a> {
     fn new(output_directory: &'a Path, options: &ConvertOptions) -> Self {
         let reports = Vec::with_capacity(options.max_pages.min(1024));
@@ -4389,6 +4391,7 @@ impl<'a> PageSink<'a> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl PageConsumer for PageSink<'_> {
     fn consume(&mut self, page: Page) -> Result<()> {
         if self.reports.len() >= self.max_pages {

@@ -6,10 +6,11 @@ usage() {
 Usage: ./scripts/check-local.sh [--all]
 
 Run the repository's publication, site, formatting, Rust test, and Clippy checks.
-Use --all to also rebuild and test the Node.js and Python bindings.
+Use --all to also build WebAssembly and rebuild/test the Node.js and Python bindings.
 
 The --all checks require bindings/node/node_modules and a Python environment
-at bindings/python/.venv with maturin and pytest installed.
+at bindings/python/.venv with maturin and pytest installed. They also require
+the wasm32-unknown-unknown Rust target and wasm-bindgen CLI.
 EOF
 }
 
@@ -36,6 +37,14 @@ if [[ "$check_bindings" == true ]]; then
     echo 'Python test tools are missing; set up bindings/python/.venv with maturin and pytest.' >&2
     exit 1
   fi
+  if ! rustup target list --installed | grep -qx wasm32-unknown-unknown; then
+    echo 'The wasm32-unknown-unknown target is missing; install it with rustup.' >&2
+    exit 1
+  fi
+  if ! command -v wasm-bindgen >/dev/null 2>&1; then
+    echo 'The wasm-bindgen CLI is missing; install the version used by .github/workflows/browser-wasm.yml.' >&2
+    exit 1
+  fi
 fi
 
 if [[ -d target/package ]]; then
@@ -51,6 +60,8 @@ cargo test --workspace --locked
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 
 if [[ "$check_bindings" == true ]]; then
+  npm run build:wasm --prefix bindings/wasm
+
   (
     cd bindings/node
     npm run build
