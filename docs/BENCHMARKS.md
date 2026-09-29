@@ -2,6 +2,17 @@
 
 2026-08-22、Apple M5（arm64）、macOS 26.5.1、Rust 1.93.0、`cargo build --release`で測定しました。時間は`conversion.json`の変換処理時間、RSSはmacOS `/usr/bin/time -l`のmaximum resident set sizeです。
 
+## 複数ページSVG → HTMLギャラリーのメモリ
+
+2026-09-30、macOS arm64のdebug CLIで、80ページ・合計41,955,280 bytesの合成SVGフォルダを1つのHTMLへ書き戻しました。各SVGは400×200の矩形と512 KiBの`<desc>`を持ちます。3回ずつ実行した中央値で、RSSは`/usr/bin/time -l`のmaximum resident set sizeです。
+
+| 実装 | 経過時間 | 最大RSS |
+|---|---:|---:|
+| 全ページを保持 | 0.305秒 | 57.7 MiB |
+| 1ページずつ読込・検証・書出し | 0.269秒 | 16.8 MiB |
+
+同じ出力ファイル名で生成したHTMLは55,949,699 bytesでバイト一致しました。これは繰り返しテキストを含む合成入力の測定であり、一般的なSVGの速度やメモリ削減率を保証するものではありません。
+
 ## drawio 変換
 
 2026-09-10、`scripts/benchmark-conversion.py`が生成する合成図面（400図形＋399本の直交コネクタ、

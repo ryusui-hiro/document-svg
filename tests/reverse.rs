@@ -242,6 +242,11 @@ fn packages_svg_directory_as_one_html_gallery() {
 
     let report = svg_to_document(&input, &output, &ReverseOptions::default()).unwrap();
     assert_eq!(report.page_count, 2);
+    assert_eq!(
+        report.input_bytes as usize,
+        svg_one().len() + svg_two().len()
+    );
+    assert_eq!(report.warnings.len(), 1);
     let html = fs::read_to_string(&output).unwrap();
     assert_eq!(html.matches("<!DOCTYPE html>").count(), 1);
     assert!(html.contains("<title>pages&amp;notes</title>"));
@@ -259,6 +264,21 @@ fn packages_svg_directory_as_one_html_gallery() {
         })
         .collect::<Vec<_>>();
     assert_eq!(pages, vec![svg_one().as_bytes(), svg_two().as_bytes()]);
+}
+
+#[test]
+fn html_gallery_input_limit_leaves_no_output_file() {
+    let temporary = TempDir::new().unwrap();
+    let input = make_svg_pages(&temporary);
+    let output = temporary.path().join("pages.html");
+    let options = ReverseOptions {
+        max_input_bytes: svg_one().len() as u64 + 1,
+        ..ReverseOptions::default()
+    };
+
+    let error = svg_to_document(&input, &output, &options).unwrap_err();
+    assert!(error.to_string().contains("maximum is"), "{error}");
+    assert!(!output.exists());
 }
 
 fn svg_one() -> &'static str {

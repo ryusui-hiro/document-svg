@@ -33,6 +33,8 @@ const FALLBACK_DPI: f64 = 96.0;
 const MAX_FALLBACK_DIMENSION: f64 = 4_096.0;
 const MAX_FALLBACK_PIXELS: f64 = 16_777_216.0;
 const MAX_NESTED_SVG_DEPTH: usize = 4;
+const GENERIC_REVERSE_WARNING: &str =
+    "SVG pages are embedded as vector images; original document semantics are not reconstructed";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -252,25 +254,14 @@ pub fn svg_to_document(
             paths.len()
         )));
     }
+    if format == ReverseFormat::Html && paths.len() > 1 {
+        return write_html_gallery_from_paths(input, output, &paths, options);
+    }
     let mut pages = Vec::with_capacity(paths.len());
     let mut input_bytes = 0u64;
     let mut render_options = None;
     for path in paths {
-        let metadata = fs::metadata(&path)?;
-        let previous_bytes = input_bytes;
-        input_bytes = input_bytes.saturating_add(metadata.len());
-        if input_bytes > options.max_input_bytes {
-            return Err(Error::LimitExceeded(format!(
-                "SVG input is {input_bytes} bytes; maximum is {} bytes",
-                options.max_input_bytes
-            )));
-        }
-        let bytes = read_limited_file(
-            &path,
-            options.max_input_bytes.saturating_sub(previous_bytes),
-            "SVG input",
-        )?;
-        input_bytes = previous_bytes.saturating_add(bytes.len() as u64);
+        let bytes = read_svg_page_with_budget(&path, &mut input_bytes, options.max_input_bytes)?;
         let diagrams = if format == ReverseFormat::Drawio {
             embedded_diagrams(&bytes)?
         } else {
@@ -546,12 +537,8 @@ pub fn svg_to_document(
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("Document SVG");
-        if pages.len() == 1 {
-            let html = crate::code::svg_to_html(&pages[0].bytes, doc_title)?;
-            writer.write_all(html.as_bytes())?;
-        } else {
-            write_multipage_html(&mut writer, &pages, doc_title)?;
-        }
+        let html = crate::code::svg_to_html(&pages[0].bytes, doc_title)?;
+        writer.write_all(html.as_bytes())?;
         writer.flush()?;
     } else if format == ReverseFormat::Pdf {
         write_pdf(&pages, temporary.as_file_mut())?;
@@ -705,10 +692,7 @@ pub fn svg_to_document(
             "SVG pages were packaged into a PDF document with exact page dimensions and raster imagery"
                 .into(),
         ],
-        _ => vec![
-            "SVG pages are embedded as vector images; original document semantics are not reconstructed"
-                .into(),
-        ],
+        _ => vec![GENERIC_REVERSE_WARNING.into()],
     };
     Ok(ReverseReport {
         converter: "document-svg",
@@ -722,20 +706,87 @@ pub fn svg_to_document(
     })
 }
 
-fn write_multipage_html<W: Write>(writer: &mut W, pages: &[SvgPage], title: &str) -> Result<()> {
+fn write_html_gallery_from_paths(
+    input: &Path,
+    output: &Path,
+    paths: &[PathBuf],
+    options: &ReverseOptions,
+) -> Result<ReverseReport> {
+    let parent = output
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    fs::create_dir_all(parent)?;
+    let mut temporary = tempfile::NamedTempFile::new_in(parent)?;
+    let title = output
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .unwrap_or("Document SVG");
+    let mut input_bytes = 0u64;
+    {
+        let mut writer = BufWriter::new(temporary.as_file_mut());
+        write_html_gallery_header(&mut writer, title)?;
+        for (index, path) in paths.iter().enumerate() {
+            let bytes = read_svg_page_with_budget(path, &mut input_bytes, options.max_input_bytes)?;
+            validate_svg_document(&bytes, 0)?;
+            svg_dimensions(&bytes)?;
+            write_html_gallery_page(&mut writer, &bytes, index + 1)?;
+        }
+        write_html_gallery_footer(&mut writer)?;
+        writer.flush()?;
+    }
+    temporary
+        .persist_noclobber(output)
+        .map_err(|error| error.error)?;
+    Ok(ReverseReport {
+        converter: "document-svg",
+        version: env!("CARGO_PKG_VERSION"),
+        source: input.to_string_lossy().into_owned(),
+        output: output.to_string_lossy().into_owned(),
+        output_format: ReverseFormat::Html,
+        page_count: paths.len(),
+        input_bytes,
+        warnings: vec![GENERIC_REVERSE_WARNING.into()],
+    })
+}
+
+fn read_svg_page_with_budget(
+    path: &Path,
+    input_bytes: &mut u64,
+    max_bytes: u64,
+) -> Result<Vec<u8>> {
+    let metadata = fs::metadata(path)?;
+    let previous = *input_bytes;
+    let total = previous.saturating_add(metadata.len());
+    if total > max_bytes {
+        return Err(Error::LimitExceeded(format!(
+            "SVG input is {total} bytes; maximum is {max_bytes} bytes"
+        )));
+    }
+    let bytes = read_limited_file(path, max_bytes.saturating_sub(previous), "SVG input")?;
+    *input_bytes = previous.saturating_add(bytes.len() as u64);
+    Ok(bytes)
+}
+
+fn write_html_gallery_header<W: Write>(writer: &mut W, title: &str) -> Result<()> {
     let title = crate::code::html_escape(title);
     write!(
         writer,
         "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>{title}</title>\n  <style>\n    * {{ box-sizing: border-box; }}\n    body {{ margin: 0; background: #f8fafc; color: #0f172a; font-family: system-ui, sans-serif; }}\n    main {{ max-width: 1200px; margin: 0 auto; padding: 1.5rem; }}\n    h1 {{ font-size: 1.25rem; margin: 0 0 1.5rem; }}\n    figure {{ margin: 0 0 1.5rem; padding: 1rem; background: #fff; border-radius: 6px; box-shadow: 0 2px 8px #0002; }}\n    img {{ display: block; max-width: 100%; height: auto; margin: 0 auto; }}\n    figcaption {{ margin-top: 0.75rem; color: #475569; text-align: center; }}\n    @media (prefers-color-scheme: dark) {{ body {{ background: #0f172a; color: #e2e8f0; }} figure {{ background: #1e293b; }} figcaption {{ color: #cbd5e1; }} }}\n  </style>\n</head>\n<body>\n<main>\n  <h1>{title}</h1>\n"
     )?;
-    for (index, page) in pages.iter().enumerate() {
-        let uri = crate::code::svg_to_data_uri(&page.bytes)?;
-        let number = index + 1;
-        writeln!(
-            writer,
-            "  <figure><img src=\"{uri}\" alt=\"Page {number}\"><figcaption>Page {number}</figcaption></figure>"
-        )?;
-    }
+    Ok(())
+}
+
+fn write_html_gallery_page<W: Write>(writer: &mut W, svg: &[u8], number: usize) -> Result<()> {
+    let uri = crate::code::svg_to_data_uri(svg)?;
+    writeln!(
+        writer,
+        "  <figure><img src=\"{uri}\" alt=\"Page {number}\"><figcaption>Page {number}</figcaption></figure>"
+    )?;
+    Ok(())
+}
+
+fn write_html_gallery_footer<W: Write>(writer: &mut W) -> Result<()> {
     writer.write_all(b"</main>\n</body>\n</html>\n")?;
     Ok(())
 }
