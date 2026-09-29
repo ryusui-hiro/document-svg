@@ -269,18 +269,23 @@ fn packages_svg_directory_as_one_html_gallery() {
 }
 
 #[test]
-fn html_gallery_input_limit_leaves_no_output_file() {
+fn streamed_multipage_input_limit_leaves_no_output_file() {
     let temporary = TempDir::new().unwrap();
     let input = make_svg_pages(&temporary);
-    let output = temporary.path().join("pages.html");
     let options = ReverseOptions {
         max_input_bytes: svg_one().len() as u64 + 1,
         ..ReverseOptions::default()
     };
 
-    let error = svg_to_document(&input, &output, &options).unwrap_err();
-    assert!(error.to_string().contains("maximum is"), "{error}");
-    assert!(!output.exists());
+    for extension in ["html", "md", "path"] {
+        let output = temporary.path().join(format!("pages.{extension}"));
+        let error = svg_to_document(&input, &output, &options).unwrap_err();
+        assert!(
+            error.to_string().contains("maximum is"),
+            "{extension}: {error}"
+        );
+        assert!(!output.exists(), "{extension}");
+    }
 }
 
 #[test]
@@ -313,6 +318,7 @@ fn separates_markdown_tables_and_path_data_from_multiple_pages() {
     let path_data = temporary.path().join("paths.path");
     let report = svg_to_document(&paths, &path_data, &ReverseOptions::default()).unwrap();
     assert_eq!(report.page_count, 2);
+    assert!(report.warnings[0].contains("raw path data"));
     assert_eq!(
         fs::read_to_string(path_data).unwrap(),
         "M1 1 L2 2\nM2 2 L3 3"

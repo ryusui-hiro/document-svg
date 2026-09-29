@@ -209,7 +209,7 @@ PDF効果は、要素自身のtransformと混同しないようidentity座標の
 - 出力: `BufWriter`へ直接書き、巨大なSVG文字列を二重保持しません。
 - drawio: 図面本文の展開は`max_zip_entry_bytes`で制限します。shape libraryは1ファイル64 MiB、1 shape 200,000命令を上限とし、そのページが実際に使うshapeだけをXMLから抽出して保持します。必要なshapeが全て揃った時点で残りのlibrary fileは読みません（AWS図1枚＋42 MBの全library指定で常駐15 MiB以下）。座標と長さは原点から±1,000,000 pxに収め、ページもその範囲でcropします。
 - SVG逆変換: SVG合計を`max_input_bytes`、ページ数を`max_pages`で制限し、OOXMLを一時ZIPへ書いてからrenameします。
-- 複数ページHTMLギャラリーはSVGを1ページずつ読み、検証してData URIへ変換し、一時HTMLへ逐次書き込みます。全ページのSVGを同時保持しません。PNG/WebP、CAD/CAM・3Dメッシュ、DOT/Mermaid、CSV/LaTeX、UIコンポーネントなどの単一ページ出力は、読み込み前にページ数を検証します。複数ページのMarkdown表と生パスデータはページ境界を区切って書きます。
+- 複数ページHTMLギャラリー・Markdown表・生パスデータはSVGを1ページずつ読み、検証して一時ファイルへ逐次書き込みます。全ページのSVGを同時保持せず、Markdown表と生パスデータはページ境界を区切ります。PNG/WebP、CAD/CAM・3Dメッシュ、DOT/Mermaid、CSV/LaTeX、UIコンポーネントなどの単一ページ出力は、読み込み前にページ数を検証します。
 - 並列化: `jobs=1`が省メモリ既定です。PDFだけ指定worker数でページを並列化し、同時常駐Page IR上限も`jobs`件です。速度と常駐IR数は明示的なトレードオフです。
 
 `conversion.json`の`largest_page_ir_bytes`は、ページIRをJSON化したときのサイズを用いる比較可能な近似値です。OS RSSの最大値ではありません。

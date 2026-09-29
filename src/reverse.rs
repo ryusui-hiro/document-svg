@@ -35,6 +35,10 @@ const MAX_FALLBACK_PIXELS: f64 = 16_777_216.0;
 const MAX_NESTED_SVG_DEPTH: usize = 4;
 const GENERIC_REVERSE_WARNING: &str =
     "SVG pages are embedded as vector images; original document semantics are not reconstructed";
+const MARKDOWN_REVERSE_WARNING: &str =
+    "SVG table grid lines and cell text were extracted into a Markdown table";
+const PATH_DATA_REVERSE_WARNING: &str =
+    "SVG path commands were extracted as raw path data; styling and non-path elements are omitted";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -270,8 +274,13 @@ pub fn svg_to_document(
             paths.len()
         )));
     }
-    if format == ReverseFormat::Html && paths.len() > 1 {
-        return write_html_gallery_from_paths(input, output, &paths, options);
+    if paths.len() > 1
+        && matches!(
+            format,
+            ReverseFormat::Html | ReverseFormat::Markdown | ReverseFormat::PathData
+        )
+    {
+        return write_multipage_direct_output(input, output, &paths, options, format);
     }
     let mut pages = Vec::with_capacity(paths.len());
     let mut input_bytes = 0u64;
@@ -690,10 +699,7 @@ pub fn svg_to_document(
             "SVG shapes and text were extracted into a graph structure; topology is approximated from geometric elements"
                 .into(),
         ],
-        (ReverseFormat::Markdown, _, _) => vec![
-            "SVG table grid lines and cell text were extracted into a Markdown table"
-                .into(),
-        ],
+        (ReverseFormat::Markdown, _, _) => vec![MARKDOWN_REVERSE_WARNING.into()],
         (ReverseFormat::Csv, _, _) => vec![
             "SVG chart elements and text were extracted into tabular CSV data"
                 .into(),
@@ -714,6 +720,7 @@ pub fn svg_to_document(
             "SVG was base64-encoded into a Data URI"
                 .into(),
         ],
+        (ReverseFormat::PathData, _, _) => vec![PATH_DATA_REVERSE_WARNING.into()],
         (ReverseFormat::Png, _, _) => vec![
             "SVG was rendered directly to a raster PNG image"
                 .into(),
@@ -736,11 +743,12 @@ pub fn svg_to_document(
     })
 }
 
-fn write_html_gallery_from_paths(
+fn write_multipage_direct_output(
     input: &Path,
     output: &Path,
     paths: &[PathBuf],
     options: &ReverseOptions,
+    format: ReverseFormat,
 ) -> Result<ReverseReport> {
     let parent = output
         .parent()
@@ -755,14 +763,36 @@ fn write_html_gallery_from_paths(
     let mut input_bytes = 0u64;
     {
         let mut writer = BufWriter::new(temporary.as_file_mut());
-        write_html_gallery_header(&mut writer, title)?;
+        if format == ReverseFormat::Html {
+            write_html_gallery_header(&mut writer, title)?;
+        }
+        let mut wrote_text = false;
         for (index, path) in paths.iter().enumerate() {
             let bytes = read_svg_page_with_budget(path, &mut input_bytes, options.max_input_bytes)?;
             validate_svg_document(&bytes, 0)?;
             svg_dimensions(&bytes)?;
-            write_html_gallery_page(&mut writer, &bytes, index + 1)?;
+            match format {
+                ReverseFormat::Html => write_html_gallery_page(&mut writer, &bytes, index + 1)?,
+                ReverseFormat::Markdown | ReverseFormat::PathData => {
+                    let text = if format == ReverseFormat::Markdown {
+                        crate::table::extract_markdown_table_from_svg(&bytes)?
+                    } else {
+                        crate::code::svg_to_path_data(&bytes)?
+                    };
+                    if !text.is_empty() {
+                        if wrote_text {
+                            writer.write_all(b"\n")?;
+                        }
+                        writer.write_all(text.as_bytes())?;
+                        wrote_text = true;
+                    }
+                }
+                _ => unreachable!("only multipage direct outputs use this writer"),
+            }
         }
-        write_html_gallery_footer(&mut writer)?;
+        if format == ReverseFormat::Html {
+            write_html_gallery_footer(&mut writer)?;
+        }
         writer.flush()?;
     }
     temporary
@@ -773,10 +803,17 @@ fn write_html_gallery_from_paths(
         version: env!("CARGO_PKG_VERSION"),
         source: input.to_string_lossy().into_owned(),
         output: output.to_string_lossy().into_owned(),
-        output_format: ReverseFormat::Html,
+        output_format: format,
         page_count: paths.len(),
         input_bytes,
-        warnings: vec![GENERIC_REVERSE_WARNING.into()],
+        warnings: vec![
+            match format {
+                ReverseFormat::Markdown => MARKDOWN_REVERSE_WARNING,
+                ReverseFormat::PathData => PATH_DATA_REVERSE_WARNING,
+                _ => GENERIC_REVERSE_WARNING,
+            }
+            .into(),
+        ],
     })
 }
 
