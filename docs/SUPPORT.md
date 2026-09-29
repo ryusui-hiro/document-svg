@@ -583,7 +583,7 @@ AASX (`.aasx`; content sniffing) is an OPC/ZIP package for Asset Administration 
 
 ## SVGからOpen XML / CAD / CAM / Plotterへの逆変換
 
-DXF、G-code、Gerber、HP-GL、Excellon、STL、OBJ、PLY、3MF、STEP、IGES、Gmsh、VTK、DOT、Mermaid、PNG、WebP、UIコンポーネント、Data URIはSVG 1ページを入力とします。複数ページのSVGフォルダを渡した場合、先頭ページだけを出力せず、書込み前に拒否します。
+DXF、G-code、Gerber、HP-GL、Excellon、STL、OBJ、PLY、3MF、STEP、IGES、Gmsh、VTK、DOT、Mermaid、PNG、WebP、CSV、LaTeX、UIコンポーネント、Data URIはSVG 1ページを入力とします。複数ページのSVGフォルダを渡した場合、先頭ページだけを出力せず、書込み前に拒否します。Markdown表と生パスデータは複数ページの内容を空行または改行で区切ります。
 
 | 出力 | 対応 | 契約 |
 |---|---|---|
@@ -606,13 +606,13 @@ DXF、G-code、Gerber、HP-GL、Excellon、STL、OBJ、PLY、3MF、STEP、IGES�
 | VTK (.vtk) | 対応 | SVGのポリゴンからLegacy VTK POLYDATAデータセットを出力 |
 | Graphviz DOT (.dot) | 対応 | SVGの図形と矢印コネクタから有向グラフDOT言語を抽出・再構成 |
 | Mermaid (.mmd) | 対応 | SVGの図形・テキストからMermaid flow/sequence構文を抽出・再構成 |
-| Markdown (.md) | 対応 | SVGテーブルのセル境界・テキストからMarkdownテーブル構文を抽出・再構成 |
-| Tabular CSV (.csv) | 対応 | SVGチャート・テーブルからカンマ区切り表形式データを復元 |
-| LaTeX Math / document preview (`.tex`, `.latex`) | standalone数式に加え、`\\documentclass`文書のtitle/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、入力ディレクトリ内のbounded PNG/JPEG `\\includegraphics`を組版。TeXは実行せず、`\\input`/`\\include`/bibliography、shell escape、外部URL、macro expansionは警告付きで省略し、figure floatと厳密な組版は近似。画像は共通ローダー（10,000 refs、8 MiB/image、32 MiB decoded bytes、40M pixels/image、100M total pixels、48 MiB data URI）の制限を適用。仕様: [CTAN graphicx](https://ctan.org/pkg/graphicx?lang=en), [LaTeX2e graphics reference](https://tug.ctan.org/info/latex2e-help-texinfo/latex2e.html) | SVG数式要素からLaTeX数式コードを逆アセンブル |
+| Markdown (.md) | 対応 | SVGテーブルのセル境界・テキストからMarkdownテーブル構文を抽出・再構成。複数ページの表は空行で区切る |
+| Tabular CSV (.csv) | 対応 | SVG 1ページのチャート・テーブルからカンマ区切り表形式データを復元 |
+| LaTeX Math / document preview (`.tex`, `.latex`) | standalone数式に加え、`\\documentclass`文書のtitle/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、入力ディレクトリ内のbounded PNG/JPEG `\\includegraphics`を組版。TeXは実行せず、`\\input`/`\\include`/bibliography、shell escape、外部URL、macro expansionは警告付きで省略し、figure floatと厳密な組版は近似。画像は共通ローダー（10,000 refs、8 MiB/image、32 MiB decoded bytes、40M pixels/image、100M total pixels、48 MiB data URI）の制限を適用。仕様: [CTAN graphicx](https://ctan.org/pkg/graphicx?lang=en), [LaTeX2e graphics reference](https://tug.ctan.org/info/latex2e-help-texinfo/latex2e.html) | SVG 1ページの数式要素からLaTeX数式コードを逆アセンブル |
 | React JSX / TSX (.jsx / .tsx) | 対応 | 1ページのSVG要素をクリーンなReactコンポーネントコード（JSX/TSX）としてトランスパイル |
 | Vue 3 (.vue) | 対応 | 1ページのSVG要素をVue 3 Single File Component（`<template>`）としてトランスパイル |
 | Svelte (.svelte) | 対応 | 1ページのSVG要素をSvelteコンポーネントコード（`<script>`, `<svg {...$$restProps}>`）としてトランスパイル |
-| SVG Path Data (.path / .icon) | 対応 | SVGから`<path d="...">`のベクターパスデータ文字列を抽出 |
+| SVG Path Data (.path / .icon) | 対応 | SVGから`<path d="...">`のベクターパスデータ文字列を抽出。複数ページは改行で区切る |
 | Base64 Data URI (.datauri) | 対応 | 1ページの安全検査済みSVGをインライン埋め込み用Data URIとして出力 |
 | Standalone HTML Viewer (.html / .htm) | 対応 | 1ページは中央配置のHTML5ビューア、複数ページのSVGフォルダは全ページを独立した画像として並べるHTMLギャラリーとして出力。どちらもダークモード対応 |
 | Raster PNG (.png) | 対応 | 1ページのSVGから高解像度ラスタライズPNG画像を出力 |

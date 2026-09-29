@@ -463,9 +463,9 @@
           "reverse": "A / C",
           "sample": "markdown",
           "note": {
-            "en": "Multi-page Markdown and plain-text documents (headings, lists, code fences, blockquotes, tables, hr) or standalone tables. Standalone and paragraph ![alt](path) references embed bounded relative PNG/JPEG images within the input directory tree as flow blocks; headings/lists/quotes/tables/code keep alt text. Reverse: heuristic row/column clustering or metadata restore.",
-            "ja": "複数ページのMarkdown・プレーンテキスト文書（見出し、リスト、コードフェンス、引用、表、罫線）または単独表。単独行・段落内の![alt](path)で入力ディレクトリ内のPNG/JPEGを上限付きでフロー画像として埋め込み、見出し・リスト・引用・表・コード内は代替テキストとして表示。逆変換: ヒューリスティックな行列クラスタリング、またはメタデータ復元。",
-            "zh": "多页 Markdown 与纯文本（标题、列表、代码块、引用、表格、分隔线）或独立表格。单独行和段落内的 ![alt](path) 可嵌入输入目录树内有界的相对 PNG/JPEG 图像作为流式块；标题/列表/引用/表格/代码中的图像保留替代文本。反向：启发式行列聚类或元数据还原。"
+            "en": "Multi-page Markdown and plain-text documents (headings, lists, code fences, blockquotes, tables, hr) or standalone tables. Standalone and paragraph ![alt](path) references embed bounded relative PNG/JPEG images within the input directory tree as flow blocks; headings/lists/quotes/tables/code keep alt text. Reverse: heuristic row/column clustering or metadata restore. Multipage Markdown tables are separated by a blank line.",
+            "ja": "複数ページのMarkdown・プレーンテキスト文書（見出し、リスト、コードフェンス、引用、表、罫線）または単独表。単独行・段落内の![alt](path)で入力ディレクトリ内のPNG/JPEGを上限付きでフロー画像として埋め込み、見出し・リスト・引用・表・コード内は代替テキストとして表示。逆変換: ヒューリスティックな行列クラスタリング、またはメタデータ復元。 複数ページのMarkdown表は空行で区切ります。",
+            "zh": "多页 Markdown 与纯文本（标题、列表、代码块、引用、表格、分隔线）或独立表格。单独行和段落内的 ![alt](path) 可嵌入输入目录树内有界的相对 PNG/JPEG 图像作为流式块；标题/列表/引用/表格/代码中的图像保留替代文本。反向：启发式行列聚类或元数据还原。 多页 Markdown 表格用空行分隔。"
           }
         },
         {
@@ -1878,9 +1878,9 @@
           "reverse": "C",
           "sample": "csv",
           "note": {
-            "en": "CSV/TSV supports RFC 4180-style quoted fields, doubled quotes, and quoted newlines. Bounded SVG tables paginate at 100 rows × 32 columns; malformed quotes fail, ragged rows and skipped blank records warn, and text over 512 characters is truncated with a warning. Limits: 64 MiB input, 50,000 records, 256 columns, 1 million cells, 64 KiB/field and 1 MiB/record. Single-page CSV up to 8 MiB embeds exact source for reverse recovery; large/multi-page source is omitted.",
-            "ja": "CSV/TSVはRFC 4180形式のquoted field、escaped quote、quoted newlineに対応。SVG tableを100行×32列でページ分割し、不正quoteはerror、ragged row/空record skipはwarning、512文字超のcellはpreviewで省略。上限: 入力64 MiB、50,000 record、256列、100万cell、64 KiB/field、1 MiB/record。8 MiB以下・1ページのCSVはexact sourceを埋め込み、large/multi-page sourceは省略します。",
-            "zh": "CSV/TSV 支持 RFC 4180 风格的引号字段、双引号转义和带引号的换行。SVG 表格按每页 100 行 × 32 列分页；无效引号会报错，不规则行和跳过的空记录会警告，超过 512 个字符的单元格会在预览中截断。限制：输入 64 MiB、50,000 条记录、256 列、100 万个单元格、每字段 64 KiB、每记录 1 MiB。小于 8 MiB 的单页 CSV 会嵌入原始内容以便反向恢复；大文件/多页表不嵌入原文。"
+            "en": "CSV/TSV supports RFC 4180-style quoted fields, doubled quotes, and quoted newlines. Bounded SVG tables paginate at 100 rows × 32 columns; malformed quotes fail, ragged rows and skipped blank records warn, and text over 512 characters is truncated with a warning. Limits: 64 MiB input, 50,000 records, 256 columns, 1 million cells, 64 KiB/field and 1 MiB/record. Single-page CSV up to 8 MiB embeds exact source for reverse recovery; large/multi-page source is omitted. Reverse from SVG accepts one page.",
+            "ja": "CSV/TSVはRFC 4180形式のquoted field、escaped quote、quoted newlineに対応。SVG tableを100行×32列でページ分割し、不正quoteはerror、ragged row/空record skipはwarning、512文字超のcellはpreviewで省略。上限: 入力64 MiB、50,000 record、256列、100万cell、64 KiB/field、1 MiB/record。8 MiB以下・1ページのCSVはexact sourceを埋め込み、large/multi-page sourceは省略します。 SVGからの逆変換は1ページを入力とします。",
+            "zh": "CSV/TSV 支持 RFC 4180 风格的引号字段、双引号转义和带引号的换行。SVG 表格按每页 100 行 × 32 列分页；无效引号会报错，不规则行和跳过的空记录会警告，超过 512 个字符的单元格会在预览中截断。限制：输入 64 MiB、50,000 条记录、256 列、100 万个单元格、每字段 64 KiB、每记录 1 MiB。小于 8 MiB 的单页 CSV 会嵌入原始内容以便反向恢复；大文件/多页表不嵌入原文。 从 SVG 反向转换只接受一页。"
           }
         },
         {
@@ -2662,9 +2662,9 @@
           "reverse": "A / C",
           "sample": "tex",
           "note": {
-            "en": "Standalone LaTeX math formulas plus bounded complete-document previews: title/author/date, sections, paragraphs, lists, verbatim/code, tabular data, captions, inline math, and local PNG/JPEG \\includegraphics. TeX macros, \\input/\\include/bibliography, shell escape, external URLs, and document execution are never evaluated; figure floats and exact typography are approximated. Reverse: `<desc>` metadata restore (A) or OCR/heuristic (C).",
-            "ja": "LaTeX 数式に加え、完全な文書のbounded preview（title/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、入力ツリー内のPNG/JPEG \\includegraphics）に対応。TeX macro、\\input/\\include/bibliography、shell escape、外部URL、文書実行は行わず、figure floatと厳密な組版は近似。逆変換: `<desc>` メタデータ復元（A）、またはOCR/ヒューリスティック（C）。",
-            "zh": "支持独立 LaTeX 数学公式以及有界的完整文档预览：标题/作者/日期、章节、段落、列表、verbatim/代码、tabular、题注、内联数学和输入目录树内的 PNG/JPEG \\includegraphics。不会执行 TeX 宏、\\input/\\include/参考文献、shell escape、外部 URL 或文档；图形浮动和精确排版采用近似。反向：`<desc>` 元数据还原（A），或 OCR/启发式识别（C）。"
+            "en": "Standalone LaTeX math formulas plus bounded complete-document previews: title/author/date, sections, paragraphs, lists, verbatim/code, tabular data, captions, inline math, and local PNG/JPEG \\includegraphics. TeX macros, \\input/\\include/bibliography, shell escape, external URLs, and document execution are never evaluated; figure floats and exact typography are approximated. Reverse: `<desc>` metadata restore (A) or OCR/heuristic (C). Reverse from SVG accepts one page.",
+            "ja": "LaTeX 数式に加え、完全な文書のbounded preview（title/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、入力ツリー内のPNG/JPEG \\includegraphics）に対応。TeX macro、\\input/\\include/bibliography、shell escape、外部URL、文書実行は行わず、figure floatと厳密な組版は近似。逆変換: `<desc>` メタデータ復元（A）、またはOCR/ヒューリスティック（C）。 SVGからの逆変換は1ページを入力とします。",
+            "zh": "支持独立 LaTeX 数学公式以及有界的完整文档预览：标题/作者/日期、章节、段落、列表、verbatim/代码、tabular、题注、内联数学和输入目录树内的 PNG/JPEG \\includegraphics。不会执行 TeX 宏、\\input/\\include/参考文献、shell escape、外部 URL 或文档；图形浮动和精确排版采用近似。反向：`<desc>` 元数据还原（A），或 OCR/启发式识别（C）。 从 SVG 反向转换只接受一页。"
           }
         },
         {
@@ -3046,9 +3046,9 @@
           "reverse": "A",
           "sample": null,
           "note": {
-            "en": "Wraps one SVG page into a React JSX/TSX, Vue 3, or Svelte component or a Base64 Data URI; raw path data (`d=\"...\"`) can include paths from multiple pages.",
-            "ja": "1ページのSVGをReact JSX/TSX・Vue 3・SvelteコンポーネントまたはBase64データURIとして出力。生パスデータ（`d=\"...\"`）は複数ページのパスを含められます。",
-            "zh": "将单页 SVG 封装为 React JSX/TSX、Vue 3 或 Svelte 组件或 Base64 Data URI；原始路径数据（`d=\"...\"`）可包含多页路径。"
+            "en": "Wraps one SVG page into a React JSX/TSX, Vue 3, or Svelte component or a Base64 Data URI; raw path data (`d=\"...\"`) can include paths from multiple pages. Paths from separate pages are newline-delimited.",
+            "ja": "1ページのSVGをReact JSX/TSX・Vue 3・SvelteコンポーネントまたはBase64データURIとして出力。生パスデータ（`d=\"...\"`）は複数ページのパスを含められます。 ページごとのパスは改行で区切ります。",
+            "zh": "将单页 SVG 封装为 React JSX/TSX、Vue 3 或 Svelte 组件或 Base64 Data URI；原始路径数据（`d=\"...\"`）可包含多页路径。 不同页面的路径用换行分隔。"
           }
         },
         {

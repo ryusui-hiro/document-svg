@@ -143,6 +143,8 @@ impl ReverseFormat {
             Self::Dxf
                 | Self::Dot
                 | Self::Mermaid
+                | Self::Csv
+                | Self::Tex
                 | Self::Png
                 | Self::Webp
                 | Self::Gcode
@@ -457,9 +459,16 @@ pub fn svg_to_document(
         writer.flush()?;
     } else if format == ReverseFormat::Markdown {
         let mut writer = BufWriter::new(temporary.as_file_mut());
+        let mut wrote_table = false;
         for page in &pages {
             let md = crate::table::extract_markdown_table_from_svg(&page.bytes)?;
-            writer.write_all(md.as_bytes())?;
+            if !md.is_empty() {
+                if wrote_table {
+                    writer.write_all(b"\n")?;
+                }
+                writer.write_all(md.as_bytes())?;
+                wrote_table = true;
+            }
         }
         writer.flush()?;
     } else if format == ReverseFormat::Csv {
@@ -527,9 +536,16 @@ pub fn svg_to_document(
         writer.flush()?;
     } else if format == ReverseFormat::PathData {
         let mut writer = BufWriter::new(temporary.as_file_mut());
+        let mut wrote_path = false;
         for page in &pages {
             let path_data = crate::code::svg_to_path_data(&page.bytes)?;
-            writer.write_all(path_data.as_bytes())?;
+            if !path_data.is_empty() {
+                if wrote_path {
+                    writer.write_all(b"\n")?;
+                }
+                writer.write_all(path_data.as_bytes())?;
+                wrote_path = true;
+            }
         }
         writer.flush()?;
     } else if format == ReverseFormat::DataUri {

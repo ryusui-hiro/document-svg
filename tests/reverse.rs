@@ -223,7 +223,8 @@ fn rejects_multiple_svg_pages_before_writing_a_single_page_output() {
     let input = make_svg_pages(&temporary);
     for extension in [
         "png", "webp", "3mf", "jsx", "tsx", "vue", "svelte", "datauri", "dxf", "dot", "mmd",
-        "gcode", "gbr", "plt", "drl", "stl", "obj", "ply", "step", "iges", "msh", "vtk",
+        "gcode", "gbr", "plt", "drl", "stl", "obj", "ply", "step", "iges", "msh", "vtk", "csv",
+        "tex",
     ] {
         let output = temporary.path().join(format!("pages.{extension}"));
         let error = svg_to_document(&input, &output, &ReverseOptions::default()).unwrap_err();
@@ -280,6 +281,42 @@ fn html_gallery_input_limit_leaves_no_output_file() {
     let error = svg_to_document(&input, &output, &options).unwrap_err();
     assert!(error.to_string().contains("maximum is"), "{error}");
     assert!(!output.exists());
+}
+
+#[test]
+fn separates_markdown_tables_and_path_data_from_multiple_pages() {
+    let temporary = TempDir::new().unwrap();
+    let tables = temporary.path().join("tables");
+    let paths = temporary.path().join("paths");
+    fs::create_dir(&tables).unwrap();
+    fs::create_dir(&paths).unwrap();
+    for (number, heading, value) in [(1, "First", "A"), (2, "Second", "B")] {
+        fs::write(
+            tables.join(format!("page-{number:04}.svg")),
+            format!("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"80\"><text x=\"10\" y=\"20\">{heading}</text><text x=\"10\" y=\"40\">{value}</text></svg>"),
+        )
+        .unwrap();
+        fs::write(
+            paths.join(format!("page-{number:04}.svg")),
+            format!("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"100\" height=\"80\"><path d=\"M{number} {number} L{} {}\"/></svg>", number + 1, number + 1),
+        )
+        .unwrap();
+    }
+
+    let markdown = temporary.path().join("tables.md");
+    let report = svg_to_document(&tables, &markdown, &ReverseOptions::default()).unwrap();
+    assert_eq!(report.page_count, 2);
+    let markdown = fs::read_to_string(markdown).unwrap();
+    assert!(markdown.contains("| First"));
+    assert!(markdown.contains("\n\n| Second"), "{markdown}");
+
+    let path_data = temporary.path().join("paths.path");
+    let report = svg_to_document(&paths, &path_data, &ReverseOptions::default()).unwrap();
+    assert_eq!(report.page_count, 2);
+    assert_eq!(
+        fs::read_to_string(path_data).unwrap(),
+        "M1 1 L2 2\nM2 2 L3 3"
+    );
 }
 
 fn svg_one() -> &'static str {
