@@ -4,6 +4,8 @@
 検索できて、ふつうの言葉で書いた一覧は、[プロジェクトサイトの対応形式ページ](https://ryusui-hiro.github.io/document-svg/ja/formats.html)を見てください。
 同じ内容は [formats.json](https://ryusui-hiro.github.io/document-svg/assets/data/formats.json) としても公開しています。
 
+逆変換ではSVGフォルダを複数ページのOffice・PDF・draw.io・HTMLへ出力できます。HTMLは1つのギャラリーになります。PNG/WebP、CAD/CAM・3Dメッシュ、DOT/Mermaid、CSV/LaTeX、UIコンポーネント、Data URIはSVG 1ページ用で、複数ページのフォルダは書込み前に拒否します。Markdown表と生パスデータは複数ページの境界を空行・改行で保ちます。
+
 ## 変換特性マップ
 
 本リポジトリでは、SVG を中心ハブとした変換を以下の 3 つの変換特性（再現性・忠実度モデル）に分類しています。
@@ -56,7 +58,7 @@
 | | `.vcf`, `.vcard` | **A** | - | vCard 2.1/3.0/4.0 contact card。名前・会社・電話・email・住所・note・URLをカードごとに組版。2.1のquoted-printableとCHARSET parameterをdecode。画像/鍵などのmediaは省略して外部resourceは取得しません。 |
 | | `.mht`, `.mhtml` | **A** | - | `multipart/related`の`start` root（省略時は先頭part）のHTMLをsafe HTML subsetで組版。同じまたは外側のrelated構造内でContent-IDまたはURI解決したContent-Locationに一致する上限付きPNG/JPEGを埋め込みます。`src`がないimgは`srcset`の最初の候補を使います。HTMLの`<base href>`、MIME Content-Base/Content-Location、および`thismessage:/` fallbackで相対URIを解決します。CSS・script・未一致resource・その他attachmentは省略し、外部取得はしません。 |
 | | `.xps`, `.oxps`, `.dwfx` | **A** | - | OPC固定ページ文書とAutodesk DWFx（XPS互換）package。文書/ページ順、単色ベクターパス、Canvas変換・透明度、Unicode Glyphs、PNG/JPEG ImageBrushをPathでclipして読込。埋め込みfont・厳密なglyph配置・gradient・tile/crop mapping・resource dictionary・classic DWF payloadは警告付きの近似/省略。 |
-| | `.html`, `.htm` | **A** | **A** | セマンティックHTMLマルチページ組版（見出し・段落・リスト・コードブロック・表・日本語CJK禁則処理）。同じディレクトリ内のPNG/JPEG `img`をフロー画像として埋め込み、`src`がないimgは`srcset`の最初の候補を使います。CSSの寸法・回り込み・responsive選択は近似。外部・範囲外・未対応画像はwarning付きで省略。<br>逆: SVGをダークモード対応・中央配置のスタンドアロンなレスポンシブHTML5ビューアとして出力。 |
+| | `.html`, `.htm` | **A** | **A** | セマンティックHTMLマルチページ組版（見出し・段落・リスト・コードブロック・表・日本語CJK禁則処理）。同じディレクトリ内のPNG/JPEG `img`をフロー画像として埋め込み、`src`がないimgは`srcset`の最初の候補を使います。CSSの寸法・回り込み・responsive選択は近似。外部・範囲外・未対応画像はwarning付きで省略。<br>逆: 1ページのSVGは中央配置のHTML5ビューア、SVGフォルダは全ページを含む単一のHTMLギャラリーとして出力。どちらもダークモード対応。 |
 | | `.epub` | **A** | - | 電子書籍EPUBパッケージ（container.xml、OPFマニフェスト、Spine順XHTML連続組版）。パッケージ内PNG/JPEGの`img`参照を埋め込み、`src`がないimgは`srcset`の最初の候補を使います。外部・CSS・SVGなどの画像は警告して省略。 |
 | | `.fb2`, `.fb2.zip` | **A** | - | FictionBook 2 XML電子書籍（単一bookをZIPで配布する形式を含む）。最初のmain `body`/`section`、title/author、段落・見出し・表、`xlink:href`で参照されるbase64 PNG/JPEG `<binary>`を描画。notes body、外部リンク、未対応binary、macro実行、厳密なreader layoutは省略またはwarning。 |
 | | `.mobi`, `.prc`, `.azw` | **A** | - | PalmDOC/MOBI電子書籍と非DRM AZW互換record。Palm Database record offset/件数、PalmDOC header、UTF-8/Windows-1252 text encoding、無圧縮/PalmDOC LZ77 text recordを検証・bounded decodeし、safe HTML-like textを組版。Huff/CDIC、DRM/暗号化、画像record、script、link、KF8固有構造、厳密なreader layoutは未対応。 |
@@ -155,7 +157,7 @@
 | | `.pts` | **A** | - | Leica PTS ASCII point cloud。point count headerと4-field XYZ/intensityまたは7-field XYZ/intensity/RGB recordを読みます。legacy integer intensity `[-2048, 2047]`とnormalized decimal intensity `[0, 1]`をgrayscale表示し、RGBを保持します。Leicaでno colorを示すRGB `(0, 0, 0)`は青で補います。原点座標は有効です。previewは最大200,000点に決定的にsampleし、scanner pose/grid順序や追加scalar attributeは表示しません。 |
 | | `.ptx` | **A** | - | Leica PTXのstructured multi-scan point cloud。scanごとの4×4 cloud transformとRGB colorを適用し、Leicaで「no color」を示すRGB `(0, 0, 0)` は青で補います。intensityのみのscanはgrayscale表示します。no-return cellは省略し、scanner pose metadataは表示しません。入力全体から最大200,000点を決定的にsampleします。 |
 | | `.las`, `.laz` | **A** | - | ASPRS LAS 1.0〜1.4とLAZ point cloudを上限付きの決定的なXYZ/RGBサンプルとして描画します。大きな非圧縮LASはpoint seekで読み、LAZは2,000万source pointまでdecodeします。CRS変換やその他attributeは適用しません。 |
-| | `.3mf` | **A** | **A** (2.5D) | 3MF packageのbuild itemとcomponent参照/transform、宣言unitを反映し、mmへ換算して等角陰影投影。materialと重なったsolidのunionは評価せず、未対応required extensionを持つファイルは拒否します。<br>逆: 3MF XMLアーカイブ内の2.5D押し出し3Dメッシュ生成。 |
+| | `.3mf` | **A** | **A** (2.5D) | 3MF packageのbuild itemとcomponent参照/transform、宣言unitを反映し、mmへ換算して等角陰影投影。materialと重なったsolidのunionは評価せず、未対応required extensionを持つファイルは拒否します。<br>逆: 1ページのSVGから3MF XMLアーカイブ内の2.5D押し出し3Dメッシュを生成。 |
 | | `.gltf`, `.glb` | **A** | - | glTF 2.0 JSON/GLBシーン。default sceneのnode変換と三角形/線分を描画し、meter単位の座標はpreview用にmm換算します。外部bufferは入力ディレクトリ内だけから読み、material・texture・skin・animationは評価しません。 |
 | | `.step`, `.stp` | **A** | **A** | CAD Part 21 ASCIIジオメトリモデル。<br>逆: ISO 10303-21幾何曲線・マニホールド曲面生成。 |
 | | `.ifc` | **A** | - | IFC-SPF IFC4のindexed triangle/polygon meshと`IfcExtrudedAreaSolid`をpreview。rectangle、circle（64分割近似）、閉じた`IfcPolyline` profileを処理し、product/local placementと`IfcMappedItem`で再利用された形状の3D uniform scale/rotation/translationを適用します。凹profileは256頂点まで上限付きtriangulation。unit scaleは解釈せずpageへ自動fit。B-rep/CSG、tapered/hollow/roundedなど未対応swept profile、non-uniform mapped transform、polygon hole、material/property、georeferencingは省略またはwarning。 |
@@ -252,14 +254,14 @@
 | | `.chart`, `.chart.json` | **A** | **C** | 棒・折れ線・円グラフ。<br>逆: グラフ幾何からCSV表データを復元。 |
 | | `.tex`, `.latex` | **A** | **A** / **C** | LaTeX数式ASTに加え、完全な文書のbounded preview（title/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、ローカルPNG/JPEG `\\includegraphics`）。TeX macro、`\\input`/bibliography、shell escape、外部URL、文書実行は行わず、figure floatと厳密な組版は近似。<br>逆: `<desc>`メタデータ復元(**A**)または数式ヒューリスティック(**C**)。 |
 | | `.qr`, `.qrcode` | **A** | **A** | Reed-SolomonベクターQRマトリクス。<br>逆: マトリクス復号。 |
-| **画像 / コード** | `.png`, `.jpg`, `.jpeg`, `.bmp`, `.gif`, `.webp` | **B** | **A** | 順: PNG/JPEG/BMP/GIF/WebPを上限内でdecodeし、白黒閾値処理と輪郭追跡でベクター化。最大2,000万画素・1辺10万px・500,000 path span。Animated GIF/WebPはwarning付きで先頭frameのみ表示。CMYK JPEGはprofileなしで近似し、16-bit lossless JPEGはwarning付きで8-bitへ縮小。<br>逆: `resvg`および`image-webp`による決定論的PNG/WebPラスタライズ。 |
+| **画像 / コード** | `.png`, `.jpg`, `.jpeg`, `.bmp`, `.gif`, `.webp` | **B** | **A** | 順: PNG/JPEG/BMP/GIF/WebPを上限内でdecodeし、白黒閾値処理と輪郭追跡でベクター化。最大2,000万画素・1辺10万px・500,000 path span。Animated GIF/WebPはwarning付きで先頭frameのみ表示。CMYK JPEGはprofileなしで近似し、16-bit lossless JPEGはwarning付きで8-bitへ縮小。<br>逆: 1ページのSVGを`resvg`および`image-webp`で決定論的なPNG/WebPへラスタライズ。 |
 | | `.pbm`, `.pgm`, `.ppm`, `.pnm`, `.pam` | **B** | - | Netpbm PBM/PGM/PPM/PAMのASCII/binary画像。16-bit sampleとRGB/alpha PAM tupleを含め、同じ上限付きgrayscale contour pipelineへ変換します。dimension、maxval、sample範囲、payload長を検証し、先頭画像だけを使います。外部resourceは読みません。 |
 | | `.tif`, `.tiff` | **A** | - | 複数画像directoryとBigTIFFをページ別にbounded decodeし、カラーPNGをSVGへ埋め込み。unsigned integerのgrayscale（packed 1/2/4-bitを含む）・RGB/RGBA・CMYKを扱い、WhiteIsZero/BlackIsZeroを反映し、8-bit超のchannelは8-bitへ縮小。palette・signed/浮動小数点sample・color profileは未対応。 |
 | | `.jp2`, `.j2k`, `.j2c`, `.jpc`, `.jpx` | **A** | - | standalone JPEG 2000 raw codestream/JP2。共通header検証でdimension、component、precision、signedness、subsamplingを検査してからPNG-backed SVGへ変換。unsigned grayscale/gray-alpha/RGB/RGBAに対応し、multi-codestream、未対応color space、signed component、危険なdimensionは拒否またはwarning。 |
 | | `.dcm`, `.dicom` | **A** | - | DICOM Part 10 grayscale/RGBをframeごとにPNG埋め込みSVGとして出力。非圧縮のImplicit/Explicit VR Little Endian、retired Explicit VR Big Endian、JPEG Baseline/Extended/Lossless、JPEG 2000 Part 1（`.90` lossless / `.91`）、RLE Losslessに対応。JPEG 2000はcodestreamのdimension/component/precisionをDICOM attributeと照合してからdecode。利用可能なModality/VOI transformを適用し、16-bit sampleは8-bit表示へ変換。患者/検査metadataはSVGへ出さないが、pixelに焼き込まれた文字は残ります。JPEG-LS、JPEG 2000のYBR_RCT/YBR_ICT色変換、Part 2、HTJ2K、空間方向・実寸pixel spacingは未対応。 |
 | | `DICOMDIR`, `.dicomdir` | **A** | - | DICOMメディアFile-setのroot/next/lower-level Directory Record offsetを追跡し、階層順に`IMAGE` recordを描画。File IDは安全な規格subsetのみ許可し、DICOMDIR folder配下へcanonicalizeして範囲外参照を拒否。見つからない/未対応imageはwarning付きでskipし、患者/検査labelは表示しません。 |
 | | DICOM Encapsulated PDF Storage | **A** | - | SOP Classと`application/pdf` MIME typeを確認し、埋め込みPDFを64 MiB以内で読み、optional document lengthとzero paddingを検証してPDF rendererへ渡します。DICOM attributeは追加しませんが、PDF本文の識別情報は残るためde-identificationではありません。 |
-| | `.jsx`, `.tsx`, `.vue`, `.svelte`, `.datauri`, `.path` | - | **A** | SVG DOMを直接React/Vue/Svelteコンポーネントコード、生パスデータ（`d="..."`）、またはData URIへ構文変換。 |
+| | `.jsx`, `.tsx`, `.vue`, `.svelte`, `.datauri`, `.path` | - | **A** | 1ページのSVGをReact/Vue/SvelteコンポーネントまたはData URIへ変換。生パスデータ（`d="..."`）は複数ページのパスを含められます。 |
 | | `.svg`, `.svgz` | **A** | **A** | SVGとgzip圧縮SVGZを、圧縮/展開後それぞれのサイズ上限付きで読込。`docsvg transform`はminify、単色化、レスポンシブ化に対応。 |
 
 XLSXは注意が必要です。180行のシートは1枚のSVGにはなりません。用紙設定に従って分割され、

@@ -22,6 +22,8 @@
 
 形式はファイルの拡張子で決まります。拡張子がないときや汎用的なときは、ファイルの先頭の内容も見て判断します。成功すると終了コード0、失敗すると1で終わり、理由を標準エラーに出します。
 
+reverse は複数ページのSVGフォルダをOffice・PDF・draw.io・HTMLへ出力できます。HTMLでは全ページを1つのギャラリーにします。PNG・WebP・DXF・G-code・Gerber・HP-GL・Excellon・STL・OBJ・PLY・3MF・STEP・IGES・Gmsh・VTK・DOT・Mermaid・CSV・LaTeX・JSX・TSX・Vue・Svelte・Data URIは1ページ用で、複数ページのフォルダは出力前に拒否します。Markdown表と生パスデータはページ間を空行・改行で区切ります。
+
 ```
 docsvg <INPUT> --output <FOLDER> [options]
 docsvg reverse <SVG or FOLDER> --output <FILE>
