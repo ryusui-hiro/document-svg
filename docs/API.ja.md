@@ -28,6 +28,7 @@ reverse は複数ページのSVGフォルダをOffice・PDF・draw.io・HTMLへ�
 docsvg <INPUT> --output <FOLDER> [options]
 docsvg reverse <SVG or FOLDER> --output <FILE>
 docsvg transform <SVG or -> --output <SVG or -> [options]
+docsvg formats [QUERY] [--lang en|ja|zh] [--details]
 ```
 
 ### 変換：docsvg <INPUT> --output <FOLDER>
@@ -45,6 +46,7 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 | `--outline-embedded-pdf-text` | オフ | PDFの埋め込みフォントの文字を図形として描きます。見た目は元どおりになりますが、文字は選択できなくなります。フォントのライセンスで許されているか確かめてください。 |
 | `--embed-drawio-source` | オフ | draw.io の元データを各SVGに残し、あとで編集できる図に戻せるようにします。サイズはおよそ2倍になります。 |
 | `--stencils PATH` | なし | draw.io の図形ライブラリのファイルやフォルダ。指定しないと、ライブラリの図形はラベル付きの仮の形になります。 |
+| `--json` | オフ | 変換レポート全体を JSON として標準出力へ書きます。 |
 
 ### 書き戻し：docsvg reverse
 
@@ -53,6 +55,7 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 | `-o, --output FILE` | 必須 | 作るファイル。拡張子で形式が決まります（.pptx、.docx、.xlsx、.pdf、.drawio、.dxf、.gcode、.stl、.html、.webp など）。 |
 | `--max-input-mib N` | 512 MiB | 入力SVGの合計の大きさの上限。 |
 | `--max-pages N` | 10,000 | 読むSVGページ数の上限。 |
+| `--json` | オフ | 書き戻しレポート全体を JSON として標準出力へ書きます。 |
 
 ### 整形：docsvg transform
 
@@ -60,8 +63,8 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 |---|---|---|
 | `--minify` | オフ | コメントと余分な空白を取り除きます。 |
 | `--monochrome COLOR` | オフ | 塗りと線をすべて1色にします（例："#1e293b"）。 |
-| `--responsive` | オフ | 固定のサイズを外し、置いた場所の大きさに合わせて伸び縮みするようにします。 |
-| `--precision N` | なし | 座標を小数点以下N桁に丸めます。 |
+| `--responsive` | オフ | 固定の幅と高さを外して伸縮可能にします。既存の viewBox、または正の絶対寸法が必要です。 |
+| `--precision N` | なし | 座標を小数点以下N桁に丸めます（0～12）。 |
 | `--remove-metadata` | オフ | <metadata>、<desc>、data-* 属性を取り除きます。 |
 | `--clean-paths` | オフ | パスのデータを整理します（長さ0の線分や重複した閉じを除く）。 |
 | `--strip-empty-groups` | オフ | 何も描かないグループを取り除きます。 |
@@ -140,7 +143,7 @@ main().catch(console.error)
 |---|---|---|
 | `minify` | オフ | コメントと余分な空白を取り除きます。 |
 | `monochrome` | オフ | 塗りと線をすべて1色にします（例："#1e293b"）。 |
-| `responsive` | オフ | 固定のサイズを外し、置いた場所の大きさに合わせて伸び縮みするようにします。 |
+| `responsive` | オフ | 固定の幅と高さを外して伸縮可能にします。既存の viewBox、または正の絶対寸法が必要です。 |
 | `precision` | なし | 座標を小数点以下N桁に丸めます。 |
 | `removeMetadata` | オフ | <metadata>、<desc>、data-* 属性を取り除きます。 |
 | `cleanPaths` | オフ | パスのデータを整理します（長さ0の線分や重複した閉じを除く）。 |

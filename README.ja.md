@@ -75,7 +75,16 @@ Rust のAPIの説明は [docs.rs](https://docs.rs/document-svg) にあります�
 docsvg slides.pptx --output out/slides
 ```
 
-出力先には、新しいフォルダか空のフォルダを指定します。ページごとのSVGと、変換の記録が1つできます。
+対応形式と再現上の注意は、ネット接続なしでも端末から検索できます。
+
+```sh
+docsvg formats pdf --lang ja --details
+docsvg formats パワーポイント --lang ja
+```
+
+変換や `reverse` に `--json` を付けると、スクリプトや CI で読み取れる完全なレポートを標準出力へ出せます。
+
+出力先には、新しいフォルダか空のフォルダを指定します。ページごとのSVGと、変換の記録が1つできます。変換に失敗した場合、出力先は空のまま（新規なら未作成）なので、同じ場所で再実行できます。
 
 ```text
 out/slides/
@@ -248,7 +257,7 @@ jobs:
 ## 開発に参加する
 
 ```sh
-cargo test --workspace --locked
+./scripts/check-local.sh
 ```
 
 確認手順の全体は [CONTRIBUTING.md](CONTRIBUTING.md)、変換の仕組みは [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) にあります。

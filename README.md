@@ -102,8 +102,19 @@ authenticated npm mirror on GitHub Packages is described in
 docsvg slides.pptx --output out/slides
 ```
 
+Search supported formats and their fidelity notes from the terminal, even offline:
+
+```sh
+docsvg formats pdf --details
+docsvg formats PowerPoint
+```
+
+Add `--json` to conversion or `reverse` commands to receive the complete
+report on standard output for scripts and CI.
+
 The output folder must be new or empty. You get one SVG per page and one
-report of the conversion:
+report of the conversion. If conversion fails, the folder stays empty (or is
+not created), so you can retry with the same path:
 
 ```text
 out/slides/
@@ -309,7 +320,7 @@ the [cloud architecture guide](docs/CLOUD_ARCHITECTURE.md) and the
 ## Contributing
 
 ```sh
-cargo test --workspace --locked
+./scripts/check-local.sh
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full checks, and

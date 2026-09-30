@@ -36,4 +36,5 @@ bindings = "pyo3"
 manifest-path = "Cargo.toml"
 module-name = "document_svg._native"
 python-source = "python"
-strip = true
+# Stripping the macOS arm64 cdylib misaligns its LINKEDIT string pool for dyld.
+strip = false

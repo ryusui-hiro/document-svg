@@ -82,6 +82,7 @@
         },
         {
           "ext": ".pptx / .docx / .xlsx",
+          "keywords": ["PowerPoint", "Word", "Excel", "Microsoft Office", "OOXML", "パワーポイント", "ワード", "エクセル"],
           "forward": "A",
           "reverse": "A / C",
           "sample": [
@@ -152,6 +153,7 @@
         },
         {
           "ext": ".xls",
+          "keywords": ["Excel", "エクセル"],
           "forward": "A",
           "reverse": null,
           "sample": null,
@@ -163,6 +165,7 @@
         },
         {
           "ext": ".xlsb",
+          "keywords": ["Excel", "エクセル"],
           "forward": "A",
           "reverse": null,
           "sample": null,
@@ -196,6 +199,7 @@
         },
         {
           "ext": ".doc / .dot (CFB Word binary)",
+          "keywords": ["ワード"],
           "forward": "C",
           "reverse": null,
           "sample": null,
@@ -207,6 +211,7 @@
         },
         {
           "ext": ".ppt (CFB PowerPoint binary)",
+          "keywords": ["パワーポイント"],
           "forward": "C",
           "reverse": null,
           "sample": null,
@@ -774,6 +779,7 @@
         },
         {
           "ext": ".vsdx / .vsdm / .vstx / .vstm / .vdx",
+          "keywords": ["Visio"],
           "forward": "A",
           "reverse": null,
           "sample": null,
@@ -785,6 +791,7 @@
         },
         {
           "ext": ".vsd / .vss / .vst / .vsw",
+          "keywords": ["Visio"],
           "forward": "A",
           "reverse": null,
           "sample": "vsd",
