@@ -141,34 +141,42 @@ impl ReverseFormat {
         )
     }
 
+    /// Keep this match exhaustive so new output formats must choose a page policy.
     const fn requires_single_page(self) -> bool {
-        matches!(
-            self,
+        match self {
+            Self::Pptx
+            | Self::Docx
+            | Self::Xlsx
+            | Self::Pdf
+            | Self::Drawio
+            | Self::Markdown
+            | Self::PathData
+            | Self::Html => false,
             Self::Dxf
-                | Self::Dot
-                | Self::Mermaid
-                | Self::Csv
-                | Self::Tex
-                | Self::Png
-                | Self::Webp
-                | Self::Gcode
-                | Self::Gerber
-                | Self::Hpgl
-                | Self::Excellon
-                | Self::Stl
-                | Self::Obj
-                | Self::Ply
-                | Self::ThreeMf
-                | Self::Step
-                | Self::Iges
-                | Self::Gmsh
-                | Self::Vtk
-                | Self::Jsx
-                | Self::Tsx
-                | Self::Vue
-                | Self::Svelte
-                | Self::DataUri
-        )
+            | Self::Dot
+            | Self::Mermaid
+            | Self::Csv
+            | Self::Tex
+            | Self::Png
+            | Self::Webp
+            | Self::Gcode
+            | Self::Gerber
+            | Self::Hpgl
+            | Self::Excellon
+            | Self::Stl
+            | Self::Obj
+            | Self::Ply
+            | Self::ThreeMf
+            | Self::Step
+            | Self::Iges
+            | Self::Gmsh
+            | Self::Vtk
+            | Self::Jsx
+            | Self::Tsx
+            | Self::Vue
+            | Self::Svelte
+            | Self::DataUri => true,
+        }
     }
 }
 
