@@ -11,7 +11,7 @@ documentation = "https://docs.rs/document-svg"
 keywords = ["svg", "pdf", "office", "document-conversion", "cad"]
 categories = ["command-line-utilities", "multimedia::images"]
 repository = "https://github.com/ryusui-hiro/document-svg"
-include = ["/src/**", "/tests/*.rs", "/tests/common/**", "/tests/fixtures/**", "/examples/custom_ir.rs", "/Cargo.toml", "/Cargo.lock", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE", "/README.md", "/THIRD_PARTY_NOTICES.md", "/THIRD_PARTY_LICENSES.txt", "/licenses/**", "/docs/DEPENDENCY_LICENSES.json", "/docs/LICENSE_AUDIT.md", "/docs/SUPPORT.md", "/docs/ARCHITECTURE.md", "/docs/AI_USAGE_GUIDE.md"]
+include = ["/src/**", "/tests/*.rs", "/tests/common/**", "/tests/fixtures/**", "/examples/custom_ir.rs", "/Cargo.toml", "/Cargo.lock", "/LICENSE", "/LICENSE-MIT", "/LICENSE-APACHE", "/README.md", "/THIRD_PARTY_NOTICES.md", "/THIRD_PARTY_LICENSES.txt", "/licenses/**", "/docs/DEPENDENCY_LICENSES.json", "/docs/LICENSE_AUDIT.md", "/docs/SUPPORT.md", "/docs/ARCHITECTURE.md", "/docs/AI_USAGE_GUIDE.md", "/site/assets/data/formats.json"]
 
 [workspace]
 members = ["bindings/node", "bindings/python", "bindings/wasm"]
@@ -80,6 +80,11 @@ codegen-units = 1
 lto = "thin"
 panic = "unwind"
 strip = "symbols"
+
+# macOS dyld rejects the stripped arm64 extension with a misaligned LINKEDIT
+# string pool. Keep the CLI stripped while leaving this cdylib loadable.
+[profile.release.package.document-svg-python]
+strip = "none"
 
 [lints.rust]
 unsafe_code = "forbid"

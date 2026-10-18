@@ -100,7 +100,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '24'
           architecture: ${{ matrix.cpu }}
@@ -162,7 +162,9 @@ jobs:
           manylinux: ${{ matrix.manylinux }}
           container: ${{ matrix.container }}
           working-directory: bindings/python
-          args: --release --locked --strip --compatibility pypi --out ../../dist/wheels -i ${{ matrix.interpreter }}
+          # The Python cdylib must keep its LINKEDIT string pool aligned on macOS arm64.
+          # Cargo.toml disables strip for this package; do not pass maturin --strip.
+          args: --release --locked --compatibility pypi --out ../../dist/wheels -i ${{ matrix.interpreter }}
       - name: Test Python wheel
         if: matrix.libc != 'musl'
         run: |
@@ -170,7 +172,7 @@ jobs:
           python -m pytest -q bindings/python/tests
       - name: Stage tested artifacts
         run: python scripts/release-artifacts.py stage-target --tag ${{ matrix.tag }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: native-${{ matrix.tag }}
           path: dist/artifacts/${{ matrix.tag }}
@@ -194,7 +196,7 @@ jobs:
           python -m maturin sdist --manifest-path bindings/python/Cargo.toml --out dist/artifacts/source
           cp target/package/document-svg-*.crate dist/artifacts/source/
           python -m twine check --strict dist/artifacts/source/*.tar.gz
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: source
           path: dist/artifacts/source

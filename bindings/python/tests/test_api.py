@@ -2938,6 +2938,11 @@ def test_python_transform_api() -> None:
     assert isinstance(res3, bytes)
     assert b"<!-- Generator -->" not in res3
 
+    with pytest.raises(ValueError, match="input root is not an SVG element"):
+        transform("<html/>")
+    with pytest.raises(ValueError, match="more than one root element"):
+        transform("<svg/><svg/>")
+
 
 def test_converts_compose_yaml_and_json_safely(tmp_path: Path) -> None:
     root = Path(__file__).parents[3] / "tests" / "fixtures"

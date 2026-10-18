@@ -3298,9 +3298,119 @@ pub fn convert_path(
     output_directory: impl AsRef<Path>,
     options: &ConvertOptions,
 ) -> Result<ConversionReport> {
-    let started = Instant::now();
-    let input = input.as_ref();
     let output_directory = output_directory.as_ref();
+    let output_existed = match fs::symlink_metadata(output_directory) {
+        Ok(metadata) => {
+            if !metadata.is_dir() || fs::read_dir(output_directory)?.next().is_some() {
+                return Err(Error::InvalidInput("output directory must be empty".into()));
+            }
+            true
+        }
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+        Err(error) => return Err(error.into()),
+    };
+    let parent = output_directory
+        .parent()
+        .filter(|path| !path.as_os_str().is_empty())
+        .unwrap_or(Path::new("."));
+    fs::create_dir_all(parent)?;
+    let staging = tempfile::Builder::new()
+        .prefix(".docsvg-")
+        .tempdir_in(if output_existed {
+            output_directory
+        } else {
+            parent
+        })?;
+    let new_directory_permissions = if !output_existed {
+        // TempDir is private by default. Match the permissions that ordinary
+        // create_dir_all would have given a new output directory instead.
+        let probe = staging.path().join(".directory-permissions");
+        fs::create_dir(&probe)?;
+        let permissions = fs::metadata(&probe)?.permissions();
+        fs::remove_dir(&probe)?;
+        Some(permissions)
+    } else {
+        None
+    };
+    let report = convert_path_into(input.as_ref(), staging.path(), output_directory, options)?;
+    if output_existed {
+        publish_into_existing_directory(staging.path(), output_directory)?;
+        return Ok(report);
+    }
+    fs::set_permissions(staging.path(), new_directory_permissions.unwrap())?;
+    fs::rename(staging.path(), output_directory)?;
+    Ok(report)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn publish_into_existing_directory(staging: &Path, output_directory: &Path) -> Result<()> {
+    let mut entries = fs::read_dir(staging)?.collect::<std::io::Result<Vec<_>>>()?;
+    // conversion.json is the completion marker. Publish it after every page.
+    entries.sort_by_key(|entry| {
+        let name = entry.file_name();
+        (name == "conversion.json", name)
+    });
+    let mut published = Vec::with_capacity(entries.len());
+    for entry in entries {
+        let destination = output_directory.join(entry.file_name());
+        if let Err(error) = publish_staged_file(&entry.path(), &destination) {
+            for path in published {
+                let _ = fs::remove_file(path);
+            }
+            return Err(error);
+        }
+        published.push(destination);
+    }
+    Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn publish_staged_file(source: &Path, destination: &Path) -> Result<()> {
+    match fs::hard_link(source, destination) {
+        Ok(()) => Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Err(error.into()),
+        Err(_) => copy_staged_file(source, destination), // Some filesystems do not support hard links.
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn copy_staged_file(source: &Path, destination: &Path) -> Result<()> {
+    let mut input = fs::File::open(source)?;
+    let mut output = create_private_new_file(destination)?;
+    let copied = (|| -> std::io::Result<()> {
+        std::io::copy(&mut input, &mut output)?;
+        output.flush()?;
+        output.set_permissions(input.metadata()?.permissions())?;
+        Ok(())
+    })();
+    if let Err(error) = copied {
+        drop(output);
+        let _ = fs::remove_file(destination);
+        return Err(error.into());
+    }
+    Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn create_private_new_file(path: &Path) -> std::io::Result<fs::File> {
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.mode(0o600);
+    }
+    options.open(path)
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn convert_path_into(
+    input: &Path,
+    output_directory: &Path,
+    report_directory: &Path,
+    options: &ConvertOptions,
+) -> Result<ConversionReport> {
+    let started = Instant::now();
     let metadata = fs::metadata(input)?;
     if !metadata.is_file() {
         return Err(Error::InvalidInput(format!(
@@ -3317,10 +3427,6 @@ pub fn convert_path(
     }
     if options.jobs == 0 {
         return Err(Error::InvalidInput("jobs must be at least 1".into()));
-    }
-    fs::create_dir_all(output_directory)?;
-    if fs::read_dir(output_directory)?.next().is_some() {
-        return Err(Error::InvalidInput("output directory must be empty".into()));
     }
     let format = SourceFormat::detect(input)?;
     let mut sink = PageSink::new(output_directory, options);
@@ -3775,7 +3881,7 @@ pub fn convert_path(
         version: env!("CARGO_PKG_VERSION"),
         source: input.to_string_lossy().into_owned(),
         source_format: format,
-        output_directory: output_directory.to_string_lossy().into_owned(),
+        output_directory: report_directory.to_string_lossy().into_owned(),
         elapsed_ms: started.elapsed().as_millis(),
         input_bytes: metadata.len(),
         page_count: pages.len(),
@@ -3784,16 +3890,13 @@ pub fn convert_path(
         warnings,
     };
     let manifest_path = output_directory.join("conversion.json");
-    let mut temporary = tempfile::NamedTempFile::new_in(output_directory)?;
+    let mut manifest = create_private_new_file(&manifest_path)?;
     {
-        let mut writer = BufWriter::new(temporary.as_file_mut());
+        let mut writer = BufWriter::new(&mut manifest);
         serde_json::to_writer_pretty(&mut writer, &report)?;
         writer.write_all(b"\n")?;
         writer.flush()?;
     }
-    temporary
-        .persist_noclobber(manifest_path)
-        .map_err(|error| error.error)?;
     Ok(report)
 }
 
@@ -4255,6 +4358,7 @@ pub(crate) trait PageConsumer {
     fn consume(&mut self, page: Page) -> Result<()>;
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub(crate) struct PageSink<'a> {
     output_directory: &'a Path,
     svg_options: SvgOptions,
@@ -4262,6 +4366,7 @@ pub(crate) struct PageSink<'a> {
     max_pages: usize,
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<'a> PageSink<'a> {
     fn new(output_directory: &'a Path, options: &ConvertOptions) -> Self {
         let reports = Vec::with_capacity(options.max_pages.min(1024));
@@ -4286,6 +4391,7 @@ impl<'a> PageSink<'a> {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl PageConsumer for PageSink<'_> {
     fn consume(&mut self, page: Page) -> Result<()> {
         if self.reports.len() >= self.max_pages {
@@ -4296,15 +4402,12 @@ impl PageConsumer for PageSink<'_> {
         }
         let file_name = format!("page-{:04}.svg", page.number);
         let final_path = self.output_directory.join(&file_name);
-        let mut temporary = tempfile::NamedTempFile::new_in(self.output_directory)?;
+        let mut file = create_private_new_file(&final_path)?;
         {
-            let mut writer = BufWriter::with_capacity(64 * 1024, temporary.as_file_mut());
+            let mut writer = BufWriter::with_capacity(64 * 1024, &mut file);
             write_page(&page, &mut writer, self.svg_options)?;
             writer.flush()?;
         }
-        temporary
-            .persist_noclobber(&final_path)
-            .map_err(|error| error.error)?;
         let estimated_ir_bytes = estimate_page_bytes(&page);
         self.reports.push(PageReport {
             number: page.number,
@@ -4347,6 +4450,33 @@ impl Write for ByteCounter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn staged_file_copy_preserves_bytes_and_never_overwrites() {
+        let directory = tempfile::tempdir().unwrap();
+        let source = directory.path().join("source.svg");
+        let destination = directory.path().join("destination.svg");
+        fs::write(&source, b"<svg/>").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&source, fs::Permissions::from_mode(0o600)).unwrap();
+        }
+
+        copy_staged_file(&source, &destination).unwrap();
+        assert_eq!(fs::read(&destination).unwrap(), b"<svg/>");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(&destination).unwrap().permissions().mode() & 0o777,
+                0o600
+            );
+        }
+        assert!(copy_staged_file(&source, &destination).is_err());
+        assert_eq!(fs::read(&destination).unwrap(), b"<svg/>");
+    }
 
     #[test]
     fn format_sniffing_reads_only_a_small_prefix_of_large_json() {

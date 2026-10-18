@@ -19,34 +19,58 @@ pub struct TransformOptions {
     pub strip_empty_groups: bool,
 }
 
+#[derive(Clone)]
+struct PendingGroup {
+    elem: BytesStart<'static>,
+    written: bool,
+}
+
+fn flush_pending_groups<W: Write>(
+    writer: &mut Writer<W>,
+    groups: &mut [PendingGroup],
+    first_unwritten: &mut usize,
+) -> Result<()> {
+    for group in &mut groups[*first_unwritten..] {
+        writer.write_event(Event::Start(group.elem.clone()))?;
+        group.written = true;
+    }
+    *first_unwritten = groups.len();
+    Ok(())
+}
+
 pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec<u8>> {
+    if options.precision.is_some_and(|precision| precision > 12) {
+        return Err(Error::InvalidInput(
+            "precision must be between 0 and 12".into(),
+        ));
+    }
     let svg_str = std::str::from_utf8(svg_bytes)
         .map_err(|e| Error::InvalidInput(format!("SVG is not valid UTF-8: {e}")))?;
 
     let mut reader = Reader::from_str(svg_str);
-    if options.minify {
-        reader.config_mut().trim_text(true);
-    }
 
     let mut out = Cursor::new(Vec::with_capacity(svg_bytes.len()));
     let mut writer = Writer::new(&mut out);
 
-    let mut width_val: Option<String> = None;
-    let mut height_val: Option<String> = None;
-    let mut viewbox_val: Option<String> = None;
     let mut in_style_tag = false;
     let mut skip_depth = 0usize;
+    let mut preserve_text_stack = Vec::new();
+    let mut root_seen = false;
+    let mut element_depth = 0usize;
 
-    #[derive(Clone)]
-    struct PendingGroup {
-        elem: BytesStart<'static>,
-        written: bool,
-    }
     let mut group_stack: Vec<PendingGroup> = Vec::new();
+    let mut first_unwritten_group = 0usize;
 
     loop {
         let event = match reader.read_event() {
-            Ok(Event::Eof) => break,
+            Ok(Event::Eof) => {
+                if !root_seen || element_depth != 0 {
+                    return Err(Error::InvalidInput(
+                        "input must contain one complete SVG root element".into(),
+                    ));
+                }
+                break;
+            }
             Ok(event) => event,
             Err(err) => {
                 return Err(Error::InvalidInput(format!(
@@ -54,6 +78,48 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
                 )));
             }
         };
+
+        match &event {
+            Event::Start(element) | Event::Empty(element) if element_depth == 0 => {
+                if root_seen {
+                    return Err(Error::InvalidInput(
+                        "input contains more than one root element".into(),
+                    ));
+                }
+                if !is_svg_root(element) {
+                    return Err(Error::InvalidInput(
+                        "input root is not an SVG element".into(),
+                    ));
+                }
+                root_seen = true;
+                if matches!(&event, Event::Start(_)) {
+                    element_depth = 1;
+                }
+            }
+            Event::Start(_) => element_depth += 1,
+            Event::End(_) => {
+                if element_depth == 0 {
+                    return Err(Error::InvalidInput("content outside SVG root".into()));
+                }
+                element_depth -= 1;
+            }
+            Event::Text(text) if element_depth == 0 => {
+                let bytes: &[u8] = text.as_ref();
+                if !bytes.iter().all(u8::is_ascii_whitespace) {
+                    return Err(Error::InvalidInput("content outside SVG root".into()));
+                }
+            }
+            Event::CData(_) if element_depth == 0 => {
+                return Err(Error::InvalidInput("content outside SVG root".into()));
+            }
+            Event::GeneralRef(_) if element_depth == 0 => {
+                return Err(Error::InvalidInput("content outside SVG root".into()));
+            }
+            Event::Decl(_) | Event::DocType(_) if root_seen => {
+                return Err(Error::InvalidInput("content outside SVG root".into()));
+            }
+            _ => {}
+        }
 
         if skip_depth > 0 {
             match event {
@@ -65,8 +131,6 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
         }
 
         match event {
-            Event::Decl(_) if options.minify => {}
-            Event::DocType(_) if options.minify => {}
             Event::Comment(_) if options.minify => {}
             Event::Start(ref e)
                 if options.remove_metadata
@@ -77,22 +141,24 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
             Event::Empty(ref e)
                 if options.remove_metadata
                     && (e.name().as_ref() == b"metadata" || e.name().as_ref() == b"desc") => {}
-            Event::Start(ref e) if e.name().as_ref() == b"svg" => {
-                let mut elem = BytesStart::new("svg");
+            Event::Start(ref e) if e.local_name().as_ref() == b"svg" => {
+                let synthesized_viewbox = if options.responsive {
+                    responsive_viewbox(e)?
+                } else {
+                    None
+                };
+                preserve_text_stack.push(preserve_text_whitespace(
+                    e,
+                    preserve_text_stack.last().copied().unwrap_or(false),
+                ));
+                let name = e.name();
+                let mut elem = BytesStart::new(std::str::from_utf8(name.as_ref()).unwrap_or("svg"));
                 for attr in e.attributes().flatten() {
                     let key = attr.key.as_ref();
                     let val = std::str::from_utf8(&attr.value).unwrap_or("");
 
                     if options.remove_metadata && key.starts_with(b"data-") {
                         continue;
-                    }
-
-                    if key == b"width" {
-                        width_val = Some(val.to_string());
-                    } else if key == b"height" {
-                        height_val = Some(val.to_string());
-                    } else if key == b"viewBox" {
-                        viewbox_val = Some(val.to_string());
                     }
 
                     if options.responsive && (key == b"width" || key == b"height") {
@@ -108,26 +174,18 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
                     elem.push_attribute(attr);
                 }
 
-                if options.responsive && viewbox_val.is_none() {
-                    let dims = width_val.as_ref().zip(height_val.as_ref());
-                    if let Some((w, h)) = dims {
-                        let w_px = parse_svg_dimension_to_px(w);
-                        let h_px = parse_svg_dimension_to_px(h);
-                        if let (Some(wp), Some(hp)) = (w_px, h_px) {
-                            let synthesized = format!("0 0 {wp} {hp}");
-                            let final_viewbox = if let Some(prec) = options.precision {
-                                round_numbers_in_str(&synthesized, prec)
-                            } else {
-                                Cow::Borrowed(synthesized.as_str())
-                            };
-                            elem.push_attribute(("viewBox", final_viewbox.as_ref()));
-                        }
-                    }
+                if let Some(ref viewbox) = synthesized_viewbox {
+                    elem.push_attribute(("viewBox", viewbox.as_str()));
                 }
 
+                flush_pending_groups(&mut writer, &mut group_stack, &mut first_unwritten_group)?;
                 writer.write_event(Event::Start(elem))?;
             }
             Event::Start(ref e) => {
+                preserve_text_stack.push(preserve_text_whitespace(
+                    e,
+                    preserve_text_stack.last().copied().unwrap_or(false),
+                ));
                 let tag_name = e.name();
                 if tag_name.as_ref() == b"style" {
                     in_style_tag = true;
@@ -180,34 +238,28 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
                         written: false,
                     });
                 } else {
-                    for g in group_stack.iter_mut() {
-                        if !g.written {
-                            writer.write_event(Event::Start(g.elem.clone()))?;
-                            g.written = true;
-                        }
-                    }
+                    flush_pending_groups(
+                        &mut writer,
+                        &mut group_stack,
+                        &mut first_unwritten_group,
+                    )?;
                     write_transformed_element(&mut writer, e, false, options)?;
                 }
             }
-            Event::Empty(ref e) if e.name().as_ref() == b"svg" => {
-                let mut elem = BytesStart::new("svg");
-                let mut empty_w = None;
-                let mut empty_h = None;
-                let mut empty_vb = None;
+            Event::Empty(ref e) if e.local_name().as_ref() == b"svg" => {
+                let synthesized_viewbox = if options.responsive {
+                    responsive_viewbox(e)?
+                } else {
+                    None
+                };
+                let name = e.name();
+                let mut elem = BytesStart::new(std::str::from_utf8(name.as_ref()).unwrap_or("svg"));
                 for attr in e.attributes().flatten() {
                     let key = attr.key.as_ref();
                     let val = std::str::from_utf8(&attr.value).unwrap_or("");
                     if options.remove_metadata && key.starts_with(b"data-") {
                         continue;
                     }
-                    if key == b"width" {
-                        empty_w = Some(val.to_string());
-                    } else if key == b"height" {
-                        empty_h = Some(val.to_string());
-                    } else if key == b"viewBox" {
-                        empty_vb = Some(val.to_string());
-                    }
-
                     if options.responsive && (key == b"width" || key == b"height") {
                         continue;
                     }
@@ -219,32 +271,15 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
                     elem.push_attribute(attr);
                 }
 
-                if options.responsive && empty_vb.is_none() {
-                    let dims = empty_w.as_ref().zip(empty_h.as_ref());
-                    if let Some((w, h)) = dims {
-                        let w_px = parse_svg_dimension_to_px(w);
-                        let h_px = parse_svg_dimension_to_px(h);
-                        if let (Some(wp), Some(hp)) = (w_px, h_px) {
-                            let synthesized = format!("0 0 {wp} {hp}");
-                            let final_viewbox = if let Some(prec) = options.precision {
-                                round_numbers_in_str(&synthesized, prec)
-                            } else {
-                                Cow::Borrowed(synthesized.as_str())
-                            };
-                            elem.push_attribute(("viewBox", final_viewbox.as_ref()));
-                        }
-                    }
+                if let Some(ref viewbox) = synthesized_viewbox {
+                    elem.push_attribute(("viewBox", viewbox.as_str()));
                 }
 
+                flush_pending_groups(&mut writer, &mut group_stack, &mut first_unwritten_group)?;
                 writer.write_event(Event::Empty(elem))?;
             }
             Event::Empty(ref e) => {
-                for g in group_stack.iter_mut() {
-                    if !g.written {
-                        writer.write_event(Event::Start(g.elem.clone()))?;
-                        g.written = true;
-                    }
-                }
+                flush_pending_groups(&mut writer, &mut group_stack, &mut first_unwritten_group)?;
                 write_transformed_element(&mut writer, e, true, options)?;
             }
             Event::Text(ref e) => {
@@ -254,29 +289,28 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
                     && let (Ok(text), Some(mono)) =
                         (std::str::from_utf8(slice), options.monochrome.as_ref())
                 {
-                    for g in group_stack.iter_mut() {
-                        if !g.written {
-                            writer.write_event(Event::Start(g.elem.clone()))?;
-                            g.written = true;
-                        }
-                    }
+                    flush_pending_groups(
+                        &mut writer,
+                        &mut group_stack,
+                        &mut first_unwritten_group,
+                    )?;
                     let transformed = transform_css_for_monochrome(text, mono);
                     writer.write_event(Event::Text(quick_xml::events::BytesText::new(
                         &transformed,
                     )))?;
                     continue;
                 }
-                if options.minify && is_whitespace {
+                let preserve_whitespace = preserve_text_stack.last().copied().unwrap_or(false);
+                if options.minify && is_whitespace && !preserve_whitespace {
                     // Minify: omit whitespace text
                     continue;
                 }
-                if !is_whitespace {
-                    for g in group_stack.iter_mut() {
-                        if !g.written {
-                            writer.write_event(Event::Start(g.elem.clone()))?;
-                            g.written = true;
-                        }
-                    }
+                if !is_whitespace || preserve_whitespace {
+                    flush_pending_groups(
+                        &mut writer,
+                        &mut group_stack,
+                        &mut first_unwritten_group,
+                    )?;
                 }
                 writer.write_event(Event::Text(e.clone()))?;
             }
@@ -286,25 +320,23 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
                     && let (Ok(text), Some(mono)) =
                         (std::str::from_utf8(slice), options.monochrome.as_ref())
                 {
-                    for g in group_stack.iter_mut() {
-                        if !g.written {
-                            writer.write_event(Event::Start(g.elem.clone()))?;
-                            g.written = true;
-                        }
-                    }
+                    flush_pending_groups(
+                        &mut writer,
+                        &mut group_stack,
+                        &mut first_unwritten_group,
+                    )?;
                     let transformed = transform_css_for_monochrome(text, mono);
                     writer.write_event(Event::CData(quick_xml::events::BytesCData::new(
                         &transformed,
                     )))?;
                     continue;
                 }
-                for g in group_stack.iter_mut() {
-                    if !g.written {
-                        writer.write_event(Event::Start(g.elem.clone()))?;
-                        g.written = true;
-                    }
-                }
+                flush_pending_groups(&mut writer, &mut group_stack, &mut first_unwritten_group)?;
                 writer.write_event(Event::CData(e.clone()))?;
+            }
+            Event::GeneralRef(ref e) => {
+                flush_pending_groups(&mut writer, &mut group_stack, &mut first_unwritten_group)?;
+                writer.write_event(Event::GeneralRef(e.clone()))?;
             }
             Event::End(ref e) => {
                 let tag_name = e.name();
@@ -316,18 +348,19 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
                     && !group_stack.is_empty()
                 {
                     let top = group_stack.pop().unwrap();
+                    first_unwritten_group = first_unwritten_group.min(group_stack.len());
                     if top.written {
                         writer.write_event(Event::End(e.clone()))?;
                     }
                 } else {
-                    for g in group_stack.iter_mut() {
-                        if !g.written {
-                            writer.write_event(Event::Start(g.elem.clone()))?;
-                            g.written = true;
-                        }
-                    }
+                    flush_pending_groups(
+                        &mut writer,
+                        &mut group_stack,
+                        &mut first_unwritten_group,
+                    )?;
                     writer.write_event(Event::End(e.clone()))?;
                 }
+                preserve_text_stack.pop();
             }
             other => {
                 writer.write_event(other)?;
@@ -336,6 +369,57 @@ pub fn transform_svg(svg_bytes: &[u8], options: &TransformOptions) -> Result<Vec
     }
 
     Ok(out.into_inner())
+}
+
+fn is_svg_root(element: &BytesStart<'_>) -> bool {
+    const SVG_NAMESPACE: &[u8] = b"http://www.w3.org/2000/svg";
+    let name = element.name();
+    let qualified_name = name.as_ref();
+    if qualified_name == b"svg" {
+        return element
+            .attributes()
+            .flatten()
+            .find(|attr| attr.key.as_ref() == b"xmlns")
+            .is_none_or(|attr| attr.value.as_ref() == SVG_NAMESPACE);
+    }
+    let Some(separator) = qualified_name.iter().position(|byte| *byte == b':') else {
+        return false;
+    };
+    if qualified_name[..separator].is_empty() || &qualified_name[separator + 1..] != b"svg" {
+        return false;
+    }
+    element.attributes().flatten().any(|attr| {
+        attr.key.as_ref().strip_prefix(b"xmlns:") == Some(&qualified_name[..separator])
+            && attr.value.as_ref() == SVG_NAMESPACE
+    })
+}
+
+fn preserve_text_whitespace(element: &BytesStart<'_>, inherited: bool) -> bool {
+    if inherited
+        || element
+            .attributes()
+            .flatten()
+            .any(|attr| attr.key.as_ref() == b"xml:space" && attr.value.as_ref() == b"preserve")
+    {
+        return true;
+    }
+    // Only known element-only containers can safely lose indentation. Text,
+    // foreignObject, and extension elements may contain meaningful spaces.
+    !matches!(
+        element.local_name().as_ref(),
+        b"svg"
+            | b"g"
+            | b"defs"
+            | b"clipPath"
+            | b"mask"
+            | b"pattern"
+            | b"symbol"
+            | b"marker"
+            | b"filter"
+            | b"linearGradient"
+            | b"radialGradient"
+            | b"switch"
+    )
 }
 
 fn is_numeric_attr(key: &[u8]) -> bool {
@@ -407,19 +491,14 @@ fn round_numbers_in_str<'a>(s: &'a str, precision: usize) -> Cow<'a, str> {
             let mut rounded = None;
             if (has_dot || has_exp)
                 && let Ok(val) = raw.parse::<f64>()
+                && val.is_finite()
+                && (val == 0.0 || (1e-12..1e15).contains(&val.abs()))
             {
-                use std::io::Write as IoWrite;
-                let mut fmt_buf = [0u8; 32];
-                let fmt_len = {
-                    let mut cursor = std::io::Cursor::new(&mut fmt_buf[..]);
-                    let _ = write!(cursor, "{val:.precision$}");
-                    cursor.position() as usize
-                };
-                let formatted_str = std::str::from_utf8(&fmt_buf[..fmt_len]).unwrap_or(raw);
-                let trimmed = if formatted_str.contains('.') {
-                    formatted_str.trim_end_matches('0').trim_end_matches('.')
+                let formatted = format!("{val:.precision$}");
+                let trimmed = if formatted.contains('.') {
+                    formatted.trim_end_matches('0').trim_end_matches('.')
                 } else {
-                    formatted_str
+                    &formatted
                 };
                 let normalized = if trimmed.is_empty() || trimmed == "-0" {
                     "0"
@@ -574,6 +653,43 @@ fn transform_style_for_monochrome(style: &str, mono: &str) -> String {
         }
     }
     parts.join("; ")
+}
+
+fn responsive_viewbox(element: &BytesStart<'_>) -> Result<Option<String>> {
+    let mut width = None;
+    let mut height = None;
+    for attr in element.attributes().flatten() {
+        match attr.key.as_ref() {
+            b"viewBox" => {
+                if attr.value.iter().all(|byte| byte.is_ascii_whitespace()) {
+                    return Err(Error::InvalidInput("SVG viewBox must not be empty".into()));
+                }
+                return Ok(None);
+            }
+            b"width" => width = Some(attr.value.into_owned()),
+            b"height" => height = Some(attr.value.into_owned()),
+            _ => {}
+        }
+    }
+    let dimensions = width
+        .as_deref()
+        .zip(height.as_deref())
+        .and_then(|(width, height)| {
+            let width = std::str::from_utf8(width)
+                .ok()
+                .and_then(parse_svg_dimension_to_px)?;
+            let height = std::str::from_utf8(height)
+                .ok()
+                .and_then(parse_svg_dimension_to_px)?;
+            (width.is_finite() && height.is_finite() && width > 0.0 && height > 0.0)
+                .then_some((width, height))
+        });
+    let Some((width, height)) = dimensions else {
+        return Err(Error::InvalidInput(
+            "responsive SVG requires a viewBox or positive absolute width and height".into(),
+        ));
+    };
+    Ok(Some(format!("0 0 {width} {height}")))
 }
 
 fn parse_svg_dimension_to_px(s: &str) -> Option<f64> {

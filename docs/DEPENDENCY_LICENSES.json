@@ -4795,49 +4795,49 @@
     },
     {
       "name": "@inquirer/ansi",
-      "version": "2.0.8",
+      "version": "2.0.9",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/checkbox",
-      "version": "5.2.5",
+      "version": "5.2.6",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/confirm",
-      "version": "6.3.2",
+      "version": "6.3.3",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/core",
-      "version": "12.0.3",
+      "version": "12.0.4",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/editor",
-      "version": "5.3.3",
+      "version": "5.3.4",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/expand",
-      "version": "5.1.5",
+      "version": "5.1.6",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/external-editor",
-      "version": "3.0.5",
+      "version": "3.0.6",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -4851,63 +4851,63 @@
     },
     {
       "name": "@inquirer/input",
-      "version": "5.1.6",
+      "version": "5.1.7",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/number",
-      "version": "4.2.3",
+      "version": "4.2.4",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/password",
-      "version": "5.2.2",
+      "version": "5.2.3",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/prompts",
-      "version": "8.7.2",
+      "version": "8.7.3",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/rawlist",
-      "version": "5.3.5",
+      "version": "5.3.6",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/search",
-      "version": "4.3.3",
+      "version": "4.3.4",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/select",
-      "version": "5.2.5",
+      "version": "5.2.6",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@inquirer/type",
-      "version": "4.1.1",
+      "version": "4.2.0",
       "license": "MIT",
       "scope": "development",
       "optional": false
     },
     {
       "name": "@napi-rs/cli",
-      "version": "3.10.4",
+      "version": "3.10.8",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5166,7 +5166,7 @@
     },
     {
       "name": "@napi-rs/wasm-runtime",
-      "version": "1.2.4",
+      "version": "1.2.5",
       "license": "MIT",
       "scope": "development",
       "optional": true
@@ -5502,7 +5502,7 @@
     },
     {
       "name": "js-yaml",
-      "version": "5.4.2",
+      "version": "5.4.3",
       "license": "MIT",
       "scope": "development",
       "optional": false
@@ -5687,6 +5687,6 @@
   ],
   "lockfiles": {
     "Cargo.lock": "81788e02b504bd5f6fea5c9dcec54efda93cabe430171a8a0fe386896a7b1a82",
-    "bindings/node/package-lock.json": "ab2ff214675009ecc1df1fc9a771590f44332cfa33ffcf9af0f1dcf5105a02c8"
+    "bindings/node/package-lock.json": "7ee868897f056536623114080adc261f3c71df7985ad3c420fbc95d2d63c097b"
   }
 }
