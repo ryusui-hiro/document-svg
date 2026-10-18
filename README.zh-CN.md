@@ -12,6 +12,10 @@
 [![crates.io](https://img.shields.io/crates/v/document-svg?label=crates.io)](https://crates.io/crates/document-svg)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#许可证)
 
+> **[了解 document-svg 的实际用法](https://document-svg-guide.genialzebra5.chatgpt.site/zh/)** — 查看真实转换效果，了解适合你的应用场景，并按步骤开始使用。
+>
+> 提供[简体中文](https://document-svg-guide.genialzebra5.chatgpt.site/zh/)、[English](https://document-svg-guide.genialzebra5.chatgpt.site/en/)和[日本語](https://document-svg-guide.genialzebra5.chatgpt.site/)版本。
+
 document-svg 把文档、图表和技术图纸转换成普通的 SVG 图片，一页一张。
 SVG 在任何浏览器里都能显示，放大不会模糊，也能像其他图片一样直接放进网页。
 和页面一起，它还会生成一份简短的报告，如实写明哪些内容没能原样还原。
