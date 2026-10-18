@@ -5,6 +5,7 @@
 //! still carry their diagram source in the `content` attribute draw.io writes:
 //! those are restored as the editable diagrams they came from.
 
+use std::borrow::Cow;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::io::{BufWriter, Cursor, Write};
@@ -33,6 +34,7 @@ const FALLBACK_DPI: f64 = 96.0;
 const MAX_FALLBACK_DIMENSION: f64 = 4_096.0;
 const MAX_FALLBACK_PIXELS: f64 = 16_777_216.0;
 const MAX_NESTED_SVG_DEPTH: usize = 4;
+const MAX_RESIDENT_FALLBACK_PNG_BYTES: usize = 8 * 1024 * 1024;
 const GENERIC_REVERSE_WARNING: &str =
     "SVG pages are embedded as vector images; original document semantics are not reconstructed";
 const MARKDOWN_REVERSE_WARNING: &str =
@@ -246,16 +248,49 @@ pub struct ReverseReport {
     pub warnings: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct SvgPage {
     bytes: Vec<u8>,
     fallback_png: Vec<u8>,
+    fallback_png_spool: Option<tempfile::NamedTempFile>,
     fallback_webp: Vec<u8>,
     width_points: f64,
     height_points: f64,
     /// The `<diagram>` elements of the draw.io source this page was exported
     /// from, when the SVG still carries it.
     diagrams: Vec<String>,
+}
+
+impl SvgPage {
+    fn fallback_png_bytes(&self) -> Result<Cow<'_, [u8]>> {
+        match &self.fallback_png_spool {
+            Some(file) => Ok(Cow::Owned(fs::read(file.path())?)),
+            None => Ok(Cow::Borrowed(&self.fallback_png)),
+        }
+    }
+}
+
+fn store_fallback_png(
+    mut png: Vec<u8>,
+    format: ReverseFormat,
+    resident_bytes: &mut usize,
+    limit: usize,
+) -> Result<(Vec<u8>, Option<tempfile::NamedTempFile>)> {
+    if !matches!(
+        format,
+        ReverseFormat::Pptx | ReverseFormat::Docx | ReverseFormat::Xlsx
+    ) {
+        return Ok((png, None));
+    }
+    if resident_bytes.saturating_add(png.len()) <= limit {
+        *resident_bytes += png.len();
+        return Ok((png, None));
+    }
+    let mut spool = tempfile::NamedTempFile::new()?;
+    spool.write_all(&png)?;
+    png.clear();
+    png.shrink_to_fit();
+    Ok((png, Some(spool)))
 }
 
 pub fn svg_to_document(
@@ -292,6 +327,7 @@ pub fn svg_to_document(
     }
     let mut pages = Vec::with_capacity(paths.len());
     let mut input_bytes = 0u64;
+    let mut resident_fallback_png_bytes = 0usize;
     let mut render_options = None;
     for path in paths {
         let bytes = read_svg_page_with_budget(&path, &mut input_bytes, options.max_input_bytes)?;
@@ -309,7 +345,7 @@ pub fn svg_to_document(
             validate_svg_document(&bytes, 0)?;
         }
         let (width_points, height_points) = svg_dimensions(&bytes)?;
-        let fallback_png = if format.needs_raster_fallback() && format != ReverseFormat::Webp {
+        let rendered_png = if format.needs_raster_fallback() && format != ReverseFormat::Webp {
             let render_options = render_options.get_or_insert_with(|| {
                 let mut options = resvg::usvg::Options::default();
                 let db = SYSTEM_FONTDB.get_or_init(|| {
@@ -324,6 +360,12 @@ pub fn svg_to_document(
         } else {
             Vec::new()
         };
+        let (fallback_png, fallback_png_spool) = store_fallback_png(
+            rendered_png,
+            format,
+            &mut resident_fallback_png_bytes,
+            MAX_RESIDENT_FALLBACK_PNG_BYTES,
+        )?;
         let fallback_webp = if format == ReverseFormat::Webp {
             let render_options = render_options.get_or_insert_with(|| {
                 let mut options = resvg::usvg::Options::default();
@@ -342,6 +384,7 @@ pub fn svg_to_document(
         pages.push(SvgPage {
             bytes,
             fallback_png,
+            fallback_png_spool,
             fallback_webp,
             width_points,
             height_points,
@@ -1498,9 +1541,10 @@ fn write_pptx<W: Write + std::io::Seek>(package: &mut Package<W>, pages: &[SvgPa
             relationships,
         )?;
         package.part(&format!("ppt/media/image{number}.svg"), &page.bytes)?;
+        let fallback_png = page.fallback_png_bytes()?;
         package.part(
             &format!("ppt/media/image{number}-fallback.png"),
-            &page.fallback_png,
+            fallback_png.as_ref(),
         )?;
     }
     Ok(())
@@ -1557,9 +1601,10 @@ fn write_docx<W: Write + std::io::Seek>(package: &mut Package<W>, pages: &[SvgPa
         body.push_str(&format!(r#"<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="{cx}" cy="{cy}"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:docPr id="{number}" name="SVG page {number}"/><wp:cNvGraphicFramePr/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="{number}" name="SVG page {number}"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId{png_rel}"><a:extLst><a:ext uri="{{96DAC541-7B7A-43D3-8B79-37D633B846F1}}"><asvg:svgBlip r:embed="rId{svg_rel}"/></a:ext></a:extLst></a:blip><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="{cx}" cy="{cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>"#));
         relationships.push_str(&format!(r#"<Relationship Id="rId{png_rel}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image{number}-fallback.png"/><Relationship Id="rId{svg_rel}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image{number}.svg"/>"#));
         package.part(&format!("word/media/image{number}.svg"), &page.bytes)?;
+        let fallback_png = page.fallback_png_bytes()?;
         package.part(
             &format!("word/media/image{number}-fallback.png"),
-            &page.fallback_png,
+            fallback_png.as_ref(),
         )?;
     }
     let final_section = docx_section_properties(&pages[pages.len() - 1], false);
@@ -1634,9 +1679,10 @@ fn write_xlsx<W: Write + std::io::Seek>(package: &mut Package<W>, pages: &[SvgPa
         package.part(&format!("xl/drawings/_rels/drawing{number}.xml.rels"), format!(r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image{number}-fallback.png"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image{number}.svg"/></Relationships>"#))?;
         package.part(&format!("xl/media/image{number}.svg"), &page.bytes)?;
+        let fallback_png = page.fallback_png_bytes()?;
         package.part(
             &format!("xl/media/image{number}-fallback.png"),
-            &page.fallback_png,
+            fallback_png.as_ref(),
         )?;
     }
     Ok(())
@@ -1997,4 +2043,44 @@ fn write_pdf(pages: &[SvgPage], writer: &mut std::fs::File) -> Result<()> {
     document.save_to(writer)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod fallback_tests {
+    use super::*;
+
+    #[test]
+    fn spooled_png_keeps_bytes_and_cleans_up() {
+        let mut resident = 0;
+        let (small, no_spool) =
+            store_fallback_png(vec![1, 2, 3], ReverseFormat::Pptx, &mut resident, 4).unwrap();
+        assert_eq!(small, [1, 2, 3]);
+        assert!(no_spool.is_none());
+        assert_eq!(resident, 3);
+
+        let (large, spool) =
+            store_fallback_png(vec![4, 5, 6], ReverseFormat::Pptx, &mut resident, 4).unwrap();
+        assert!(large.is_empty());
+        assert_eq!(resident, 3);
+        let spool = spool.unwrap();
+        let spool_path = spool.path().to_path_buf();
+        let page = SvgPage {
+            bytes: Vec::new(),
+            fallback_png: large,
+            fallback_png_spool: Some(spool),
+            fallback_webp: Vec::new(),
+            width_points: 1.0,
+            height_points: 1.0,
+            diagrams: Vec::new(),
+        };
+        assert_eq!(page.fallback_png_bytes().unwrap().as_ref(), [4, 5, 6]);
+        drop(page);
+        assert!(!spool_path.exists());
+
+        let (png, no_spool) =
+            store_fallback_png(vec![7, 8, 9, 10, 11], ReverseFormat::Png, &mut resident, 4)
+                .unwrap();
+        assert_eq!(png, [7, 8, 9, 10, 11]);
+        assert!(no_spool.is_none());
+    }
 }
