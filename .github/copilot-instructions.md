@@ -62,6 +62,8 @@ These are correctness requirements, not style preferences.
 - Do not commit generated previews, compiled artifacts or sample documents that
   are not already tracked.
 - Keep GitHub Actions pinned by commit SHA, matching the existing workflows.
+- A new or bumped action SHA must also be added to the repository's Actions allowlist and to
+  `.github/allowed-actions.txt`; otherwise GitHub refuses the run at startup.
 
 ## Using docsvg from your own workflow
 

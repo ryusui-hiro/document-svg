@@ -1,0 +1,18 @@
+# Mirror of Settings > Actions > General > "Allow select actions" for this repository.
+# A workflow step whose pin is missing here is refused by GitHub at startup, which
+# does not show up as a failing pull request check. Update the repository setting
+# and this file together; scripts/check-action-pins.py --remote compares them.
+PyO3/maturin-action@e83996d129638aa358a18fbd1dfb82f0b0fb5d3b
+actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
+actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
+pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
+rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18

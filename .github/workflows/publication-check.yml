@@ -19,6 +19,7 @@ jobs:
       - run: python3 scripts/check-publication.py
         env:
           PUBLICATION_DENY_TERMS: ${{ vars.PUBLICATION_DENY_TERMS }}
+      - run: python3 scripts/check-action-pins.py
   quality:
     runs-on: ubuntu-latest
     timeout-minutes: 25
