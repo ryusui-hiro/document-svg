@@ -54,6 +54,7 @@ if [[ -d target/package ]]; then
 fi
 
 python3 scripts/check-publication.py
+python3 scripts/check-action-pins.py
 python3 scripts/build-site.py --check
 cargo fmt --all -- --check
 cargo test --workspace --locked
