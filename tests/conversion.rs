@@ -1929,6 +1929,54 @@ fn refuses_nonempty_output_without_modifying_existing_files() {
     assert_eq!(fs::read_to_string(existing).unwrap(), "keep me");
 }
 
+#[cfg(unix)]
+#[test]
+fn conversion_keeps_expected_output_directory_permissions() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+    let temporary = TempDir::new().unwrap();
+    let input = temporary.path().join("sample.pdf");
+    make_pdf(&input);
+
+    let reference = temporary.path().join("reference");
+    fs::create_dir(&reference).unwrap();
+    let default_mode = fs::metadata(&reference).unwrap().permissions().mode() & 0o777;
+
+    let fresh = temporary.path().join("fresh");
+    convert_path(&input, &fresh, &ConvertOptions::default()).unwrap();
+    assert_eq!(
+        fs::metadata(&fresh).unwrap().permissions().mode() & 0o777,
+        default_mode
+    );
+    assert_eq!(
+        fs::metadata(fresh.join("page-0001.svg"))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o600
+    );
+    assert_eq!(
+        fs::metadata(fresh.join("conversion.json"))
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o600
+    );
+
+    let existing = temporary.path().join("existing");
+    fs::create_dir(&existing).unwrap();
+    fs::set_permissions(&existing, fs::Permissions::from_mode(0o750)).unwrap();
+    let existing_inode = fs::metadata(&existing).unwrap().ino();
+    convert_path(&input, &existing, &ConvertOptions::default()).unwrap();
+    assert_eq!(fs::metadata(&existing).unwrap().ino(), existing_inode);
+    assert_eq!(
+        fs::metadata(&existing).unwrap().permissions().mode() & 0o777,
+        0o750
+    );
+}
+
 #[test]
 fn converts_minimal_pdf() {
     let temporary = TempDir::new().unwrap();
@@ -9583,6 +9631,7 @@ fn refuses_more_drawio_diagrams_than_the_page_limit_allows() {
     let temporary = TempDir::new().unwrap();
     let input = temporary.path().join("many.drawio");
     let output = temporary.path().join("out");
+    fs::create_dir(&output).unwrap();
     let mut body = String::from("<mxfile>");
     for index in 0..12 {
         body.push_str(&format!(
@@ -9599,6 +9648,19 @@ fn refuses_more_drawio_diagrams_than_the_page_limit_allows() {
     let error = convert_path(&input, &output, &options).unwrap_err();
 
     assert!(error.to_string().contains("maximum is 4"), "{error}");
+    assert_eq!(fs::read_dir(&output).unwrap().count(), 0);
+    assert_eq!(fs::read_dir(temporary.path()).unwrap().count(), 2);
+
+    let fresh_output = temporary.path().join("fresh");
+    assert!(convert_path(&input, &fresh_output, &options).is_err());
+    assert!(!fresh_output.exists());
+    assert_eq!(fs::read_dir(temporary.path()).unwrap().count(), 2);
+
+    let report = convert_path(&input, &output, &ConvertOptions::default()).unwrap();
+    assert_eq!(report.page_count, 12);
+    assert_eq!(report.output_directory, output.to_string_lossy());
+    assert!(output.join("conversion.json").exists());
+    assert_eq!(fs::read_dir(temporary.path()).unwrap().count(), 2);
 }
 
 #[test]

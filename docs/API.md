@@ -22,10 +22,13 @@ Everything runs on your own machine, in your own process. The Node.js package co
 
 The format is chosen from the file extension, with a look at the file's first bytes when the extension is missing or generic. The command exits with 0 on success, and with 1 and a message on standard error when conversion fails.
 
+Reverse accepts SVG folders for multipage Office, PDF, draw.io and HTML output; HTML becomes one gallery containing every page. PNG, WebP, DXF, G-code, Gerber, HP-GL, Excellon, STL, OBJ, PLY, 3MF, STEP, IGES, Gmsh, VTK, DOT, Mermaid, CSV, LaTeX, JSX, TSX, Vue, Svelte and Data URI output require exactly one SVG page. A multipage folder for those formats is rejected before output is written. Markdown tables and raw path data separate pages with blank lines and newlines.
+
 ```
 docsvg <INPUT> --output <FOLDER> [options]
 docsvg reverse <SVG or FOLDER> --output <FILE>
 docsvg transform <SVG or -> --output <SVG or -> [options]
+docsvg formats [QUERY] [--lang en|ja|zh] [--details]
 ```
 
 ### Convert: docsvg <INPUT> --output <FOLDER>
@@ -43,6 +46,7 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 | `--outline-embedded-pdf-text` | off | Draw embedded PDF fonts as shapes: looks exactly like the original, but the text can no longer be selected. Check that the font's license allows this. |
 | `--embed-drawio-source` | off | Keep the draw.io source inside each SVG so it can be turned back into an editable diagram. Roughly doubles the size. |
 | `--stencils PATH` | none | draw.io shape library files or folders to draw library shapes with. Without them, such shapes become labelled placeholders. |
+| `--json` | off | Write the complete conversion report as JSON to standard output. |
 
 ### Write back: docsvg reverse
 
@@ -51,6 +55,7 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 | `-o, --output FILE` | required | The file to create. Its extension picks the format: .pptx, .docx, .xlsx, .pdf, .drawio, .dxf, .gcode, .stl, .html, .webp and more. |
 | `--max-input-mib N` | 512 MiB | Largest total SVG input. |
 | `--max-pages N` | 10,000 | Most SVG pages read. |
+| `--json` | off | Write the complete reverse report as JSON to standard output. |
 
 ### Tidy up: docsvg transform
 
@@ -58,8 +63,8 @@ docsvg transform <SVG or -> --output <SVG or -> [options]
 |---|---|---|
 | `--minify` | off | Remove comments and extra spaces. |
 | `--monochrome COLOR` | off | Paint every fill and stroke in one colour, e.g. "#1e293b". |
-| `--responsive` | off | Drop the fixed size so the SVG scales to its container. |
-| `--precision N` | none | Round coordinates to N decimal places. |
+| `--responsive` | off | Drop fixed width and height so the SVG scales to its container. Requires an existing viewBox or positive absolute dimensions. |
+| `--precision N` | none | Round coordinates to N decimal places (0–12). |
 | `--remove-metadata` | off | Remove <metadata>, <desc> and data-* attributes. |
 | `--clean-paths` | off | Tidy path data (drop zero-length segments and duplicate closes). |
 | `--strip-empty-groups` | off | Remove groups that draw nothing. |
@@ -138,7 +143,7 @@ main().catch(console.error)
 |---|---|---|
 | `minify` | off | Remove comments and extra spaces. |
 | `monochrome` | off | Paint every fill and stroke in one colour, e.g. "#1e293b". |
-| `responsive` | off | Drop the fixed size so the SVG scales to its container. |
+| `responsive` | off | Drop fixed width and height so the SVG scales to its container. Requires an existing viewBox or positive absolute dimensions. |
 | `precision` | none | Round coordinates to N decimal places. |
 | `removeMetadata` | off | Remove <metadata>, <desc> and data-* attributes. |
 | `cleanPaths` | off | Tidy path data (drop zero-length segments and duplicate closes). |

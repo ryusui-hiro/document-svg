@@ -583,6 +583,8 @@ AASX (`.aasx`; content sniffing) is an OPC/ZIP package for Asset Administration 
 
 ## SVGからOpen XML / CAD / CAM / Plotterへの逆変換
 
+DXF、G-code、Gerber、HP-GL、Excellon、STL、OBJ、PLY、3MF、STEP、IGES、Gmsh、VTK、DOT、Mermaid、PNG、WebP、CSV、LaTeX、UIコンポーネント、Data URIはSVG 1ページを入力とします。複数ページのSVGフォルダを渡した場合、先頭ページだけを出力せず、書込み前に拒否します。Markdown表と生パスデータは複数ページの内容を空行または改行で区切ります。
+
 | 出力 | 対応 | 契約 |
 |---|---|---|
 | PPTX | 対応 | SVG 1件をスライド1枚のベクター画像として格納し、`mc:AlternateContent`へPNG fallbackを併設 |
@@ -597,24 +599,24 @@ AASX (`.aasx`; content sniffing) is an OPC/ZIP package for Asset Administration 
 | STL (.stl) | 対応 | SVGの閉じたベクター輪郭から2.5D厚み押し出し三角形メッシュを生成し、標準ASCII STLファイルを出力 |
 | OBJ (.obj) | 対応 | SVGのベクター輪郭から2.5D厚み押し出しポリゴンメッシュ（頂点 `v`、ポリゴン面 `f`）を生成し、Wavefront OBJファイルを出力 |
 | PLY (.ply) | 対応 | SVGのベクターパス・図形から2.5D厚み押し出しポリゴンメッシュを生成し、ASCII PLY形式で出力 |
-| 3MF (.3mf) | 対応 | SVGのベクター図形から2.5D厚み押し出し三角形メッシュを生成し、3MF OPC ZIPコンテナ（`3D/3dmodel.model`）として出力 |
+| 3MF (.3mf) | 対応 | 1ページのSVGベクター図形から2.5D厚み押し出し三角形メッシュを生成し、3MF OPC ZIPコンテナ（`3D/3dmodel.model`）として出力 |
 | STEP (.step / .stp) | 対応 | SVGの線分・矩形・円・パスから、ISO 10303-21 Part 21機械設計CADワイヤーフレームモデルを出力 |
 | IGES (.iges / .igs) | 対応 | SVGの線分・円弧・ポリラインから、ANSI/NIST IGES 5.3 80カラム固定レコードCAD図面を出力 |
 | Gmsh (.msh) | 対応 | SVGの閉領域から2D三角メッシュ節点・要素を生成し、Gmsh 2.2形式で出力 |
 | VTK (.vtk) | 対応 | SVGのポリゴンからLegacy VTK POLYDATAデータセットを出力 |
 | Graphviz DOT (.dot) | 対応 | SVGの図形と矢印コネクタから有向グラフDOT言語を抽出・再構成 |
 | Mermaid (.mmd) | 対応 | SVGの図形・テキストからMermaid flow/sequence構文を抽出・再構成 |
-| Markdown (.md) | 対応 | SVGテーブルのセル境界・テキストからMarkdownテーブル構文を抽出・再構成 |
-| Tabular CSV (.csv) | 対応 | SVGチャート・テーブルからカンマ区切り表形式データを復元 |
-| LaTeX Math / document preview (`.tex`, `.latex`) | standalone数式に加え、`\\documentclass`文書のtitle/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、入力ディレクトリ内のbounded PNG/JPEG `\\includegraphics`を組版。TeXは実行せず、`\\input`/`\\include`/bibliography、shell escape、外部URL、macro expansionは警告付きで省略し、figure floatと厳密な組版は近似。画像は共通ローダー（10,000 refs、8 MiB/image、32 MiB decoded bytes、40M pixels/image、100M total pixels、48 MiB data URI）の制限を適用。仕様: [CTAN graphicx](https://ctan.org/pkg/graphicx?lang=en), [LaTeX2e graphics reference](https://tug.ctan.org/info/latex2e-help-texinfo/latex2e.html) | SVG数式要素からLaTeX数式コードを逆アセンブル |
-| React JSX / TSX (.jsx / .tsx) | 対応 | SVG要素をクリーンなReactコンポーネントコード（JSX/TSX）としてトランスパイル |
-| Vue 3 (.vue) | 対応 | SVG要素をVue 3 Single File Component（`<template>`）としてトランスパイル |
-| Svelte (.svelte) | 対応 | SVG要素をSvelteコンポーネントコード（`<script>`, `<svg {...$$restProps}>`）としてトランスパイル |
-| SVG Path Data (.path / .icon) | 対応 | SVGから`<path d="...">`のベクターパスデータ文字列を抽出 |
-| Base64 Data URI (.datauri) | 対応 | 安全検査済みインライン埋め込み用Data URIを出力 |
-| Standalone HTML Viewer (.html / .htm) | 対応 | SVGをダークモード対応・中央配置のスタンドアロンなレスポンシブHTML5ビューアとして出力 |
-| Raster PNG (.png) | 対応 | 高解像度ラスタライズPNG画像を出力 |
-| Raster WebP (.webp) | 対応 | 高圧縮・高効率ラスタライズWebP画像を出力 |
+| Markdown (.md) | 対応 | SVGテーブルのセル境界・テキストからMarkdownテーブル構文を抽出・再構成。複数ページの表は空行で区切る |
+| Tabular CSV (.csv) | 対応 | SVG 1ページのチャート・テーブルからカンマ区切り表形式データを復元 |
+| LaTeX Math / document preview (`.tex`, `.latex`) | standalone数式に加え、`\\documentclass`文書のtitle/author/date、section、paragraph、list、verbatim/code、tabular、caption、inline math、入力ディレクトリ内のbounded PNG/JPEG `\\includegraphics`を組版。TeXは実行せず、`\\input`/`\\include`/bibliography、shell escape、外部URL、macro expansionは警告付きで省略し、figure floatと厳密な組版は近似。画像は共通ローダー（10,000 refs、8 MiB/image、32 MiB decoded bytes、40M pixels/image、100M total pixels、48 MiB data URI）の制限を適用。仕様: [CTAN graphicx](https://ctan.org/pkg/graphicx?lang=en), [LaTeX2e graphics reference](https://tug.ctan.org/info/latex2e-help-texinfo/latex2e.html) | SVG 1ページの数式要素からLaTeX数式コードを逆アセンブル |
+| React JSX / TSX (.jsx / .tsx) | 対応 | 1ページのSVG要素をクリーンなReactコンポーネントコード（JSX/TSX）としてトランスパイル |
+| Vue 3 (.vue) | 対応 | 1ページのSVG要素をVue 3 Single File Component（`<template>`）としてトランスパイル |
+| Svelte (.svelte) | 対応 | 1ページのSVG要素をSvelteコンポーネントコード（`<script>`, `<svg {...$$restProps}>`）としてトランスパイル |
+| SVG Path Data (.path / .icon) | 対応 | SVGから`<path d="...">`のベクターパスデータ文字列を抽出。複数ページは改行で区切る |
+| Base64 Data URI (.datauri) | 対応 | 1ページの安全検査済みSVGをインライン埋め込み用Data URIとして出力 |
+| Standalone HTML Viewer (.html / .htm) | 対応 | 1ページは中央配置のHTML5ビューア、複数ページのSVGフォルダは全ページを独立した画像として並べるHTMLギャラリーとして出力。どちらもダークモード対応 |
+| Raster PNG (.png) | 対応 | 1ページのSVGから高解像度ラスタライズPNG画像を出力 |
+| Raster WebP (.webp) | 対応 | 1ページのSVGから高圧縮・高効率ラスタライズWebP画像を出力 |
 | 元Office意味構造の復元 | 非対応 | 段落、表、セル、数式、グラフ、master等は再構築しない |
 | 元drawio図形の復元（sourceなし） | 非対応 | SVGを画像として持つだけで、shapeやedgeには戻らない |
 

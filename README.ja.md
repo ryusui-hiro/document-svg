@@ -75,7 +75,16 @@ Rust のAPIの説明は [docs.rs](https://docs.rs/document-svg) にあります�
 docsvg slides.pptx --output out/slides
 ```
 
-出力先には、新しいフォルダか空のフォルダを指定します。ページごとのSVGと、変換の記録が1つできます。
+対応形式と再現上の注意は、ネット接続なしでも端末から検索できます。
+
+```sh
+docsvg formats pdf --lang ja --details
+docsvg formats パワーポイント --lang ja
+```
+
+変換や `reverse` に `--json` を付けると、スクリプトや CI で読み取れる完全なレポートを標準出力へ出せます。
+
+出力先には、新しいフォルダか空のフォルダを指定します。ページごとのSVGと、変換の記録が1つできます。変換に失敗した場合、出力先は空のまま（新規なら未作成）なので、同じ場所で再実行できます。
 
 ```text
 out/slides/
@@ -165,6 +174,8 @@ docsvg reverse out/drawing --output drawing.dxf
 出力ファイルの拡張子で形式が決まります。PowerPoint、Word、Excel、PDF、draw.io、DXF、G-code、STL などに対応しています。
 戻るのはページの見た目です。段落、セル、数式、グラフまでは組み立て直しません。Wordで編集し直せるファイルに変換する機能ではない、と考えてください。
 
+SVGフォルダを `--output pages.html` に書き戻すと、全ページを1つのHTMLギャラリーで表示できます。PNG・WebP・CAD/CAM・3Dメッシュ・DOT/Mermaid・CSV・LaTeX・UIコンポーネント・Data URIは1ページ用なので、SVGファイルを1件指定してください。複数ページのMarkdown表と生パスデータは、ページ間をそれぞれ空行・改行で区切ります。
+
 draw.io の図だけは例外です。`--embed-drawio-source` を付けて変換しておくと、`reverse` で元の編集できる図に戻ります。
 
 ## 対応形式
@@ -246,7 +257,7 @@ jobs:
 ## 開発に参加する
 
 ```sh
-cargo test --workspace --locked
+./scripts/check-local.sh
 ```
 
 確認手順の全体は [CONTRIBUTING.md](CONTRIBUTING.md)、変換の仕組みは [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) にあります。

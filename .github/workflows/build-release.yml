@@ -162,7 +162,9 @@ jobs:
           manylinux: ${{ matrix.manylinux }}
           container: ${{ matrix.container }}
           working-directory: bindings/python
-          args: --release --locked --strip --compatibility pypi --out ../../dist/wheels -i ${{ matrix.interpreter }}
+          # The Python cdylib must keep its LINKEDIT string pool aligned on macOS arm64.
+          # Cargo.toml disables strip for this package; do not pass maturin --strip.
+          args: --release --locked --compatibility pypi --out ../../dist/wheels -i ${{ matrix.interpreter }}
       - name: Test Python wheel
         if: matrix.libc != 'musl'
         run: |
