@@ -12,6 +12,10 @@
 [![crates.io](https://img.shields.io/crates/v/document-svg?label=crates.io)](https://crates.io/crates/document-svg)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#license)
 
+> **[Explore the product showcase](https://document-svg-guide.genialzebra5.chatgpt.site/en/)** — See real conversion results, practical use cases and step-by-step setup guides.
+>
+> Available in [English](https://document-svg-guide.genialzebra5.chatgpt.site/en/), [日本語](https://document-svg-guide.genialzebra5.chatgpt.site/) and [简体中文](https://document-svg-guide.genialzebra5.chatgpt.site/zh/).
+
 document-svg turns documents, diagrams and technical drawings into ordinary
 SVG images, one per page. Any browser can show them, they stay sharp when you
 zoom in, and they drop into a web page like any other picture. Alongside the

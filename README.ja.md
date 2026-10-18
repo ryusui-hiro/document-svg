@@ -12,6 +12,10 @@
 [![crates.io](https://img.shields.io/crates/v/document-svg?label=crates.io)](https://crates.io/crates/document-svg)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue)](#ライセンス)
 
+> **[document-svgの紹介サイトを見る](https://document-svg-guide.genialzebra5.chatgpt.site/)** — 実際の変換例を大きく見ながら、仕事での便利な使い方から導入手順まで確認できます。
+>
+> [日本語](https://document-svg-guide.genialzebra5.chatgpt.site/)・[English](https://document-svg-guide.genialzebra5.chatgpt.site/en/)・[简体中文](https://document-svg-guide.genialzebra5.chatgpt.site/zh/)でご覧いただけます。
+
 document-svg は、文書や図、技術図面を、1ページ1枚のふつうのSVG画像に変換します。
 SVGはどのブラウザでも表示でき、拡大してもぼやけず、ほかの画像と同じようにWebページに貼れます。
 ページと一緒に短いレポートも出力し、そのまま再現できなかった部分を隠さず書き出します。
