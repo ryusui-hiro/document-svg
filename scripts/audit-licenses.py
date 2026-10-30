@@ -15,7 +15,7 @@ import subprocess
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
-JS_LICENSES = {'MIT', 'Apache-2.0', 'ISC', '0BSD', 'Python-2.0'}
+JS_LICENSES = {'MIT', 'Apache-2.0', 'ISC', '0BSD', 'Python-2.0', 'PSF-2.0'}
 PY_LICENSES = {'MIT', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0',
                'Apache-2.0 OR BSD-2-Clause', 'MIT OR Apache-2.0'}
 AFM_REVISION = '0675784d24b28a55c607cad6b74596ce19ce333c'
