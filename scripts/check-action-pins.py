@@ -4,6 +4,8 @@ GitHub refuses a run whose actions are outside the repository's "Allow select
 actions" list before any job starts. That startup failure is not reported as a
 pull request check, so a Dependabot bump to an unlisted SHA looks green until it
 reaches main. This script makes that mismatch fail the publication check instead.
+It also fails on allowlist entries no workflow uses, so a bump replaces the old
+pin rather than leaving it allowed.
 
 Pass --remote to also compare .github/allowed-actions.txt with the live
 repository setting through the GitHub CLI (needs repository admin access).
@@ -54,6 +56,9 @@ def main():
             elif action not in allowed:
                 errors.append(f'{relative}:{number}: {action} is not in .github/allowed-actions.txt; '
                               'add it to the repository Actions allowlist and to that file')
+    for pattern in sorted(allowed - used):
+        errors.append(f'{pattern} is in .github/allowed-actions.txt but no workflow uses it; '
+                      'remove it from that file and from the repository Actions allowlist')
     if args.remote:
         repository = subprocess.check_output(
             ['gh', 'repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'],

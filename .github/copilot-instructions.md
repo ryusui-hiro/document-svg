@@ -63,7 +63,8 @@ These are correctness requirements, not style preferences.
   are not already tracked.
 - Keep GitHub Actions pinned by commit SHA, matching the existing workflows.
 - A new or bumped action SHA must also be added to the repository's Actions allowlist and to
-  `.github/allowed-actions.txt`; otherwise GitHub refuses the run at startup.
+  `.github/allowed-actions.txt`; otherwise GitHub refuses the run at startup. Remove the
+  pin it replaces from both as well: the publication check fails on unused entries.
 
 ## Using docsvg from your own workflow
 
